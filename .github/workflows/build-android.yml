@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
@@ -21,7 +22,7 @@ jobs:
           python-version: "3.11"
 
       - name: Setup Java
-        uses: actions/setup-java@7a7e8c5c5d8f8b0b6f8c3c0f9b6f3d4c9f3f3a8b
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
@@ -30,29 +31,53 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+
           sudo apt-get update
-          sudo apt-get install -y git zip unzip wget curl autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev build-essential
+
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            wget \
+            curl \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libffi-dev \
+            libssl-dev \
+            build-essential
 
       - name: Install Build tools
         shell: bash
         run: |
           set -euxo pipefail
+
           python -m pip install --upgrade pip
-          pip install "cython==0.29.36" "buildozer==1.5.0"
+
+          pip install \
+            "cython==0.29.36" \
+            "buildozer==1.5.0"
+
           python --version
           buildozer --version
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        uses: android-actions/setup-android@v3
 
       - name: Install Android SDK packages
         shell: bash
         run: |
           set -euxo pipefail
+
           SDK="$ANDROID_SDK_ROOT"
           SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+
           test -x "$SDKMANAGER"
+
           yes | "$SDKMANAGER" --licenses || true
+
           "$SDKMANAGER" platform-tools
           "$SDKMANAGER" "platforms;android-35"
           "$SDKMANAGER" "build-tools;35.0.0"
@@ -62,8 +87,11 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+
           NDK="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+
           test -d "$NDK"
+
           echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
 
@@ -71,6 +99,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+
           buildozer -v android debug
 
       - name: Upload APK
@@ -80,4 +109,4 @@ jobs:
           name: Frahoosh-APK
           path: bin/*.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 14       
