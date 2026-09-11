@@ -18,7 +18,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10.13"
+          python-version: "3.11.16"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -41,13 +41,8 @@ jobs:
           set -euxo pipefail
           python -m pip install --upgrade pip
           pip install "cython==0.29.36" "buildozer==1.5.0"
-          # Buildozer 1.5 otherwise pulls a moving python-for-android version.
-          # Pin the known stable P4A release from before Python 3.14 became the default.
-          pip install --force-reinstall "python-for-android==2023.09.16"
-          python - <<'PY'
-          import pythonforandroid
-          print("python-for-android:", getattr(pythonforandroid, "__version__", "2024.01.21"))
-          PY
+          python --version
+          buildozer --version
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -136,7 +131,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          python -m compileall -q mobile
+          python -m compileall -q mobile main.py
 
       - name: Validate Android project
         shell: bash
@@ -159,7 +154,9 @@ jobs:
           test -f buildozer.spec
           grep -q '^android.ndk = 25c$' buildozer.spec
           grep -q '^android.api = 35$' buildozer.spec
-          grep -q '^android.ndk_api = 23$' buildozer.spec
+          grep -q '^android.minapi = 24$' buildozer.spec
+          grep -q '^android.ndk_api = 24$' buildozer.spec
+          grep -q 'python3==3.11.10' buildozer.spec
           buildozer --version
 
       - name: Clean Buildozer cache
@@ -180,7 +177,6 @@ jobs:
           echo "ANDROID NDK: $ANDROID_NDK_HOME"
           echo "PYTHON: $(python --version)"
           echo "BUILDOZER: $(buildozer --version)"
-          echo "P4A: $(python -m pip show python-for-android | grep -E '^(Name|Version):' || true)"
           buildozer -v android debug
           echo "BUILD FINISHED."
 
