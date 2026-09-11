@@ -16,7 +16,7 @@ fullscreen = 0
 
 android.api = 35
 android.minapi = 24
-android.ndk = 25c
+android.ndk = 28.2.13676358
 android.ndk_api = 24
 
 android.archs = arm64-v8a, armeabi-v7a
@@ -24,11 +24,6 @@ android.archs = arm64-v8a, armeabi-v7a
 android.accept_sdk_license = True
 android.permissions = INTERNET
 android.private_storage = True
-
-# Pin python-for-android to the exact revision used by the last known green APK build.
-p4a.fork = kivy
-p4a.branch = develop
-p4a.commit = 5865575
 
 [buildozer]
 log_level = 2
