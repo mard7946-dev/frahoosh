@@ -157,6 +157,10 @@ jobs:
           grep -q '^android.minapi = 24$' buildozer.spec
           grep -q '^android.ndk_api = 24$' buildozer.spec
           grep -q 'python3==3.11.10' buildozer.spec
+          grep -q '^p4a.fork = kivy$' buildozer.spec
+          grep -q '^p4a.branch = develop$' buildozer.spec
+          grep -q '^p4a.commit = 5865575$' buildozer.spec
+          echo "Using known-green p4a revision: 5865575"
           buildozer --version
 
       - name: Clean Buildozer cache
