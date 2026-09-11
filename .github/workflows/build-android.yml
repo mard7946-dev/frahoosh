@@ -41,6 +41,13 @@ jobs:
           set -euxo pipefail
           python -m pip install --upgrade pip
           pip install "cython==0.29.36" "buildozer==1.5.0"
+          # Buildozer 1.5 otherwise pulls a moving python-for-android version.
+          # Pin the known stable P4A release from before Python 3.14 became the default.
+          pip install --force-reinstall "python-for-android==2024.01.21"
+          python - <<'PY'
+          import pythonforandroid
+          print("python-for-android:", getattr(pythonforandroid, "__version__", "2024.01.21"))
+          PY
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -173,6 +180,7 @@ jobs:
           echo "ANDROID NDK: $ANDROID_NDK_HOME"
           echo "PYTHON: $(python --version)"
           echo "BUILDOZER: $(buildozer --version)"
+          echo "P4A: $(python -m pip show python-for-android | grep -E '^(Name|Version):' || true)"
           buildozer -v android debug
           echo "BUILD FINISHED."
 
