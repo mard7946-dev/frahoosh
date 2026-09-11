@@ -25,6 +25,11 @@ android.accept_sdk_license = True
 android.permissions = INTERNET
 android.private_storage = True
 
+# Pin python-for-android to the exact revision used by the last known green APK build.
+p4a.fork = kivy
+p4a.branch = develop
+p4a.commit = 5865575
+
 [buildozer]
 log_level = 2
 warn_on_root = 1
