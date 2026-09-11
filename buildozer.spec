@@ -9,7 +9,7 @@ source.include_exts = py,png,jpg,jpeg,kv,atlas,ttf,json
 
 version = 1.2.0
 
-requirements = python3,kivy,requests,urllib3,arabic-reshaper,python-bidi
+requirements = python3==3.10.11,hostpython3==3.10.11,kivy,requests,urllib3,arabic-reshaper,python-bidi
 
 orientation = portrait
 
