@@ -43,7 +43,7 @@ jobs:
           pip install "cython==0.29.36" "buildozer==1.5.0"
           # Buildozer 1.5 otherwise pulls a moving python-for-android version.
           # Pin the known stable P4A release from before Python 3.14 became the default.
-          pip install --force-reinstall "python-for-android==2024.01.21"
+          pip install --force-reinstall "python-for-android==2023.09.16"
           python - <<'PY'
           import pythonforandroid
           print("python-for-android:", getattr(pythonforandroid, "__version__", "2024.01.21"))
