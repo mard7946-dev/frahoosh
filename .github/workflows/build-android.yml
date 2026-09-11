@@ -83,7 +83,7 @@ jobs:
           "$SDKMANAGER" "build-tools;35.0.0"
           "$SDKMANAGER" "ndk;28.2.13676358"
 
-      - name: Configure Android NDK environment
+      - name: Configure Android environment
         shell: bash
         run: |
           set -euxo pipefail
@@ -95,10 +95,25 @@ jobs:
           echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
 
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+
+      - name: Prepare Buildozer
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          buildozer android clean || true
+
       - name: Build APK
         shell: bash
         run: |
           set -euxo pipefail
+
+          export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+          export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+
+          echo "NDK PATH:"
+          ls -la "$ANDROID_NDK_HOME"
 
           buildozer -v android debug
 
@@ -109,4 +124,4 @@ jobs:
           name: Frahoosh-APK
           path: bin/*.apk
           if-no-files-found: error
-          retention-days: 14       
+          retention-days: 14
