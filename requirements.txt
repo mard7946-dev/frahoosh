@@ -1,5 +1,5 @@
-kivy==2.3.1
-requests==2.32.3
+kivy
+requests
 urllib3
-arabic-reshaper==3.0.1
-python-bidi==0.6.6
+arabic-reshaper
+python-bidi
