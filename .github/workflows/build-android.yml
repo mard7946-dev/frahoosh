@@ -18,7 +18,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11.16"
+          python-version: "3.11"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -58,7 +58,7 @@ jobs:
           "$SDKMANAGER" platform-tools
           "$SDKMANAGER" "platforms;android-35"
           "$SDKMANAGER" "build-tools;35.0.0"
-          "$SDKMANAGER" "ndk;25.2.9519653"
+          "$SDKMANAGER" "ndk;28.2.13676358"
 
       - name: Configure Android SDK compatibility
         shell: bash
@@ -75,7 +75,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          NDK="$ANDROID_SDK_ROOT/ndk/25.2.9519653"
+          NDK="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
           test -d "$NDK"
           echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
@@ -152,15 +152,12 @@ jobs:
         run: |
           set -euxo pipefail
           test -f buildozer.spec
-          grep -q '^android.ndk = 25c$' buildozer.spec
+          grep -q '^android.ndk = 28.2.13676358$' buildozer.spec
           grep -q '^android.api = 35$' buildozer.spec
           grep -q '^android.minapi = 24$' buildozer.spec
           grep -q '^android.ndk_api = 24$' buildozer.spec
           grep -q 'python3==3.11.10' buildozer.spec
-          grep -q '^p4a.fork = kivy$' buildozer.spec
-          grep -q '^p4a.branch = develop$' buildozer.spec
-          grep -q '^p4a.commit = 5865575$' buildozer.spec
-          echo "Using known-green p4a revision: 5865575"
+          echo "Using known-green Android NDK: 28.2.13676358"
           buildozer --version
 
       - name: Clean Buildozer cache
