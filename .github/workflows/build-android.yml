@@ -1,0 +1,402 @@
+name: Frahoosh Android Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build Frahoosh APK
+    runs-on: ubuntu-22.04
+
+    steps:
+
+      # ---------------------------------------------------------
+      # 1. Checkout
+      # ---------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      # ---------------------------------------------------------
+      # 2. Python
+      # ---------------------------------------------------------
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+
+      # ---------------------------------------------------------
+      # 3. Java
+      # ---------------------------------------------------------
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+
+      # ---------------------------------------------------------
+      # 4. Linux dependencies
+      # ---------------------------------------------------------
+      - name: Install system dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            wget \
+            curl \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libffi-dev \
+            libssl-dev \
+            build-essential
+
+
+      # ---------------------------------------------------------
+      # 5. Build tools
+      # ---------------------------------------------------------
+      - name: Install Build tools
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          python -m pip install --upgrade pip
+
+          pip install \
+            "cython==0.29.36" \
+            "buildozer==1.5.0"
+
+
+      # ---------------------------------------------------------
+      # 6. Android SDK
+      # ---------------------------------------------------------
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+
+      # ---------------------------------------------------------
+      # 7. Android SDK packages
+      # ---------------------------------------------------------
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          SDK="$ANDROID_SDK_ROOT"
+
+          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+
+          test -x "$SDKMANAGER"
+
+          yes | "$SDKMANAGER" --licenses || true
+
+          "$SDKMANAGER" platform-tools
+
+          "$SDKMANAGER" "platforms;android-35"
+
+          "$SDKMANAGER" "build-tools;35.0.0"
+
+          "$SDKMANAGER" "ndk;28.2.13676358"
+
+
+      # ---------------------------------------------------------
+      # 8. Buildozer SDK compatibility
+      # ---------------------------------------------------------
+      - name: Configure Android SDK compatibility
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          SDK="$ANDROID_SDK_ROOT"
+
+          echo "Fixing old Buildozer sdkmanager path"
+
+          rm -rf "$SDK/tools"
+
+          mkdir -p "$SDK/tools/bin"
+
+          ln -sf \
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+            "$SDK/tools/bin/sdkmanager"
+
+          test -x "$SDK/tools/bin/sdkmanager"
+
+          echo "SDK Manager version:"
+
+          "$SDK/tools/bin/sdkmanager" --version
+
+
+      # ---------------------------------------------------------
+      # 9. Create Supabase runtime configuration
+      # ---------------------------------------------------------
+      - name: Create Supabase runtime config
+        shell: bash
+        env:
+          FRAHOOSH_SUPABASE_URL: ${{ secrets.FRAHOOSH_SUPABASE_URL }}
+          FRAHOOSH_SUPABASE_ANON_KEY: ${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          url = os.environ.get(
+              "FRAHOOSH_SUPABASE_URL",
+              ""
+          ).strip()
+
+          key = os.environ.get(
+              "FRAHOOSH_SUPABASE_ANON_KEY",
+              ""
+          ).strip()
+
+          if not url:
+              raise SystemExit(
+                  "ERROR: FRAHOOSH_SUPABASE_URL secret is missing"
+              )
+
+          if not key:
+              raise SystemExit(
+                  "ERROR: FRAHOOSH_SUPABASE_ANON_KEY secret is missing"
+              )
+
+          path = Path(
+              "mobile/runtime_config.json"
+          )
+
+          path.write_text(
+              json.dumps(
+                  {
+                      "FRAHOOSH_SUPABASE_URL": url,
+                      "FRAHOOSH_SUPABASE_ANON_KEY": key
+                  },
+                  ensure_ascii=False,
+                  indent=2
+              ),
+              encoding="utf-8"
+          )
+
+          print(
+              "Supabase runtime configuration created."
+          )
+          PY
+
+          test -s mobile/runtime_config.json
+
+
+      # ---------------------------------------------------------
+      # 10. Validate runtime configuration
+      # ---------------------------------------------------------
+      - name: Validate runtime configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f mobile/runtime_config.json
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path(
+              "mobile/runtime_config.json"
+          )
+
+          data = json.loads(
+              path.read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          url = str(
+              data.get(
+                  "FRAHOOSH_SUPABASE_URL",
+                  ""
+              )
+          ).strip()
+
+          key = str(
+              data.get(
+                  "FRAHOOSH_SUPABASE_ANON_KEY",
+                  ""
+              )
+          ).strip()
+
+          if not url:
+              raise SystemExit(
+                  "ERROR: Supabase URL is empty"
+              )
+
+          if not key:
+              raise SystemExit(
+                  "ERROR: Supabase anon key is empty"
+              )
+
+          if not url.startswith(
+              "https://"
+          ):
+              raise SystemExit(
+                  "ERROR: Invalid Supabase URL"
+              )
+
+          print(
+              "Supabase runtime configuration is valid."
+          )
+          PY
+
+
+      # ---------------------------------------------------------
+      # 11. Validate Python source
+      # ---------------------------------------------------------
+      - name: Validate Python source
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          python -m compileall -q mobile
+
+
+      # ---------------------------------------------------------
+      # 12. Check important files
+      # ---------------------------------------------------------
+      - name: Validate Android project
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          test -f buildozer.spec
+
+          test -f main.py
+
+          test -f mobile/config.py
+
+          test -f mobile/services/api.py
+
+          test -f mobile/services/app_state.py
+
+          test -f mobile/screens/login.py
+
+          test -f mobile/screens/dashboard.py
+
+          test -f mobile/screens/module.py
+
+          echo "Android project files validated."
+
+
+      # ---------------------------------------------------------
+      # 13. Prepare Buildozer
+      # ---------------------------------------------------------
+      - name: Prepare Buildozer
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          test -f buildozer.spec
+
+          buildozer --version
+
+
+      # ---------------------------------------------------------
+      # 14. Clean old build cache
+      # ---------------------------------------------------------
+      - name: Clean Buildozer cache
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          rm -rf bin
+
+          mkdir -p bin
+
+
+      # ---------------------------------------------------------
+      # 15. Build APK
+      # ---------------------------------------------------------
+      - name: Build APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          echo "========================================"
+          echo "       BUILD FRAHOOSH ANDROID APK"
+          echo "========================================"
+
+          echo ""
+
+          echo "ANDROID SDK:"
+          echo "$ANDROID_SDK_ROOT"
+
+          echo ""
+
+          echo "BUILDOSER:"
+          buildozer --version
+
+          echo ""
+
+          echo "BUILD STARTED..."
+
+          buildozer android debug
+
+          echo ""
+
+          echo "BUILD FINISHED."
+
+
+      # ---------------------------------------------------------
+      # 16. Verify APK
+      # ---------------------------------------------------------
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          echo "Checking APK output..."
+
+          ls -lah bin/
+
+          APK_COUNT=$(find bin -maxdepth 1 -type f -name "*.apk" | wc -l)
+
+          if [ "$APK_COUNT" -lt 1 ]; then
+            echo "ERROR: No APK was produced."
+            exit 1
+          fi
+
+          echo ""
+
+          echo "APK SUCCESSFULLY CREATED."
+
+          find bin \
+            -maxdepth 1 \
+            -type f \
+            -name "*.apk" \
+            -print
+
+
+      # ---------------------------------------------------------
+      # 17. Upload APK artifact
+      # ---------------------------------------------------------
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Frahoosh-APK
+          path: bin/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+             
