@@ -25,9 +25,6 @@ class FrahooshApp(App):
             transition=FadeTransition(duration=0.15)
         )
 
-        # IMPORTANT: AppState is deliberately imported/created after the
-        # Kivy window and login screen are ready. A network/config/session
-        # problem must never prevent the login page from appearing.
         try:
             from mobile.services.app_state import AppState
             self.app_state = AppState()
@@ -43,8 +40,6 @@ class FrahooshApp(App):
         )
 
         self.sm.current = "login"
-
-        # Keep startup on login even if an old saved session exists.
         Clock.schedule_once(self._startup_check, 0)
         return self.sm
 
@@ -64,7 +59,6 @@ class FrahooshApp(App):
             pass
 
         from mobile.screens.dashboard import DashboardScreen
-
         dashboard = DashboardScreen(
             name="dashboard",
             app_state=self.app_state,
@@ -72,39 +66,44 @@ class FrahooshApp(App):
         self.sm.add_widget(dashboard)
         return dashboard
 
-    def ensure_school(self):
+    def ensure_module(self):
         if self.sm is None:
             return None
 
         try:
-            return self.sm.get_screen("school")
+            return self.sm.get_screen("module")
         except Exception:
             pass
 
-        from mobile.screens.school import SchoolScreen
-
-        screen = SchoolScreen(
-            name="school",
+        from mobile.screens.module import ModuleScreen
+        module = ModuleScreen(
+            name="module",
             app_state=self.app_state,
         )
+        self.sm.add_widget(module)
+        return module
+
+    def ensure_school(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("school")
+        except Exception:
+            pass
+        from mobile.screens.school import SchoolScreen
+        screen = SchoolScreen(name="school", app_state=self.app_state)
         self.sm.add_widget(screen)
         return screen
 
     def ensure_update(self):
         if self.sm is None:
             return None
-
         try:
             return self.sm.get_screen("update")
         except Exception:
             pass
-
         from mobile.screens.update import UpdateScreen
-
-        screen = UpdateScreen(
-            name="update",
-            app_state=self.app_state,
-        )
+        screen = UpdateScreen(name="update", app_state=self.app_state)
         self.sm.add_widget(screen)
         return screen
 
@@ -113,6 +112,10 @@ class FrahooshApp(App):
             dashboard = self.ensure_dashboard()
             if dashboard is None:
                 raise RuntimeError("مدیریت صفحات آماده نیست.")
+
+            # ModuleScreen is required by the dashboard drawer. Create it
+            # before switching so every menu item can actually open.
+            self.ensure_module()
 
             if hasattr(dashboard, "refresh"):
                 dashboard.refresh()
