@@ -2,9 +2,6 @@ import json
 import os
 from pathlib import Path
 
-# -------------------------------------------------
-# Frahoosh application constants
-# -------------------------------------------------
 APP_NAME = "فراهوش"
 SYSTEM_TITLE = "سامانه هوشمند آموزشی یکپارچه مدرسه"
 SCHOOL_NAME = "دبیرستان سردار شهید حاجی‌زاده ۲"
@@ -21,15 +18,13 @@ BASE_DIR = Path(__file__).resolve().parent
 ASSETS_DIR = BASE_DIR / "assets"
 FONT_REGULAR = ASSETS_DIR / "NotoSansArabic-Regular.ttf"
 FONT_BOLD = ASSETS_DIR / "NotoSansArabic-Bold.ttf"
+# The current repository does not contain a background image. Keep this
+# optional so Dashboard can always be imported and displayed.
+BACKGROUND_PATH = ""
 
 API_TIMEOUT = 15
 
-# -------------------------------------------------
-# Runtime configuration
-# The GitHub Actions workflow writes this file when
-# building the APK. Environment variables are accepted
-# as a fallback for local development.
-# -------------------------------------------------
+
 def _load_runtime_config():
     candidates = [
         BASE_DIR / "runtime_config.json",
