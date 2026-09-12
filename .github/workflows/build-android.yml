@@ -93,6 +93,22 @@ jobs:
           echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
 
+      - name: Create runtime config
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          cat > mobile/runtime_config.json <<EOF
+          {
+            "supabase_url": "${{ secrets.FRAHOOSH_SUPABASE_URL }}",
+            "supabase_anon_key": "${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}",
+            "school_id": "${{ secrets.FRAHOOSH_SCHOOL_ID }}",
+            "school_year": "${{ secrets.FRAHOOSH_SCHOOL_YEAR }}"
+          }
+          EOF
+
+          cat mobile/runtime_config.json
+
       - name: Build APK
         shell: bash
         run: |
