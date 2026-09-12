@@ -108,19 +108,24 @@ class FrahooshApp(App):
         return screen
 
     def open_dashboard(self):
+        """Open the dashboard without making optional menu screens a prerequisite."""
         try:
             dashboard = self.ensure_dashboard()
             if dashboard is None:
                 raise RuntimeError("مدیریت صفحات آماده نیست.")
 
-            # ModuleScreen is required by the dashboard drawer. Create it
-            # before switching so every menu item can actually open.
-            self.ensure_module()
-
-            if hasattr(dashboard, "refresh"):
-                dashboard.refresh()
-
+            # The dashboard itself must never be blocked by another screen.
+            # ModuleScreen is created lazily when the user actually opens it.
             self.sm.current = "dashboard"
+
+            # Refresh after the screen is visible. A data/menu refresh error
+            # must not send the user back to the login screen.
+            try:
+                if hasattr(dashboard, "refresh"):
+                    dashboard.refresh()
+            except Exception as exc:
+                print("DASHBOARD REFRESH ERROR:", repr(exc))
+
             return True
         except Exception as exc:
             print("DASHBOARD OPEN ERROR:", repr(exc))
