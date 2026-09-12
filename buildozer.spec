@@ -4,7 +4,8 @@ title = Frahoosh
 package.name = frahooshmobile
 package.domain = ir.frahoosh
 
-source.dir = mobile
+# main.py is at repository root; the app imports the mobile package from there.
+source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,ttf,json
 
 version = 1.2.0
