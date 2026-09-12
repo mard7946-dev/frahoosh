@@ -1,8 +1,8 @@
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager, FadeTransition
 
-from mobile.services.app_state import AppState
 from mobile.screens.login import LoginScreen
 
 
@@ -21,19 +21,20 @@ class FrahooshApp(App):
         except Exception:
             pass
 
-        try:
-            self.app_state = AppState()
-        except Exception as exc:
-            print("APP STATE INIT ERROR:", repr(exc))
-            self.app_state = None
-
         self.sm = ScreenManager(
             transition=FadeTransition(duration=0.15)
         )
 
-        # IMPORTANT: build only the login screen at startup.
-        # Other screens are loaded lazily after successful login so a
-        # dashboard/module import error can never prevent the login page.
+        # IMPORTANT: AppState is deliberately imported/created after the
+        # Kivy window and login screen are ready. A network/config/session
+        # problem must never prevent the login page from appearing.
+        try:
+            from mobile.services.app_state import AppState
+            self.app_state = AppState()
+        except Exception as exc:
+            print("APP STATE STARTUP ERROR:", repr(exc))
+            self.app_state = None
+
         self.sm.add_widget(
             LoginScreen(
                 name="login",
@@ -42,15 +43,23 @@ class FrahooshApp(App):
         )
 
         self.sm.current = "login"
+
+        # Keep startup on login even if an old saved session exists.
+        Clock.schedule_once(self._startup_check, 0)
         return self.sm
+
+    def _startup_check(self, *_):
+        try:
+            self.sm.current = "login"
+        except Exception as exc:
+            print("LOGIN SCREEN START ERROR:", repr(exc))
 
     def ensure_dashboard(self):
         if self.sm is None:
             return None
 
         try:
-            dashboard = self.sm.get_screen("dashboard")
-            return dashboard
+            return self.sm.get_screen("dashboard")
         except Exception:
             pass
 
