@@ -95,19 +95,39 @@ jobs:
 
       - name: Create runtime config
         shell: bash
+        env:
+          FRAHOOSH_SUPABASE_URL: ${{ secrets.FRAHOOSH_SUPABASE_URL }}
+          FRAHOOSH_SUPABASE_ANON_KEY: ${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}
+          FRAHOOSH_SCHOOL_ID: ${{ secrets.FRAHOOSH_SCHOOL_ID }}
+          FRAHOOSH_SCHOOL_YEAR: ${{ secrets.FRAHOOSH_SCHOOL_YEAR }}
         run: |
-          set -euxo pipefail
+          set -euo pipefail
 
-          cat > mobile/runtime_config.json <<EOF
-          {
-            "supabase_url": "${{ secrets.FRAHOOSH_SUPABASE_URL }}",
-            "supabase_anon_key": "${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}",
-            "school_id": "${{ secrets.FRAHOOSH_SCHOOL_ID }}",
-            "school_year": "${{ secrets.FRAHOOSH_SCHOOL_YEAR }}"
+          test -n "$FRAHOOSH_SUPABASE_URL"
+          test -n "$FRAHOOSH_SUPABASE_ANON_KEY"
+
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          config = {
+              "supabase_url": os.environ["FRAHOOSH_SUPABASE_URL"],
+              "supabase_anon_key": os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
+              "school_id": os.environ.get("FRAHOOSH_SCHOOL_ID", ""),
+              "school_year": os.environ.get("FRAHOOSH_SCHOOL_YEAR", ""),
           }
-          EOF
 
-          cat mobile/runtime_config.json
+          path = Path("mobile/runtime_config.json")
+          path.write_text(
+              json.dumps(config, ensure_ascii=False, indent=2),
+              encoding="utf-8",
+          )
+
+          print("runtime_config.json created successfully")
+          PY
+
+          test -s mobile/runtime_config.json
 
       - name: Build APK
         shell: bash
