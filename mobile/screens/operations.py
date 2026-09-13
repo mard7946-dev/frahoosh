@@ -33,7 +33,7 @@ class OperationsScreen(Screen):
         self.status=Label(text="",font_name=font_name(),font_size="12sp",color=SECONDARY,halign="right",valign="middle",size_hint_y=None,height=dp(42)); self.status.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(self.status)
         scroll=ScrollView(do_scroll_x=False); self.body=BoxLayout(orientation="vertical",spacing=dp(9),padding=dp(4),size_hint_y=None); self.body.bind(minimum_height=self.body.setter("height")); scroll.add_widget(self.body); root.add_widget(scroll); self.add_widget(root)
     def set_route(self,route):
-        self.route=route; self.body.clear_widgets(); self.title.text=rtl_text({"payment":"پرداخت آنلاین","messages":"صندوق پیام‌ها","online":"کلاس‌های آنلاین"}.get(route,APP_NAME));
+        self.route=route; self.body.clear_widgets(); self.title.text=rtl_text({"payment":"پرداخت آنلاین","messages":"صندوق پیام‌ها","online":"کلاس‌های آنلاین"}.get(route,APP_NAME))
         if route=="payment":self._payment()
         elif route=="online":self._online()
         else:self._messages()
@@ -46,26 +46,20 @@ class OperationsScreen(Screen):
         else:self._payment_user()
     def _payment_management(self):
         self._label("مدیریت گزینه‌های پرداخت\nگزینه‌ها در payment_offers ذخیره می‌شوند و مبلغ را خود سامانه تعیین می‌کند.",height=82)
-        title=self._field("عنوان پرداخت؛ مثال شهریه مهر")
-        reason=self._field("علت پرداخت؛ اختیاری")
-        amount=self._field("مبلغ به ریال")
-        self._button("ثبت گزینه پرداخت",lambda *_:self._save_offer(title,reason,amount),SUCCESS)
-        self._button("بازخوانی گزینه‌ها",lambda *_:self.set_route("payment"))
-        self._load_offers(management=True)
+        title=self._field("عنوان پرداخت؛ مثال شهریه مهر"); reason=self._field("علت پرداخت؛ اختیاری"); amount=self._field("مبلغ به ریال")
+        self._button("ثبت گزینه پرداخت",lambda *_:self._save_offer(title,reason,amount),SUCCESS); self._button("بازخوانی گزینه‌ها",lambda *_:self.set_route("payment")); self._load_offers()
     def _save_offer(self,title,reason,amount):
         try:a=int(digits(amount.text).replace(",","") or 0)
         except Exception:return self._error("مبلغ باید عدد باشد.")
         if a<=0 or not title.text.strip():return self._error("عنوان و مبلغ الزامی است.")
         try:
-            self.app_state.api.table_insert("payment_offers",{"title":title.text.strip(),"amount":a,"target_type":"school","target_value":SCHOOL_ID,"description":reason.text.strip(),"active":1,"manual_amount":0,"payment_reason":reason.text.strip(),"gateway_enabled":True})
-            self._success("گزینه پرداخت در سامانه ثبت شد.")
+            self.app_state.api.table_insert("payment_offers",{"title":title.text.strip(),"amount":a,"target_type":"school","target_value":SCHOOL_ID,"description":reason.text.strip(),"active":1,"manual_amount":0,"payment_reason":reason.text.strip(),"gateway_enabled":True}); self._success("گزینه پرداخت در سامانه ثبت شد.")
         except Exception as exc:self._error("ثبت گزینه پرداخت انجام نشد: "+str(exc))
-    def _load_offers(self,management=False):
-        try:
-            rows=self.app_state.api.table_select("payment_offers",{"active":"eq.1","order":"id.desc","limit":"50"})
-            for r in rows:self._label(f"{r.get('title','پرداخت')}\nمبلغ: {r.get('amount',0)} ریال\n{r.get('payment_reason') or r.get('description') or ''}",height=78)
-            if not rows:self._label("هنوز گزینه پرداخت فعالی ثبت نشده است.",height=60)
-        except Exception as exc:self._error("خواندن گزینه‌های پرداخت انجام نشد: "+str(exc))
+    def _load_offers(self):
+        try:rows=self.app_state.api.table_select("payment_offers",{"active":"eq.1","order":"id.desc","limit":"50"})
+        except Exception as exc:return self._error("خواندن گزینه‌های پرداخت انجام نشد: "+str(exc))
+        for r in rows:self._label(f"{r.get('title','پرداخت')}\nمبلغ: {r.get('amount',0)} ریال\n{r.get('payment_reason') or r.get('description') or ''}",height=78)
+        if not rows:self._label("هنوز گزینه پرداخت فعالی ثبت نشده است.",height=60)
     def _student_id(self):
         p=getattr(self.app_state,"profile",{}) or {}; nc=digits(p.get("national_code") or getattr(self.app_state,"national_code","") or ""); email=str(p.get("email") or "")
         try:
@@ -79,26 +73,20 @@ class OperationsScreen(Screen):
         for r in rows:
             text=f"{r.get('title','پرداخت')} — {r.get('amount',0)} ریال"; values.append(text); by_title[text]=r
         if not values:self._label("در حال حاضر گزینه پرداخت فعالی وجود ندارد.",height=60); return
-        sp=Spinner(text=values[0],values=values,size_hint_y=None,height=dp(50)); self.body.add_widget(sp)
-        self._button("ایجاد درخواست پرداخت",lambda *_:self._start_payment(by_title.get(sp.text)),SUCCESS)
-        self._button("مشاهده سوابق پرداخت",lambda *_:self._history())
+        sp=Spinner(text=values[0],values=values,size_hint_y=None,height=dp(50)); self.body.add_widget(sp); self._button("ایجاد درخواست پرداخت",lambda *_:self._start_payment(by_title.get(sp.text)),SUCCESS); self._button("مشاهده سوابق پرداخت",lambda *_:self._history())
     def _start_payment(self,offer):
         if not offer:return self._error("گزینه پرداخت انتخاب نشده است.")
         sid=self._student_id()
         if not sid:return self._error("پرونده دانش‌آموز در سامانه پیدا نشد.")
         try:
-            attempt=self.app_state.api.rpc("create_payment_attempt",{"p_offer_id":int(offer["id"]),"p_student_id":sid}); row=attempt if isinstance(attempt,dict) else (attempt[0] if attempt else {})
-            aid=row.get("id")
+            attempt=self.app_state.api.rpc("create_payment_attempt",{"p_offer_id":int(offer["id"]),"p_student_id":sid}); row=attempt if isinstance(attempt,dict) else (attempt[0] if attempt else {}); aid=row.get("id")
             from mobile.config import PAYMENT_GATEWAY_URL
-            if not PAYMENT_GATEWAY_URL:return self._success(f"درخواست پرداخت #{aid} ثبت شد. درگاه هنوز در تنظیمات امن سامانه فعال نشده است.")
-            url=PAYMENT_GATEWAY_URL.rstrip("?")+"?attempt_id="+str(aid)
-            webbrowser.open(url); self._success("درخواست پرداخت ثبت و درگاه باز شد. نتیجه پرداخت باید توسط callback رسمی ثبت شود.")
+            if not PAYMENT_GATEWAY_URL:return self._success(f"درخواست پرداخت #{aid} ثبت شد. درگاه در تنظیمات امن سامانه فعال نشده است.")
+            webbrowser.open(PAYMENT_GATEWAY_URL.rstrip("?")+"?attempt_id="+str(aid)); self._success("درخواست پرداخت ثبت و درگاه باز شد؛ نتیجه فقط با callback رسمی باید تأیید شود.")
         except Exception as exc:self._error("ایجاد درخواست پرداخت انجام نشد: "+str(exc))
     def _history(self):
         try:
-            email=str((getattr(self.app_state,"profile",{}) or {}).get("email") or "")
-            rows=self.app_state.api.table_select("payment_attempts",{"payer_username":f"eq.{email}","order":"id.desc","limit":"50"})
-            self.body.clear_widgets(); self._label("سوابق پرداخت", "20sp", PRIMARY,50)
+            email=str((getattr(self.app_state,"profile",{}) or {}).get("email") or ""); rows=self.app_state.api.table_select("payment_attempts",{"payer_username":f"eq.{email}","order":"id.desc","limit":"50"}); self.body.clear_widgets(); self._label("سوابق پرداخت","20sp",PRIMARY,50)
             for r in rows:self._label(f"#{r.get('id')} | {r.get('description','')}\nمبلغ: {r.get('amount',0)} | وضعیت: {r.get('status','در انتظار')}",height=78)
             if not rows:self._label("سابقه‌ای ثبت نشده است.",height=60)
         except Exception as exc:self._error("خواندن سوابق پرداخت انجام نشد: "+str(exc))
@@ -107,54 +95,41 @@ class OperationsScreen(Screen):
         else:self._online_user()
     def _online_management(self):
         self._label("مدیریت کلاس آنلاین\nکلاس واقعی در online_classes ذخیره می‌شود و با RPC امن فعال می‌گردد.",height=82)
-        title=self._field("عنوان کلاس")
-        subject=self._field("درس / موضوع")
-        teacher=self._field("نام دبیر")
-        grade=self._field("پایه")
-        cls=self._field("کلاس")
-        duration=self._field("مدت به دقیقه"); duration.text="60"
-        join=self._field("لینک ورود به کلاس")
-        start=self._field("ساعت شروع؛ اختیاری")
-        end=self._field("ساعت پایان؛ اختیاری")
-        for x in (title,subject,teacher,grade,cls,duration,join,start,end):
-            pass
-        self._button("ساخت کلاس",lambda *_:self._create_class(title,subject,teacher,grade,cls,duration,join,start,end),SUCCESS)
-        self._load_classes(True)
+        fields=[self._field("عنوان کلاس"),self._field("درس / موضوع"),self._field("نام دبیر"),self._field("پایه"),self._field("کلاس"),self._field("مدت به دقیقه"),self._field("لینک ورود به کلاس"),self._field("ساعت شروع؛ اختیاری"),self._field("ساعت پایان؛ اختیاری")]
+        fields[5].text="60"
+        self._button("ساخت کلاس",lambda *_:self._create_class(*fields),SUCCESS); self._load_classes(True)
     def _create_class(self,title,subject,teacher,grade,cls,duration,join,start,end):
         if not title.text.strip():return self._error("عنوان کلاس الزامی است.")
         try:dur=max(1,int(digits(duration.text or "60")))
         except Exception:return self._error("مدت کلاس باید عدد باشد.")
         try:
-            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":dur,"start_time":start.text.strip(),"end_time":end.text.strip(),"status":"inactive","created_at_shamsi":"","start_time_shamsi":start.text.strip(),"end_time_shamsi":end.text.strip(),"join_url":join.text.strip(),"meeting_url":join.text.strip()})
-            self._success("کلاس ساخته شد و برای فعال‌سازی آماده است."); self._load_classes(True)
+            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":dur,"start_time":start.text.strip(),"end_time":end.text.strip(),"status":"inactive","created_at_shamsi":"","start_time_shamsi":start.text.strip(),"end_time_shamsi":end.text.strip(),"join_url":join.text.strip(),"meeting_url":join.text.strip()}); self._success("کلاس ساخته شد و برای فعال‌سازی آماده است."); self._load_classes(True)
         except Exception as exc:self._error("ساخت کلاس انجام نشد: "+str(exc))
-    def _online_user(self):
-        self._label("کلاس‌های آنلاین\nفقط کلاس‌های واقعی سامانه نمایش داده می‌شوند.",height=72); self._load_classes(False)
+    def _online_user(self):self._label("کلاس‌های آنلاین\nفقط کلاس‌های واقعی سامانه نمایش داده می‌شوند.",height=72); self._load_classes(False)
     def _load_classes(self,management=False):
         try:rows=self.app_state.api.table_select("online_classes",{"order":"id.desc","limit":"50"})
         except Exception as exc:return self._error("خواندن کلاس‌ها انجام نشد: "+str(exc))
         for r in rows:
-            state=str(r.get("status") or "inactive"); title=r.get("title") or "کلاس آنلاین"; self._label(f"{title}\n{r.get('subject','')} | {r.get('class_name','')} | {r.get('duration',0)} دقیقه\nوضعیت: {'فعال' if state=='active' else 'غیرفعال'}",height=82)
+            state=str(r.get("status") or "inactive"); self._label(f"{r.get('title') or 'کلاس آنلاین'}\n{r.get('subject','')} | {r.get('class_name','')} | {r.get('duration',0)} دقیقه\nوضعیت: {'فعال' if state=='active' else 'غیرفعال'}",height=82)
             if management and r.get("id") and state!="active":self._button("فعال‌سازی کلاس",lambda *_ ,cid=r["id"]:self._activate_class(cid),SUCCESS,44)
-            if state=="active" and r.get("join_url"):
-                self._button("ورود به کلاس",lambda *_ ,u=r["join_url"]:self._open_url(u),PRIMARY,44)
+            if state=="active" and r.get("join_url"):self._button("ورود به کلاس",lambda *_ ,u=r["join_url"]:self._open_url(u),PRIMARY,44)
         if not rows:self._label("کلاسی ثبت نشده است.",height=60)
     def _activate_class(self,cid):
         try:self.app_state.api.rpc("activate_online_class",{"p_class_id":int(cid)}); self._success("کلاس فعال شد."); self._load_classes(True)
         except Exception as exc:self._error("فعال‌سازی انجام نشد: "+str(exc))
     def _messages(self):
-        self._label("صندوق پیام‌ها\nپیام‌ها از سامانه مرکزی خوانده می‌شوند.",height=72)
-        self._load_messages()
-        text=self._field("متن پیام",80,True); self._button("ارسال پیام",lambda *_:self._send_message(text),SUCCESS)
+        self._label("صندوق پیام‌ها\nپیام‌های ورودی و خروجی از سامانه مرکزی خوانده می‌شوند.",height=72); self._load_messages()
+        receiver=self._field("گیرنده؛ ایمیل یا نام کاربری",50); title=self._field("عنوان پیام"); text=self._field("متن پیام",85,True); self._button("ارسال پیام",lambda *_:self._send_message(receiver,title,text),SUCCESS)
     def _load_messages(self):
         try:
             rows=self.app_state.api.table_select("messages",{"order":"id.desc","limit":"50"})
-            for r in rows:self._label(f"{r.get('title') or r.get('subject') or 'پیام'}\n{r.get('body') or r.get('message') or ''}",height=85)
+            for r in rows:self._label(f"{r.get('title') or 'پیام'}\n{r.get('body') or r.get('text') or ''}",height=85)
             if not rows:self._label("پیامی برای نمایش وجود ندارد.",height=60)
         except Exception as exc:self._error("خواندن پیام‌ها انجام نشد: "+str(exc))
-    def _send_message(self,text):
-        if not text.text.strip():return self._error("متن پیام را وارد کنید.")
-        self._error("ارسال مستقیم پیام نیازمند گیرنده مشخص است؛ از پنل پیام‌رسان مقصد استفاده کنید.")
+    def _send_message(self,receiver,title,text):
+        if not receiver.text.strip() or not text.text.strip():return self._error("گیرنده و متن پیام الزامی است.")
+        try:self.app_state.api.rpc("send_school_message",{"p_receiver":receiver.text.strip(),"p_title":title.text.strip(),"p_body":text.text.strip(),"p_audience_type":"user","p_audience_value":None}); self._success("پیام با موفقیت ثبت و ارسال شد.")
+        except Exception as exc:self._error("ارسال پیام انجام نشد: "+str(exc))
     def _field(self,hint,height=50,multiline=False):
         f=TextInput(hint_text=rtl_text(hint),font_name=font_name(),font_size="14sp",multiline=multiline,size_hint_y=None,height=dp(height)); self.body.add_widget(f); return f
     def _open_url(self,url):
