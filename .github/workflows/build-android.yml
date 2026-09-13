@@ -106,8 +106,8 @@ jobs:
           set -euxo pipefail
           grep -q '^package.name = frahooshmobile$' buildozer.spec
           grep -q '^package.domain = ir.frahoosh$' buildozer.spec
-          grep -q '^android.numeric_version = 150$' buildozer.spec
-          grep -q '^version = 1.5.0$' buildozer.spec
+          grep -q '^android.numeric_version = 151$' buildozer.spec
+          grep -q '^version = 1.5.1$' buildozer.spec
 
       - name: Configure optional release signing
         shell: bash
@@ -147,7 +147,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: Frahoosh-APK-v1.5.0
+          name: Frahoosh-APK-v1.5.1
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
