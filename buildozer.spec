@@ -4,11 +4,12 @@ title = Frahoosh
 package.name = frahooshmobile
 package.domain = ir.frahoosh
 
-# main.py is at repository root; the app imports the mobile package from there.
+# Keep the package identity stable so new APKs are upgrades, not separate apps.
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,ttf,json
 
-version = 1.2.0
+version = 1.3.0
+android.numeric_version = 130
 
 requirements = python3,kivy,requests,urllib3,arabic-reshaper,python-bidi
 
@@ -26,9 +27,6 @@ android.accept_sdk_license = True
 android.permissions = INTERNET
 android.private_storage = True
 
-# Pin python-for-android to the known-compatible revision used by the
-# previously working Frahoosh Android build. This prevents Buildozer from
-# pulling the current develop HEAD (which now expects Python 3.14).
 p4a.branch = develop
 p4a.commit = 5865575
 
