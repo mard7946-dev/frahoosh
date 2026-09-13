@@ -49,21 +49,25 @@ MANAGER_MENU = [
 ROLE_MENU = {
     "executive": [("معاون اجرایی", "executive"), ("دانش‌آموزان", "students"), ("اولیا", "parents"), ("صندوق پیام‌ها", "messages"), ("تنظیمات", "settings"), ("درباره برنامه", "about")],
     "educational": [("معاون آموزشی", "educational"), ("دانش‌آموزان", "students"), ("دبیران", "teachers"), ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("گزارش‌ها", "reports"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
-    "cultural": [("معاون پرورشی", "cultural"), ("دانش‌آموزان", "students"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
-    "advisor": [("مشاوره", "advisor"), ("دانش‌آموزان", "students"), ("اولیا", "parents"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
+    "cultural": [("معاون پرورشی", "cultural"), ("دانش‌آموزان", "students"), ("اولیا", "parents"), ("تابلو هوشمند", "smart_board"), ("گزارش‌ها", "reports"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
+    "advisor": [("مشاوره", "advisor"), ("دانش‌آموزان", "students"), ("اولیا", "parents"), ("گزارش‌ها", "reports"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
     "teacher": [("پنل دبیر", "teacher"), ("دانش‌آموزان", "students"), ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
     "student": [("پنل دانش‌آموز", "student"), ("برنامه هفتگی", "schedule"), ("وضعیت تحصیلی", "student_info"), ("پرداخت آنلاین", "payment"), ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
     "parent": [("پنل اولیا", "parent"), ("وضعیت تحصیلی فرزند", "student_info"), ("پرداخت آنلاین", "payment"), ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
 }
 
+# Every main operational panel opens the full submenu shell first.
+# Detailed items then route to the existing operational module/data screens.
 LIVE_ROUTES = {
-    "management", "educational", "executive", "teachers", "students", "parents",
-    "teacher", "student", "parent", "online", "messages", "reports", "schedule", "student_info",
+    "management", "educational", "executive", "cultural", "advisor",
+    "teachers", "students", "parents", "teacher", "student", "parent",
+    "finance", "payment", "online", "smart_board", "ai", "messages",
+    "reports", "schedule", "student_info", "settings",
 }
 
 
 class DashboardScreen(Screen):
-    """Role dashboard with live routing for the core school workflows."""
+    """Role dashboard with complete panel navigation."""
 
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
