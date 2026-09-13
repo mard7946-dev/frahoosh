@@ -16,8 +16,26 @@ ROLE_MENU={"executive":[("معاون اجرایی","executive"),("دانش‌آ�
 LIVE_ROUTES={"management","educational","executive","cultural","advisor","teachers","students","parents","teacher","student","parent","finance","payment","online","smart_board","ai","messages","reports","schedule","student_info","settings"}
 OPERATIONS_ROUTES={"payment","online","messages"}
 
+
 class DashboardScreen(Screen):
-    def __init__(self,app_state=None,**kwargs): super().__init__(**kwargs); self.app_state=app_state; self._build_ui()
+    def __init__(self,app_state=None,**kwargs):
+        super().__init__(**kwargs)
+        self.app_state=app_state
+        self._build_ui()
+
+    def on_pre_enter(self, *args):
+        """Last-line route guard for direct attempts to open the dashboard."""
+        try:
+            if self.app_state is None or not self.app_state.logged_in:
+                if self.manager:
+                    self.manager.current = "login"
+                return
+        except Exception:
+            if self.manager:
+                self.manager.current = "login"
+            return
+        return super().on_pre_enter(*args)
+
     def _make_label(self,text,size,color=SECONDARY,bold=False):
         l=Label(text=rtl_text(text),font_name=font_name(),font_size=size,color=color,bold=bold,halign="center",valign="middle"); l.bind(size=lambda o,v:setattr(o,"text_size",v)); return l
     def _build_ui(self):
@@ -33,6 +51,8 @@ class DashboardScreen(Screen):
         try:return str(self.app_state.display_name or "کاربر فراهوش")
         except Exception:return "کاربر فراهوش"
     def refresh(self):
+        if self.app_state is None or not self.app_state.logged_in:
+            return False
         role=self._get_role(); name=self._get_display_name(); title=ROLE_TITLES.get(role,"کاربر"); self.welcome_label.text=rtl_text(f"خوش آمدید، {name}"); self.role_label.text=rtl_text(f"ورود موفق به پنل {title} | {SCHOOL_NAME}"); self.status_label.text=rtl_text(f"{name} عزیز، امکانات اختصاصی پنل {title} در اختیار شماست."); self._populate_menu(role); return True
     def _populate_menu(self,role):
         self.menu_box.clear_widgets(); items=MANAGER_MENU if role=="manager" else ROLE_MENU.get(role,[("صندوق پیام‌ها","messages"),("درباره برنامه","about")])
@@ -47,6 +67,9 @@ class DashboardScreen(Screen):
             from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen; self.manager.add_widget(TeacherExamsV4Screen(name="teacher_exams",app_state=self.app_state))
         self.manager.current="teacher_exams"
     def _menu_selected(self,route):
+        if self.app_state is None or not self.app_state.logged_in:
+            if self.manager:self.manager.current="login"
+            return
         if route=="about": self.status_label.text=rtl_text("فراهوش؛ سامانه هوشمند آموزشی یکپارچه مدرسه"); return
         if route=="teacher_exams": self._open_exam(); return
         if not self.manager:return
