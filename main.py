@@ -1,82 +1,123 @@
-__version__ = "1.5.0"
+__version__ = "1.5.1"
 
 from kivy.app import App
-from kivy.core.window import Window
-from kivy.metrics import dp
-from kivy.uix.screenmanager import ScreenManager, FadeTransition, Screen
-from kivy.uix.boxlayout import BoxLayout
+from kivy.clock import Clock
+from kivy.uix.screenmanager import ScreenManager
 from kivy.uix.label import Label
-from kivy.uix.textinput import TextInput
-from kivy.uix.button import Button
+
+from mobile.screens.login import LoginScreen
 
 
-class StartupFallbackScreen(Screen):
-    """Never-crash startup screen used only if the normal login module fails."""
+class StartupFallback(Label):
+    pass
 
-    def __init__(self, error_text="", **kwargs):
+
+class FrahooshApp(App):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        root = BoxLayout(orientation="vertical", padding=dp(24), spacing=dp(12))
-        root.add_widget(Label(text="فراهوش", font_size="34sp", bold=True, size_hint_y=None, height=dp(60)))
-        root.add_widget(Label(text="ورود کاربران", font_size="20sp", size_hint_y=None, height=dp(42)))
-        self.identifier = TextInput(hint_text="کد ملی", multiline=False, input_filter="int", size_hint_y=None, height=dp(54))
-        self.password = TextInput(hint_text="رمز عبور", password=True, multiline=False, size_hint_y=None, height=dp(54))
-        self.status = Label(text=error_text or "", size_hint_y=None, height=dp(70))
-        root.add_widget(self.identifier)
-        root.add_widget(self.password)
-        root.add_widget(self.status)
-        root.add_widget(Button(text="ورود به فراهوش", size_hint_y=None, height=dp(56)))
-        self.add_widget(root)
-
-
-class FrahooshMobileApp(App):
-    title = "فراهوش"
+        self.app_state = None
+        self.sm = None
 
     def build(self):
+        self.title = "Frahoosh"
+        self.sm = ScreenManager()
         try:
-            Window.clearcolor = (0.965, 0.975, 0.985, 1)
-            Window.softinput_mode = "below_target"
-        except Exception:
-            pass
-
-        self.manager = ScreenManager(transition=FadeTransition(duration=0.12))
-
-        try:
-            from mobile.screens.login import LoginScreen
-            state = None
-            try:
-                from mobile.services.app_state import AppState
-                state = AppState()
-            except Exception as exc:
-                print("APP STATE STARTUP ERROR:", repr(exc))
-            self.app_state = state
-            self.manager.add_widget(LoginScreen(name="login", app_state=state))
+            from mobile.services.app_state import AppState
+            self.app_state = AppState()
         except Exception as exc:
-            print("LOGIN IMPORT/BUILD ERROR:", repr(exc))
-            self.app_state = None
-            self.manager.add_widget(StartupFallbackScreen(name="login", error_text="صفحه ورود اصلی آماده نشد."))
+            print("APP STATE STARTUP ERROR:", repr(exc))
+        self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
+        self.sm.current = "login"
+        Clock.schedule_once(self._startup, 0)
+        return self.sm
 
-        self.manager.current = "login"
-        return self.manager
+    def _startup(self, *_):
+        try:
+            self.sm.current = "login"
+        except Exception as exc:
+            print("LOGIN START ERROR:", repr(exc))
 
     def ensure_dashboard(self):
-        """Create the real dashboard on demand. This is the actual Android entrypoint."""
+        if self.sm is None:
+            return None
         try:
-            return self.manager.get_screen("dashboard")
+            return self.sm.get_screen("dashboard")
         except Exception:
-            pass
+            from mobile.screens.dashboard import DashboardScreen
+            screen = DashboardScreen(name="dashboard", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
 
-        from mobile.screens.dashboard import DashboardScreen
-        dashboard = DashboardScreen(name="dashboard", app_state=self.app_state)
-        self.manager.add_widget(dashboard)
-        return dashboard
+    def ensure_exam(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("teacher_exams")
+        except Exception:
+            from mobile.screens.teacher_exams import TeacherExamsScreen
+            screen = TeacherExamsScreen(name="teacher_exams", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+
+    def ensure_module(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("module")
+        except Exception:
+            from mobile.screens.module import ModuleScreen
+            screen = ModuleScreen(name="module", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+
+    def ensure_school(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("school")
+        except Exception:
+            from mobile.screens.school import SchoolScreen
+            screen = SchoolScreen(name="school", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+
+    def ensure_update(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("update")
+        except Exception:
+            from mobile.screens.update import UpdateScreen
+            screen = UpdateScreen(name="update", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+
+    def _set_screen_capture_policy(self):
+        """Allow screen capture only for management/deputy roles."""
+        try:
+            role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
+            allowed = {
+                "manager", "admin", "administrator", "مدیر", "مدیریت",
+                "معاون آموزشی", "معاون اجرایی", "معاون پرورشی",
+                "educational", "executive", "cultural",
+            }
+            from jnius import autoclass
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            window_manager = autoclass("android.view.WindowManager")
+            if role in allowed:
+                activity.getWindow().clearFlags(window_manager.LayoutParams.FLAG_SECURE)
+            else:
+                activity.getWindow().addFlags(window_manager.LayoutParams.FLAG_SECURE)
+        except Exception as exc:
+            print("SCREEN SECURITY POLICY ERROR:", repr(exc))
 
     def open_dashboard(self):
-        """Open dashboard after successful authentication."""
         try:
             dashboard = self.ensure_dashboard()
             if dashboard is None:
-                raise RuntimeError("داشبورد ساخته نشد.")
-            self.manager.current = "dashboard"
+                return False
+            self._set_screen_capture_policy()
+            self.sm.current = "dashboard"
             try:
                 dashboard.refresh()
             except Exception as exc:
@@ -86,16 +127,6 @@ class FrahooshMobileApp(App):
             print("DASHBOARD OPEN ERROR:", repr(exc))
             return False
 
-    def ensure_module(self):
-        try:
-            return self.manager.get_screen("module")
-        except Exception:
-            pass
-        from mobile.screens.module import ModuleScreen
-        module = ModuleScreen(name="module", app_state=self.app_state)
-        self.manager.add_widget(module)
-        return module
-
 
 if __name__ == "__main__":
-    FrahooshMobileApp().run()
+    FrahooshApp().run()
