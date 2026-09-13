@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Setup Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38d
         with:
           python-version: "3.11"
 
@@ -79,22 +79,24 @@ jobs:
           test -n "$FRAHOOSH_SUPABASE_URL"
           test -n "$FRAHOOSH_SUPABASE_ANON_KEY"
           python - <<'PY'
-          import json
-          import os
+          import json, os
           from pathlib import Path
-          config = {
-              "supabase_url": os.environ["FRAHOOSH_SUPABASE_URL"],
-              "supabase_anon_key": os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
-              "school_id": os.environ.get("FRAHOOSH_SCHOOL_ID", ""),
-              "school_name": os.environ.get("FRAHOOSH_SCHOOL_NAME", ""),
-              "school_year": os.environ.get("FRAHOOSH_SCHOOL_YEAR", ""),
-              "payment_gateway_url": os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL", ""),
-          }
-          path = Path("mobile/runtime_config.json")
-          path.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
-          print("runtime_config.json created successfully")
+          config={
+              "supabase_url":os.environ["FRAHOOSH_SUPABASE_URL"],
+              "supabase_anon_key":os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
+              "school_id":os.environ.get("FRAHOOSH_SCHOOL_ID",""),
+              "school_name":os.environ.get("FRAHOOSH_SCHOOL_NAME",""),
+              "school_year":os.environ.get("FRAHOOSH_SCHOOL_YEAR",""),
+              "payment_gateway_url":os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL","")}
+          Path("mobile/runtime_config.json").write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding="utf-8")
           PY
           test -s mobile/runtime_config.json
+
+      - name: Validate mobile Python sources
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python -m compileall -q mobile main.py
 
       - name: Build APK
         shell: bash
@@ -102,8 +104,6 @@ jobs:
           set -euxo pipefail
           export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
           export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          echo "NDK PATH:"
-          ls -la "$ANDROID_NDK_HOME"
           buildozer -v android debug
 
       - name: Upload APK
