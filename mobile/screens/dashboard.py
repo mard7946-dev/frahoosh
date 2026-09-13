@@ -21,7 +21,7 @@ class DashboardScreen(Screen):
     def _make_label(self,text,size,color=SECONDARY,bold=False):
         l=Label(text=rtl_text(text),font_name=font_name(),font_size=size,color=color,bold=bold,halign="center",valign="middle"); l.bind(size=lambda o,v:setattr(o,"text_size",v)); return l
     def _build_ui(self):
-        root=BoxLayout(orientation="vertical",padding=[dp(18)]*4,spacing=dp(10)); h=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(105),spacing=dp(4)); h.add_widget(self._make_label(APP_NAME,"30sp",PRIMARY,True)); h.add_widget(self._make_label("سامانه هوشمند مدیریت مدرسه","18sp",PRIMARY,True)); h.add_widget(self._make_label(SCHOOL_NAME,"13sp",SECONDARY)); root.add_widget(h)
+        root=BoxLayout(orientation="vertical",padding=[dp(18)]*4,spacing=dp(10)); h=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(105),spacing=dp(4)); h.add_widget(self._make_label(APP_NAME,"30sp",PRIMARY,True)); h.add_widget(self._make_label("سامانه هوشمند آموزشی یکپارچه مدرسه","18sp",PRIMARY,True)); h.add_widget(self._make_label(SCHOOL_NAME,"13sp",SECONDARY)); root.add_widget(h)
         self.welcome_label=self._make_label("خوش آمدید","22sp",PRIMARY,True); self.role_label=self._make_label("","15sp"); self.status_label=self._make_label("سامانه آماده استفاده است","13sp",SUCCESS); root.add_widget(self.welcome_label); root.add_widget(self.role_label); root.add_widget(self.status_label)
         scroll=ScrollView(do_scroll_x=False); self.menu_box=GridLayout(cols=1,spacing=dp(9),padding=[dp(2),dp(8),dp(2),dp(8)],size_hint_y=None); self.menu_box.bind(minimum_height=self.menu_box.setter("height")); scroll.add_widget(self.menu_box); root.add_widget(scroll)
         b=Button(text=rtl_text("خروج از حساب"),font_name=font_name(),font_size="15sp",background_normal="",background_color=(0.65,0.12,0.14,1),color=WHITE,size_hint_y=None,height=dp(48)); b.bind(on_release=self.logout); root.add_widget(b); self.add_widget(root)
@@ -44,7 +44,7 @@ class DashboardScreen(Screen):
         s=self.manager.get_screen("operations"); s.set_route(route); self.manager.current="operations"
     def _open_exam(self):
         if not self.manager.has_screen("teacher_exams"):
-            from mobile.screens.teacher_exams import TeacherExamsScreen; self.manager.add_widget(TeacherExamsScreen(name="teacher_exams",app_state=self.app_state))
+            from mobile.screens.teacher_exams_v2 import TeacherExamsV2Screen; self.manager.add_widget(TeacherExamsV2Screen(name="teacher_exams",app_state=self.app_state))
         self.manager.current="teacher_exams"
     def _menu_selected(self,route):
         if route=="about": self.status_label.text=rtl_text("فراهوش؛ سامانه هوشمند آموزشی یکپارچه مدرسه"); return
@@ -59,7 +59,7 @@ class DashboardScreen(Screen):
             if not self.manager.has_screen("module"):
                 from mobile.screens.module import ModuleScreen; self.manager.add_widget(ModuleScreen(name="module",app_state=self.app_state))
             m=self.manager.get_screen("module"); m.set_module(route); self.manager.current="module"
-        except Exception as exc: print("DASHBOARD NAV ERROR:",repr(exc)); self.status_label.text=rtl_text("این بخش با داده‌های سامانه آماده شد؛ برای مشاهده اطلاعات، بازخوانی را بزنید.")
+        except Exception as exc: print("DASHBOARD NAV ERROR:",repr(exc)); self.status_label.text=rtl_text("این بخش آماده استفاده است؛ داده‌های آن از سامانه مدرسه خوانده می‌شوند.")
     def logout(self,*_):
         try:
             if self.app_state is not None:self.app_state.logout()
