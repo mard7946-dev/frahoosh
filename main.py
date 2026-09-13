@@ -1,3 +1,5 @@
+__version__ = "1.5.0"
+
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.metrics import dp
