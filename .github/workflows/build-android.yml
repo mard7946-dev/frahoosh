@@ -74,6 +74,7 @@ jobs:
           FRAHOOSH_SCHOOL_NAME: ${{ secrets.FRAHOOSH_SCHOOL_NAME }}
           FRAHOOSH_SCHOOL_YEAR: ${{ secrets.FRAHOOSH_SCHOOL_YEAR }}
           FRAHOOSH_PAYMENT_GATEWAY_URL: ${{ secrets.FRAHOOSH_PAYMENT_GATEWAY_URL }}
+          FRAHOOSH_WEB_URL: ${{ secrets.FRAHOOSH_WEB_URL }}
         run: |
           set -euo pipefail
           test -n "$FRAHOOSH_SUPABASE_URL"
@@ -85,9 +86,10 @@ jobs:
               "supabase_url":os.environ["FRAHOOSH_SUPABASE_URL"],
               "supabase_anon_key":os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
               "school_id":os.environ.get("FRAHOOSH_SCHOOL_ID",""),
-              "school_name":os.environ.get("FRAHOOSH_SCHOOL_NAME",""),
+              "school_name":os.environ.get("FRAHOOSH_SCHOOL_NAME","") or "نام مدرسه",
               "school_year":os.environ.get("FRAHOOSH_SCHOOL_YEAR",""),
-              "payment_gateway_url":os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL","")}
+              "payment_gateway_url":os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL",""),
+              "web_url":os.environ.get("FRAHOOSH_WEB_URL","") or "https://frahoosh.ir"}
           Path("mobile/runtime_config.json").write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding="utf-8")
           PY
           test -s mobile/runtime_config.json
@@ -98,19 +100,54 @@ jobs:
           set -euxo pipefail
           python -m compileall -q mobile main.py
 
+      - name: Validate stable Android identity
+        shell: bash
+        run: |
+          set -euxo pipefail
+          grep -q '^package.name = frahooshmobile$' buildozer.spec
+          grep -q '^package.domain = ir.frahoosh$' buildozer.spec
+          grep -q '^android.numeric_version = 140$' buildozer.spec
+          grep -q '^version = 1.4.0$' buildozer.spec
+
+      - name: Configure optional release signing
+        shell: bash
+        env:
+          FRAHOOSH_KEYSTORE_B64: ${{ secrets.FRAHOOSH_KEYSTORE_B64 }}
+          FRAHOOSH_KEYSTORE_PASSWORD: ${{ secrets.FRAHOOSH_KEYSTORE_PASSWORD }}
+          FRAHOOSH_KEY_ALIAS: ${{ secrets.FRAHOOSH_KEY_ALIAS }}
+          FRAHOOSH_KEY_PASSWORD: ${{ secrets.FRAHOOSH_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "${FRAHOOSH_KEYSTORE_B64:-}" ] && [ -n "${FRAHOOSH_KEYSTORE_PASSWORD:-}" ] && [ -n "${FRAHOOSH_KEY_ALIAS:-}" ] && [ -n "${FRAHOOSH_KEY_PASSWORD:-}" ]; then
+            echo "$FRAHOOSH_KEYSTORE_B64" | base64 --decode > "$GITHUB_WORKSPACE/frahoosh-release.keystore"
+            cat >> buildozer.spec <<EOF
+          android.keystore = $GITHUB_WORKSPACE/frahoosh-release.keystore
+          android.keyalias = $FRAHOOSH_KEY_ALIAS
+          android.keystorepass = $FRAHOOSH_KEYSTORE_PASSWORD
+          android.keypass = $FRAHOOSH_KEY_PASSWORD
+          EOF
+            echo "FRAHOOSH_SIGNING_MODE=release" >> "$GITHUB_ENV"
+          else
+            echo "FRAHOOSH_SIGNING_MODE=debug" >> "$GITHUB_ENV"
+          fi
+
       - name: Build APK
         shell: bash
         run: |
           set -euxo pipefail
           export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
           export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          buildozer -v android debug
+          if [ "$FRAHOOSH_SIGNING_MODE" = "release" ]; then
+            buildozer -v android release
+          else
+            buildozer -v android debug
+          fi
 
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: Frahoosh-APK
+          name: Frahoosh-APK-v1.4.0
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
