@@ -53,7 +53,7 @@ class DashboardScreen(Screen):
     def refresh(self):
         if self.app_state is None or not self.app_state.logged_in:
             return False
-        role=self._get_role(); name=self._get_display_name(); title=ROLE_TITLES.get(role,"کاربر"); self.welcome_label.text=rtl_text(f"خوش آمدید، {name}"); self.role_label.text=rtl_text(f"ورود موفق به پنل {title} | {SCHOOL_NAME}"); self.status_label.text=rtl_text(f"{name} عزیز، امکانات اختصاصی پنل {title} در اختیار شماست."); self._populate_menu(role); return True
+        role=self._get_role(); name=self._get_display_name(); title=ROLE_TITLES.get(role,"کاربر"); items=MANAGER_MENU if role=="manager" else ROLE_MENU.get(role,[("صندوق پیام‌ها","messages"),("درباره برنامه","about")]); self.welcome_label.text=rtl_text(f"خوش آمدید، {name}"); self.role_label.text=rtl_text(f"ورود موفق به پنل {title} | {SCHOOL_NAME}"); self.status_label.text=rtl_text(f"{name} عزیز، {len(items)} قابلیت متناسب با نقش شما آماده است؛ نبود داده، دسترسی‌ها را پنهان نمی‌کند."); self._populate_menu(role); return True
     def _populate_menu(self,role):
         self.menu_box.clear_widgets(); items=MANAGER_MENU if role=="manager" else ROLE_MENU.get(role,[("صندوق پیام‌ها","messages"),("درباره برنامه","about")])
         for title,route in items:
