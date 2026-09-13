@@ -4,7 +4,6 @@ from pathlib import Path
 
 APP_NAME = "فراهوش"
 SYSTEM_TITLE = "سامانه هوشمند آموزشی یکپارچه مدرسه"
-
 BASE_DIR = Path(__file__).resolve().parent
 ASSETS_DIR = BASE_DIR / "assets"
 FONT_REGULAR = ASSETS_DIR / "NotoSansArabic-Regular.ttf"
@@ -12,11 +11,7 @@ FONT_BOLD = ASSETS_DIR / "NotoSansArabic-Bold.ttf"
 
 
 def _load_runtime_config():
-    candidates = [
-        BASE_DIR / "runtime_config.json",
-        Path.cwd() / "mobile" / "runtime_config.json",
-        Path.cwd() / "runtime_config.json",
-    ]
+    candidates = [BASE_DIR / "runtime_config.json", Path.cwd() / "mobile" / "runtime_config.json", Path.cwd() / "runtime_config.json"]
     for path in candidates:
         try:
             if path.is_file():
@@ -31,14 +26,11 @@ def _load_runtime_config():
 
 _RUNTIME = _load_runtime_config()
 
-# School identity is intentionally runtime-configurable so the same APK source
-# can be delivered to another school without changing application logic.
-SCHOOL_NAME = str(
-    os.environ.get("FRAHOOSH_SCHOOL_NAME")
-    or _RUNTIME.get("school_name")
-    or _RUNTIME.get("FRAHOOSH_SCHOOL_NAME")
-    or "دبیرستان سردار شهید حاجی‌زاده ۲"
-).strip()
+# One mobile codebase can be deployed to different schools by changing runtime_config.json.
+SCHOOL_NAME = str(os.environ.get("FRAHOOSH_SCHOOL_NAME") or _RUNTIME.get("school_name") or _RUNTIME.get("FRAHOOSH_SCHOOL_NAME") or "نام مدرسه").strip()
+SCHOOL_ID = str(os.environ.get("FRAHOOSH_SCHOOL_ID") or _RUNTIME.get("school_id") or _RUNTIME.get("FRAHOOSH_SCHOOL_ID") or "").strip()
+SCHOOL_YEAR = str(os.environ.get("FRAHOOSH_SCHOOL_YEAR") or _RUNTIME.get("school_year") or _RUNTIME.get("FRAHOOSH_SCHOOL_YEAR") or "").strip()
+WEB_URL = str(os.environ.get("FRAHOOSH_WEB_URL") or _RUNTIME.get("web_url") or _RUNTIME.get("FRAHOOSH_WEB_URL") or "https://frahoosh.ir").strip().rstrip("/")
 
 PRIMARY = (0.12, 0.35, 0.62, 1)
 SECONDARY = (0.35, 0.40, 0.48, 1)
@@ -47,46 +39,8 @@ ERROR = (0.75, 0.12, 0.12, 1)
 WHITE = (1, 1, 1, 1)
 CARD = (0.97, 0.98, 1.0, 1)
 BORDER = (0.80, 0.84, 0.90, 1)
-BACKGROUND_PATH = str(
-    os.environ.get("FRAHOOSH_BACKGROUND_PATH")
-    or _RUNTIME.get("background_path")
-    or ""
-).strip()
-
+BACKGROUND_PATH = str(os.environ.get("FRAHOOSH_BACKGROUND_PATH") or _RUNTIME.get("background_path") or "").strip()
 API_TIMEOUT = 15
-
-SUPABASE_URL = str(
-    os.environ.get("FRAHOOSH_SUPABASE_URL")
-    or _RUNTIME.get("supabase_url")
-    or _RUNTIME.get("FRAHOOSH_SUPABASE_URL")
-    or ""
-).strip()
-
-SUPABASE_ANON_KEY = str(
-    os.environ.get("FRAHOOSH_SUPABASE_ANON_KEY")
-    or _RUNTIME.get("supabase_anon_key")
-    or _RUNTIME.get("FRAHOOSH_SUPABASE_ANON_KEY")
-    or ""
-).strip()
-
-SCHOOL_ID = str(
-    os.environ.get("FRAHOOSH_SCHOOL_ID")
-    or _RUNTIME.get("school_id")
-    or _RUNTIME.get("FRAHOOSH_SCHOOL_ID")
-    or ""
-).strip()
-
-SCHOOL_YEAR = str(
-    os.environ.get("FRAHOOSH_SCHOOL_YEAR")
-    or _RUNTIME.get("school_year")
-    or _RUNTIME.get("FRAHOOSH_SCHOOL_YEAR")
-    or ""
-).strip()
-
-# Public gateway/checkout URL only. Merchant secrets must stay on the server.
-PAYMENT_GATEWAY_URL = str(
-    os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL")
-    or _RUNTIME.get("payment_gateway_url")
-    or _RUNTIME.get("FRAHOOSH_PAYMENT_GATEWAY_URL")
-    or ""
-).strip()
+SUPABASE_URL = str(os.environ.get("FRAHOOSH_SUPABASE_URL") or _RUNTIME.get("supabase_url") or _RUNTIME.get("FRAHOOSH_SUPABASE_URL") or "").strip()
+SUPABASE_ANON_KEY = str(os.environ.get("FRAHOOSH_SUPABASE_ANON_KEY") or _RUNTIME.get("supabase_anon_key") or _RUNTIME.get("FRAHOOSH_SUPABASE_ANON_KEY") or "").strip()
+PAYMENT_GATEWAY_URL = str(os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL") or _RUNTIME.get("payment_gateway_url") or _RUNTIME.get("FRAHOOSH_PAYMENT_GATEWAY_URL") or "").strip()
