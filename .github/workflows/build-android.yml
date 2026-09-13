@@ -10,9 +10,7 @@ jobs:
   build:
     name: Build Frahoosh APK
     runs-on: ubuntu-22.04
-
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
@@ -31,35 +29,15 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-
           sudo apt-get update
-
-          sudo apt-get install -y \
-            git \
-            zip \
-            unzip \
-            wget \
-            curl \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libffi-dev \
-            libssl-dev \
-            build-essential
+          sudo apt-get install -y git zip unzip wget curl autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev build-essential
 
       - name: Install Build tools
         shell: bash
         run: |
           set -euxo pipefail
-
           python -m pip install --upgrade pip
-
-          pip install \
-            "cython==0.29.36" \
-            "buildozer==1.5.0"
-
+          pip install "cython==0.29.36" "buildozer==1.5.0"
           buildozer --version
 
       - name: Setup Android SDK
@@ -69,12 +47,9 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-
           SDK="$ANDROID_SDK_ROOT"
           SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
-
           yes | "$SDKMANAGER" --licenses || true
-
           "$SDKMANAGER" platform-tools
           "$SDKMANAGER" "platforms;android-35"
           "$SDKMANAGER" "build-tools;35.0.0"
@@ -84,11 +59,8 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-
           NDK="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-
           test -d "$NDK"
-
           echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
@@ -99,47 +71,39 @@ jobs:
           FRAHOOSH_SUPABASE_URL: ${{ secrets.FRAHOOSH_SUPABASE_URL }}
           FRAHOOSH_SUPABASE_ANON_KEY: ${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}
           FRAHOOSH_SCHOOL_ID: ${{ secrets.FRAHOOSH_SCHOOL_ID }}
+          FRAHOOSH_SCHOOL_NAME: ${{ secrets.FRAHOOSH_SCHOOL_NAME }}
           FRAHOOSH_SCHOOL_YEAR: ${{ secrets.FRAHOOSH_SCHOOL_YEAR }}
+          FRAHOOSH_PAYMENT_GATEWAY_URL: ${{ secrets.FRAHOOSH_PAYMENT_GATEWAY_URL }}
         run: |
           set -euo pipefail
-
           test -n "$FRAHOOSH_SUPABASE_URL"
           test -n "$FRAHOOSH_SUPABASE_ANON_KEY"
-
           python - <<'PY'
           import json
           import os
           from pathlib import Path
-
           config = {
               "supabase_url": os.environ["FRAHOOSH_SUPABASE_URL"],
               "supabase_anon_key": os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
               "school_id": os.environ.get("FRAHOOSH_SCHOOL_ID", ""),
+              "school_name": os.environ.get("FRAHOOSH_SCHOOL_NAME", ""),
               "school_year": os.environ.get("FRAHOOSH_SCHOOL_YEAR", ""),
+              "payment_gateway_url": os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL", ""),
           }
-
           path = Path("mobile/runtime_config.json")
-          path.write_text(
-              json.dumps(config, ensure_ascii=False, indent=2),
-              encoding="utf-8",
-          )
-
+          path.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
           print("runtime_config.json created successfully")
           PY
-
           test -s mobile/runtime_config.json
 
       - name: Build APK
         shell: bash
         run: |
           set -euxo pipefail
-
           export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
           export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-
           echo "NDK PATH:"
           ls -la "$ANDROID_NDK_HOME"
-
           buildozer -v android debug
 
       - name: Upload APK
