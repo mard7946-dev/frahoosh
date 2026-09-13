@@ -122,9 +122,15 @@ class SupabaseClient:
         user = data.get("user") or {}
         profile = self._profile(user)
         profile.setdefault("email", user.get("email", email))
-        return {"user": user, "profile": profile, "access_token": self.access_token,
-                "refresh_token": self.refresh_token, "expires_in": self.expires_in,
-                "expires_at": self.expires_at, "token_type": self.token_type}
+        return {
+            "user": user,
+            "profile": profile,
+            "access_token": self.access_token,
+            "refresh_token": self.refresh_token,
+            "expires_in": self.expires_in,
+            "expires_at": self.expires_at,
+            "token_type": self.token_type,
+        }
 
     def resolve_email_by_national_code(self, national_code):
         if not self.configured:
@@ -132,56 +138,96 @@ class SupabaseClient:
         national_code = self._normalize_digits(national_code).strip()
         if not national_code:
             return None
-        candidates = [("national_code", national_code), ("username", national_code)]
-        last_error = None
-        for column, value in candidates:
-            response = _request("GET", f"{self.url}/rest/v1/account_settings",
-                                headers=self._headers(False),
-                                params={column: f"eq.{value}", "select": "email,national_code,username", "limit": "1"},
-                                timeout=API_TIMEOUT)
-            if not response.ok:
-                last_error = response
-                continue
-            rows = response.json() or []
-            if isinstance(rows, list) and rows and isinstance(rows[0], dict):
-                email = str(rows[0].get("email") or "").strip()
-                if email:
-                    return email
-        if last_error is not None and last_error.status_code not in (400, 404):
-            raise ApiError(self._error(last_error, "دسترسی به اطلاعات حساب کاربری از سرور امکان‌پذیر نیست."))
+        response = _request(
+            "POST",
+            f"{self.url}/rest/v1/rpc/lookup_auth_email_by_national_code",
+            headers=self._headers(False),
+            payload={"p_national_code": national_code},
+            timeout=API_TIMEOUT,
+        )
+        if not response.ok:
+            raise ApiError(self._error(response, "دسترسی به اطلاعات حساب کاربری از سرور امکان‌پذیر نیست."))
+        data = response.json()
+        if isinstance(data, str):
+            return data.strip() or None
+        if isinstance(data, list) and data and isinstance(data[0], str):
+            return data[0].strip() or None
         return None
+
+    def get_user(self):
+        if not self.configured or not self.access_token:
+            return None
+        response = _request(
+            "GET", f"{self.url}/auth/v1/user",
+            headers=self._headers(True), timeout=API_TIMEOUT,
+        )
+        if not response.ok:
+            return None
+        data = response.json() or {}
+        return data if isinstance(data, dict) else None
+
+    def validate_session(self):
+        user = self.get_user()
+        return bool(user and user.get("id"))
 
     def _profile(self, user):
         user = user if isinstance(user, dict) else {}
         metadata = user.get("user_metadata") or {}
-        profile = {key: metadata[key] for key in ("role", "display_name", "full_name", "username", "national_code", "first_name", "last_name", "linked_student_id", "linked_teacher_id", "linked_staff_id") if key in metadata}
+        profile = {
+            key: metadata[key]
+            for key in (
+                "role", "display_name", "full_name", "username",
+                "national_code", "first_name", "last_name",
+                "linked_student_id", "linked_teacher_id", "linked_staff_id",
+            )
+            if key in metadata
+        }
         email = str(user.get("email") or "").strip()
         if not self.configured or not email:
             profile.setdefault("email", email)
             return profile
         try:
-            response = _request("GET", f"{self.url}/rest/v1/account_settings", headers=self._headers(True),
-                                params={"email": f"eq.{email}", "limit": "1"}, timeout=API_TIMEOUT)
+            response = _request(
+                "GET", f"{self.url}/rest/v1/account_settings",
+                headers=self._headers(True),
+                params={"email": f"eq.{email}", "limit": "1"},
+                timeout=API_TIMEOUT,
+            )
             if response.ok:
                 rows = response.json() or []
                 if rows and isinstance(rows[0], dict):
-                    merged = dict(profile); merged.update(rows[0]); return merged
+                    merged = dict(profile)
+                    merged.update(rows[0])
+                    return merged
         except Exception:
             pass
-        profile.setdefault("email", email); profile.setdefault("username", email); profile.setdefault("display_name", email)
+        profile.setdefault("email", email)
+        profile.setdefault("username", email)
+        profile.setdefault("display_name", email)
         return profile
 
     def refresh_access_token(self):
         if not self.configured or not self.refresh_token:
             return False
-        response = _request("POST", f"{self.url}/auth/v1/token?grant_type=refresh_token", headers=self._headers(), payload={"refresh_token": self.refresh_token}, timeout=API_TIMEOUT)
+        response = _request(
+            "POST", f"{self.url}/auth/v1/token?grant_type=refresh_token",
+            headers=self._headers(), payload={"refresh_token": self.refresh_token}, timeout=API_TIMEOUT,
+        )
         if not response.ok:
-            self.access_token = ""; self.refresh_token = ""; return False
-        data = response.json() or {}; token = data.get("access_token") or ""
+            self.access_token = ""
+            self.refresh_token = ""
+            return False
+        data = response.json() or {}
+        token = data.get("access_token") or ""
         if not token:
-            self.access_token = ""; self.refresh_token = ""; return False
-        self.access_token = token; self.refresh_token = data.get("refresh_token") or self.refresh_token
-        self.expires_in = data.get("expires_in"); self.expires_at = data.get("expires_at"); self.token_type = data.get("token_type") or self.token_type
+            self.access_token = ""
+            self.refresh_token = ""
+            return False
+        self.access_token = token
+        self.refresh_token = data.get("refresh_token") or self.refresh_token
+        self.expires_in = data.get("expires_in")
+        self.expires_at = data.get("expires_at")
+        self.token_type = data.get("token_type") or self.token_type
         return True
 
     def table_select(self, table, params=None):
@@ -206,7 +252,8 @@ class SupabaseClient:
     def table_update(self, table, filters, payload):
         if not self.configured or not self.access_token:
             raise ApiError("نشست معتبر برای ویرایش اطلاعات وجود ندارد.")
-        headers = self._headers(True); headers["Prefer"] = "return=representation"
+        headers = self._headers(True)
+        headers["Prefer"] = "return=representation"
         response = _request("PATCH", f"{self.url}/rest/v1/{table}", headers=headers, payload=payload, params=dict(filters or {}), timeout=API_TIMEOUT)
         if not response.ok:
             raise ApiError(self._error(response))
@@ -233,15 +280,24 @@ class SupabaseClient:
         if isinstance(data, dict):
             message = data.get("msg") or data.get("message") or data.get("error_description") or data.get("error")
             if message:
-                text = str(message); lower = text.lower()
-                if "invalid login credentials" in lower: return "کد ملی یا رمز عبور صحیح نیست."
-                if "email not confirmed" in lower: return "حساب کاربری هنوز تأیید نشده است."
+                text = str(message)
+                lower = text.lower()
+                if "invalid login credentials" in lower:
+                    return "کد ملی یا رمز عبور صحیح نیست."
+                if "email not confirmed" in lower:
+                    return "حساب کاربری هنوز تأیید نشده است."
                 return text
         return default
 
     def sign_out(self):
         if self.configured and self.access_token:
-            try: _request("POST", f"{self.url}/auth/v1/logout", headers=self._headers(True), timeout=API_TIMEOUT)
-            except Exception: pass
-        self.access_token = ""; self.refresh_token = ""; self.expires_in = None; self.expires_at = None; self.token_type = "bearer"
+            try:
+                _request("POST", f"{self.url}/auth/v1/logout", headers=self._headers(True), timeout=API_TIMEOUT)
+            except Exception:
+                pass
+        self.access_token = ""
+        self.refresh_token = ""
+        self.expires_in = None
+        self.expires_at = None
+        self.token_type = "bearer"
         return True
