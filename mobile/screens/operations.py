@@ -1,6 +1,5 @@
-import json
-import webbrowser
 from threading import Thread
+import webbrowser
 
 from kivy.clock import Clock
 from kivy.metrics import dp
@@ -10,290 +9,159 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
+from kivy.uix.scrollview import ScrollView
 
 from mobile.config import APP_NAME, SCHOOL_ID, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text
 
-PAYMENT_MANAGERS = {"manager", "educational", "cultural"}
-CLASS_MANAGERS = {"manager", "educational", "executive"}
+PAYMENT_MANAGERS={"manager","educational","cultural"}
+CLASS_MANAGERS={"manager","educational","executive"}
 
-PAYMENT_REASONS = [
-    "شهریه",
-    "کلاس فوق برنامه",
-    "اردو",
-    "آزمون و خدمات آموزشی",
-    "فعالیت فرهنگی و پرورشی",
-    "کتاب و خدمات آموزشی",
-    "سایر خدمات مدرسه",
-]
-PAYMENT_AMOUNTS = [
-    "۵۰۰٬۰۰۰ تومان",
-    "۱٬۰۰۰٬۰۰۰ تومان",
-    "۱٬۵۰۰٬۰۰۰ تومان",
-    "۲٬۰۰۰٬۰۰۰ تومان",
-    "۳٬۰۰۰٬۰۰۰ تومان",
-    "۵٬۰۰۰٬۰۰۰ تومان",
-]
+def role_of(state):
+    raw=str(getattr(state,"role","student") or "student").strip().lower()
+    return {"مدیر":"manager","مدیریت":"manager","admin":"manager","معاون آموزشی":"educational","معاون اجرایی":"executive","معاون پرورشی":"cultural","دبیر":"teacher","معلم":"teacher","دانش‌آموز":"student","دانش آموز":"student","ولی":"parent","اولیا":"parent"}.get(raw,raw)
 
-
-def _role(app_state):
-    try:
-        value = str(app_state.role or "").strip().lower()
-    except Exception:
-        value = ""
-    aliases = {
-        "مدیر": "manager", "مدیریت": "manager", "admin": "manager",
-        "معاون آموزشی": "educational", "معاون اجرایی": "executive",
-        "معاون پرورشی": "cultural", "دبیر": "teacher", "معلم": "teacher",
-        "دانش‌آموز": "student", "دانش آموز": "student", "ولی": "parent", "اولیا": "parent",
-    }
-    return aliases.get(value, value)
-
+def digits(v): return str(v or "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩","01234567890123456789"))
 
 class OperationsScreen(Screen):
-    """Real operational entry points for payment, messaging and online classes."""
-
-    def __init__(self, app_state=None, **kwargs):
-        super().__init__(**kwargs)
-        self.app_state = app_state
-        self.route = "messages"
-        self._build()
-
+    def __init__(self,app_state=None,**kwargs):
+        super().__init__(**kwargs); self.app_state=app_state; self.route="messages"; self._build()
     def _build(self):
-        root = BoxLayout(orientation="vertical", padding=dp(14), spacing=dp(9))
-        header = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(55), spacing=dp(8))
-        back = Button(text=rtl_text("‹ بازگشت"), font_name=font_name(), font_size="14sp", background_normal="", background_color=PRIMARY, color=WHITE, size_hint_x=None, width=dp(100))
-        back.bind(on_release=lambda *_: self._back())
-        header.add_widget(back)
-        self.title = Label(text=rtl_text(APP_NAME), font_name=font_name(), font_size="21sp", bold=True, color=PRIMARY, halign="right", valign="middle")
-        self.title.bind(size=lambda obj, value: setattr(obj, "text_size", value))
-        header.add_widget(self.title)
-        root.add_widget(header)
-        self.status = Label(text="", font_name=font_name(), font_size="12sp", color=SECONDARY, halign="right", valign="middle", size_hint_y=None, height=dp(42))
-        self.status.bind(size=lambda obj, value: setattr(obj, "text_size", value))
-        root.add_widget(self.status)
-        self.body = BoxLayout(orientation="vertical", spacing=dp(9), padding=dp(4), size_hint_y=None)
-        from kivy.uix.scrollview import ScrollView
-        scroll = ScrollView(do_scroll_x=False)
-        self.body.bind(minimum_height=self.body.setter("height"))
-        scroll.add_widget(self.body)
-        root.add_widget(scroll)
-        self.add_widget(root)
-
-    def set_route(self, route):
-        self.route = route
-        self.title.text = rtl_text({"payment": "پرداخت آنلاین", "messages": "صندوق پیام‌ها", "online": "کلاس‌های آنلاین"}.get(route, APP_NAME))
-        self.body.clear_widgets()
-        self.status.color = SUCCESS
-        self.status.text = rtl_text(self._welcome())
-        if route == "payment":
-            self._payment()
-        elif route == "online":
-            self._online()
-        else:
-            self._messages()
-
-    def _welcome(self):
-        role_titles = {"manager": "مدیریت", "educational": "معاون آموزشی", "executive": "معاون اجرایی", "cultural": "معاون پرورشی", "advisor": "مشاوره", "teacher": "دبیر", "student": "دانش‌آموز", "parent": "ولی"}
-        return f"خوش آمدید به پنل {role_titles.get(_role(self.app_state), 'کاربری')} فراهوش؛ امکانات این بخش از سامانه مرکزی مدرسه ارائه می‌شود."
-
-    def _label(self, text, size="14sp", color=SECONDARY, height=70):
-        label = Label(text=rtl_text(text), font_name=font_name(), font_size=size, color=color, halign="right", valign="middle", size_hint_y=None, height=dp(height))
-        label.bind(size=lambda obj, value: setattr(obj, "text_size", value))
-        self.body.add_widget(label)
-        return label
-
-    def _button(self, text, callback, color=PRIMARY):
-        button = Button(text=rtl_text(text), font_name=font_name(), font_size="14sp", background_normal="", background_color=color, color=WHITE, size_hint_y=None, height=dp(50))
-        button.bind(on_release=callback)
-        self.body.add_widget(button)
-        return button
-
+        root=BoxLayout(orientation="vertical",padding=dp(14),spacing=dp(8)); head=BoxLayout(orientation="horizontal",size_hint_y=None,height=dp(54),spacing=dp(8))
+        back=Button(text=rtl_text("‹ بازگشت"),font_name=font_name(),background_normal="",background_color=PRIMARY,color=WHITE,size_hint_x=None,width=dp(100)); back.bind(on_release=lambda *_:self._back()); head.add_widget(back)
+        self.title=Label(text=rtl_text(APP_NAME),font_name=font_name(),font_size="21sp",bold=True,color=PRIMARY,halign="right",valign="middle"); self.title.bind(size=lambda o,v:setattr(o,"text_size",v)); head.add_widget(self.title); root.add_widget(head)
+        self.status=Label(text="",font_name=font_name(),font_size="12sp",color=SECONDARY,halign="right",valign="middle",size_hint_y=None,height=dp(42)); self.status.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(self.status)
+        scroll=ScrollView(do_scroll_x=False); self.body=BoxLayout(orientation="vertical",spacing=dp(9),padding=dp(4),size_hint_y=None); self.body.bind(minimum_height=self.body.setter("height")); scroll.add_widget(self.body); root.add_widget(scroll); self.add_widget(root)
+    def set_route(self,route):
+        self.route=route; self.body.clear_widgets(); self.title.text=rtl_text({"payment":"پرداخت آنلاین","messages":"صندوق پیام‌ها","online":"کلاس‌های آنلاین"}.get(route,APP_NAME));
+        if route=="payment":self._payment()
+        elif route=="online":self._online()
+        else:self._messages()
+    def _label(self,text,size="14sp",color=SECONDARY,height=68):
+        w=Label(text=rtl_text(text),font_name=font_name(),font_size=size,color=color,halign="right",valign="middle",size_hint_y=None,height=dp(height)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); self.body.add_widget(w); return w
+    def _button(self,text,cb,color=PRIMARY,height=48):
+        b=Button(text=rtl_text(text),font_name=font_name(),font_size="14sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=dp(height)); b.bind(on_release=cb); self.body.add_widget(b); return b
     def _payment(self):
-        role = _role(self.app_state)
-        if role in PAYMENT_MANAGERS:
-            self._payment_management()
-        else:
-            self._payment_student_parent()
-
+        if role_of(self.app_state) in PAYMENT_MANAGERS:self._payment_management()
+        else:self._payment_user()
     def _payment_management(self):
-        self._label("تنظیمات پرداخت مدرسه\nاین بخش فقط برای مدیریت، معاون آموزشی و معاون پرورشی قابل ویرایش است.", height=90)
-        reason = Spinner(text=PAYMENT_REASONS[0], values=PAYMENT_REASONS, size_hint_y=None, height=dp(50))
-        amount = Spinner(text=PAYMENT_AMOUNTS[0], values=PAYMENT_AMOUNTS, size_hint_y=None, height=dp(50))
-        self.body.add_widget(reason)
-        self.body.add_widget(amount)
-        self._label("وضعیت: گزینه‌های پرداخت باید در Backend مرکزی ثبت شوند تا برای دانش‌آموز و ولی نمایش داده شوند.", height=80)
-        self._button("ثبت گزینه پرداخت در سامانه", lambda *_: self._save_payment_option(reason.text, amount.text), SUCCESS)
-        self._button("بازخوانی گزینه‌های پرداخت", lambda *_: self.set_route("payment"))
-
-    def _save_payment_option(self, reason, amount_text):
-        api = getattr(self.app_state, "api", None)
-        if api is None or not getattr(api, "access_token", "") or api.access_token == "local-bootstrap-admin":
-            self._error("برای ثبت تنظیمات پرداخت، حساب واقعی Supabase لازم است.")
-            return
+        self._label("مدیریت گزینه‌های پرداخت\nگزینه‌ها در payment_offers ذخیره می‌شوند و مبلغ را خود سامانه تعیین می‌کند.",height=82)
+        title=self._field("عنوان پرداخت؛ مثال شهریه مهر")
+        reason=self._field("علت پرداخت؛ اختیاری")
+        amount=self._field("مبلغ به ریال")
+        self._button("ثبت گزینه پرداخت",lambda *_:self._save_offer(title,reason,amount),SUCCESS)
+        self._button("بازخوانی گزینه‌ها",lambda *_:self.set_route("payment"))
+        self._load_offers(management=True)
+    def _save_offer(self,title,reason,amount):
+        try:a=int(digits(amount.text).replace(",","") or 0)
+        except Exception:return self._error("مبلغ باید عدد باشد.")
+        if a<=0 or not title.text.strip():return self._error("عنوان و مبلغ الزامی است.")
         try:
-            amount_digits = "".join(ch for ch in amount_text if ch.isdigit())
-            payload = {"school_id": SCHOOL_ID, "title": reason, "amount": int(amount_digits or 0), "is_active": True}
-            api.table_insert("payment_options", payload)
+            self.app_state.api.table_insert("payment_offers",{"title":title.text.strip(),"amount":a,"target_type":"school","target_value":SCHOOL_ID,"description":reason.text.strip(),"active":1,"manual_amount":0,"payment_reason":reason.text.strip(),"gateway_enabled":True})
             self._success("گزینه پرداخت در سامانه ثبت شد.")
-        except Exception as exc:
-            print("PAYMENT OPTION ERROR:", repr(exc))
-            self._error("ثبت انجام نشد؛ جدول payment_options یا مجوز RLS باید در Backend فعال باشد.")
-
-    def _payment_student_parent(self):
-        self._label("پرداخت مدرسه\nمبلغ و علت پرداخت را فقط از گزینه‌های تأییدشده مدرسه انتخاب کنید؛ امکان واردکردن مبلغ آزاد وجود ندارد.", height=100)
-        reason = Spinner(text=PAYMENT_REASONS[0], values=PAYMENT_REASONS, size_hint_y=None, height=dp(50))
-        amount = Spinner(text=PAYMENT_AMOUNTS[0], values=PAYMENT_AMOUNTS, size_hint_y=None, height=dp(50))
-        self.body.add_widget(reason)
-        self.body.add_widget(amount)
-        self._label("پس از تأیید، برنامه شما را به درگاه رسمی مدرسه می‌برد و رسید/شماره پیگیری در سامانه ثبت خواهد شد.", height=85)
-        self._button("ادامه و ورود به درگاه پرداخت", lambda *_: self._start_payment(reason.text, amount.text), SUCCESS)
-        self._button("مشاهده سوابق پرداخت", lambda *_: self._history())
-
-    def _start_payment(self, reason, amount_text):
+        except Exception as exc:self._error("ثبت گزینه پرداخت انجام نشد: "+str(exc))
+    def _load_offers(self,management=False):
         try:
+            rows=self.app_state.api.table_select("payment_offers",{"active":"eq.1","order":"id.desc","limit":"50"})
+            for r in rows:self._label(f"{r.get('title','پرداخت')}\nمبلغ: {r.get('amount',0)} ریال\n{r.get('payment_reason') or r.get('description') or ''}",height=78)
+            if not rows:self._label("هنوز گزینه پرداخت فعالی ثبت نشده است.",height=60)
+        except Exception as exc:self._error("خواندن گزینه‌های پرداخت انجام نشد: "+str(exc))
+    def _student_id(self):
+        p=getattr(self.app_state,"profile",{}) or {}; nc=digits(p.get("national_code") or getattr(self.app_state,"national_code","") or ""); email=str(p.get("email") or "")
+        try:
+            params={"select":"id","limit":"1"}; params["national_code"]=f"eq.{nc}" if nc else f"eq.{email}"; rows=self.app_state.api.table_select("students",params); return int(rows[0]["id"]) if rows else None
+        except Exception:return None
+    def _payment_user(self):
+        self._label("پرداخت مدرسه\nفقط گزینه‌های فعال و تأییدشده مدرسه نمایش داده می‌شوند.",height=75)
+        try:rows=self.app_state.api.table_select("payment_offers",{"active":"eq.1","order":"id.desc","limit":"50"})
+        except Exception as exc:return self._error("گزینه‌های پرداخت در دسترس نیست: "+str(exc))
+        values=[]; by_title={}
+        for r in rows:
+            text=f"{r.get('title','پرداخت')} — {r.get('amount',0)} ریال"; values.append(text); by_title[text]=r
+        if not values:self._label("در حال حاضر گزینه پرداخت فعالی وجود ندارد.",height=60); return
+        sp=Spinner(text=values[0],values=values,size_hint_y=None,height=dp(50)); self.body.add_widget(sp)
+        self._button("ایجاد درخواست پرداخت",lambda *_:self._start_payment(by_title.get(sp.text)),SUCCESS)
+        self._button("مشاهده سوابق پرداخت",lambda *_:self._history())
+    def _start_payment(self,offer):
+        if not offer:return self._error("گزینه پرداخت انتخاب نشده است.")
+        sid=self._student_id()
+        if not sid:return self._error("پرونده دانش‌آموز در سامانه پیدا نشد.")
+        try:
+            attempt=self.app_state.api.rpc("create_payment_attempt",{"p_offer_id":int(offer["id"]),"p_student_id":sid}); row=attempt if isinstance(attempt,dict) else (attempt[0] if attempt else {})
+            aid=row.get("id")
             from mobile.config import PAYMENT_GATEWAY_URL
-        except Exception:
-            PAYMENT_GATEWAY_URL = ""
-        if not PAYMENT_GATEWAY_URL:
-            self._error("درگاه پرداخت هنوز در تنظیمات امن سامانه ثبت نشده است.")
-            return
-        amount_digits = "".join(ch for ch in amount_text if ch.isdigit())
-        profile = getattr(self.app_state, "profile", {}) or {}
-        params = {
-            "school_id": SCHOOL_ID,
-            "amount": amount_digits,
-            "reason": reason,
-            "national_code": str(profile.get("national_code") or profile.get("username") or ""),
-        }
-        query = "&".join(f"{k}={__import__('urllib.parse', fromlist=['quote']).quote(str(v))}" for k, v in params.items())
-        try:
-            webbrowser.open(PAYMENT_GATEWAY_URL.rstrip("?") + "?" + query)
-            self._success("درگاه پرداخت باز شد؛ پس از پرداخت رسید را نگه دارید.")
-        except Exception as exc:
-            print("PAYMENT OPEN ERROR:", repr(exc))
-            self._error("باز کردن درگاه پرداخت انجام نشد.")
-
+            if not PAYMENT_GATEWAY_URL:return self._success(f"درخواست پرداخت #{aid} ثبت شد. درگاه هنوز در تنظیمات امن سامانه فعال نشده است.")
+            url=PAYMENT_GATEWAY_URL.rstrip("?")+"?attempt_id="+str(aid)
+            webbrowser.open(url); self._success("درخواست پرداخت ثبت و درگاه باز شد. نتیجه پرداخت باید توسط callback رسمی ثبت شود.")
+        except Exception as exc:self._error("ایجاد درخواست پرداخت انجام نشد: "+str(exc))
     def _history(self):
-        self._error("برای نمایش رسیدهای واقعی، جدول payment_records باید در Backend با نشست کاربر قابل خواندن باشد.")
-
+        try:
+            email=str((getattr(self.app_state,"profile",{}) or {}).get("email") or "")
+            rows=self.app_state.api.table_select("payment_attempts",{"payer_username":f"eq.{email}","order":"id.desc","limit":"50"})
+            self.body.clear_widgets(); self._label("سوابق پرداخت", "20sp", PRIMARY,50)
+            for r in rows:self._label(f"#{r.get('id')} | {r.get('description','')}\nمبلغ: {r.get('amount',0)} | وضعیت: {r.get('status','در انتظار')}",height=78)
+            if not rows:self._label("سابقه‌ای ثبت نشده است.",height=60)
+        except Exception as exc:self._error("خواندن سوابق پرداخت انجام نشد: "+str(exc))
     def _online(self):
-        role = _role(self.app_state)
-        if role in CLASS_MANAGERS:
-            self._online_management()
-        else:
-            self._online_view()
-
+        if role_of(self.app_state) in CLASS_MANAGERS:self._online_management()
+        else:self._online_user()
     def _online_management(self):
-        self._label("مدیریت کلاس‌های آنلاین\nساخت و فعال‌سازی کلاس فقط برای مدیریت، معاون آموزشی و معاون اجرایی مجاز است.", height=95)
-        self.class_name = TextInput(hint_text=rtl_text("نام کلاس"), font_name=font_name(), multiline=False, size_hint_y=None, height=dp(50))
-        self.subject = TextInput(hint_text=rtl_text("درس / موضوع"), font_name=font_name(), multiline=False, size_hint_y=None, height=dp(50))
-        self.join_url = TextInput(hint_text=rtl_text("لینک ورود به کلاس"), font_name=font_name(), multiline=False, size_hint_y=None, height=dp(50))
-        for field in (self.class_name, self.subject, self.join_url):
-            self.body.add_widget(field)
-        self._button("ساخت کلاس آنلاین", self._create_class, SUCCESS)
-        self._label("کلاس ساخته‌شده در همین بخش و برای دبیر/دانش‌آموزان مجاز قابل مشاهده خواهد بود.", height=70)
-        self._load_classes()
-
-    def _online_view(self):
-        self._label("کلاس‌های آنلاین فعال\nکلاس‌های شما از سامانه مرکزی خوانده می‌شوند. کلاس غیرفعال برای ورود دانش‌آموز قابل استفاده نیست.", height=90)
-        self._load_classes()
-
-    def _load_classes(self):
-        api = getattr(self.app_state, "api", None)
-        if api is None or not getattr(api, "access_token", "") or api.access_token == "local-bootstrap-admin":
-            self._label("برای نمایش کلاس‌های واقعی، باید نشست Supabase معتبر باشد.", color=ERROR, height=70)
-            return
-        Thread(target=self._fetch_classes, daemon=True).start()
-
-    def _fetch_classes(self):
+        self._label("مدیریت کلاس آنلاین\nکلاس واقعی در online_classes ذخیره می‌شود و با RPC امن فعال می‌گردد.",height=82)
+        title=self._field("عنوان کلاس")
+        subject=self._field("درس / موضوع")
+        teacher=self._field("نام دبیر")
+        grade=self._field("پایه")
+        cls=self._field("کلاس")
+        duration=self._field("مدت به دقیقه"); duration.text="60"
+        join=self._field("لینک ورود به کلاس")
+        start=self._field("ساعت شروع؛ اختیاری")
+        end=self._field("ساعت پایان؛ اختیاری")
+        for x in (title,subject,teacher,grade,cls,duration,join,start,end):
+            pass
+        self._button("ساخت کلاس",lambda *_:self._create_class(title,subject,teacher,grade,cls,duration,join,start,end),SUCCESS)
+        self._load_classes(True)
+    def _create_class(self,title,subject,teacher,grade,cls,duration,join,start,end):
+        if not title.text.strip():return self._error("عنوان کلاس الزامی است.")
+        try:dur=max(1,int(digits(duration.text or "60")))
+        except Exception:return self._error("مدت کلاس باید عدد باشد.")
         try:
-            rows = self.app_state.api.table_select("online_classes", {"select": "*", "order": "created_at.desc", "limit": "50"})
-            Clock.schedule_once(lambda *_: self._render_classes(rows if isinstance(rows, list) else []), 0)
-        except Exception as exc:
-            print("ONLINE CLASS LOAD ERROR:", repr(exc))
-            Clock.schedule_once(lambda *_: self._label("کلاس‌ها هنوز در Backend در دسترس نیستند.", color=ERROR, height=70), 0)
-
-    def _render_classes(self, rows):
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
-            title = row.get("title") or row.get("name") or "کلاس آنلاین"
-            subject = row.get("subject") or row.get("course") or ""
-            active = row.get("is_active")
-            state = "فعال" if active else "غیرفعال"
-            self._label(f"{title}\n{subject}\nوضعیت: {state}", height=80)
-            if _role(self.app_state) in CLASS_MANAGERS and row.get("id"):
-                self._button("فعال / غیرفعال کردن این کلاس", lambda *_ , cid=row.get("id"), current=bool(active): self._toggle_class(cid, current), PRIMARY)
-            if active and (row.get("join_url") or row.get("url") or row.get("meeting_url")):
-                url = row.get("join_url") or row.get("url") or row.get("meeting_url")
-                self._button("ورود به کلاس", lambda *_ , u=url: webbrowser.open(str(u)), SUCCESS)
-
-    def _create_class(self, *_):
-        api = getattr(self.app_state, "api", None)
-        if api is None or not getattr(api, "access_token", "") or api.access_token == "local-bootstrap-admin":
-            self._error("ساخت کلاس نیازمند نشست واقعی Supabase است.")
-            return
-        title = self.class_name.text.strip()
-        subject = self.subject.text.strip()
-        url = self.join_url.text.strip()
-        if not title:
-            self._error("نام کلاس را وارد کنید.")
-            return
-        payload = {"school_id": SCHOOL_ID, "title": title, "subject": subject, "join_url": url, "is_active": False}
-        try:
-            api.table_insert("online_classes", payload)
-            self._success("کلاس ساخته شد و تا زمان فعال‌سازی، برای ورود دانش‌آموزان غیرفعال است.")
-            self._load_classes()
-        except Exception as exc:
-            print("ONLINE CLASS CREATE ERROR:", repr(exc))
-            self._error("ساخت کلاس انجام نشد؛ ساختار online_classes و RLS Backend باید با این عملیات هماهنگ باشد.")
-
-    def _toggle_class(self, class_id, current):
-        try:
-            self.app_state.api.table_update("online_classes", {"id": f"eq.{class_id}"}, {"is_active": not current})
-            self._success("وضعیت کلاس تغییر کرد.")
-            self.set_route("online")
-        except Exception as exc:
-            print("ONLINE CLASS TOGGLE ERROR:", repr(exc))
-            self._error("تغییر وضعیت کلاس انجام نشد.")
-
+            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":dur,"start_time":start.text.strip(),"end_time":end.text.strip(),"status":"inactive","created_at_shamsi":"","start_time_shamsi":start.text.strip(),"end_time_shamsi":end.text.strip(),"join_url":join.text.strip(),"meeting_url":join.text.strip()})
+            self._success("کلاس ساخته شد و برای فعال‌سازی آماده است."); self._load_classes(True)
+        except Exception as exc:self._error("ساخت کلاس انجام نشد: "+str(exc))
+    def _online_user(self):
+        self._label("کلاس‌های آنلاین\nفقط کلاس‌های واقعی سامانه نمایش داده می‌شوند.",height=72); self._load_classes(False)
+    def _load_classes(self,management=False):
+        try:rows=self.app_state.api.table_select("online_classes",{"order":"id.desc","limit":"50"})
+        except Exception as exc:return self._error("خواندن کلاس‌ها انجام نشد: "+str(exc))
+        for r in rows:
+            state=str(r.get("status") or "inactive"); title=r.get("title") or "کلاس آنلاین"; self._label(f"{title}\n{r.get('subject','')} | {r.get('class_name','')} | {r.get('duration',0)} دقیقه\nوضعیت: {'فعال' if state=='active' else 'غیرفعال'}",height=82)
+            if management and r.get("id") and state!="active":self._button("فعال‌سازی کلاس",lambda *_ ,cid=r["id"]:self._activate_class(cid),SUCCESS,44)
+            if state=="active" and r.get("join_url"):
+                self._button("ورود به کلاس",lambda *_ ,u=r["join_url"]:self._open_url(u),PRIMARY,44)
+        if not rows:self._label("کلاسی ثبت نشده است.",height=60)
+    def _activate_class(self,cid):
+        try:self.app_state.api.rpc("activate_online_class",{"p_class_id":int(cid)}); self._success("کلاس فعال شد."); self._load_classes(True)
+        except Exception as exc:self._error("فعال‌سازی انجام نشد: "+str(exc))
     def _messages(self):
-        self._label("صندوق پیام یکپارچه فراهوش\nپیام‌های مدرسه، آموزشی، اجرایی، پرورشی، مالی و اعلان‌های کلاس آنلاین در یک صندوق نمایش داده می‌شوند.", height=100)
-        api = getattr(self.app_state, "api", None)
-        if api is None or not getattr(api, "access_token", "") or api.access_token == "local-bootstrap-admin":
-            self._label("برای دریافت پیام‌های واقعی باید نشست Supabase معتبر باشد.", color=ERROR, height=70)
-            return
-        Thread(target=self._fetch_messages, daemon=True).start()
-
-    def _fetch_messages(self):
+        self._label("صندوق پیام‌ها\nپیام‌ها از سامانه مرکزی خوانده می‌شوند.",height=72)
+        self._load_messages()
+        text=self._field("متن پیام",80,True); self._button("ارسال پیام",lambda *_:self._send_message(text),SUCCESS)
+    def _load_messages(self):
         try:
-            rows = self.app_state.api.table_select("messages", {"select": "*", "order": "created_at.desc", "limit": "50"})
-            Clock.schedule_once(lambda *_: self._render_messages(rows if isinstance(rows, list) else []), 0)
-        except Exception as exc:
-            print("MESSAGE LOAD ERROR:", repr(exc))
-            Clock.schedule_once(lambda *_: self._label("صندوق پیام هنوز از Backend قابل دریافت نیست.", color=ERROR, height=70), 0)
-
-    def _render_messages(self, rows):
-        if not rows:
-            self._label("پیام خوانده‌نشده یا پیام عمومی برای این حساب وجود ندارد.", color=SECONDARY, height=70)
-            return
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
-            title = row.get("title") or row.get("subject") or "پیام فراهوش"
-            body = row.get("body") or row.get("content") or row.get("message") or ""
-            created = row.get("created_at") or ""
-            self._label(f"{title}\n{body}\n{created}", height=105)
-
-    def _success(self, text):
-        self.status.color = SUCCESS
-        self.status.text = rtl_text(text)
-
-    def _error(self, text):
-        self.status.color = ERROR
-        self.status.text = rtl_text(text)
-
+            rows=self.app_state.api.table_select("messages",{"order":"id.desc","limit":"50"})
+            for r in rows:self._label(f"{r.get('title') or r.get('subject') or 'پیام'}\n{r.get('body') or r.get('message') or ''}",height=85)
+            if not rows:self._label("پیامی برای نمایش وجود ندارد.",height=60)
+        except Exception as exc:self._error("خواندن پیام‌ها انجام نشد: "+str(exc))
+    def _send_message(self,text):
+        if not text.text.strip():return self._error("متن پیام را وارد کنید.")
+        self._error("ارسال مستقیم پیام نیازمند گیرنده مشخص است؛ از پنل پیام‌رسان مقصد استفاده کنید.")
+    def _field(self,hint,height=50,multiline=False):
+        f=TextInput(hint_text=rtl_text(hint),font_name=font_name(),font_size="14sp",multiline=multiline,size_hint_y=None,height=dp(height)); self.body.add_widget(f); return f
+    def _open_url(self,url):
+        try:webbrowser.open(url)
+        except Exception:self._error("باز کردن لینک انجام نشد.")
+    def _success(self,text):self.status.color=SUCCESS;self.status.text=rtl_text(text)
+    def _error(self,text):self.status.color=ERROR;self.status.text=rtl_text(text)
     def _back(self):
-        if self.manager:
-            self.manager.current = "dashboard"
+        try:self.manager.current="dashboard"
+        except Exception:pass
