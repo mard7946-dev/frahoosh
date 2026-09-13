@@ -44,7 +44,7 @@ class DashboardScreen(Screen):
         s=self.manager.get_screen("operations"); s.set_route(route); self.manager.current="operations"
     def _open_exam(self):
         if not self.manager.has_screen("teacher_exams"):
-            from mobile.screens.teacher_exams_v3 import TeacherExamsV3Screen; self.manager.add_widget(TeacherExamsV3Screen(name="teacher_exams",app_state=self.app_state))
+            from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen; self.manager.add_widget(TeacherExamsV4Screen(name="teacher_exams",app_state=self.app_state))
         self.manager.current="teacher_exams"
     def _menu_selected(self,route):
         if route=="about": self.status_label.text=rtl_text("فراهوش؛ سامانه هوشمند آموزشی یکپارچه مدرسه"); return
