@@ -1,4 +1,4 @@
-__version__ = "1.5.1"
+__version__ = "1.5.2"
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -12,6 +12,31 @@ class StartupFallback(Label):
     pass
 
 
+class AuthScreenManager(ScreenManager):
+    """ScreenManager guard: every screen except login requires a valid Auth session."""
+
+    PUBLIC_SCREENS = {"login"}
+
+    def __init__(self, app_state=None, **kwargs):
+        super().__init__(**kwargs)
+        self.app_state = app_state
+        self._redirecting = False
+
+    def on_current(self, _manager, screen_name):
+        if self._redirecting or screen_name in self.PUBLIC_SCREENS:
+            return
+        state = self.app_state
+        if state is None or not state.logged_in:
+            self._redirecting = True
+            Clock.schedule_once(self._redirect_to_login, 0)
+
+    def _redirect_to_login(self, *_):
+        try:
+            self.current = "login"
+        finally:
+            self._redirecting = False
+
+
 class FrahooshApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -20,22 +45,48 @@ class FrahooshApp(App):
 
     def build(self):
         self.title = "Frahoosh"
-        self.sm = ScreenManager()
         try:
             from mobile.services.app_state import AppState
             self.app_state = AppState()
         except Exception as exc:
             print("APP STATE STARTUP ERROR:", repr(exc))
+
+        self.sm = AuthScreenManager(app_state=self.app_state)
         self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
         self.sm.current = "login"
-        Clock.schedule_once(self._startup, 0)
+        Clock.schedule_once(self._startup, 0.05)
         return self.sm
 
     def _startup(self, *_):
+        """Restore a saved Supabase session, refreshing it when necessary."""
         try:
-            self.sm.current = "login"
+            if self.app_state is None or not self.app_state.logged_in:
+                self.sm.current = "login"
+                return
+
+            valid = False
+            try:
+                valid = self.app_state.api.validate_session()
+            except Exception as exc:
+                print("SESSION VALIDATION ERROR:", repr(exc))
+
+            if not valid:
+                try:
+                    valid = self.app_state.refresh_session()
+                except Exception as exc:
+                    print("SESSION REFRESH ERROR:", repr(exc))
+
+            if valid:
+                self.open_dashboard()
+            else:
+                self.app_state.logout()
+                self.sm.current = "login"
         except Exception as exc:
-            print("LOGIN START ERROR:", repr(exc))
+            print("AUTH START ERROR:", repr(exc))
+            try:
+                self.sm.current = "login"
+            except Exception:
+                pass
 
     def ensure_dashboard(self):
         if self.sm is None:
@@ -113,6 +164,10 @@ class FrahooshApp(App):
 
     def open_dashboard(self):
         try:
+            if self.app_state is None or not self.app_state.logged_in:
+                if self.sm is not None:
+                    self.sm.current = "login"
+                return False
             dashboard = self.ensure_dashboard()
             if dashboard is None:
                 return False
