@@ -3,7 +3,7 @@ from threading import Thread
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.metrics import dp
-from kivy.graphics import Color, RoundedRectangle, Line
+from kivy.graphics import Color, RoundedRectangle, Line, Ellipse
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -14,32 +14,35 @@ from mobile.config import APP_NAME, SYSTEM_TITLE, SCHOOL_NAME, PRIMARY, SECONDAR
 from mobile.ui import font_name, rtl_text, PersianTextInput
 
 
-class _Card(BoxLayout):
-    def __init__(self, **kwargs):
+class _Surface(BoxLayout):
+    def __init__(self, fill=(1, 1, 1, 1), radius=24, **kwargs):
         super().__init__(**kwargs)
+        self._radius = dp(radius)
         with self.canvas.before:
-            Color(0.985, 0.99, 1, 1)
-            self.bg = RoundedRectangle(radius=[dp(22)])
-            Color(0.84, 0.88, 0.94, 1)
-            self.border = Line(rounded_rectangle=(0, 0, 0, 0, dp(22)), width=0.8)
+            Color(*fill)
+            self._bg = RoundedRectangle(radius=[self._radius])
+            Color(0.84, 0.88, 0.93, 1)
+            self._line = Line(rounded_rectangle=(0, 0, 0, 0, self._radius), width=0.7)
         self.bind(pos=self._sync, size=self._sync)
 
     def _sync(self, *_):
-        self.bg.pos = self.pos
-        self.bg.size = self.size
-        self.border.rounded_rectangle = (self.x, self.y, self.width, self.height, dp(22))
+        self._bg.pos = self.pos
+        self._bg.size = self.size
+        self._line.rounded_rectangle = (self.x, self.y, self.width, self.height, self._radius)
 
 
 class LoginScreen(Screen):
+    """Professional, school-neutral login. School name is supplied by runtime_config.json."""
+
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
         self.app_state = app_state
         self._busy = False
         self._build()
 
-    def _label(self, text, size, color, bold=False, height=None):
-        kw = dict(text=rtl_text(text), font_name=font_name(), font_size=size, color=color, bold=bold,
-                  halign="right", valign="middle")
+    def _label(self, text, size, color, bold=False, height=None, halign="right"):
+        kw = dict(text=rtl_text(text), font_name=font_name(), font_size=size, color=color,
+                  bold=bold, halign=halign, valign="middle")
         if height is not None:
             kw.update(size_hint_y=None, height=dp(height))
         w = Label(**kw)
@@ -47,46 +50,71 @@ class LoginScreen(Screen):
         return w
 
     def _build(self):
-        root = BoxLayout(orientation="vertical", padding=[dp(18), dp(18), dp(18), dp(12)], spacing=dp(12))
+        root = BoxLayout(orientation="vertical", padding=[dp(18), dp(22), dp(18), dp(12)], spacing=dp(12))
         with root.canvas.before:
-            Color(0.965, 0.975, 0.99, 1)
-            self.bg = RoundedRectangle(pos=root.pos, size=root.size, radius=[dp(0)])
-        root.bind(pos=lambda o, v: setattr(self.bg, "pos", v), size=lambda o, v: setattr(self.bg, "size", v))
+            Color(0.955, 0.968, 0.982, 1)
+            self._background = RoundedRectangle(pos=root.pos, size=root.size)
+            Color(0.12, 0.35, 0.62, 0.08)
+            self._orb1 = Ellipse(pos=(0, 0), size=(dp(180), dp(180)))
+            Color(0.05, 0.55, 0.48, 0.06)
+            self._orb2 = Ellipse(pos=(0, 0), size=(dp(140), dp(140)))
+        root.bind(pos=self._sync_background, size=self._sync_background)
 
-        brand = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(128), spacing=dp(2), padding=[dp(8), 0])
-        brand.add_widget(self._label(APP_NAME, "34sp", PRIMARY, True, 48))
-        brand.add_widget(self._label("سامانه هوشمند آموزشی یکپارچه مدرسه", "15sp", SECONDARY, True, 34))
-        brand.add_widget(self._label(SCHOOL_NAME, "12sp", PRIMARY, False, 32))
-        root.add_widget(brand)
+        header = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(150), spacing=dp(3), padding=[dp(8), dp(4)])
+        mark = BoxLayout(size_hint_y=None, height=dp(54), spacing=dp(9))
+        badge = Label(text="F", font_name=font_name(), font_size="25sp", bold=True, color=WHITE,
+                      size_hint_x=None, width=dp(54), halign="center", valign="middle")
+        with badge.canvas.before:
+            Color(*PRIMARY)
+            badge_bg = RoundedRectangle(radius=[dp(15)])
+        badge.bind(pos=lambda o,v:setattr(badge_bg,"pos",v), size=lambda o,v:setattr(badge_bg,"size",v))
+        mark.add_widget(badge)
+        brand_text = BoxLayout(orientation="vertical")
+        brand_text.add_widget(self._label(APP_NAME, "25sp", PRIMARY, True, 31))
+        brand_text.add_widget(self._label("SMART SCHOOL PLATFORM", "9sp", SECONDARY, True, 22, "left"))
+        mark.add_widget(brand_text)
+        header.add_widget(mark)
+        header.add_widget(self._label(SCHOOL_NAME, "15sp", PRIMARY, True, 30, "center"))
+        header.add_widget(self._label(SYSTEM_TITLE, "11sp", SECONDARY, False, 28, "center"))
+        root.add_widget(header)
 
-        card = _Card(orientation="vertical", padding=[dp(22), dp(20), dp(22), dp(18)], spacing=dp(10))
-        card.add_widget(self._label("ورود به حساب کاربری", "22sp", PRIMARY, True, 42))
-        card.add_widget(self._label("برای ورود، کد ملی و رمز عبور خود را وارد کنید.", "12sp", SECONDARY, False, 34))
+        card = _Surface(fill=(0.995, 0.998, 1, 1), radius=26,
+                        orientation="vertical", padding=[dp(22), dp(20), dp(22), dp(18)], spacing=dp(10))
+        card.add_widget(self._label("ورود به سامانه", "23sp", PRIMARY, True, 40))
+        card.add_widget(self._label("با حساب سازمانی خود وارد شوید", "12sp", SECONDARY, False, 30))
 
-        self.identifier = PersianTextInput(hint_text=rtl_text("کد ملی"), multiline=False, size_hint_y=None,
-                                           height=dp(54), halign="right", padding=[dp(14), dp(14)])
-        self.password = PersianTextInput(hint_text=rtl_text("رمز عبور"), password=True, password_mask="•", multiline=False,
-                                         size_hint_y=None, height=dp(54), halign="right", padding=[dp(14), dp(14)])
+        self.identifier = PersianTextInput(hint_text=rtl_text("کد ملی"), multiline=False,
+                                           size_hint_y=None, height=dp(54), halign="right",
+                                           padding=[dp(14), dp(14)])
+        self.password = PersianTextInput(hint_text=rtl_text("رمز عبور"), password=True,
+                                         password_mask="•", multiline=False, size_hint_y=None,
+                                         height=dp(54), halign="right", padding=[dp(14), dp(14)])
         card.add_widget(self.identifier)
         card.add_widget(self.password)
 
-        self.status = self._label("", "12sp", SECONDARY, False, 52)
-        self.status.halign = "center"
+        self.status = self._label("", "11sp", SECONDARY, False, 48, "center")
         card.add_widget(self.status)
 
-        self.login_button = Button(text=rtl_text("ورود امن"), font_name=font_name(), font_size="16sp", bold=True,
-                                   background_normal="", background_color=PRIMARY, color=WHITE,
-                                   size_hint_y=None, height=dp(54))
+        self.login_button = Button(text=rtl_text("ورود امن"), font_name=font_name(), font_size="16sp",
+                                   bold=True, background_normal="", background_color=PRIMARY,
+                                   color=WHITE, size_hint_y=None, height=dp(54))
         self.login_button.bind(on_release=self.login)
         card.add_widget(self.login_button)
-        card.add_widget(self._label("اطلاعات ورود شما فقط برای احراز هویت استفاده می‌شود.", "10sp", SECONDARY, False, 30))
+        card.add_widget(self._label("اتصال رمزگذاری‌شده  •  احراز هویت سامانه مدرسه", "9sp", SECONDARY, False, 28, "center"))
         root.add_widget(card)
 
         root.add_widget(Widget())
-        footer = self._label("FRAHOOSH  •  SCHOOL MANAGEMENT", "9sp", SECONDARY, True, 26)
-        footer.halign = "center"
+        footer = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(55), spacing=dp(2))
+        footer.add_widget(self._label("فراهوش  |  سامانه هوشمند آموزشی یکپارچه مدرسه", "10sp", SECONDARY, True, 27, "center"))
+        footer.add_widget(self._label("نسخه سازمانی", "8sp", SECONDARY, False, 20, "center"))
         root.add_widget(footer)
         self.add_widget(root)
+
+    def _sync_background(self, widget, value):
+        self._background.pos = value
+        self._background.size = widget.size
+        self._orb1.pos = (widget.x - dp(70), widget.top - dp(120))
+        self._orb2.pos = (widget.right - dp(80), widget.y - dp(30))
 
     def _set_status(self, text, color=SECONDARY):
         self.status.text = rtl_text(text)
@@ -135,7 +163,7 @@ class LoginScreen(Screen):
             return
         self._busy = True
         self.login_button.disabled = True
-        self._set_status("در حال احراز هویت و آماده‌سازی پنل...", SECONDARY)
+        self._set_status("در حال احراز هویت و آماده‌سازی پنل…", SECONDARY)
         Thread(target=self._authenticate, args=(identifier, password), daemon=True).start()
 
     def _authenticate(self, identifier, password):
@@ -154,7 +182,7 @@ class LoginScreen(Screen):
     def _login_success(self):
         self._busy = False
         self.login_button.disabled = False
-        self._set_status("ورود موفق؛ پنل شما در حال آماده‌سازی است.", SUCCESS)
+        self._set_status("ورود موفق؛ پنل شما آماده است.", SUCCESS)
         try:
             app = App.get_running_app()
             if app is not None and hasattr(app, "open_dashboard") and app.open_dashboard():
