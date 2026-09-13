@@ -4,12 +4,12 @@ title = Frahoosh
 package.name = frahooshmobile
 package.domain = ir.frahoosh
 
-# Stable package identity: updates must keep this exact application id.
+# Keep the application id unchanged so every release upgrades the installed app.
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,ttf,json
 
-version = 1.4.0
-android.numeric_version = 140
+version = 1.5.0
+android.numeric_version = 150
 
 requirements = python3,kivy,requests,urllib3,arabic-reshaper,python-bidi
 orientation = portrait
