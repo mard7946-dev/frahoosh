@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        uses: actions/checkout@692973e3d937129bcbf40652ebf9f2f61becf3332
       - name: Setup Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38d
         with:
@@ -100,18 +100,18 @@ jobs:
           set -euxo pipefail
           grep -q '^package.name = frahooshmobile$' buildozer.spec
           grep -q '^package.domain = ir.frahoosh$' buildozer.spec
-          grep -q '^android.numeric_version = 153$' buildozer.spec
-          grep -q '^version = 1.5.3$' buildozer.spec
+          grep -q '^android.numeric_version = 154$' buildozer.spec
+          grep -q '^version = 1.5.4$' buildozer.spec
       - name: Configure stable release signing
-        shell: bash
         env:
           FRAHOOSH_KEYSTORE_B64: ${{ secrets.FRAHOOSH_KEYSTORE_B64 }}
           FRAHOOSH_KEYSTORE_PASSWORD: ${{ secrets.FRAHOOSH_KEYSTORE_PASSWORD }}
           FRAHOOSH_KEY_ALIAS: ${{ secrets.FRAHOOSH_KEY_ALIAS }}
           FRAHOOSH_KEY_PASSWORD: ${{ secrets.FRAHOOSH_KEY_PASSWORD }}
+        shell: bash
         run: |
           set -euo pipefail
-          test -n "${FRAHOOSH_KEYSTORE_B64:-}" || { echo "Missing FRAHOOSH_KEYSTORE_B64: a persistent signing key is required for seamless Android updates."; exit 1; }
+          test -n "${FRAHOOSH_KEYSTORE_B64:-}" || { echo "Missing FRAHOOSH_KEYSTORE_B64: persistent signing is required for seamless updates."; exit 1; }
           test -n "${FRAHOOSH_KEYSTORE_PASSWORD:-}" || { echo "Missing FRAHOOSH_KEYSTORE_PASSWORD."; exit 1; }
           test -n "${FRAHOOSH_KEY_ALIAS:-}" || { echo "Missing FRAHOOSH_KEY_ALIAS."; exit 1; }
           test -n "${FRAHOOSH_KEY_PASSWORD:-}" || { echo "Missing FRAHOOSH_KEY_PASSWORD."; exit 1; }
@@ -134,7 +134,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: Frahoosh-APK-v1.5.3
+          name: Frahoosh-APK-v1.5.4
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
