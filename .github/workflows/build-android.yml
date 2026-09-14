@@ -12,9 +12,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652ebf9f2f61becf3332
+        uses: actions/checkout@v4
       - name: Setup Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38d
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - name: Setup Java
@@ -83,7 +83,7 @@ jobs:
               "supabase_anon_key":os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
               "school_id":os.environ.get("FRAHOOSH_SCHOOL_ID",""),
               "school_name":os.environ.get("FRAHOOSH_SCHOOL_NAME","") or "نام مدرسه",
-              "school_year":os.environ.get("FRAHOOSH_SCHOOL_YEAR",""),
+              "school_year":os.environ.get("FRAHOOSH_SCHOOL_YEAR","") or "۱۴۰۵-۱۴۰۶",
               "payment_gateway_url":os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL",""),
               "web_url":os.environ.get("FRAHOOSH_WEB_URL","") or "https://frahoosh.ir"}
           Path("mobile/runtime_config.json").write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding="utf-8")
@@ -132,7 +132,7 @@ jobs:
           buildozer -v android release
       - name: Upload APK
         if: success()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@v4
         with:
           name: Frahoosh-APK-v1.5.4
           path: bin/*.apk
