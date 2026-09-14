@@ -13,38 +13,31 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-
       - name: Setup Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38d
         with:
           python-version: "3.11"
-
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
-
       - name: Install system dependencies
         shell: bash
         run: |
           set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y git zip unzip wget curl autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev build-essential
-
       - name: Install Build tools
         shell: bash
         run: |
           set -euxo pipefail
           python -m pip install --upgrade pip
           pip install "cython==0.29.36" "buildozer==1.5.0"
-          buildozer --version
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
-
       - name: Install Android SDK packages
         shell: bash
         run: |
@@ -56,12 +49,8 @@ jobs:
           "$SDKMANAGER" "platforms;android-35"
           "$SDKMANAGER" "build-tools;35.0.0"
           "$SDKMANAGER" "ndk;28.2.13676358"
-          # python-for-android revision used by Frahoosh 1.5.1 still probes
-          # the historical SDK tools/bin/sdkmanager location. Keep the modern
-          # command-line tools while providing that compatibility path.
           mkdir -p "$SDK/tools/bin"
           ln -sf "$SDK/cmdline-tools/latest/bin/sdkmanager" "$SDK/tools/bin/sdkmanager"
-
       - name: Configure Android environment
         shell: bash
         run: |
@@ -72,7 +61,6 @@ jobs:
           echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
-
       - name: Create runtime config
         shell: bash
         env:
@@ -101,22 +89,19 @@ jobs:
           Path("mobile/runtime_config.json").write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding="utf-8")
           PY
           test -s mobile/runtime_config.json
-
       - name: Validate mobile Python sources
         shell: bash
         run: |
           set -euxo pipefail
           python -m compileall -q mobile main.py
-
-      - name: Validate stable Android identity
+      - name: Validate Android identity
         shell: bash
         run: |
           set -euxo pipefail
           grep -q '^package.name = frahooshmobile$' buildozer.spec
           grep -q '^package.domain = ir.frahoosh$' buildozer.spec
-          grep -q '^android.numeric_version = 151$' buildozer.spec
-          grep -q '^version = 1.5.1$' buildozer.spec
-
+          grep -q '^android.numeric_version = 152$' buildozer.spec
+          grep -q '^version = 1.5.2$' buildozer.spec
       - name: Configure optional release signing
         shell: bash
         env:
@@ -138,24 +123,18 @@ jobs:
           else
             echo "FRAHOOSH_SIGNING_MODE=debug" >> "$GITHUB_ENV"
           fi
-
       - name: Build APK
         shell: bash
         run: |
           set -euxo pipefail
           export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
           export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          if [ "$FRAHOOSH_SIGNING_MODE" = "release" ]; then
-            buildozer -v android release
-          else
-            buildozer -v android debug
-          fi
-
+          if [ "$FRAHOOSH_SIGNING_MODE" = "release" ]; then buildozer -v android release; else buildozer -v android debug; fi
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: Frahoosh-APK-v1.5.1
+          name: Frahoosh-APK-v1.5.2
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
