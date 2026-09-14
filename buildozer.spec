@@ -5,8 +5,8 @@ package.name = frahooshmobile
 package.domain = ir.frahoosh
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,ttf,json
-version = 1.5.2
-android.numeric_version = 152
+version = 1.5.3
+android.numeric_version = 153
 requirements = python3==3.11.10,hostpython3==3.11.10,kivy==2.3.1,requests==2.32.3,urllib3,arabic-reshaper==3.0.0,python-bidi==0.6.6
 orientation = portrait
 fullscreen = 0
