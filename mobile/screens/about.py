@@ -5,10 +5,9 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 
-from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_ID, SCHOOL_YEAR, PRIMARY, SECONDARY, SUCCESS, WHITE
+from mobile.config import APP_NAME, APP_VERSION, SCHOOL_NAME, SCHOOL_ID, SCHOOL_YEAR, PRIMARY, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text
 
-APP_VERSION = "1.5.2"
 PRODUCER = "حسن مردانه جهان تیغ"
 SUPPORT = "۰۹۳۷۷۳۲۹۹۱۲"
 
@@ -43,20 +42,20 @@ class AboutScreen(Screen):
         root.add_widget(head)
 
         scroll = ScrollView(do_scroll_x=False)
-        body = BoxLayout(orientation="vertical", spacing=dp(6), padding=dp(6), size_hint_y=None)
+        body = BoxLayout(orientation="vertical", spacing=dp(8), padding=dp(6), size_hint_y=None)
         body.bind(minimum_height=body.setter("height"))
 
         school = SCHOOL_NAME or "نام مدرسه"
-        school_code = f"کد مدرسه: {SCHOOL_ID}" if SCHOOL_ID else "کد مدرسه: در تنظیمات مدرسه تعیین نشده است"
+        school_code = SCHOOL_ID or "در تنظیمات مدرسه تعیین نشده است"
         year = SCHOOL_YEAR or "۱۴۰۵-۱۴۰۶"
         rows = [
             ("نام برنامه", APP_NAME),
             ("سازنده", PRODUCER),
             ("ورژن برنامه", APP_VERSION),
-            ("سازگاری", "Android 7.0 و بالاتر (API 24+)، نسخه بهینه‌شده برای گوشی و تبلت"),
+            ("سازگاری", "Android 7.0 و بالاتر (API 24+)؛ مناسب گوشی و تبلت"),
             ("سال تولید", year),
             ("مدرسه فعال", school),
-            ("شناسه / کد مدرسه", school_code),
+            ("کد مدرسه", school_code),
             ("پشتیبانی و خرید اشتراک", SUPPORT),
         ]
         for key, value in rows:
@@ -66,10 +65,15 @@ class AboutScreen(Screen):
             body.add_widget(card)
 
         note = self._label(
-            "این نسخه برای استقرار در مدارس مختلف طراحی شده است. نام و کد مدرسه از تنظیمات امن هر مدرسه خوانده می‌شود و نیازی به تغییر کد اصلی برنامه نیست.",
-            "13sp", SUCCESS, 82,
+            "فراهوش برای استقرار در مدارس مختلف طراحی شده است. نام و کد مدرسه از تنظیمات امن هر مدرسه خوانده می‌شود؛ بنابراین برای ارائه برنامه به مدرسه دیگر، لازم نیست کد اصلی برنامه تغییر کند.",
+            "13sp", SUCCESS, 92,
         )
         body.add_widget(note)
+        support = self._label(
+            f"پشتیبانی و خرید اشتراک: {SUPPORT}",
+            "14sp", PRIMARY, 52, True,
+        )
+        body.add_widget(support)
         scroll.add_widget(body)
         root.add_widget(scroll)
         self.add_widget(root)
