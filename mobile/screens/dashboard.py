@@ -76,7 +76,6 @@ class DashboardScreen(Screen):
     def _build_ui(self):
         root = FloatLayout()
         self.content = BoxLayout(orientation="vertical", padding=dp(14), spacing=dp(10))
-
         header = BoxLayout(size_hint_y=None, height=dp(58), spacing=dp(10))
         self.menu_button = Button(text="☰", font_size="27sp", background_normal="", background_color=PRIMARY, color=WHITE, size_hint_x=None, width=dp(58))
         self.menu_button.bind(on_release=self.toggle_drawer)
@@ -88,7 +87,8 @@ class DashboardScreen(Screen):
         self.content.add_widget(header)
 
         self.welcome = _Card(size_hint_y=None, height=dp(122))
-        self.welcome.add_widget(self._label("خوش آمدید", "23sp", PRIMARY, True))
+        self.welcome_title = self._label("خوش آمدید", "23sp", PRIMARY, True)
+        self.welcome.add_widget(self.welcome_title)
         self.role_label = self._label("", "14sp", SECONDARY, True)
         self.welcome.add_widget(self.role_label)
         self.school_label = self._label("", "12sp", SECONDARY)
@@ -115,7 +115,6 @@ class DashboardScreen(Screen):
         self.content.add_widget(logout)
         root.add_widget(self.content)
 
-        # Drawer overlay. It is created once and simply shown/hidden; navigation remains the same.
         self.drawer_layer = FloatLayout(size_hint=(1, 1), opacity=0, disabled=True)
         self.drawer_layer.add_widget(Button(background_normal="", background_color=(0, 0, 0, 0.28), size_hint=(1, 1), on_release=self.close_drawer))
         drawer = BoxLayout(orientation="vertical", padding=[dp(12), dp(12)], spacing=dp(7), size_hint=(None, 1), width=dp(285), pos_hint={"right": 1})
@@ -152,7 +151,7 @@ class DashboardScreen(Screen):
         role = self._get_role()
         name = self._get_display_name()
         items = MANAGER_MENU if role == "manager" else ROLE_MENU.get(role, [("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")])
-        self.welcome.children[0].text = rtl_text(f"خوش آمدید، {name}")
+        self.welcome_title.text = rtl_text(f"خوش آمدید، {name}")
         self.role_label.text = rtl_text(f"پنل {ROLE_TITLES.get(role, 'کاربر')} | دسترسی فعال")
         self.school_label.text = rtl_text(f"{SCHOOL_NAME or 'نام مدرسه'} | کد مدرسه: {SCHOOL_ID or '—'}")
         self.home_status.text = rtl_text(f"{len(items)} بخش برای نقش شما فعال است. داده‌های خالی به‌عنوان وضعیت عادی مدرسه نمایش داده می‌شوند.")
