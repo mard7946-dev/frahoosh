@@ -1,6 +1,7 @@
 from threading import Thread
 
 from kivy.clock import Clock
+from kivy.app import App
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
@@ -13,7 +14,6 @@ from mobile.config import (
     LOGO_PATH,
     PRIMARY,
     SECONDARY,
-    BACKGROUND,
 )
 
 from mobile.ui import (
@@ -291,6 +291,12 @@ class LoadingScreen(Screen):
                 return
 
             self._finished = True
+
+            app = App.get_running_app()
+
+            if app is not None and hasattr(app, "open_dashboard"):
+                if app.open_dashboard():
+                    return
 
             self.manager.current = (
                 "dashboard"

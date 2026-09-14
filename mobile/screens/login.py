@@ -1,5 +1,6 @@
 from threading import Thread
 
+from kivy.app import App
 from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.screenmanager import Screen
@@ -243,7 +244,7 @@ class LoginScreen(Screen):
         self._set_status("ورود موفق بود.", SUCCESS)
 
         try:
-            app = self.app
+            app = App.get_running_app()
             if app is not None and hasattr(app, "open_dashboard"):
                 if app.open_dashboard():
                     return

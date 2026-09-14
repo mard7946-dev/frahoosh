@@ -256,6 +256,15 @@ DETAIL_TO_MODULE = {
     "settings": "settings",
 }
 
+ROLE_ALIASES = {
+    "admin": "manager", "administrator": "manager", "manager": "manager", "مدیر": "manager", "مدیریت": "manager",
+    "executive": "executive", "معاون اجرایی": "executive", "educational": "educational", "training": "educational", "معاون آموزشی": "educational",
+    "cultural": "cultural", "پرورشی": "cultural", "معاون پرورشی": "cultural", "advisor": "advisor", "counselor": "advisor", "مشاور": "advisor",
+    "teacher": "teacher", "teacher_staff": "teacher", "دبیر": "teacher", "معلم": "teacher", "student": "student", "دانش‌آموز": "student",
+    "دانش آموز": "student", "parent": "parent", "parent_guardian": "parent", "guardian": "parent", "ولی": "parent", "اولیا": "parent",
+}
+ROLE_LABELS = {"manager": "مدیریت", "educational": "معاون آموزشی", "executive": "معاون اجرایی", "cultural": "معاون پرورشی", "advisor": "مشاوره", "teacher": "دبیر", "student": "دانش‌آموز", "parent": "ولی"}
+
 
 class LivePanelScreen(Screen):
     """Complete panel shell with role-specific operational submenus."""
@@ -291,17 +300,27 @@ class LivePanelScreen(Screen):
 
     def set_panel(self, route):
         self.route = str(route or "messages").strip().lower()
+        role = self._role()
         self.title.text = rtl_text(TITLES.get(self.route, APP_NAME))
         self.body.clear_widgets()
         self.status.color = SUCCESS
-        self.status.text = rtl_text("زیرپنل‌های کامل و کاربردی")
+        self.status.text = rtl_text(f"امکانات پنل برای نقش {ROLE_LABELS.get(role, 'کاربر')} آماده است")
         self._render_submenus()
+
+    def _role(self):
+        try:
+            raw = getattr(self.app_state, "role", "student")
+        except Exception:
+            raw = "student"
+        raw = str(raw or "student").strip().lower()
+        return ROLE_ALIASES.get(raw, raw)
 
     def _render_submenus(self):
         items = SUBMENUS.get(self.route, [])
+        role = self._role()
         self._add_card(
             "پنل اختصاصی",
-            f"{TITLES.get(self.route, APP_NAME)}\nزیرمجموعه‌های عملیاتی این پنل را انتخاب کنید.",
+            f"{TITLES.get(self.route, APP_NAME)} برای نقش {ROLE_LABELS.get(role, 'کاربر')}\nزیرمجموعه‌های عملیاتی این پنل را انتخاب کنید؛ حتی اگر هنوز داده‌ای ثبت نشده باشد.",
         )
         if not items:
             self._add_card("بخش", "برای این نقش زیرپنل اختصاصی تعریف نشده است.")
@@ -314,9 +333,9 @@ class LivePanelScreen(Screen):
         try:
             connected, message = self.data.connection_state()
             if connected:
-                self._add_card("وضعیت سامانه", "اتصال واقعی به داده‌های مدرسه فعال است.")
+                self._add_card("وضعیت سامانه", message)
             else:
-                self._add_card("وضعیت داده", "زیرپنل‌ها فعال هستند؛ هنگام باز کردن بخش‌های داده‌ای، در صورت نیاز نشست واقعی Supabase استفاده می‌شود.")
+                self._add_card("وضعیت داده", f"{message}\nزیرپنل‌ها و امکانات نقش شما همچنان قابل مشاهده‌اند.")
         except Exception:
             pass
 

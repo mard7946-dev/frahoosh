@@ -5,6 +5,7 @@ from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager
 from kivy.uix.label import Label
 
+from mobile.screens.loading import LoadingScreen
 from mobile.screens.login import LoginScreen
 
 
@@ -13,9 +14,9 @@ class StartupFallback(Label):
 
 
 class AuthScreenManager(ScreenManager):
-    """ScreenManager guard: every screen except login requires a valid Auth session."""
+    """ScreenManager guard: only loading and login are available without a session."""
 
-    PUBLIC_SCREENS = {"login"}
+    PUBLIC_SCREENS = {"loading", "login"}
 
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
@@ -52,9 +53,9 @@ class FrahooshApp(App):
             print("APP STATE STARTUP ERROR:", repr(exc))
 
         self.sm = AuthScreenManager(app_state=self.app_state)
+        self.sm.add_widget(LoadingScreen(name="loading", app_state=self.app_state))
         self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
-        self.sm.current = "login"
-        Clock.schedule_once(self._startup, 0.05)
+        self.sm.current = "loading"
         return self.sm
 
     def _startup(self, *_):
