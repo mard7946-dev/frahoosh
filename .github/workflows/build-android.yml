@@ -56,6 +56,11 @@ jobs:
           "$SDKMANAGER" "platforms;android-35"
           "$SDKMANAGER" "build-tools;35.0.0"
           "$SDKMANAGER" "ndk;28.2.13676358"
+          # python-for-android revision used by Frahoosh 1.5.1 still probes
+          # the historical SDK tools/bin/sdkmanager location. Keep the modern
+          # command-line tools while providing that compatibility path.
+          mkdir -p "$SDK/tools/bin"
+          ln -sf "$SDK/cmdline-tools/latest/bin/sdkmanager" "$SDK/tools/bin/sdkmanager"
 
       - name: Configure Android environment
         shell: bash
@@ -63,6 +68,7 @@ jobs:
           set -euxo pipefail
           NDK="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
           test -d "$NDK"
+          test -x "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
           echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
