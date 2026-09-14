@@ -100,9 +100,9 @@ jobs:
           set -euxo pipefail
           grep -q '^package.name = frahooshmobile$' buildozer.spec
           grep -q '^package.domain = ir.frahoosh$' buildozer.spec
-          grep -q '^android.numeric_version = 152$' buildozer.spec
-          grep -q '^version = 1.5.2$' buildozer.spec
-      - name: Configure optional release signing
+          grep -q '^android.numeric_version = 153$' buildozer.spec
+          grep -q '^version = 1.5.3$' buildozer.spec
+      - name: Configure stable release signing
         shell: bash
         env:
           FRAHOOSH_KEYSTORE_B64: ${{ secrets.FRAHOOSH_KEYSTORE_B64 }}
@@ -111,30 +111,30 @@ jobs:
           FRAHOOSH_KEY_PASSWORD: ${{ secrets.FRAHOOSH_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -n "${FRAHOOSH_KEYSTORE_B64:-}" ] && [ -n "${FRAHOOSH_KEYSTORE_PASSWORD:-}" ] && [ -n "${FRAHOOSH_KEY_ALIAS:-}" ] && [ -n "${FRAHOOSH_KEY_PASSWORD:-}" ]; then
-            echo "$FRAHOOSH_KEYSTORE_B64" | base64 --decode > "$GITHUB_WORKSPACE/frahoosh-release.keystore"
-            cat >> buildozer.spec <<EOF
+          test -n "${FRAHOOSH_KEYSTORE_B64:-}" || { echo "Missing FRAHOOSH_KEYSTORE_B64: a persistent signing key is required for seamless Android updates."; exit 1; }
+          test -n "${FRAHOOSH_KEYSTORE_PASSWORD:-}" || { echo "Missing FRAHOOSH_KEYSTORE_PASSWORD."; exit 1; }
+          test -n "${FRAHOOSH_KEY_ALIAS:-}" || { echo "Missing FRAHOOSH_KEY_ALIAS."; exit 1; }
+          test -n "${FRAHOOSH_KEY_PASSWORD:-}" || { echo "Missing FRAHOOSH_KEY_PASSWORD."; exit 1; }
+          echo "$FRAHOOSH_KEYSTORE_B64" | base64 --decode > "$GITHUB_WORKSPACE/frahoosh-release.keystore"
+          test -s "$GITHUB_WORKSPACE/frahoosh-release.keystore"
+          cat >> buildozer.spec <<EOF
           android.keystore = $GITHUB_WORKSPACE/frahoosh-release.keystore
           android.keyalias = $FRAHOOSH_KEY_ALIAS
           android.keystorepass = $FRAHOOSH_KEYSTORE_PASSWORD
           android.keypass = $FRAHOOSH_KEY_PASSWORD
           EOF
-            echo "FRAHOOSH_SIGNING_MODE=release" >> "$GITHUB_ENV"
-          else
-            echo "FRAHOOSH_SIGNING_MODE=debug" >> "$GITHUB_ENV"
-          fi
-      - name: Build APK
+      - name: Build signed APK
         shell: bash
         run: |
           set -euxo pipefail
           export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
           export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          if [ "$FRAHOOSH_SIGNING_MODE" = "release" ]; then buildozer -v android release; else buildozer -v android debug; fi
+          buildozer -v android release
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: Frahoosh-APK-v1.5.2
+          name: Frahoosh-APK-v1.5.3
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
