@@ -33,8 +33,8 @@ ROLE_MENU = {
     "student": [("پنل دانش‌آموز", "student"), ("آزمون‌های آنلاین", "teacher_exams"), ("برنامه هفتگی", "schedule"), ("وضعیت تحصیلی", "student_info"), ("مشارکت و فعالیت‌ها", "participation"), ("پرداخت آنلاین", "payment"), ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
     "parent": [("پنل اولیا", "parent"), ("وضعیت تحصیلی فرزند", "student_info"), ("مشارکت اولیا", "participation"), ("پرداخت آنلاین", "payment"), ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
 }
-LIVE_ROUTES = {"management", "educational", "executive", "cultural", "advisor", "teachers", "students", "parents", "teacher", "student", "parent", "finance", "payment", "online", "smart_board", "ai", "messages", "reports", "schedule", "student_info", "settings"}
 OPERATIONS_ROUTES = {"payment", "online", "messages"}
+SPECIAL_MODULES = {"about", "participation", "teacher_exams"}
 
 
 class _Card(BoxLayout):
@@ -99,7 +99,7 @@ class DashboardScreen(Screen):
         body = BoxLayout(orientation="vertical", spacing=dp(9), padding=[dp(2), dp(4)], size_hint_y=None)
         body.bind(minimum_height=body.setter("height"))
         body.add_widget(self._label("سامانه آماده استفاده است", "18sp", SUCCESS, True))
-        body.add_widget(self._label("از منوی ☰، بخش موردنیاز را انتخاب کنید. هر بخش داده‌های واقعی قابل دسترس برای نقش شما را نمایش می‌دهد.", "13sp", SECONDARY))
+        body.add_widget(self._label("از منوی ☰، بخش موردنیاز را انتخاب کنید. هر پنل، جدول‌ها و رکوردهای واقعی قابل دسترس برای نقش شما را نمایش می‌دهد.", "13sp", SECONDARY))
         info = _Card(size_hint_y=None, height=dp(104))
         info.add_widget(self._label("اطلاعات استقرار", "15sp", PRIMARY, True))
         info.add_widget(self._label(f"سال تحصیلی: {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}", "12sp"))
@@ -154,7 +154,7 @@ class DashboardScreen(Screen):
         self.welcome_title.text = rtl_text(f"خوش آمدید، {name}")
         self.role_label.text = rtl_text(f"پنل {ROLE_TITLES.get(role, 'کاربر')} | دسترسی فعال")
         self.school_label.text = rtl_text(f"{SCHOOL_NAME or 'نام مدرسه'} | کد مدرسه: {SCHOOL_ID or '—'}")
-        self.home_status.text = rtl_text(f"{len(items)} بخش برای نقش شما فعال است. داده‌های خالی به‌عنوان وضعیت عادی مدرسه نمایش داده می‌شوند.")
+        self.home_status.text = rtl_text(f"{len(items)} بخش فعال است؛ ورود به هر بخش، پنل اجرایی و جدول‌های واقعی همان حوزه را باز می‌کند.")
         self._populate_drawer(items)
         return True
 
@@ -210,6 +210,15 @@ class DashboardScreen(Screen):
         self.close_drawer()
         self.manager.current = "participation"
 
+    def _open_module(self, route):
+        if not self.manager.has_screen("module"):
+            from mobile.screens.module import ModuleScreen
+            self.manager.add_widget(ModuleScreen(name="module", app_state=self.app_state))
+        m = self.manager.get_screen("module")
+        m.set_module(route, "dashboard")
+        self.close_drawer()
+        self.manager.current = "module"
+
     def _menu_selected(self, route):
         if self.app_state is None or not self.app_state.logged_in:
             if self.manager: self.manager.current = "login"
@@ -217,28 +226,10 @@ class DashboardScreen(Screen):
         if route == "about": self._open_about(); return
         if route == "participation": self._open_participation(); return
         if route == "teacher_exams": self._open_exam(); return
-        if not self.manager: return
-        try:
-            if route in OPERATIONS_ROUTES: self._open_operations(route); return
-            if route in LIVE_ROUTES:
-                if not self.manager.has_screen("live_panel"):
-                    from mobile.screens.live_panel import LivePanelScreen
-                    self.manager.add_widget(LivePanelScreen(name="live_panel", app_state=self.app_state))
-                p = self.manager.get_screen("live_panel")
-                p.set_panel(route)
-                self.close_drawer()
-                self.manager.current = "live_panel"
-                return
-            if not self.manager.has_screen("module"):
-                from mobile.screens.module import ModuleScreen
-                self.manager.add_widget(ModuleScreen(name="module", app_state=self.app_state))
-            m = self.manager.get_screen("module")
-            m.set_module(route)
-            self.close_drawer()
-            self.manager.current = "module"
-        except Exception as exc:
-            print("DASHBOARD NAV ERROR:", repr(exc))
-            self.close_drawer()
+        if route in OPERATIONS_ROUTES:
+            self._open_operations(route); return
+        if self.manager:
+            self._open_module(route)
 
     def logout(self, *_):
         try:
