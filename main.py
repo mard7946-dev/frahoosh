@@ -1,11 +1,11 @@
-__version__ = "1.5.2"
+__version__ = "1.5.5"
 
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager
 from kivy.uix.label import Label
+from kivy.core.window import Window
 
-from mobile.screens.loading import LoadingScreen
 from mobile.screens.login import LoginScreen
 
 
@@ -14,9 +14,9 @@ class StartupFallback(Label):
 
 
 class AuthScreenManager(ScreenManager):
-    """ScreenManager guard: only loading and login are available without a session."""
+    """ScreenManager guard: unauthenticated users can only use the login screen."""
 
-    PUBLIC_SCREENS = {"loading", "login"}
+    PUBLIC_SCREENS = {"login"}
 
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
@@ -46,6 +46,8 @@ class FrahooshApp(App):
 
     def build(self):
         self.title = "Frahoosh"
+        Window.clearcolor = (0.965, 0.975, 0.985, 1)
+
         try:
             from mobile.services.app_state import AppState
             self.app_state = AppState()
@@ -53,13 +55,18 @@ class FrahooshApp(App):
             print("APP STATE STARTUP ERROR:", repr(exc))
 
         self.sm = AuthScreenManager(app_state=self.app_state)
-        self.sm.add_widget(LoadingScreen(name="loading", app_state=self.app_state))
+
+        # Login is the first rendered screen.  The previous loading-first path
+        # could leave the Android window black before the login screen appeared.
+        # Keep startup/session restoration asynchronous so the login UI is never
+        # blocked by network or session work.
         self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
-        self.sm.current = "loading"
+        self.sm.current = "login"
+        Clock.schedule_once(self._startup, 0.15)
         return self.sm
 
     def _startup(self, *_):
-        """Restore a saved Supabase session, refreshing it when necessary."""
+        """Restore a saved Supabase session without blocking initial rendering."""
         try:
             if self.app_state is None or not self.app_state.logged_in:
                 self.sm.current = "login"
