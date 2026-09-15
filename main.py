@@ -51,7 +51,7 @@ class FrahooshApp(App):
         self.sm = None
 
     def _show_startup_error(self, title, exc=None):
-        """Never leave the Android surface black when Python startup fails."""
+        """Build the visible error screen and return the actual root widget."""
         detail = ""
         if exc is not None:
             detail = f"\n\n{type(exc).__name__}: {exc}"
@@ -71,8 +71,8 @@ class FrahooshApp(App):
             self.sm.current = "startup_error"
         except Exception as fallback_exc:
             print("STARTUP FALLBACK ERROR:", repr(fallback_exc))
-            return False
-        return True
+        # IMPORTANT: Kivy build() must return the widget tree, not True/False.
+        return self.sm
 
     def build(self):
         self.title = "Frahoosh"
