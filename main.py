@@ -1,28 +1,22 @@
-__version__ = "1.5.5"
+__version__ = "1.5.2"
 
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager
 from kivy.uix.label import Label
 
+from mobile.screens.loading import LoadingScreen
+from mobile.screens.login import LoginScreen
+
 
 class StartupFallback(Label):
-    """Visible fallback instead of leaving the Android window black on startup errors."""
-
-    def __init__(self, message="خطا در راه‌اندازی فراهوش", **kwargs):
-        kwargs.setdefault("text", message)
-        kwargs.setdefault("halign", "center")
-        kwargs.setdefault("valign", "middle")
-        kwargs.setdefault("font_size", "18sp")
-        super().__init__(**kwargs)
-        self.bind(size=lambda obj, value: setattr(obj, "text_size", value))
+    pass
 
 
 class AuthScreenManager(ScreenManager):
     """ScreenManager guard: only loading and login are available without a session."""
 
-    PUBLIC_SCREENS = {"loading", "login", "startup_error"}
+    PUBLIC_SCREENS = {"loading", "login"}
 
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
@@ -50,57 +44,17 @@ class FrahooshApp(App):
         self.app_state = None
         self.sm = None
 
-    def _show_startup_error(self, title, exc=None):
-        """Build the visible error screen and return the actual root widget."""
-        detail = ""
-        if exc is not None:
-            detail = f"\n\n{type(exc).__name__}: {exc}"
-        message = f"{title}{detail}"
-        print("STARTUP ERROR:", message)
-        if self.sm is None:
-            self.sm = ScreenManager()
-        try:
-            if self.sm.has_screen("startup_error"):
-                screen = self.sm.get_screen("startup_error")
-                screen.clear_widgets()
-            else:
-                from kivy.uix.screenmanager import Screen
-                screen = Screen(name="startup_error")
-                self.sm.add_widget(screen)
-            screen.add_widget(StartupFallback(message=message))
-            self.sm.current = "startup_error"
-        except Exception as fallback_exc:
-            print("STARTUP FALLBACK ERROR:", repr(fallback_exc))
-        # IMPORTANT: Kivy build() must return the widget tree, not True/False.
-        return self.sm
-
     def build(self):
         self.title = "Frahoosh"
-        Window.clearcolor = (0.965, 0.975, 0.985, 1)
-
         try:
             from mobile.services.app_state import AppState
             self.app_state = AppState()
         except Exception as exc:
             print("APP STATE STARTUP ERROR:", repr(exc))
-            self.app_state = None
 
         self.sm = AuthScreenManager(app_state=self.app_state)
-
-        # Build the public startup screens independently so one bad screen
-        # cannot result in a completely black Android window.
-        try:
-            from mobile.screens.loading import LoadingScreen
-            self.sm.add_widget(LoadingScreen(name="loading", app_state=self.app_state))
-        except Exception as exc:
-            return self._show_startup_error("خطا در ساخت صفحه آغازین برنامه", exc)
-
-        try:
-            from mobile.screens.login import LoginScreen
-            self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
-        except Exception as exc:
-            return self._show_startup_error("خطا در ساخت صفحه ورود", exc)
-
+        self.sm.add_widget(LoadingScreen(name="loading", app_state=self.app_state))
+        self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
         self.sm.current = "loading"
         return self.sm
 
@@ -133,7 +87,7 @@ class FrahooshApp(App):
             try:
                 self.sm.current = "login"
             except Exception:
-                self._show_startup_error("خطا در شروع احراز هویت", exc)
+                pass
 
     def ensure_dashboard(self):
         if self.sm is None:
