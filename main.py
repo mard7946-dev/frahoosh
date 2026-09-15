@@ -5,6 +5,7 @@ from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager
 from kivy.uix.label import Label
 
+from mobile.screens.loading import LoadingScreen
 from mobile.screens.login import LoginScreen
 
 
@@ -13,9 +14,9 @@ class StartupFallback(Label):
 
 
 class AuthScreenManager(ScreenManager):
-    """Keep the public authentication screen available before login."""
+    """ScreenManager guard: only loading and login are available without a session."""
 
-    PUBLIC_SCREENS = {"login"}
+    PUBLIC_SCREENS = {"loading", "login"}
 
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
@@ -45,19 +46,16 @@ class FrahooshApp(App):
 
     def build(self):
         self.title = "Frahoosh"
-
-        # Do not construct the LoadingScreen during process startup.
-        # A startup/import failure there previously left Android on a blank screen.
         try:
             from mobile.services.app_state import AppState
             self.app_state = AppState()
         except Exception as exc:
             print("APP STATE STARTUP ERROR:", repr(exc))
-            self.app_state = None
 
         self.sm = AuthScreenManager(app_state=self.app_state)
+        self.sm.add_widget(LoadingScreen(name="loading", app_state=self.app_state))
         self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
-        self.sm.current = "login"
+        self.sm.current = "loading"
         return self.sm
 
     def _startup(self, *_):
