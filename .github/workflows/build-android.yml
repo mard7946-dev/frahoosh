@@ -102,34 +102,13 @@ jobs:
           grep -q '^package.domain = ir.frahoosh$' buildozer.spec
           grep -q '^android.numeric_version = 155$' buildozer.spec
           grep -q '^version = 1.5.5$' buildozer.spec
-      - name: Configure stable release signing
-        env:
-          FRAHOOSH_KEYSTORE_B64: ${{ secrets.FRAHOOSH_KEYSTORE_B64 }}
-          FRAHOOSH_KEYSTORE_PASSWORD: ${{ secrets.FRAHOOSH_KEYSTORE_PASSWORD }}
-          FRAHOOSH_KEY_ALIAS: ${{ secrets.FRAHOOSH_KEY_ALIAS }}
-          FRAHOOSH_KEY_PASSWORD: ${{ secrets.FRAHOOSH_KEY_PASSWORD }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "${FRAHOOSH_KEYSTORE_B64:-}" || { echo "Missing FRAHOOSH_KEYSTORE_B64: persistent signing is required for seamless updates."; exit 1; }
-          test -n "${FRAHOOSH_KEYSTORE_PASSWORD:-}" || { echo "Missing FRAHOOSH_KEYSTORE_PASSWORD."; exit 1; }
-          test -n "${FRAHOOSH_KEY_ALIAS:-}" || { echo "Missing FRAHOOSH_KEY_ALIAS."; exit 1; }
-          test -n "${FRAHOOSH_KEY_PASSWORD:-}" || { echo "Missing FRAHOOSH_KEY_PASSWORD."; exit 1; }
-          echo "$FRAHOOSH_KEYSTORE_B64" | base64 --decode > "$GITHUB_WORKSPACE/frahoosh-release.keystore"
-          test -s "$GITHUB_WORKSPACE/frahoosh-release.keystore"
-          cat >> buildozer.spec <<EOF
-          android.keystore = $GITHUB_WORKSPACE/frahoosh-release.keystore
-          android.keyalias = $FRAHOOSH_KEY_ALIAS
-          android.keystorepass = $FRAHOOSH_KEYSTORE_PASSWORD
-          android.keypass = $FRAHOOSH_KEY_PASSWORD
-          EOF
-      - name: Build signed APK
+      - name: Build APK
         shell: bash
         run: |
           set -euxo pipefail
           export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
           export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          buildozer -v android release
+          buildozer -v android debug
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
