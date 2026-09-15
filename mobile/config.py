@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 APP_NAME = "فراهوش"
-APP_VERSION = "1.5.4"
+APP_VERSION = "1.5.5"
 SYSTEM_TITLE = "سامانه هوشمند آموزشی یکپارچه مدرسه"
 BASE_DIR = Path(__file__).resolve().parent
 ASSETS_DIR = BASE_DIR / "assets"
