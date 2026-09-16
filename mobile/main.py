@@ -14,7 +14,6 @@ class FrahooshApp(App):
 
     def build(self):
         self.title = "Frahoosh"
-        # Never expose the default black Kivy window while the first screen is loading.
         Window.clearcolor = (0.94, 0.97, 0.985, 1)
         try:
             Window.softinput_mode = "below_target"
@@ -60,7 +59,7 @@ class FrahooshApp(App):
             return self.sm.get_screen("dashboard")
         except Exception:
             pass
-        from mobile.screens.dashboard import DashboardScreen
+        from mobile.screens.dashboard2 import DashboardScreen
         d = DashboardScreen(name="dashboard", app_state=self.app_state)
         self.sm.add_widget(d)
         return d
@@ -72,8 +71,8 @@ class FrahooshApp(App):
             return self.sm.get_screen("teacher_exams")
         except Exception:
             pass
-        from mobile.screens.teacher_exams import TeacherExamsScreen
-        s = TeacherExamsScreen(name="teacher_exams", app_state=self.app_state)
+        from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen
+        s = TeacherExamsV4Screen(name="teacher_exams", app_state=self.app_state)
         self.sm.add_widget(s)
         return s
 
