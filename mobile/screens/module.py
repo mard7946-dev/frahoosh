@@ -27,8 +27,7 @@ FORM_FIELDS = {"students":["first_name","last_name","national_code","grade","cla
 class _Card(BoxLayout):
     def __init__(self,**kwargs):
         super().__init__(orientation="vertical",padding=[dp(12),dp(9)],spacing=dp(4),size_hint_y=None,**kwargs)
-        with self.canvas.before:
-            Color(*CARD); self.bg=RoundedRectangle(radius=[dp(14)])
+        with self.canvas.before: Color(*CARD); self.bg=RoundedRectangle(radius=[dp(14)])
         self.bind(pos=self._sync,size=self._sync)
     def _sync(self,*_): self.bg.pos=self.pos; self.bg.size=self.size
 
@@ -58,35 +57,24 @@ class ModuleScreen(Screen):
         if api is None:Clock.schedule_once(lambda *_:self._render_tables([]),0);return
         for table in tables:
             try:
-                rows=api.table_select(table,{"limit":"50"}) or []
-                results.append((table,rows if isinstance(rows,list) else [],"data",""))
+                rows=api.table_select(table,{"limit":"50"}) or []; results.append((table,rows if isinstance(rows,list) else [],"data",""))
             except Exception as exc:results.append((table,[],"unavailable",str(exc)))
         Clock.schedule_once(lambda *_:self._render_tables(results),0)
     def _render_tables(self,results):
         total=0; sections=0; role=self._role()
         for table,rows,kind,detail in results:
-            if kind!="data":
-                self._add_notice(self._friendly(table),"خواندن این منبع داده در حال حاضر ممکن نیست: "+detail)
-                continue
+            if kind!="data":self._add_notice(self._friendly(table),"خواندن این منبع داده در حال حاضر ممکن نیست: "+detail); continue
             sections+=1; cols=DISPLAY_COLUMNS.get(table) or ([k for k in rows[0].keys() if k!="password"][:8] if rows else [])
             self._add_label(self._friendly(table),"15sp",PRIMARY,38,True)
             if table in EDITABLE_TABLES.get(role,set()) and table in FORM_FIELDS:self._add_button("＋ ثبت اطلاعات جدید",lambda *_ ,t=table:self._show_form(t),SUCCESS)
-            if not cols:
-                self._add_notice(self._friendly(table),"جدول آماده است اما هنوز رکوردی برای نمایش ندارد.")
-                continue
-            self._add_real_table(table,rows,cols,table in EDITABLE_TABLES.get(role,set()))
-            total+=len(rows)
+            if not cols:self._add_notice(self._friendly(table),"جدول آماده است اما هنوز رکوردی برای نمایش ندارد."); continue
+            self._add_real_table(table,rows,cols,table in EDITABLE_TABLES.get(role,set())); total+=len(rows)
         self.status.text=rtl_text(f"{total} رکورد از {sections} جدول واقعی بارگذاری شد") if results else rtl_text("اتصال حساب به سامانه برای نمایش داده‌ها لازم است.")
-        self.status.color=SUCCESS if sections else SECONDARY
-        self._add_button("↻ تازه‌سازی اطلاعات",lambda *_:self.show_module(self.module_key),SUCCESS)
+        self.status.color=SUCCESS if sections else SECONDARY; self._add_button("↻ تازه‌سازی اطلاعات",lambda *_:self.show_module(self.module_key),SUCCESS)
     def _add_real_table(self,table,rows,cols,editable):
-        # Horizontal scroll keeps wide school tables usable on a phone.
-        width=max(dp(520),dp(125*len(cols)))
-        outer=ScrollView(do_scroll_x=True,do_scroll_y=False,size_hint_y=None,height=dp(50+max(1,min(len(rows),50))*46))
-        grid=GridLayout(cols=len(cols),rows=max(1,len(rows)+1),size_hint=(None,None),width=width,row_default_height=dp(46),row_force_default=True)
-        grid.height=dp(46*max(1,len(rows)+1))
-        for c in cols:
-            grid.add_widget(self._cell(self._column(c),PRIMARY,True))
+        width=max(dp(520),dp(125*len(cols))); outer=ScrollView(do_scroll_x=True,do_scroll_y=False,size_hint_y=None,height=dp(50+max(1,min(len(rows),50))*46))
+        grid=GridLayout(cols=len(cols),rows=max(1,len(rows)+1),size_hint=(None,None),width=width,row_default_height=dp(46),row_force_default=True); grid.height=dp(46*max(1,len(rows)+1))
+        for c in cols:grid.add_widget(self._cell(self._column(c),PRIMARY,True))
         if rows:
             for row in rows[:50]:
                 for c in cols:grid.add_widget(self._cell(str(row.get(c,"")),SECONDARY,False))
@@ -96,14 +84,11 @@ class ModuleScreen(Screen):
         if editable and rows:
             for row in rows[:50]:
                 if row.get("id") is not None:
-                    actions=BoxLayout(size_hint_y=None,height=dp(38),spacing=dp(5))
-                    edit=Button(text=rtl_text("ویرایش رکورد "+str(row["id"])),font_name=font_name(),font_size="10sp",background_normal="",background_color=PRIMARY,color=WHITE)
-                    edit.bind(on_release=lambda *_ ,t=table,r=dict(row):self._show_form(t,r)); actions.add_widget(edit)
-                    delete=Button(text=rtl_text("حذف"),font_name=font_name(),font_size="10sp",background_normal="",background_color=(0.65,0.12,0.14,1),color=WHITE,size_hint_x=None,width=dp(70)); delete.bind(on_release=lambda *_ ,t=table,r=dict(row):self._delete_record(t,r)); actions.add_widget(delete); self.body.add_widget(actions)
+                    actions=BoxLayout(size_hint_y=None,height=dp(38),spacing=dp(5)); edit=Button(text=rtl_text("ویرایش رکورد "+str(row["id"])),font_name=font_name(),font_size="10sp",background_normal="",background_color=PRIMARY,color=WHITE); edit.bind(on_release=lambda *_ ,t=table,r=dict(row):self._show_form(t,r)); actions.add_widget(edit); delete=Button(text=rtl_text("حذف"),font_name=font_name(),font_size="10sp",background_normal="",background_color=(0.65,0.12,0.14,1),color=WHITE,size_hint_x=None,width=dp(70)); delete.bind(on_release=lambda *_ ,t=table,r=dict(row):self._delete_record(t,r)); actions.add_widget(delete); self.body.add_widget(actions)
     def _cell(self,text,color,bold):
         w=Label(text=rtl_text(text),font_name=font_name(),font_size="10sp",bold=bold,color=WHITE if bold else color,halign="center",valign="middle",size_hint=(None,None),width=dp(125),height=dp(46))
         with w.canvas.before:
-            Color(*PRIMARY if bold else CARD,1); w.bg=RoundedRectangle(radius=[dp(3)])
+            Color(*(PRIMARY if bold else CARD)); w.bg=RoundedRectangle(radius=[dp(3)])
         w.bind(pos=lambda o,v:setattr(o.bg,"pos",v),size=lambda o,v:setattr(o.bg,"size",v)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); return w
     def _show_form(self,table,row=None):
         fields=FORM_FIELDS.get(table,[]); self.body.clear_widgets(); self._add_label(f"ثبت / ویرایش {self._friendly(table)}","18sp",PRIMARY,48,True); inputs={}
