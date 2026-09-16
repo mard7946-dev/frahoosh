@@ -35,6 +35,7 @@ ROLE_MENU = {
     "parent": [("پنل اولیا", "parent"), ("وضعیت تحصیلی فرزند", "student_info"), ("مشارکت اولیا", "participation"), ("پرداخت آنلاین", "payment"), ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
 }
 OPERATIONS_ROUTES = {"payment", "online", "messages"}
+DEFAULT_SCHOOL_NAME = "دبیرستان سردارشهیدحاجی زاده ۲"
 
 
 class _Card(BoxLayout):
@@ -107,20 +108,20 @@ class DashboardScreen(Screen):
         self.welcome.add_widget(self.school_label)
         self.content.add_widget(self.welcome)
 
-        scroll = ScrollView(do_scroll_x=False)
+        scroll = ScrollView(do_scroll_x=False, bar_width=dp(5), scroll_y=1)
         body = BoxLayout(orientation="vertical", spacing=dp(9), padding=[dp(2), dp(3)], size_hint_y=None)
         body.bind(minimum_height=body.setter("height"))
         self.home_status = self._label("", "12sp", SUCCESS, True)
         body.add_widget(self.home_status)
-        body.add_widget(self._label("پنل‌های فعال", "17sp", PRIMARY, True))
-        self.panel_grid = GridLayout(cols=2, spacing=dp(8), padding=[0, dp(2)], size_hint_y=None)
+        body.add_widget(self._label("پنل‌های سامانه", "17sp", PRIMARY, True))
+        self.panel_grid = GridLayout(cols=1, spacing=dp(8), padding=[dp(2), dp(2)], size_hint_y=None)
         self.panel_grid.bind(minimum_height=self.panel_grid.setter("height"))
         body.add_widget(self.panel_grid)
-        body.add_widget(self._label("هر دکمه مستقیماً بخش مربوط را باز می‌کند؛ منوی ☰ نیز برای دسترسی سریع باقی است.", "12sp", SECONDARY))
+        body.add_widget(self._label("صفحه پنل‌ها قابل حرکت است؛ با کشیدن انگشت به بالا و پایین همه بخش‌ها را ببینید. با لمس هر پنل، بخش واقعی و اطلاعات مربوط به آن باز می‌شود.", "12sp", SECONDARY))
         info = _Card(size_hint_y=None, height=dp(86))
         info.add_widget(self._label("اطلاعات مدرسه", "14sp", PRIMARY, True))
         info.add_widget(self._label(f"سال تحصیلی: {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}", "12sp"))
-        info.add_widget(self._label(f"مدرسه: {SCHOOL_NAME or 'دبیرستان سردار حاجی زاده ۲'}", "12sp"))
+        info.add_widget(self._label(f"مدرسه: {SCHOOL_NAME or DEFAULT_SCHOOL_NAME}", "12sp"))
         body.add_widget(info)
         scroll.add_widget(body)
         self.content.add_widget(scroll)
@@ -173,7 +174,7 @@ class DashboardScreen(Screen):
         items = MANAGER_MENU if role == "manager" else ROLE_MENU.get(role, [("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")])
         self.welcome_title.text = rtl_text(f"خوش آمدید، {name}")
         self.role_label.text = rtl_text(f"پنل {ROLE_TITLES.get(role, 'کاربر')} | دسترسی فعال")
-        self.school_label.text = rtl_text(f"{SCHOOL_NAME or 'دبیرستان سردار حاجی زاده ۲'} | سال {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}")
+        self.school_label.text = rtl_text(f"{SCHOOL_NAME or DEFAULT_SCHOOL_NAME} | سال {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}")
         self.home_status.text = rtl_text(f"{len(items)} بخش فعال است — برای ورود روی هر پنل بزنید.")
         self._populate_drawer(items)
         self.panel_grid.clear_widgets()
