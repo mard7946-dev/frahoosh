@@ -28,10 +28,10 @@ def _load_runtime_config():
 
 _RUNTIME = _load_runtime_config()
 
-# One mobile codebase can be deployed to different schools by changing runtime_config.json.
-SCHOOL_NAME = str(os.environ.get("FRAHOOSH_SCHOOL_NAME") or _RUNTIME.get("school_name") or _RUNTIME.get("FRAHOOSH_SCHOOL_NAME") or "نام مدرسه").strip()
+# Defaults keep the demo usable even when runtime_config.json is not generated.
+SCHOOL_NAME = str(os.environ.get("FRAHOOSH_SCHOOL_NAME") or _RUNTIME.get("school_name") or _RUNTIME.get("FRAHOOSH_SCHOOL_NAME") or "دبیرستان سردار حاجی زاده ۲").strip()
 SCHOOL_ID = str(os.environ.get("FRAHOOSH_SCHOOL_ID") or _RUNTIME.get("school_id") or _RUNTIME.get("FRAHOOSH_SCHOOL_ID") or "").strip()
-SCHOOL_YEAR = str(os.environ.get("FRAHOOSH_SCHOOL_YEAR") or _RUNTIME.get("school_year") or _RUNTIME.get("FRAHOOSH_SCHOOL_YEAR") or "").strip()
+SCHOOL_YEAR = str(os.environ.get("FRAHOOSH_SCHOOL_YEAR") or _RUNTIME.get("school_year") or _RUNTIME.get("FRAHOOSH_SCHOOL_YEAR") or "۱۴۰۵-۱۴۰۶").strip()
 WEB_URL = str(os.environ.get("FRAHOOSH_WEB_URL") or _RUNTIME.get("web_url") or _RUNTIME.get("FRAHOOSH_WEB_URL") or "https://frahoosh.ir").strip().rstrip("/")
 
 PRIMARY = (0.12, 0.35, 0.62, 1)
