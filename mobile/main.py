@@ -30,7 +30,14 @@ class FrahooshApp(App):
         if self.sm is None:return None
         try:return self.sm.get_screen("dashboard")
         except Exception:pass
-        from mobile.screens.dashboard3 import DashboardScreen; d=DashboardScreen(name="dashboard",app_state=self.app_state); self.sm.add_widget(d); return d
+        try:
+            from mobile.screens.dashboard import DashboardScreen
+            d=DashboardScreen(name="dashboard",app_state=self.app_state)
+            self.sm.add_widget(d)
+            return d
+        except Exception as exc:
+            print("DASHBOARD BUILD ERROR:",repr(exc))
+            return None
     def ensure_exam(self):
         if self.sm is None:return None
         try:return self.sm.get_screen("teacher_exams")
@@ -54,11 +61,14 @@ class FrahooshApp(App):
     def open_dashboard(self):
         try:
             dashboard=self.ensure_dashboard()
-            if dashboard is None:raise RuntimeError("مدیریت صفحات آماده نیست.")
+            if dashboard is None:raise RuntimeError("داشبورد ساخته نشد.")
             self._set_screen_capture_policy(); self.sm.current="dashboard"
-            try:dashboard.refresh()
-            except Exception as exc:print("DASHBOARD REFRESH ERROR:",repr(exc))
+            try:
+                if not dashboard.refresh(): raise RuntimeError("اطلاعات داشبورد آماده نشد.")
+            except Exception as exc:
+                print("DASHBOARD REFRESH ERROR:",repr(exc))
+                raise
             return True
-        except Exception as exc:print("DASHBOARD OPEN ERROR:",repr(exc));return False
+        except Exception as exc: print("DASHBOARD OPEN ERROR:",repr(exc));return False
 
 if __name__=="__main__":FrahooshApp().run()
