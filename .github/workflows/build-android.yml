@@ -82,7 +82,7 @@ jobs:
               "supabase_url":os.environ["FRAHOOSH_SUPABASE_URL"],
               "supabase_anon_key":os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
               "school_id":os.environ.get("FRAHOOSH_SCHOOL_ID",""),
-              "school_name":os.environ.get("FRAHOOSH_SCHOOL_NAME","") or "نام مدرسه",
+              "school_name":os.environ.get("FRAHOOSH_SCHOOL_NAME","") or "دبیرستان سردارشهیدحاجی زاده ۲",
               "school_year":os.environ.get("FRAHOOSH_SCHOOL_YEAR","") or "۱۴۰۵-۱۴۰۶",
               "payment_gateway_url":os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL",""),
               "web_url":os.environ.get("FRAHOOSH_WEB_URL","") or "https://frahoosh.ir"}
