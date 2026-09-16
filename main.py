@@ -1,87 +1,68 @@
-__version__ = "1.5.8"
+__version__ = "1.5.9"
 
 from threading import Thread
 
 from kivy.app import App
-from kivy.clock import Clock
 from kivy.core.window import Window
-from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
-from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
+from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
 from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 from kivy.uix.textinput import TextInput
+from kivy.uix.widget import Widget
 
-Window.clearcolor = (0.965, 0.975, 0.985, 1)
-
-
-class AuthScreenManager(ScreenManager):
-    PUBLIC_SCREENS = {"login"}
-
-    def __init__(self, **kwargs):
-        kwargs.setdefault("transition", NoTransition())
-        super().__init__(**kwargs)
-
-    def on_current(self, _manager, screen_name):
-        if screen_name in self.PUBLIC_SCREENS:
-            return
-        app = App.get_running_app()
-        state = getattr(app, "app_state", None) if app else None
-        if state is None or not getattr(state, "logged_in", False):
-            Clock.schedule_once(lambda *_: setattr(self, "current", "login"), 0)
+Window.clearcolor = (0.96, 0.97, 0.98, 1)
 
 
 class EmergencyLoginScreen(Screen):
+    """Self-contained first screen. No optional Frahoosh module is imported here."""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._busy = False
-        self._build()
+        self._build_login()
 
-    def _build(self):
-        with self.canvas.before:
-            Color(0.965, 0.975, 0.985, 1)
-            self._bg = Rectangle(pos=self.pos, size=self.size)
-        self.bind(pos=self._sync_bg, size=self._sync_bg)
-
-        root = BoxLayout(
+    def _build_login(self):
+        outer = AnchorLayout(anchor_x="center", anchor_y="center")
+        card = BoxLayout(
             orientation="vertical",
-            padding=[dp(28), dp(34), dp(28), dp(28)],
-            spacing=dp(12),
+            size_hint=(0.90, None),
+            height=dp(500),
+            padding=[dp(22), dp(22), dp(22), dp(18)],
+            spacing=dp(10),
         )
 
-        root.add_widget(Label(
+        card.add_widget(Label(
             text="فراهوش",
-            font_size="34sp",
+            font_size="32sp",
             bold=True,
-            color=(0.05, 0.45, 0.25, 1),
+            color=(0.03, 0.42, 0.22, 1),
             size_hint_y=None,
-            height=dp(58),
+            height=dp(52),
         ))
-        root.add_widget(Label(
+        card.add_widget(Label(
             text="سامانه هوشمند آموزشی یکپارچه مدرسه",
-            font_size="17sp",
-            color=(0.15, 0.25, 0.35, 1),
-            size_hint_y=None,
-            height=dp(44),
-            halign="center",
-            valign="middle",
-        ))
-        root.add_widget(Label(
-            text="دبیرستان سردار حاجی زاده ۲",
-            font_size="14sp",
-            color=(0.05, 0.45, 0.25, 1),
+            font_size="16sp",
+            color=(0.12, 0.18, 0.25, 1),
             size_hint_y=None,
             height=dp(38),
-            halign="center",
         ))
-        root.add_widget(Label(
+        card.add_widget(Label(
+            text="دبیرستان سردار حاجی زاده ۲",
+            font_size="14sp",
+            color=(0.03, 0.42, 0.22, 1),
+            size_hint_y=None,
+            height=dp(34),
+        ))
+        card.add_widget(Label(
             text="ورود کاربران",
             font_size="21sp",
             bold=True,
-            color=(0.05, 0.45, 0.25, 1),
+            color=(0.08, 0.12, 0.18, 1),
             size_hint_y=None,
-            height=dp(48),
+            height=dp(42),
         ))
 
         self.identifier = TextInput(
@@ -89,8 +70,9 @@ class EmergencyLoginScreen(Screen):
             multiline=False,
             size_hint_y=None,
             height=dp(54),
+            font_size="18sp",
             halign="right",
-            padding=[dp(14), dp(14)],
+            padding=[dp(14), dp(12)],
         )
         self.password = TextInput(
             hint_text="رمز عبور",
@@ -98,47 +80,44 @@ class EmergencyLoginScreen(Screen):
             multiline=False,
             size_hint_y=None,
             height=dp(54),
+            font_size="18sp",
             halign="right",
-            padding=[dp(14), dp(14)],
+            padding=[dp(14), dp(12)],
         )
+        card.add_widget(self.identifier)
+        card.add_widget(self.password)
 
         self.status = Label(
             text="",
             font_size="13sp",
-            color=(0.15, 0.25, 0.35, 1),
+            color=(0.55, 0.10, 0.10, 1),
             size_hint_y=None,
-            height=dp(52),
-            halign="center",
-            valign="middle",
+            height=dp(44),
         )
-        self.status.bind(size=lambda obj, value: setattr(obj, "text_size", value))
+        card.add_widget(self.status)
 
         self.button = Button(
             text="ورود به فراهوش",
             font_size="17sp",
-            background_normal="",
-            background_color=(0.05, 0.55, 0.30, 1),
-            color=(1, 1, 1, 1),
             size_hint_y=None,
             height=dp(56),
+            background_normal="",
+            background_color=(0.04, 0.52, 0.28, 1),
+            color=(1, 1, 1, 1),
         )
         self.button.bind(on_release=self.login)
+        card.add_widget(self.button)
 
-        root.add_widget(self.identifier)
-        root.add_widget(self.password)
-        root.add_widget(self.status)
-        root.add_widget(self.button)
-        root.add_widget(Label(
+        card.add_widget(Label(
             text="نام کاربری: کد ملی\nرمز عبور پیش‌فرض: حرف اول نام + کد ملی",
             font_size="12sp",
+            color=(0.25, 0.28, 0.32, 1),
             halign="center",
-            valign="middle",
+            size_hint_y=None,
+            height=dp(48),
         ))
-        self.add_widget(root)
-
-    def _sync_bg(self, *_):
-        self._bg.pos = self.pos
-        self._bg.size = self.size
+        outer.add_widget(card)
+        self.add_widget(outer)
 
     @staticmethod
     def _normalize_digits(value):
@@ -153,7 +132,6 @@ class EmergencyLoginScreen(Screen):
         identifier = self._normalize_digits(self.identifier.text).strip()
         password = self.password.text or ""
         self.identifier.text = identifier
-
         if not identifier:
             self.status.text = "کد ملی را وارد کنید."
             return
@@ -166,48 +144,38 @@ class EmergencyLoginScreen(Screen):
 
         self._busy = True
         self.button.disabled = True
-        self.status.text = "در حال اتصال به سامانه..."
+        self.status.text = "در حال ورود..."
         Thread(target=self._authenticate, args=(identifier, password), daemon=True).start()
 
     def _authenticate(self, identifier, password):
         try:
             app = App.get_running_app()
-            if app.app_state is None:
-                from mobile.services.app_state import AppState
+            from mobile.services.app_state import AppState
+            state = app.app_state
+            if state is None:
                 state = AppState()
-                Clock.schedule_once(lambda *_: app.set_app_state(state), 0)
-            Clock.schedule_once(lambda *_: self._authenticate_with_state(identifier, password), 0.05)
-        except Exception as exc:
-            print("LOGIN STARTUP ERROR:", repr(exc))
-            Clock.schedule_once(lambda *_: self._failed(str(exc)), 0)
-
-    def _authenticate_with_state(self, identifier, password):
-        try:
-            state = App.get_running_app().app_state
-            if state is None or state.api is None:
-                raise RuntimeError("سرویس اتصال آماده نیست.")
-            if not state.api.configured:
+                app.app_state = state
+            if state.api is None or not state.api.configured:
                 raise RuntimeError("تنظیمات اتصال سرور در برنامه وجود ندارد.")
             session = state.api.sign_in(identifier, password)
             if not session or not state.set_session(session):
-                raise RuntimeError("ورود انجام نشد.")
-            self._success()
+                raise RuntimeError("نام کاربری یا رمز عبور صحیح نیست.")
+            app.open_dashboard()
         except Exception as exc:
             print("LOGIN ERROR:", repr(exc))
-            self._failed(str(exc))
-
-    def _success(self):
-        self._busy = False
-        self.button.disabled = False
-        self.status.text = "ورود موفق بود."
-        app = App.get_running_app()
-        if app is not None and not app.open_dashboard():
-            self.status.text = "ورود موفق شد اما داشبورد باز نشد."
+            from kivy.clock import Clock
+            Clock.schedule_once(lambda *_: self._failed(str(exc)), 0)
 
     def _failed(self, message):
         self._busy = False
         self.button.disabled = False
         self.status.text = message or "ورود انجام نشد."
+
+
+class AuthScreenManager(ScreenManager):
+    def __init__(self, **kwargs):
+        kwargs["transition"] = NoTransition()
+        super().__init__(**kwargs)
 
 
 class FrahooshApp(App):
@@ -223,9 +191,6 @@ class FrahooshApp(App):
         self.sm.current = "login"
         return self.sm
 
-    def set_app_state(self, state):
-        self.app_state = state
-
     def ensure_dashboard(self):
         try:
             return self.sm.get_screen("dashboard")
@@ -235,65 +200,12 @@ class FrahooshApp(App):
             self.sm.add_widget(screen)
             return screen
 
-    def ensure_exam(self):
-        try:
-            return self.sm.get_screen("teacher_exams")
-        except Exception:
-            from mobile.screens.teacher_exams import TeacherExamsScreen
-            screen = TeacherExamsScreen(name="teacher_exams", app_state=self.app_state)
-            self.sm.add_widget(screen)
-            return screen
-
-    def ensure_module(self):
-        try:
-            return self.sm.get_screen("module")
-        except Exception:
-            from mobile.screens.module import ModuleScreen
-            screen = ModuleScreen(name="module", app_state=self.app_state)
-            self.sm.add_widget(screen)
-            return screen
-
-    def ensure_school(self):
-        try:
-            return self.sm.get_screen("school")
-        except Exception:
-            from mobile.screens.school import SchoolScreen
-            screen = SchoolScreen(name="school", app_state=self.app_state)
-            self.sm.add_widget(screen)
-            return screen
-
-    def ensure_update(self):
-        try:
-            return self.sm.get_screen("update")
-        except Exception:
-            from mobile.screens.update import UpdateScreen
-            screen = UpdateScreen(name="update", app_state=self.app_state)
-            self.sm.add_widget(screen)
-            return screen
-
-    def _set_screen_capture_policy(self):
-        try:
-            role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
-            allowed = {"manager", "admin", "administrator", "مدیر", "مدیریت", "معاون آموزشی", "معاون اجرایی", "معاون پرورشی", "educational", "executive", "cultural"}
-            from jnius import autoclass
-            activity = autoclass("org.kivy.android.PythonActivity").mActivity
-            window_manager = autoclass("android.view.WindowManager")
-            if role in allowed:
-                activity.getWindow().clearFlags(window_manager.LayoutParams.FLAG_SECURE)
-            else:
-                activity.getWindow().addFlags(window_manager.LayoutParams.FLAG_SECURE)
-        except Exception as exc:
-            print("SCREEN SECURITY POLICY ERROR:", repr(exc))
-
     def open_dashboard(self):
         try:
             if self.app_state is None or not self.app_state.logged_in:
                 self.sm.current = "login"
                 return False
             dashboard = self.ensure_dashboard()
-            if dashboard is None:
-                return False
-            self._set_screen_capture_policy()
             self.sm.current = "dashboard"
             try:
                 dashboard.refresh()
