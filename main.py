@@ -1,4 +1,4 @@
-__version__ = "1.5.6"
+__version__ = "1.5.7"
 
 from threading import Thread
 
@@ -52,7 +52,7 @@ class EmergencyLoginScreen(Screen):
 
         self.identifier = TextInput(hint_text="کد ملی", multiline=False, size_hint_y=None, height=dp(54), halign="right", padding=[dp(14), dp(14)])
         self.password = TextInput(hint_text="رمز عبور", password=True, multiline=False, size_hint_y=None, height=dp(54), halign="right", padding=[dp(14), dp(14)])
-        self.status = Label(text="", font_size="13sp", color=(0.15, 0.25, 0.35, 1), size_hint_y=None, height=dp(55), halign="center", valign="middle")
+        self.status = Label(text="در حال آماده‌سازی اتصال...", font_size="13sp", color=(0.15, 0.25, 0.35, 1), size_hint_y=None, height=dp(55), halign="center", valign="middle")
         self.status.bind(size=lambda obj, value: setattr(obj, "text_size", value))
         self.button = Button(text="ورود به فراهوش", font_size="17sp", background_normal="", background_color=(0.05, 0.55, 0.30, 1), color=(1, 1, 1, 1), size_hint_y=None, height=dp(56))
         self.button.bind(on_release=self.login)
