@@ -31,7 +31,8 @@ class FrahooshApp(App):
         try:return self.sm.get_screen("dashboard")
         except Exception:pass
         try:
-            from mobile.screens.dashboard import DashboardScreen
+            # dashboard3 is the active swipe-panel implementation. dashboard.py is the older fixed-list screen.
+            from mobile.screens.dashboard3 import DashboardScreen
             d=DashboardScreen(name="dashboard",app_state=self.app_state)
             self.sm.add_widget(d)
             return d
