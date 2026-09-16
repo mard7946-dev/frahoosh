@@ -2,6 +2,7 @@ from kivy.metrics import dp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
@@ -34,14 +35,13 @@ ROLE_MENU = {
     "parent": [("پنل اولیا", "parent"), ("وضعیت تحصیلی فرزند", "student_info"), ("مشارکت اولیا", "participation"), ("پرداخت آنلاین", "payment"), ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
 }
 OPERATIONS_ROUTES = {"payment", "online", "messages"}
-SPECIAL_MODULES = {"about", "participation", "teacher_exams"}
 
 
 class _Card(BoxLayout):
     def __init__(self, **kwargs):
-        super().__init__(orientation="vertical", padding=dp(16), spacing=dp(5), **kwargs)
+        super().__init__(orientation="vertical", padding=dp(14), spacing=dp(5), **kwargs)
         with self.canvas.before:
-            Color(1, 1, 1, 0.96)
+            Color(1, 1, 1, 0.97)
             self.bg = RoundedRectangle(radius=[dp(18)])
         self.bind(pos=self._sync, size=self._sync)
 
@@ -60,10 +60,12 @@ class DashboardScreen(Screen):
     def on_pre_enter(self, *args):
         try:
             if self.app_state is None or not self.app_state.logged_in:
-                if self.manager: self.manager.current = "login"
+                if self.manager:
+                    self.manager.current = "login"
                 return
         except Exception:
-            if self.manager: self.manager.current = "login"
+            if self.manager:
+                self.manager.current = "login"
             return
         self.refresh()
         return super().on_pre_enter(*args)
@@ -73,44 +75,57 @@ class DashboardScreen(Screen):
         w.bind(size=lambda o, v: setattr(o, "text_size", v))
         return w
 
+    def _panel_button(self, title, route):
+        b = Button(text=rtl_text(title), font_name=font_name(), font_size="14sp", background_normal="", background_color=(0.10, 0.35, 0.62, 1), color=WHITE, size_hint_y=None, height=dp(58))
+        b.bind(on_release=lambda btn, r=route: self._menu_selected(r))
+        return b
+
     def _build_ui(self):
         root = FloatLayout()
-        self.content = BoxLayout(orientation="vertical", padding=dp(14), spacing=dp(10))
-        header = BoxLayout(size_hint_y=None, height=dp(58), spacing=dp(10))
-        self.menu_button = Button(text="☰", font_size="27sp", background_normal="", background_color=PRIMARY, color=WHITE, size_hint_x=None, width=dp(58))
+        with root.canvas.before:
+            Color(0.94, 0.97, 0.985, 1)
+            self.bg = RoundedRectangle()
+        root.bind(pos=lambda o, v: setattr(self.bg, "pos", v), size=lambda o, v: setattr(self.bg, "size", v))
+
+        self.content = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(9))
+        header = BoxLayout(size_hint_y=None, height=dp(56), spacing=dp(9))
+        self.menu_button = Button(text="☰", font_size="27sp", background_normal="", background_color=PRIMARY, color=WHITE, size_hint_x=None, width=dp(56))
         self.menu_button.bind(on_release=self.toggle_drawer)
         header.add_widget(self.menu_button)
         titles = BoxLayout(orientation="vertical")
-        titles.add_widget(self._label(APP_NAME, "22sp", PRIMARY, True))
-        titles.add_widget(self._label("سامانه هوشمند مدیریت مدرسه", "12sp", SECONDARY))
+        titles.add_widget(self._label(APP_NAME, "21sp", PRIMARY, True))
+        titles.add_widget(self._label("سامانه هوشمند مدیریت مدرسه", "11sp", SECONDARY))
         header.add_widget(titles)
         self.content.add_widget(header)
 
-        self.welcome = _Card(size_hint_y=None, height=dp(122))
-        self.welcome_title = self._label("خوش آمدید", "23sp", PRIMARY, True)
+        self.welcome = _Card(size_hint_y=None, height=dp(105))
+        self.welcome_title = self._label("خوش آمدید", "21sp", PRIMARY, True)
         self.welcome.add_widget(self.welcome_title)
-        self.role_label = self._label("", "14sp", SECONDARY, True)
+        self.role_label = self._label("", "13sp", SECONDARY, True)
         self.welcome.add_widget(self.role_label)
-        self.school_label = self._label("", "12sp", SECONDARY)
+        self.school_label = self._label("", "12sp", PRIMARY, True)
         self.welcome.add_widget(self.school_label)
         self.content.add_widget(self.welcome)
 
         scroll = ScrollView(do_scroll_x=False)
-        body = BoxLayout(orientation="vertical", spacing=dp(9), padding=[dp(2), dp(4)], size_hint_y=None)
+        body = BoxLayout(orientation="vertical", spacing=dp(9), padding=[dp(2), dp(3)], size_hint_y=None)
         body.bind(minimum_height=body.setter("height"))
-        body.add_widget(self._label("سامانه آماده استفاده است", "18sp", SUCCESS, True))
-        body.add_widget(self._label("از منوی ☰، بخش موردنیاز را انتخاب کنید. هر پنل، جدول‌ها و رکوردهای واقعی قابل دسترس برای نقش شما را نمایش می‌دهد.", "13sp", SECONDARY))
-        info = _Card(size_hint_y=None, height=dp(104))
-        info.add_widget(self._label("اطلاعات استقرار", "15sp", PRIMARY, True))
-        info.add_widget(self._label(f"سال تحصیلی: {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}", "12sp"))
-        info.add_widget(self._label(f"مدرسه: {SCHOOL_NAME or 'نام مدرسه'} | کد: {SCHOOL_ID or '—'}", "12sp"))
-        body.add_widget(info)
-        self.home_status = self._label("", "12sp", SUCCESS)
+        self.home_status = self._label("", "12sp", SUCCESS, True)
         body.add_widget(self.home_status)
+        body.add_widget(self._label("پنل‌های فعال", "17sp", PRIMARY, True))
+        self.panel_grid = GridLayout(cols=2, spacing=dp(8), padding=[0, dp(2)], size_hint_y=None)
+        self.panel_grid.bind(minimum_height=self.panel_grid.setter("height"))
+        body.add_widget(self.panel_grid)
+        body.add_widget(self._label("هر دکمه مستقیماً بخش مربوط را باز می‌کند؛ منوی ☰ نیز برای دسترسی سریع باقی است.", "12sp", SECONDARY))
+        info = _Card(size_hint_y=None, height=dp(86))
+        info.add_widget(self._label("اطلاعات مدرسه", "14sp", PRIMARY, True))
+        info.add_widget(self._label(f"سال تحصیلی: {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}", "12sp"))
+        info.add_widget(self._label(f"مدرسه: {SCHOOL_NAME or 'دبیرستان سردار حاجی زاده ۲'}", "12sp"))
+        body.add_widget(info)
         scroll.add_widget(body)
         self.content.add_widget(scroll)
 
-        logout = Button(text=rtl_text("خروج از حساب"), font_name=font_name(), font_size="14sp", background_normal="", background_color=(0.65, 0.12, 0.14, 1), color=WHITE, size_hint_y=None, height=dp(46))
+        logout = Button(text=rtl_text("خروج از حساب"), font_name=font_name(), font_size="13sp", background_normal="", background_color=(0.65, 0.12, 0.14, 1), color=WHITE, size_hint_y=None, height=dp(44))
         logout.bind(on_release=self.logout)
         self.content.add_widget(logout)
         root.add_widget(self.content)
@@ -137,25 +152,33 @@ class DashboardScreen(Screen):
         self.add_widget(root)
 
     def _get_role(self):
-        try: raw = self.app_state.role
-        except Exception: raw = "student"
+        try:
+            raw = self.app_state.role
+        except Exception:
+            raw = "student"
         raw = str(raw or "student").strip().lower()
         return ROLE_ALIASES.get(raw, raw)
 
     def _get_display_name(self):
-        try: return str(self.app_state.display_name or "کاربر فراهوش")
-        except Exception: return "کاربر فراهوش"
+        try:
+            return str(self.app_state.display_name or "کاربر فراهوش")
+        except Exception:
+            return "کاربر فراهوش"
 
     def refresh(self):
-        if self.app_state is None or not self.app_state.logged_in: return False
+        if self.app_state is None or not self.app_state.logged_in:
+            return False
         role = self._get_role()
         name = self._get_display_name()
         items = MANAGER_MENU if role == "manager" else ROLE_MENU.get(role, [("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")])
         self.welcome_title.text = rtl_text(f"خوش آمدید، {name}")
         self.role_label.text = rtl_text(f"پنل {ROLE_TITLES.get(role, 'کاربر')} | دسترسی فعال")
-        self.school_label.text = rtl_text(f"{SCHOOL_NAME or 'نام مدرسه'} | کد مدرسه: {SCHOOL_ID or '—'}")
-        self.home_status.text = rtl_text(f"{len(items)} بخش فعال است؛ ورود به هر بخش، پنل اجرایی و جدول‌های واقعی همان حوزه را باز می‌کند.")
+        self.school_label.text = rtl_text(f"{SCHOOL_NAME or 'دبیرستان سردار حاجی زاده ۲'} | سال {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}")
+        self.home_status.text = rtl_text(f"{len(items)} بخش فعال است — برای ورود روی هر پنل بزنید.")
         self._populate_drawer(items)
+        self.panel_grid.clear_widgets()
+        for title, route in items:
+            self.panel_grid.add_widget(self._panel_button(title, route))
         return True
 
     def _populate_drawer(self, items):
@@ -166,8 +189,10 @@ class DashboardScreen(Screen):
             self.drawer_menu.add_widget(b)
 
     def toggle_drawer(self, *_):
-        if self.drawer_open: self.close_drawer()
-        else: self.open_drawer()
+        if self.drawer_open:
+            self.close_drawer()
+        else:
+            self.open_drawer()
 
     def open_drawer(self, *_):
         self.drawer_open = True
@@ -221,11 +246,15 @@ class DashboardScreen(Screen):
 
     def _menu_selected(self, route):
         if self.app_state is None or not self.app_state.logged_in:
-            if self.manager: self.manager.current = "login"
+            if self.manager:
+                self.manager.current = "login"
             return
-        if route == "about": self._open_about(); return
-        if route == "participation": self._open_participation(); return
-        if route == "teacher_exams": self._open_exam(); return
+        if route == "about":
+            self._open_about(); return
+        if route == "participation":
+            self._open_participation(); return
+        if route == "teacher_exams":
+            self._open_exam(); return
         if route in OPERATIONS_ROUTES:
             self._open_operations(route); return
         if self.manager:
@@ -233,6 +262,9 @@ class DashboardScreen(Screen):
 
     def logout(self, *_):
         try:
-            if self.app_state is not None: self.app_state.logout()
-        except Exception: pass
-        if self.manager: self.manager.current = "login"
+            if self.app_state is not None:
+                self.app_state.logout()
+        except Exception:
+            pass
+        if self.manager:
+            self.manager.current = "login"
