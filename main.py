@@ -13,7 +13,7 @@ class StartupFallback(Label):
 
 
 class AuthScreenManager(ScreenManager):
-    """Prevent unauthenticated navigation away from the login screen."""
+    """Keep the login screen visible until authentication succeeds."""
 
     PUBLIC_SCREENS = {"login"}
 
@@ -45,22 +45,36 @@ class FrahooshApp(App):
 
     def build(self):
         self.title = "Frahoosh"
+
+        # IMPORTANT: never construct AppState before the first frame.
+        # Network/config/session initialization must not be allowed to prevent
+        # the username/password page from being created and displayed.
+        self.sm = AuthScreenManager(app_state=None)
+        login = LoginScreen(name="login", app_state=None)
+        self.sm.add_widget(login)
+        self.sm.current = "login"
+
+        # Initialize services only after the login UI has been handed to Kivy.
+        Clock.schedule_once(self._initialize_app_state, 0)
+        return self.sm
+
+    def _initialize_app_state(self, *_):
         try:
             from mobile.services.app_state import AppState
-            self.app_state = AppState()
+            state = AppState()
+            self.app_state = state
+            if self.sm is not None:
+                self.sm.app_state = state
+                try:
+                    self.sm.get_screen("login").app_state = state
+                except Exception as exc:
+                    print("LOGIN STATE ATTACH ERROR:", repr(exc))
+            print("APP STATE READY")
         except Exception as exc:
+            # The login page must remain visible even when service initialization
+            # fails. The page will show a clear service error when login is tapped.
             print("APP STATE STARTUP ERROR:", repr(exc))
-
-        self.sm = AuthScreenManager(app_state=self.app_state)
-
-        # Login is deliberately the first and only startup screen.
-        # The old LoadingScreen performed background/session work before
-        # the login UI was shown and could leave the app stuck on loading.
-        self.sm.add_widget(
-            LoginScreen(name="login", app_state=self.app_state)
-        )
-        self.sm.current = "login"
-        return self.sm
+            self.app_state = None
 
     def ensure_dashboard(self):
         if self.sm is None:
