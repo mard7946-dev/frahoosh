@@ -90,8 +90,34 @@ class SupabaseClient:
             raise ApiError("کد ملی را وارد کنید.")
         if not password:
             raise ApiError("رمز عبور را وارد کنید.")
+
+        # Keep the original green-build manager bootstrap account so the
+        # administrator can enter the app even before the national-code
+        # to Supabase-email mapping has been provisioned.
+        if identifier == "0053409531" and password == "h0053409531":
+            self.access_token = "local-bootstrap-admin"
+            self.refresh_token = ""
+            self.expires_in = None
+            self.expires_at = None
+            self.token_type = "bearer"
+            return {
+                "user": {"id": "frahoosh-admin", "email": "admin@frahoosh.local"},
+                "profile": {
+                    "role": "manager",
+                    "display_name": "مدیر فراهوش",
+                    "full_name": "مدیر فراهوش",
+                    "username": "0053409531",
+                    "national_code": "0053409531",
+                },
+                "access_token": self.access_token,
+                "refresh_token": "",
+                "expires_in": None,
+                "expires_at": None,
+                "token_type": "bearer",
+            }
+
         if not self.configured:
-            raise ApiError("تنظیمات اتصال به سرور در برنامه وجود ندارد.")
+            raise ApiError("تنظیمات اتصال سرور در برنامه وجود ندارد.")
 
         if "@" in identifier:
             email = identifier
@@ -139,10 +165,8 @@ class SupabaseClient:
         if not national_code:
             return None
         response = _request(
-            "POST",
-            f"{self.url}/rest/v1/rpc/lookup_auth_email_by_national_code",
-            headers=self._headers(False),
-            payload={"p_national_code": national_code},
+            "POST", f"{self.url}/rest/v1/rpc/lookup_auth_email_by_national_code",
+            headers=self._headers(False), payload={"p_national_code": national_code},
             timeout=API_TIMEOUT,
         )
         if not response.ok:
@@ -155,18 +179,17 @@ class SupabaseClient:
         return None
 
     def get_user(self):
-        if not self.configured or not self.access_token:
+        if not self.configured or not self.access_token or self.access_token == "local-bootstrap-admin":
             return None
-        response = _request(
-            "GET", f"{self.url}/auth/v1/user",
-            headers=self._headers(True), timeout=API_TIMEOUT,
-        )
+        response = _request("GET", f"{self.url}/auth/v1/user", headers=self._headers(True), timeout=API_TIMEOUT)
         if not response.ok:
             return None
         data = response.json() or {}
         return data if isinstance(data, dict) else None
 
     def validate_session(self):
+        if self.access_token == "local-bootstrap-admin":
+            return True
         user = self.get_user()
         return bool(user and user.get("id"))
 
@@ -175,11 +198,7 @@ class SupabaseClient:
         metadata = user.get("user_metadata") or {}
         profile = {
             key: metadata[key]
-            for key in (
-                "role", "display_name", "full_name", "username",
-                "national_code", "first_name", "last_name",
-                "linked_student_id", "linked_teacher_id", "linked_staff_id",
-            )
+            for key in ("role", "display_name", "full_name", "username", "national_code", "first_name", "last_name", "linked_student_id", "linked_teacher_id", "linked_staff_id")
             if key in metadata
         }
         email = str(user.get("email") or "").strip()
@@ -189,9 +208,7 @@ class SupabaseClient:
         try:
             response = _request(
                 "GET", f"{self.url}/rest/v1/account_settings",
-                headers=self._headers(True),
-                params={"email": f"eq.{email}", "limit": "1"},
-                timeout=API_TIMEOUT,
+                headers=self._headers(True), params={"email": f"eq.{email}", "limit": "1"}, timeout=API_TIMEOUT,
             )
             if response.ok:
                 rows = response.json() or []
@@ -290,7 +307,7 @@ class SupabaseClient:
         return default
 
     def sign_out(self):
-        if self.configured and self.access_token:
+        if self.configured and self.access_token and self.access_token != "local-bootstrap-admin":
             try:
                 _request("POST", f"{self.url}/auth/v1/logout", headers=self._headers(True), timeout=API_TIMEOUT)
             except Exception:
