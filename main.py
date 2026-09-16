@@ -1,22 +1,30 @@
-__version__ = "1.5.5"
+__version__ = "1.5.6"
 
 from threading import Thread
 
 from kivy.app import App
 from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 
 
+# Keep the first frame completely independent from mobile/optional modules.
+# This is intentional: the user must always see the login form even if a
+# service, font, Supabase configuration, or another screen fails to import.
+Window.clearcolor = (0.965, 0.975, 0.985, 1)
+
+
 class AuthScreenManager(ScreenManager):
     PUBLIC_SCREENS = {"login"}
 
     def __init__(self, app_state=None, **kwargs):
+        kwargs.setdefault("transition", NoTransition())
         super().__init__(**kwargs)
         self.app_state = app_state
 
@@ -31,6 +39,7 @@ class EmergencyLoginScreen(Screen):
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
         self.app_state = app_state
+        self._busy = False
         self._build()
 
     def _build(self):
@@ -45,17 +54,49 @@ class EmergencyLoginScreen(Screen):
         root.add_widget(Label(text="دبیرستان سردار حاجی زاده ۲", font_size="14sp", color=(0.05, 0.45, 0.25, 1), size_hint_y=None, height=dp(40)))
         root.add_widget(Label(text="ورود کاربران", font_size="21sp", bold=True, color=(0.05, 0.45, 0.25, 1), size_hint_y=None, height=dp(48)))
 
-        self.identifier = TextInput(hint_text="کد ملی", multiline=False, size_hint_y=None, height=dp(54), halign="right")
-        self.password = TextInput(hint_text="رمز عبور", password=True, multiline=False, size_hint_y=None, height=dp(54), halign="right")
-        self.status = Label(text="", font_size="13sp", color=(0.15, 0.25, 0.35, 1), size_hint_y=None, height=dp(55))
-        self.button = Button(text="ورود به فراهوش", font_size="17sp", background_normal="", background_color=(0.05, 0.55, 0.30, 1), color=(1, 1, 1, 1), size_hint_y=None, height=dp(56))
+        self.identifier = TextInput(
+            hint_text="کد ملی",
+            multiline=False,
+            size_hint_y=None,
+            height=dp(54),
+            halign="right",
+            padding=[dp(14), dp(14)],
+        )
+        self.password = TextInput(
+            hint_text="رمز عبور",
+            password=True,
+            multiline=False,
+            size_hint_y=None,
+            height=dp(54),
+            halign="right",
+            padding=[dp(14), dp(14)],
+        )
+        self.status = Label(
+            text="",
+            font_size="13sp",
+            color=(0.15, 0.25, 0.35, 1),
+            size_hint_y=None,
+            height=dp(55),
+            halign="center",
+            valign="middle",
+        )
+        self.status.bind(size=lambda obj, value: setattr(obj, "text_size", value))
+        self.button = Button(
+            text="ورود به فراهوش",
+            font_size="17sp",
+            background_normal="",
+            background_color=(0.05, 0.55, 0.30, 1),
+            color=(1, 1, 1, 1),
+            size_hint_y=None,
+            height=dp(56),
+        )
         self.button.bind(on_release=self.login)
 
         root.add_widget(self.identifier)
         root.add_widget(self.password)
         root.add_widget(self.status)
         root.add_widget(self.button)
-        root.add_widget(Label(text="نام کاربری: کد ملی\nرمز عبور پیش‌فرض: حرف اول نام + کد ملی", font_size="12sp"))
+        root.add_widget(Label(text="نام کاربری: کد ملی\nرمز عبور پیش‌فرض: حرف اول نام + کد ملی", font_size="12sp", halign="center"))
         self.add_widget(root)
 
     def _sync_bg(self, *_):
@@ -67,9 +108,13 @@ class EmergencyLoginScreen(Screen):
         return str(value or "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
 
     def login(self, *_):
+        if self._busy:
+            return
+
         identifier = self._normalize_digits(self.identifier.text).strip()
         password = self.password.text or ""
         self.identifier.text = identifier
+
         if not identifier:
             self.status.text = "کد ملی را وارد کنید."
             return
@@ -79,9 +124,17 @@ class EmergencyLoginScreen(Screen):
         if not password:
             self.status.text = "رمز عبور را وارد کنید."
             return
-        if self.app_state is None or self.app_state.api is None:
+        if self.app_state is None:
+            self.status.text = "در حال آماده‌سازی سرویس..."
+            return
+        if self.app_state.api is None:
             self.status.text = "سرویس اتصال آماده نیست."
             return
+        if not self.app_state.api.configured:
+            self.status.text = "تنظیمات اتصال سرور در برنامه وجود ندارد."
+            return
+
+        self._busy = True
         self.button.disabled = True
         self.status.text = "در حال بررسی اطلاعات..."
         Thread(target=self._authenticate, args=(identifier, password), daemon=True).start()
@@ -93,17 +146,19 @@ class EmergencyLoginScreen(Screen):
                 raise RuntimeError("ورود انجام نشد.")
             Clock.schedule_once(lambda *_: self._success(), 0)
         except Exception as exc:
-            print("EMERGENCY LOGIN ERROR:", repr(exc))
+            print("LOGIN ERROR:", repr(exc))
             Clock.schedule_once(lambda *_: self._failed(str(exc)), 0)
 
     def _success(self):
+        self._busy = False
         self.button.disabled = False
         self.status.text = "ورود موفق بود."
         app = App.get_running_app()
-        if app is not None:
-            app.open_dashboard()
+        if app is not None and not app.open_dashboard():
+            self.status.text = "ورود موفق شد اما داشبورد باز نشد."
 
     def _failed(self, message):
+        self._busy = False
         self.button.disabled = False
         self.status.text = message or "ورود انجام نشد."
 
@@ -118,33 +173,31 @@ class FrahooshApp(App):
         self.title = "Frahoosh"
         self.sm = AuthScreenManager(app_state=None)
 
-        # The first frame contains only Kivy primitives. This guarantees that
-        # authentication UI is constructed before optional service modules.
-        try:
-            from mobile.screens.login import LoginScreen
-            login = LoginScreen(name="login", app_state=None)
-        except Exception as exc:
-            print("LOGIN SCREEN BUILD ERROR:", repr(exc))
-            login = EmergencyLoginScreen(name="login", app_state=None)
-
+        # Do NOT import LoginScreen here. The bootstrap login is deliberately
+        # made only from Kivy primitives so an optional module cannot blank the UI.
+        login = EmergencyLoginScreen(name="login", app_state=None)
         self.sm.add_widget(login)
         self.sm.current = "login"
 
-        # Services are initialized only after the login frame is on screen.
-        Clock.schedule_once(self._initialize_app_state, 0.15)
+        # AppState initialization happens off the UI thread. The login screen
+        # is already visible and remains usable once the service is ready.
+        Thread(target=self._initialize_app_state, daemon=True).start()
         return self.sm
 
-    def _initialize_app_state(self, *_):
+    def _initialize_app_state(self):
         try:
             from mobile.services.app_state import AppState
             state = AppState()
-            self.app_state = state
-            self.sm.app_state = state
-            self.sm.get_screen("login").app_state = state
-            print("APP STATE READY")
+            Clock.schedule_once(lambda *_: self._state_ready(state), 0)
         except Exception as exc:
             print("APP STATE STARTUP ERROR:", repr(exc))
-            self.app_state = None
+
+    def _state_ready(self, state):
+        self.app_state = state
+        self.sm.app_state = state
+        login = self.sm.get_screen("login")
+        login.app_state = state
+        print("APP STATE READY")
 
     def ensure_dashboard(self):
         try:
@@ -218,7 +271,7 @@ class FrahooshApp(App):
             try:
                 dashboard.refresh()
             except Exception as exc:
-                print("DASHBOARD REFRESH ERROR:", repr(exc))
+                print("DASHBOARD REFRESH ERROR:", repr(exc)
             return True
         except Exception as exc:
             print("DASHBOARD OPEN ERROR:", repr(exc))
