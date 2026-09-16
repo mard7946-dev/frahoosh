@@ -7,7 +7,8 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
-from kivy.graphics import Color, RoundedRectangle
+from kivy.graphics import Color, Rectangle
+from kivy.core.window import Window
 
 from mobile.config import APP_NAME, SYSTEM_TITLE, SCHOOL_NAME, PRIMARY, SECONDARY, SUCCESS, WHITE, ERROR
 from mobile.ui import font_name, rtl_text, PersianTextInput
@@ -21,30 +22,132 @@ class LoginScreen(Screen):
         self._build()
 
     def _build(self):
-        root = BoxLayout(orientation="vertical", padding=dp(22), spacing=dp(10))
+        # Build-safe design: only native Kivy widgets and vector rectangles.
+        # No background image, no extra package, no special graphics dependency.
+        Window.clearcolor = (0.95, 0.97, 0.99, 1)
+
+        root = BoxLayout(
+            orientation="vertical",
+            padding=[dp(22), dp(18), dp(22), dp(18)],
+            spacing=dp(9),
+        )
         with root.canvas.before:
-            Color(0.94, 0.97, 0.985, 1)
-            self._background = RoundedRectangle(radius=[dp(0)])
-        root.bind(pos=lambda o, v: setattr(self._background, "pos", v), size=lambda o, v: setattr(self._background, "size", v))
+            Color(0.95, 0.97, 0.99, 1)
+            self._background = Rectangle()
+            Color(0.12, 0.35, 0.62, 1)
+            self._top_band = Rectangle()
 
-        root.add_widget(Label(text=rtl_text(APP_NAME), font_name=font_name(), font_size="38sp", bold=True, color=PRIMARY, size_hint_y=None, height=dp(66)))
-        root.add_widget(Label(text=rtl_text(SYSTEM_TITLE), font_name=font_name(), font_size="16sp", color=SECONDARY, size_hint_y=None, height=dp(36)))
-        root.add_widget(Label(text=rtl_text(SCHOOL_NAME or "دبیرستان سردار حاجی زاده ۲"), font_name=font_name(), font_size="17sp", bold=True, color=PRIMARY, halign="center", valign="middle", size_hint_y=None, height=dp(48)))
-        root.add_widget(Label(text=rtl_text("ورود کاربران"), font_name=font_name(), font_size="20sp", color=PRIMARY, bold=True, size_hint_y=None, height=dp(38)))
+        def sync_background(*_):
+            self._background.pos = root.pos
+            self._background.size = root.size
+            self._top_band.pos = (root.x, root.top - dp(7))
+            self._top_band.size = (root.width, dp(7))
 
-        self.identifier = PersianTextInput(hint_text=rtl_text("کد ملی"), multiline=False, size_hint_y=None, height=dp(54), halign="right", padding=[dp(14), dp(14)], background_color=(1, 1, 1, 1), foreground_color=SECONDARY)
-        self.password = PersianTextInput(hint_text=rtl_text("رمز عبور"), password=True, password_mask="*", font_name="Roboto", multiline=False, size_hint_y=None, height=dp(54), halign="right", padding=[dp(14), dp(14)], background_color=(1, 1, 1, 1), foreground_color=SECONDARY)
+        root.bind(pos=sync_background, size=sync_background)
 
-        self.status = Label(text="", font_name=font_name(), font_size="13sp", color=SECONDARY, halign="center", valign="middle", size_hint_y=None, height=dp(50))
-        self.status.bind(size=lambda obj, value: setattr(obj, "text_size", value))
-        self.login_button = Button(text=rtl_text("ورود به فراهوش"), font_name=font_name(), font_size="17sp", background_normal="", background_color=SUCCESS, color=WHITE, size_hint_y=None, height=dp(56))
-        self.login_button.bind(on_release=self.login)
+        root.add_widget(Label(
+            text=rtl_text(APP_NAME),
+            font_name=font_name(),
+            font_size="38sp",
+            bold=True,
+            color=PRIMARY,
+            size_hint_y=None,
+            height=dp(62),
+        ))
+        root.add_widget(Label(
+            text=rtl_text(SYSTEM_TITLE),
+            font_name=font_name(),
+            font_size="16sp",
+            color=SECONDARY,
+            halign="center",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(38),
+        ))
+        root.add_widget(Label(
+            text=rtl_text(SCHOOL_NAME or "دبیرستان سردار حاجی زاده ۲"),
+            font_name=font_name(),
+            font_size="18sp",
+            bold=True,
+            color=PRIMARY,
+            halign="center",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(48),
+        ))
+        root.add_widget(Label(
+            text=rtl_text("ورود کاربران"),
+            font_name=font_name(),
+            font_size="21sp",
+            color=PRIMARY,
+            bold=True,
+            halign="center",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(42),
+        ))
+
+        self.identifier = PersianTextInput(
+            hint_text=rtl_text("کد ملی"),
+            multiline=False,
+            size_hint_y=None,
+            height=dp(54),
+            halign="right",
+            padding=[dp(14), dp(14)],
+            background_color=(1, 1, 1, 1),
+            foreground_color=(0.12, 0.14, 0.18, 1),
+        )
+        self.password = PersianTextInput(
+            hint_text=rtl_text("رمز عبور"),
+            password=True,
+            password_mask="*",
+            font_name="Roboto",
+            multiline=False,
+            size_hint_y=None,
+            height=dp(54),
+            halign="right",
+            padding=[dp(14), dp(14)],
+            background_color=(1, 1, 1, 1),
+            foreground_color=(0.12, 0.14, 0.18, 1),
+        )
 
         root.add_widget(self.identifier)
         root.add_widget(self.password)
+
+        self.status = Label(
+            text="",
+            font_name=font_name(),
+            font_size="13sp",
+            color=SECONDARY,
+            halign="center",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(48),
+        )
+        self.status.bind(size=lambda obj, value: setattr(obj, "text_size", value))
         root.add_widget(self.status)
+
+        self.login_button = Button(
+            text=rtl_text("ورود به فراهوش"),
+            font_name=font_name(),
+            font_size="17sp",
+            background_normal="",
+            background_color=SUCCESS,
+            color=WHITE,
+            size_hint_y=None,
+            height=dp(56),
+        )
+        self.login_button.bind(on_release=self.login)
         root.add_widget(self.login_button)
-        root.add_widget(Label(text=rtl_text("نام کاربری: کد ملی\nرمز عبور پیش‌فرض: حرف اول نام + کد ملی"), font_name=font_name(), font_size="12sp", color=SECONDARY, halign="center", valign="middle"))
+
+        root.add_widget(Label(
+            text=rtl_text("نام کاربری: کد ملی\nرمز عبور پیش‌فرض: حرف اول نام + کد ملی"),
+            font_name=font_name(),
+            font_size="12sp",
+            color=SECONDARY,
+            halign="center",
+            valign="middle",
+        ))
         self.add_widget(root)
 
     def _set_status(self, text, color=SECONDARY):
