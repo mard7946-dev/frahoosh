@@ -1,7 +1,6 @@
-from threading import Thread
+from datetime import datetime, timezone
 import webbrowser
 
-from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -21,13 +20,15 @@ def role_of(state):
     raw=str(getattr(state,"role","student") or "student").strip().lower()
     return {"مدیر":"manager","مدیریت":"manager","admin":"manager","معاون آموزشی":"educational","معاون اجرایی":"executive","معاون پرورشی":"cultural","دبیر":"teacher","معلم":"teacher","دانش‌آموز":"student","دانش آموز":"student","ولی":"parent","اولیا":"parent"}.get(raw,raw)
 
-def digits(v): return str(v or "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩","01234567890123456789"))
+def digits(v):return str(v or "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩","01234567890123456789"))
+
+def now_iso():return datetime.now(timezone.utc).isoformat()
 
 class OperationsScreen(Screen):
     def __init__(self,app_state=None,**kwargs):
         super().__init__(**kwargs); self.app_state=app_state; self.route="messages"; self._build()
     def _build(self):
-        root=BoxLayout(orientation="vertical",padding=dp(14),spacing=dp(8)); head=BoxLayout(orientation="horizontal",size_hint_y=None,height=dp(54),spacing=dp(8))
+        root=BoxLayout(orientation="vertical",padding=dp(14),spacing=dp(8)); head=BoxLayout(size_hint_y=None,height=dp(54),spacing=dp(8))
         back=Button(text=rtl_text("‹ بازگشت"),font_name=font_name(),background_normal="",background_color=PRIMARY,color=WHITE,size_hint_x=None,width=dp(100)); back.bind(on_release=lambda *_:self._back()); head.add_widget(back)
         self.title=Label(text=rtl_text(APP_NAME),font_name=font_name(),font_size="21sp",bold=True,color=PRIMARY,halign="right",valign="middle"); self.title.bind(size=lambda o,v:setattr(o,"text_size",v)); head.add_widget(self.title); root.add_widget(head)
         self.status=Label(text="",font_name=font_name(),font_size="12sp",color=SECONDARY,halign="right",valign="middle",size_hint_y=None,height=dp(42)); self.status.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(self.status)
@@ -40,20 +41,19 @@ class OperationsScreen(Screen):
     def _label(self,text,size="14sp",color=SECONDARY,height=68):
         w=Label(text=rtl_text(text),font_name=font_name(),font_size=size,color=color,halign="right",valign="middle",size_hint_y=None,height=dp(height)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); self.body.add_widget(w); return w
     def _button(self,text,cb,color=PRIMARY,height=48):
-        b=Button(text=rtl_text(text),font_name=font_name(),font_size="14sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=dp(height)); b.bind(on_release=cb); self.body.add_widget(b); return b
+        b=Button(text=rtl_text(text),font_name=font_name(),font_size="13sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=dp(height)); b.bind(on_release=cb); self.body.add_widget(b); return b
     def _payment(self):
         if role_of(self.app_state) in PAYMENT_MANAGERS:self._payment_management()
         else:self._payment_user()
     def _payment_management(self):
         self._label("مدیریت گزینه‌های پرداخت\nگزینه‌ها در payment_offers ذخیره می‌شوند و مبلغ را خود سامانه تعیین می‌کند.",height=82)
-        title=self._field("عنوان پرداخت؛ مثال شهریه مهر"); reason=self._field("علت پرداخت؛ اختیاری"); amount=self._field("مبلغ به ریال")
+        title=self._field("عنوان پرداخت؛ مثال کمک‌های داوطلبانه"); reason=self._field("علت پرداخت؛ اختیاری"); amount=self._field("مبلغ به ریال")
         self._button("ثبت گزینه پرداخت",lambda *_:self._save_offer(title,reason,amount),SUCCESS); self._button("بازخوانی گزینه‌ها",lambda *_:self.set_route("payment")); self._load_offers()
     def _save_offer(self,title,reason,amount):
         try:a=int(digits(amount.text).replace(",","") or 0)
         except Exception:return self._error("مبلغ باید عدد باشد.")
         if a<=0 or not title.text.strip():return self._error("عنوان و مبلغ الزامی است.")
-        try:
-            self.app_state.api.table_insert("payment_offers",{"title":title.text.strip(),"amount":a,"target_type":"school","target_value":SCHOOL_ID,"description":reason.text.strip(),"active":1,"manual_amount":0,"payment_reason":reason.text.strip(),"gateway_enabled":True}); self._success("گزینه پرداخت در سامانه ثبت شد.")
+        try:self.app_state.api.table_insert("payment_offers",{"title":title.text.strip(),"amount":a,"target_type":"school","target_value":SCHOOL_ID,"description":reason.text.strip(),"active":1,"manual_amount":0,"payment_reason":reason.text.strip(),"gateway_enabled":True}); self._success("گزینه پرداخت در سامانه ثبت شد.")
         except Exception as exc:self._error("ثبت گزینه پرداخت انجام نشد: "+str(exc))
     def _load_offers(self):
         try:rows=self.app_state.api.table_select("payment_offers",{"active":"eq.1","order":"id.desc","limit":"50"})
@@ -94,32 +94,68 @@ class OperationsScreen(Screen):
         if role_of(self.app_state) in CLASS_MANAGERS:self._online_management()
         else:self._online_user()
     def _online_management(self):
-        self._label("مدیریت کلاس آنلاین\nکلاس واقعی در online_classes ذخیره می‌شود و با RPC امن فعال می‌گردد.",height=82)
-        fields=[self._field("عنوان کلاس"),self._field("درس / موضوع"),self._field("نام دبیر"),self._field("پایه"),self._field("کلاس"),self._field("مدت به دقیقه"),self._field("لینک ورود به کلاس"),self._field("ساعت شروع؛ اختیاری"),self._field("ساعت پایان؛ اختیاری")]
-        fields[5].text="60"
-        self._button("ساخت کلاس",lambda *_:self._create_class(*fields),SUCCESS); self._load_classes(True)
+        self._label("مدیریت کلاس آنلاین\nکلاس، جلسه و اعضای آن در جداول واقعی سامانه ذخیره می‌شود.",height=82)
+        fields=[self._field("عنوان کلاس"),self._field("درس / موضوع"),self._field("نام دبیر"),self._field("پایه"),self._field("کلاس"),self._field("مدت به دقیقه"),self._field("لینک ورود به جلسه"),self._field("ساعت شروع؛ اختیاری"),self._field("ساعت پایان؛ اختیاری")]; fields[5].text="60"
+        self._button("ساخت کلاس واقعی",lambda *_:self._create_class(*fields),SUCCESS); self._load_classes(True)
     def _create_class(self,title,subject,teacher,grade,cls,duration,join,start,end):
         if not title.text.strip():return self._error("عنوان کلاس الزامی است.")
         try:dur=max(1,int(digits(duration.text or "60")))
         except Exception:return self._error("مدت کلاس باید عدد باشد.")
         try:
-            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":dur,"start_time":start.text.strip(),"end_time":end.text.strip(),"status":"inactive","created_at_shamsi":"","start_time_shamsi":start.text.strip(),"end_time_shamsi":end.text.strip(),"join_url":join.text.strip(),"meeting_url":join.text.strip()}); self._success("کلاس ساخته شد و برای فعال‌سازی آماده است."); self._load_classes(True)
+            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":dur,"status":"inactive","start_time_shamsi":start.text.strip(),"end_time_shamsi":end.text.strip(),"join_url":join.text.strip(),"meeting_url":join.text.strip()}); self._success("کلاس در سامانه ثبت شد."); self.set_route("online")
         except Exception as exc:self._error("ساخت کلاس انجام نشد: "+str(exc))
-    def _online_user(self):self._label("کلاس‌های آنلاین\nفقط کلاس‌های واقعی سامانه نمایش داده می‌شوند.",height=72); self._load_classes(False)
+    def _online_user(self):self._label("کلاس‌های آنلاین\nکلاس‌های فعال و جلسات واقعی سامانه در اینجا نمایش داده می‌شوند.",height=72); self._load_classes(False)
     def _load_classes(self,management=False):
         try:rows=self.app_state.api.table_select("online_classes",{"order":"id.desc","limit":"50"})
         except Exception as exc:return self._error("خواندن کلاس‌ها انجام نشد: "+str(exc))
         for r in rows:
-            state=str(r.get("status") or "inactive"); self._label(f"{r.get('title') or 'کلاس آنلاین'}\n{r.get('subject','')} | {r.get('class_name','')} | {r.get('duration',0)} دقیقه\nوضعیت: {'فعال' if state=='active' else 'غیرفعال'}",height=82)
-            if management and r.get("id") and state!="active":self._button("فعال‌سازی کلاس",lambda *_ ,cid=r["id"]:self._activate_class(cid),SUCCESS,44)
-            if state=="active" and r.get("join_url"):self._button("ورود به کلاس",lambda *_ ,u=r["join_url"]:self._open_url(u),PRIMARY,44)
+            cid=r.get("id"); state=str(r.get("status") or "inactive"); self._label(f"#{cid} | {r.get('title') or 'کلاس آنلاین'}\n{r.get('subject','')} | پایه {r.get('grade','')} | کلاس {r.get('class_name','')} | {r.get('duration',0)} دقیقه\nوضعیت: {'فعال' if state=='active' else ('پایان‌یافته' if state=='ended' else 'غیرفعال')}",height=90)
+            if management and cid:
+                if state!="active":self._button("فعال‌سازی / شروع جلسه",lambda *_ ,x=cid:self._start_session(x),SUCCESS,44)
+                if state=="active":self._button("پایان جلسه",lambda *_ ,x=cid:self._end_session(x),ERROR,44)
+                self._button("حضور و غیاب جلسه",lambda *_ ,x=cid:self._attendance(x),PRIMARY,44)
+                self._button("گفت‌وگوی کلاس",lambda *_ ,x=cid:self._class_chat(x),PRIMARY,44)
+            if state=="active":
+                if r.get("join_url"):self._button("ورود به کلاس / دوربین و میکروفون",lambda *_ ,u=r["join_url"]:self._open_url(u),PRIMARY,44)
+                else:self._label("برای ارتباط صوتی/تصویری، لینک جلسه واقعی را در ساخت کلاس ثبت کنید.","10sp",SECONDARY,48)
         if not rows:self._label("کلاسی ثبت نشده است.",height=60)
-    def _activate_class(self,cid):
-        try:self.app_state.api.rpc("activate_online_class",{"p_class_id":int(cid)}); self._success("کلاس فعال شد."); self._load_classes(True)
-        except Exception as exc:self._error("فعال‌سازی انجام نشد: "+str(exc))
+    def _start_session(self,cid):
+        try:
+            self.app_state.api.table_insert("online_class_sessions",{"class_id":int(cid),"started_at":now_iso()}); self.app_state.api.table_update("online_classes",{"id":f"eq.{int(cid)}"},{"status":"active"}); self._success("جلسه شروع شد و زمان شروع در سامانه ثبت شد."); self.set_route("online")
+        except Exception as exc:self._error("شروع جلسه انجام نشد: "+str(exc))
+    def _end_session(self,cid):
+        try:
+            sessions=self.app_state.api.table_select("online_class_sessions",{"class_id":f"eq.{int(cid)}","order":"id.desc","limit":"1"});
+            if sessions:self.app_state.api.table_update("online_class_sessions",{"id":f"eq.{sessions[0]['id']}"},{"ended_at":now_iso()})
+            self.app_state.api.table_update("online_classes",{"id":f"eq.{int(cid)}"},{"status":"ended"}); self._success("جلسه پایان یافت و زمان پایان ثبت شد."); self.set_route("online")
+        except Exception as exc:self._error("پایان جلسه انجام نشد: "+str(exc))
+    def _attendance(self,cid):
+        try:
+            members=self.app_state.api.table_select("online_class_students",{"class_id":f"eq.{int(cid)}","limit":"100"})
+            self.body.clear_widgets(); self._label(f"حضور و غیاب کلاس #{cid}","20sp",PRIMARY,50,True)
+            for m in members:
+                sid=m.get("student_id"); name=m.get("student_name") or str(sid); self._button(f"{name} — حاضر",lambda *_ ,x=sid:self._save_attendance(x,cid,"present"),SUCCESS,42); self._button(f"{name} — غایب",lambda *_ ,x=sid:self._save_attendance(x,cid,"absent"),ERROR,42)
+            if not members:self._label("هنوز دانش‌آموزی به این کلاس آنلاین تخصیص داده نشده است.",height=60)
+            self._button("بازگشت به کلاس‌ها",lambda *_:self.set_route("online"))
+        except Exception as exc:self._error("خواندن اعضای کلاس انجام نشد: "+str(exc))
+    def _save_attendance(self,sid,cid,status):
+        try:
+            self.app_state.api.table_insert("attendance",{"student_id":sid,"class_name":f"online:{cid}","subject":"کلاس آنلاین","attendance_date":now_iso(),"status":status}); self._success("حضور و غیاب ثبت شد.")
+        except Exception as exc:self._error("ثبت حضور و غیاب انجام نشد: "+str(exc))
+    def _class_chat(self,cid):
+        self.body.clear_widgets(); self._label(f"گفت‌وگوی کلاس #{cid}","20sp",PRIMARY,50,True)
+        try:
+            rows=self.app_state.api.table_select("messages",{"order":"id.desc","limit":"50"})
+            for r in rows:
+                if str(r.get("title") or "").startswith(f"کلاس #{cid}"):self._label(f"{r.get('sender_name','کاربر')}\n{r.get('body') or ''}",height=70)
+        except Exception:pass
+        text=self._field("پیام کلاس",80,True); self._button("ارسال پیام به کلاس",lambda *_:self._send_class_message(cid,text),SUCCESS); self._button("بازگشت به کلاس‌ها",lambda *_:self.set_route("online"))
+    def _send_class_message(self,cid,text):
+        if not text.text.strip():return self._error("متن پیام را وارد کنید.")
+        try:self.app_state.api.table_insert("messages",{"title":f"کلاس #{cid} — گفت‌وگو","body":text.text.strip(),"audience_type":"online_class","audience_value":str(cid)}); self._success("پیام کلاس ثبت شد.")
+        except Exception as exc:self._error("ارسال پیام انجام نشد: "+str(exc))
     def _messages(self):
-        self._label("صندوق پیام‌ها\nپیام‌های ورودی و خروجی از سامانه مرکزی خوانده می‌شوند.",height=72); self._load_messages()
-        receiver=self._field("گیرنده؛ ایمیل یا نام کاربری",50); title=self._field("عنوان پیام"); text=self._field("متن پیام",85,True); self._button("ارسال پیام",lambda *_:self._send_message(receiver,title,text),SUCCESS)
+        self._label("صندوق پیام‌ها\nپیام‌های ورودی و خروجی از سامانه مرکزی خوانده می‌شوند.",height=72); self._load_messages(); receiver=self._field("گیرنده؛ ایمیل یا نام کاربری",50); title=self._field("عنوان پیام"); text=self._field("متن پیام",85,True); self._button("ارسال پیام",lambda *_:self._send_message(receiver,title,text),SUCCESS)
     def _load_messages(self):
         try:
             rows=self.app_state.api.table_select("messages",{"order":"id.desc","limit":"50"})
