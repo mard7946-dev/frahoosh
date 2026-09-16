@@ -5,7 +5,6 @@ from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager
 from kivy.uix.label import Label
 
-from mobile.screens.loading import LoadingScreen
 from mobile.screens.login import LoginScreen
 
 
@@ -14,9 +13,9 @@ class StartupFallback(Label):
 
 
 class AuthScreenManager(ScreenManager):
-    """ScreenManager guard: only loading and login are available without a session."""
+    """Prevent unauthenticated navigation away from the login screen."""
 
-    PUBLIC_SCREENS = {"loading", "login"}
+    PUBLIC_SCREENS = {"login"}
 
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
@@ -53,41 +52,15 @@ class FrahooshApp(App):
             print("APP STATE STARTUP ERROR:", repr(exc))
 
         self.sm = AuthScreenManager(app_state=self.app_state)
-        self.sm.add_widget(LoadingScreen(name="loading", app_state=self.app_state))
-        self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
-        self.sm.current = "loading"
+
+        # Login is deliberately the first and only startup screen.
+        # The old LoadingScreen performed background/session work before
+        # the login UI was shown and could leave the app stuck on loading.
+        self.sm.add_widget(
+            LoginScreen(name="login", app_state=self.app_state)
+        )
+        self.sm.current = "login"
         return self.sm
-
-    def _startup(self, *_):
-        """Restore a saved Supabase session, refreshing it when necessary."""
-        try:
-            if self.app_state is None or not self.app_state.logged_in:
-                self.sm.current = "login"
-                return
-
-            valid = False
-            try:
-                valid = self.app_state.api.validate_session()
-            except Exception as exc:
-                print("SESSION VALIDATION ERROR:", repr(exc))
-
-            if not valid:
-                try:
-                    valid = self.app_state.refresh_session()
-                except Exception as exc:
-                    print("SESSION REFRESH ERROR:", repr(exc))
-
-            if valid:
-                self.open_dashboard()
-            else:
-                self.app_state.logout()
-                self.sm.current = "login"
-        except Exception as exc:
-            print("AUTH START ERROR:", repr(exc))
-            try:
-                self.sm.current = "login"
-            except Exception:
-                pass
 
     def ensure_dashboard(self):
         if self.sm is None:
