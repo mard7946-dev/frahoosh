@@ -4,6 +4,7 @@ from threading import Thread
 
 from kivy.app import App
 from kivy.clock import Clock
+from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -13,37 +14,30 @@ from kivy.uix.textinput import TextInput
 
 
 class AuthScreenManager(ScreenManager):
-    """Keep authentication as the first visible screen."""
-
     PUBLIC_SCREENS = {"login"}
 
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
         self.app_state = app_state
-        self._redirecting = False
 
     def on_current(self, _manager, screen_name):
-        if self._redirecting or screen_name in self.PUBLIC_SCREENS:
+        if screen_name in self.PUBLIC_SCREENS:
             return
-        state = self.app_state
-        if state is None or not state.logged_in:
-            self._redirecting = True
-            Clock.schedule_once(self._redirect_to_login, 0)
-
-    def _redirect_to_login(self, *_):
-        try:
-            self.current = "login"
-        finally:
-            self._redirecting = False
+        if self.app_state is None or not self.app_state.logged_in:
+            Clock.schedule_once(lambda *_: setattr(self, "current", "login"), 0)
 
 
 class EmergencyLoginScreen(Screen):
-    """Dependency-free login screen used if the normal login module fails to construct."""
-
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
         self.app_state = app_state
-        self._busy = False
+        self._build()
+
+    def _build(self):
+        with self.canvas.before:
+            Color(0.965, 0.975, 0.985, 1)
+            self._bg = Rectangle(pos=self.pos, size=self.size)
+        self.bind(pos=self._sync_bg, size=self._sync_bg)
 
         root = BoxLayout(orientation="vertical", padding=dp(28), spacing=dp(14))
         root.add_widget(Label(text="فراهوش", font_size="34sp", bold=True, color=(0.05, 0.45, 0.25, 1), size_hint_y=None, height=dp(60)))
@@ -63,6 +57,10 @@ class EmergencyLoginScreen(Screen):
         root.add_widget(self.button)
         root.add_widget(Label(text="نام کاربری: کد ملی\nرمز عبور پیش‌فرض: حرف اول نام + کد ملی", font_size="12sp"))
         self.add_widget(root)
+
+    def _sync_bg(self, *_):
+        self._bg.pos = self.pos
+        self._bg.size = self.size
 
     @staticmethod
     def _normalize_digits(value):
@@ -84,7 +82,6 @@ class EmergencyLoginScreen(Screen):
         if self.app_state is None or self.app_state.api is None:
             self.status.text = "سرویس اتصال آماده نیست."
             return
-        self._busy = True
         self.button.disabled = True
         self.status.text = "در حال بررسی اطلاعات..."
         Thread(target=self._authenticate, args=(identifier, password), daemon=True).start()
@@ -100,7 +97,6 @@ class EmergencyLoginScreen(Screen):
             Clock.schedule_once(lambda *_: self._failed(str(exc)), 0)
 
     def _success(self):
-        self._busy = False
         self.button.disabled = False
         self.status.text = "ورود موفق بود."
         app = App.get_running_app()
@@ -108,7 +104,6 @@ class EmergencyLoginScreen(Screen):
             app.open_dashboard()
 
     def _failed(self, message):
-        self._busy = False
         self.button.disabled = False
         self.status.text = message or "ورود انجام نشد."
 
@@ -123,9 +118,8 @@ class FrahooshApp(App):
         self.title = "Frahoosh"
         self.sm = AuthScreenManager(app_state=None)
 
-        # Do not import/construct service code before the first visible frame.
-        # The normal login screen is preferred; a dependency-free fallback keeps
-        # the app usable even if a non-UI import fails on Android.
+        # The first frame contains only Kivy primitives. This guarantees that
+        # authentication UI is constructed before optional service modules.
         try:
             from mobile.screens.login import LoginScreen
             login = LoginScreen(name="login", app_state=None)
@@ -135,7 +129,9 @@ class FrahooshApp(App):
 
         self.sm.add_widget(login)
         self.sm.current = "login"
-        Clock.schedule_once(self._initialize_app_state, 0)
+
+        # Services are initialized only after the login frame is on screen.
+        Clock.schedule_once(self._initialize_app_state, 0.15)
         return self.sm
 
     def _initialize_app_state(self, *_):
@@ -144,18 +140,13 @@ class FrahooshApp(App):
             state = AppState()
             self.app_state = state
             self.sm.app_state = state
-            try:
-                self.sm.get_screen("login").app_state = state
-            except Exception as exc:
-                print("LOGIN STATE ATTACH ERROR:", repr(exc))
+            self.sm.get_screen("login").app_state = state
             print("APP STATE READY")
         except Exception as exc:
             print("APP STATE STARTUP ERROR:", repr(exc))
             self.app_state = None
 
     def ensure_dashboard(self):
-        if self.sm is None:
-            return None
         try:
             return self.sm.get_screen("dashboard")
         except Exception:
@@ -165,8 +156,6 @@ class FrahooshApp(App):
             return screen
 
     def ensure_exam(self):
-        if self.sm is None:
-            return None
         try:
             return self.sm.get_screen("teacher_exams")
         except Exception:
@@ -176,8 +165,6 @@ class FrahooshApp(App):
             return screen
 
     def ensure_module(self):
-        if self.sm is None:
-            return None
         try:
             return self.sm.get_screen("module")
         except Exception:
@@ -187,8 +174,6 @@ class FrahooshApp(App):
             return screen
 
     def ensure_school(self):
-        if self.sm is None:
-            return None
         try:
             return self.sm.get_screen("school")
         except Exception:
@@ -198,8 +183,6 @@ class FrahooshApp(App):
             return screen
 
     def ensure_update(self):
-        if self.sm is None:
-            return None
         try:
             return self.sm.get_screen("update")
         except Exception:
