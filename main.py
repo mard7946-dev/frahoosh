@@ -1,4 +1,4 @@
-__version__ = "1.5.7"
+__version__ = "1.5.8"
 
 from threading import Thread
 
@@ -19,22 +19,22 @@ Window.clearcolor = (0.965, 0.975, 0.985, 1)
 class AuthScreenManager(ScreenManager):
     PUBLIC_SCREENS = {"login"}
 
-    def __init__(self, app_state=None, **kwargs):
+    def __init__(self, **kwargs):
         kwargs.setdefault("transition", NoTransition())
         super().__init__(**kwargs)
-        self.app_state = app_state
 
     def on_current(self, _manager, screen_name):
         if screen_name in self.PUBLIC_SCREENS:
             return
-        if self.app_state is None or not self.app_state.logged_in:
+        app = App.get_running_app()
+        state = getattr(app, "app_state", None) if app else None
+        if state is None or not getattr(state, "logged_in", False):
             Clock.schedule_once(lambda *_: setattr(self, "current", "login"), 0)
 
 
 class EmergencyLoginScreen(Screen):
-    def __init__(self, app_state=None, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.app_state = app_state
         self._busy = False
         self._build()
 
@@ -44,24 +44,96 @@ class EmergencyLoginScreen(Screen):
             self._bg = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=self._sync_bg, size=self._sync_bg)
 
-        root = BoxLayout(orientation="vertical", padding=dp(28), spacing=dp(14))
-        root.add_widget(Label(text="فراهوش", font_size="34sp", bold=True, color=(0.05, 0.45, 0.25, 1), size_hint_y=None, height=dp(60)))
-        root.add_widget(Label(text="سامانه هوشمند آموزشی یکپارچه مدرسه", font_size="17sp", color=(0.15, 0.25, 0.35, 1), size_hint_y=None, height=dp(48)))
-        root.add_widget(Label(text="دبیرستان سردار حاجی زاده ۲", font_size="14sp", color=(0.05, 0.45, 0.25, 1), size_hint_y=None, height=dp(40)))
-        root.add_widget(Label(text="ورود کاربران", font_size="21sp", bold=True, color=(0.05, 0.45, 0.25, 1), size_hint_y=None, height=dp(48)))
+        root = BoxLayout(
+            orientation="vertical",
+            padding=[dp(28), dp(34), dp(28), dp(28)],
+            spacing=dp(12),
+        )
 
-        self.identifier = TextInput(hint_text="کد ملی", multiline=False, size_hint_y=None, height=dp(54), halign="right", padding=[dp(14), dp(14)])
-        self.password = TextInput(hint_text="رمز عبور", password=True, multiline=False, size_hint_y=None, height=dp(54), halign="right", padding=[dp(14), dp(14)])
-        self.status = Label(text="در حال آماده‌سازی اتصال...", font_size="13sp", color=(0.15, 0.25, 0.35, 1), size_hint_y=None, height=dp(55), halign="center", valign="middle")
+        root.add_widget(Label(
+            text="فراهوش",
+            font_size="34sp",
+            bold=True,
+            color=(0.05, 0.45, 0.25, 1),
+            size_hint_y=None,
+            height=dp(58),
+        ))
+        root.add_widget(Label(
+            text="سامانه هوشمند آموزشی یکپارچه مدرسه",
+            font_size="17sp",
+            color=(0.15, 0.25, 0.35, 1),
+            size_hint_y=None,
+            height=dp(44),
+            halign="center",
+            valign="middle",
+        ))
+        root.add_widget(Label(
+            text="دبیرستان سردار حاجی زاده ۲",
+            font_size="14sp",
+            color=(0.05, 0.45, 0.25, 1),
+            size_hint_y=None,
+            height=dp(38),
+            halign="center",
+        ))
+        root.add_widget(Label(
+            text="ورود کاربران",
+            font_size="21sp",
+            bold=True,
+            color=(0.05, 0.45, 0.25, 1),
+            size_hint_y=None,
+            height=dp(48),
+        ))
+
+        self.identifier = TextInput(
+            hint_text="کد ملی",
+            multiline=False,
+            size_hint_y=None,
+            height=dp(54),
+            halign="right",
+            padding=[dp(14), dp(14)],
+        )
+        self.password = TextInput(
+            hint_text="رمز عبور",
+            password=True,
+            multiline=False,
+            size_hint_y=None,
+            height=dp(54),
+            halign="right",
+            padding=[dp(14), dp(14)],
+        )
+
+        self.status = Label(
+            text="",
+            font_size="13sp",
+            color=(0.15, 0.25, 0.35, 1),
+            size_hint_y=None,
+            height=dp(52),
+            halign="center",
+            valign="middle",
+        )
         self.status.bind(size=lambda obj, value: setattr(obj, "text_size", value))
-        self.button = Button(text="ورود به فراهوش", font_size="17sp", background_normal="", background_color=(0.05, 0.55, 0.30, 1), color=(1, 1, 1, 1), size_hint_y=None, height=dp(56))
+
+        self.button = Button(
+            text="ورود به فراهوش",
+            font_size="17sp",
+            background_normal="",
+            background_color=(0.05, 0.55, 0.30, 1),
+            color=(1, 1, 1, 1),
+            size_hint_y=None,
+            height=dp(56),
+        )
         self.button.bind(on_release=self.login)
 
         root.add_widget(self.identifier)
         root.add_widget(self.password)
         root.add_widget(self.status)
         root.add_widget(self.button)
-        root.add_widget(Label(text="نام کاربری: کد ملی\nرمز عبور پیش‌فرض: حرف اول نام + کد ملی", font_size="12sp", halign="center"))
+        root.add_widget(Label(
+            text="نام کاربری: کد ملی\nرمز عبور پیش‌فرض: حرف اول نام + کد ملی",
+            font_size="12sp",
+            halign="center",
+            valign="middle",
+        ))
         self.add_widget(root)
 
     def _sync_bg(self, *_):
@@ -70,7 +142,10 @@ class EmergencyLoginScreen(Screen):
 
     @staticmethod
     def _normalize_digits(value):
-        return str(value or "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
+        return str(value or "").translate(str.maketrans(
+            "۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩",
+            "01234567890123456789",
+        ))
 
     def login(self, *_):
         if self._busy:
@@ -78,6 +153,7 @@ class EmergencyLoginScreen(Screen):
         identifier = self._normalize_digits(self.identifier.text).strip()
         password = self.password.text or ""
         self.identifier.text = identifier
+
         if not identifier:
             self.status.text = "کد ملی را وارد کنید."
             return
@@ -87,29 +163,38 @@ class EmergencyLoginScreen(Screen):
         if not password:
             self.status.text = "رمز عبور را وارد کنید."
             return
-        if self.app_state is None:
-            self.status.text = "در حال آماده‌سازی سرویس..."
-            return
-        if self.app_state.api is None:
-            self.status.text = "سرویس اتصال آماده نیست."
-            return
-        if not self.app_state.api.configured:
-            self.status.text = "تنظیمات اتصال سرور در برنامه وجود ندارد."
-            return
+
         self._busy = True
         self.button.disabled = True
-        self.status.text = "در حال بررسی اطلاعات..."
+        self.status.text = "در حال اتصال به سامانه..."
         Thread(target=self._authenticate, args=(identifier, password), daemon=True).start()
 
     def _authenticate(self, identifier, password):
         try:
-            session = self.app_state.api.sign_in(identifier, password)
-            if not session or not self.app_state.set_session(session):
+            app = App.get_running_app()
+            if app.app_state is None:
+                from mobile.services.app_state import AppState
+                state = AppState()
+                Clock.schedule_once(lambda *_: app.set_app_state(state), 0)
+            Clock.schedule_once(lambda *_: self._authenticate_with_state(identifier, password), 0.05)
+        except Exception as exc:
+            print("LOGIN STARTUP ERROR:", repr(exc))
+            Clock.schedule_once(lambda *_: self._failed(str(exc)), 0)
+
+    def _authenticate_with_state(self, identifier, password):
+        try:
+            state = App.get_running_app().app_state
+            if state is None or state.api is None:
+                raise RuntimeError("سرویس اتصال آماده نیست.")
+            if not state.api.configured:
+                raise RuntimeError("تنظیمات اتصال سرور در برنامه وجود ندارد.")
+            session = state.api.sign_in(identifier, password)
+            if not session or not state.set_session(session):
                 raise RuntimeError("ورود انجام نشد.")
-            Clock.schedule_once(lambda *_: self._success(), 0)
+            self._success()
         except Exception as exc:
             print("LOGIN ERROR:", repr(exc))
-            Clock.schedule_once(lambda *_: self._failed(str(exc)), 0)
+            self._failed(str(exc))
 
     def _success(self):
         self._busy = False
@@ -133,26 +218,13 @@ class FrahooshApp(App):
 
     def build(self):
         self.title = "Frahoosh"
-        self.sm = AuthScreenManager(app_state=None)
-        login = EmergencyLoginScreen(name="login", app_state=None)
-        self.sm.add_widget(login)
+        self.sm = AuthScreenManager()
+        self.sm.add_widget(EmergencyLoginScreen(name="login"))
         self.sm.current = "login"
-        Thread(target=self._initialize_app_state, daemon=True).start()
         return self.sm
 
-    def _initialize_app_state(self):
-        try:
-            from mobile.services.app_state import AppState
-            state = AppState()
-            Clock.schedule_once(lambda *_: self._state_ready(state), 0)
-        except Exception as exc:
-            print("APP STATE STARTUP ERROR:", repr(exc))
-
-    def _state_ready(self, state):
+    def set_app_state(self, state):
         self.app_state = state
-        self.sm.app_state = state
-        self.sm.get_screen("login").app_state = state
-        print("APP STATE READY")
 
     def ensure_dashboard(self):
         try:
