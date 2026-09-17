@@ -2,8 +2,13 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager, FadeTransition
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.image import Image
 
 from mobile.screens.login import LoginScreen
+from mobile.config import SCHOOL_YEAR
+
+SCHOOL_LOGO = "mobile/assets/school_logo.jpg"
 
 
 class FrahooshApp(App):
@@ -28,8 +33,21 @@ class FrahooshApp(App):
             self.app_state = None
         self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
         self.sm.current = "login"
+
+        # School logo is a non-interactive watermark/header mark visible above every screen.
+        root = FloatLayout()
+        root.add_widget(self.sm)
+        try:
+            logo = Image(source=SCHOOL_LOGO, size_hint=(None, None), size=(56, 56),
+                         pos_hint={"right": 0.985, "top": 0.985}, opacity=0.82,
+                         allow_stretch=True, keep_ratio=True)
+            logo.disabled = True
+            root.add_widget(logo)
+            self.school_logo = logo
+        except Exception as exc:
+            print("SCHOOL LOGO ERROR:", repr(exc))
         Clock.schedule_once(self._startup_check, 0)
-        return self.sm
+        return root
 
     def _startup_check(self, *_):
         try:
@@ -66,10 +84,6 @@ class FrahooshApp(App):
             return dashboard
         except Exception as exc:
             print("DASHBOARD BUILD ERROR:", repr(exc))
-            # Never send a successful login back to the login error state.
-            # The fallback uses only native Kivy widgets and is independent of
-            # the rich dashboard implementation, so an optional dashboard UI
-            # failure cannot block navigation after authentication.
             try:
                 from mobile.screens.dashboard_fallback import DashboardFallbackScreen
                 dashboard = DashboardFallbackScreen(name="dashboard", app_state=self.app_state)
