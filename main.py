@@ -66,7 +66,18 @@ class FrahooshApp(App):
             return dashboard
         except Exception as exc:
             print("DASHBOARD BUILD ERROR:", repr(exc))
-            return None
+            # Never send a successful login back to the login error state.
+            # The fallback uses only native Kivy widgets and is independent of
+            # the rich dashboard implementation, so an optional dashboard UI
+            # failure cannot block navigation after authentication.
+            try:
+                from mobile.screens.dashboard_fallback import DashboardFallbackScreen
+                dashboard = DashboardFallbackScreen(name="dashboard", app_state=self.app_state)
+                self.sm.add_widget(dashboard)
+                return dashboard
+            except Exception as fallback_exc:
+                print("DASHBOARD FALLBACK BUILD ERROR:", repr(fallback_exc))
+                return None
 
     def ensure_exam(self):
         if self.sm is None:
@@ -119,7 +130,8 @@ class FrahooshApp(App):
     def _refresh_dashboard_safe(self, *_):
         try:
             dashboard = self.sm.get_screen("dashboard")
-            dashboard.refresh()
+            if hasattr(dashboard, "refresh"):
+                dashboard.refresh()
         except Exception as exc:
             print("DASHBOARD REFRESH ERROR:", repr(exc))
 
