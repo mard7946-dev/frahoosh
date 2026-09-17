@@ -1,7 +1,7 @@
 # Frahoosh unified professional workspace.
-# Keep this compatibility entry-point stable for all dashboards and future clients.
-from mobile.screens.module_workspace import ModuleWorkspaceScreen
+# Module navigation is accordion-based: no PageLayout/swipe interaction.
+from mobile.screens.professional_workspace import ProfessionalWorkspaceScreen
 
-ModuleScreen = ModuleWorkspaceScreen
+ModuleScreen = ProfessionalWorkspaceScreen
 
-__all__ = ["ModuleScreen", "ModuleWorkspaceScreen"]
+__all__ = ["ModuleScreen", "ProfessionalWorkspaceScreen"]
