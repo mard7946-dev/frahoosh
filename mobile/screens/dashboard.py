@@ -12,7 +12,7 @@ from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, LOGO_PATH, PRIMARY
 from mobile.ui import font_name, rtl_text
 
 ROLE_ALIASES = {"admin":"manager","administrator":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager","executive":"executive","معاون اجرایی":"executive","educational":"educational","training":"educational","معاون آموزشی":"educational","cultural":"cultural","پرورشی":"cultural","معاون پرورشی":"cultural","advisor":"advisor","counselor":"advisor","مشاور":"advisor","teacher":"teacher","teacher_staff":"teacher","دبیر":"teacher","معلم":"teacher","student":"student","دانش‌آموز":"student","دانش آموز":"student","parent":"parent","parent_guardian":"parent","guardian":"parent","ولی":"parent","اولیا":"parent"}
-ROLE_TITLES = {"manager":"مدیریت","executive":"معاون اجرایی","educational":"معاون آموزشی","cultural":"معاون پرورشی","advisor":"مشاوره","teacher":"دبیر","student":"دانش‌آموز","parent":"ولی"}
+ROLE_TITLES = {"manager":"مدیریت", "executive":"معاون اجرایی", "educational":"معاون آموزشی", "cultural":"معاون پرورشی", "advisor":"مشاوره", "teacher":"دبیر", "student":"دانش‌آموز", "parent":"ولی"}
 MANAGER_MENU = [("مدیریت","management"),("معاون آموزشی","educational"),("معاون اجرایی","executive"),("معاون پرورشی","cultural"),("مشاوره","advisor"),("دبیران","teachers"),("اولیا","parents"),("دانش‌آموزان","students"),("مالی","finance"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("دستیار هوش مصنوعی","ai"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")]
 ROLE_MENU = {
 "executive":[("معاون اجرایی","executive"),("دانش‌آموزان","students"),("اولیا","parents"),("کلاس‌های آنلاین","online"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
@@ -35,7 +35,8 @@ class Card(BoxLayout):
 
 class SwipeDeck(PageLayout):
     def __init__(self, **kwargs):
-        super().__init__(orientation="tb", border=0, swipe_threshold=.08, **kwargs)
+        # PageLayout has no orientation property; its page order is controlled by its built-in page/swipe behavior.
+        super().__init__(border=0, swipe_threshold=.08, **kwargs)
         self.on_index_change=None; self.bind(page=self._changed)
     def set_pages(self,pages):
         self.clear_widgets()
