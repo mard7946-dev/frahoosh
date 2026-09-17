@@ -17,10 +17,20 @@ OPERATIONS_ROUTES = {"payment", "online", "messages"}
 
 class PanelCard(BoxLayout):
     def __init__(self, **kwargs):
+        self.on_panel_tap = kwargs.pop("on_panel_tap", None)
         super().__init__(orientation="vertical", padding=dp(18), spacing=dp(10), **kwargs)
-        with self.canvas.before: Color(1,1,1,.985); self.bg=RoundedRectangle(radius=[dp(20)])
+        with self.canvas.before:
+            Color(1,1,1,.985); self.bg=RoundedRectangle(radius=[dp(20)])
         self.bind(pos=self._sync,size=self._sync)
     def _sync(self,*_): self.bg.pos=self.pos; self.bg.size=self.size
+    def on_touch_up(self, touch):
+        handled = super().on_touch_up(touch)
+        if handled:
+            return True
+        if self.on_panel_tap and self.collide_point(*touch.pos):
+            self.on_panel_tap()
+            return True
+        return False
 
 class SwipeArea(FloatLayout):
     def __init__(self,**kwargs): super().__init__(**kwargs); self.pages=[]; self.index=0; self.on_change=None; self._touch_start=None
@@ -74,30 +84,26 @@ class DashboardScreen(Screen):
         if self.app_state is None or not self.app_state.logged_in:return False
         items=self.items(); role=self.role(); name=str(getattr(self.app_state,"display_name","کاربر فراهوش") or "کاربر فراهوش"); self.welcome.text=rtl_text(f"خوش آمدید، {name}"); self.role_text.text=rtl_text(f"پنل {ROLE_TITLES.get(role,'کاربر')} | دسترسی فعال"); self.school_text.text=rtl_text(SCHOOL_NAME); self.status.text=rtl_text(f"{len(items)} پنل فعال — برای ورود، کارت پنل را لمس کنید."); self.drawer_box.clear_widgets(); pages=[]
         for i,(title,route) in enumerate(items,1):
-            page=PanelCard(size_hint=(1,1),pos_hint={"x":0,"y":0}); page.add_widget(self._label(title,"23sp",PRIMARY,True,True)); page.add_widget(self._label(f"پنل {i} از {len(items)}","10sp",SECONDARY,False,True)); page.add_widget(self._label(self.desc(route),"11sp",SECONDARY,False,True)); enter=Button(text=rtl_text("ورود به محیط پنل"),font_name=font_name(),font_size="13sp",background_normal="",background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(48)); enter.bind(on_release=lambda *_args,r=route:self.open(r)); page.add_widget(enter); pages.append(page); db=Button(text=rtl_text(title),font_name=font_name(),font_size="12sp",background_normal="",background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(40)); db.bind(on_release=lambda *_args,r=route:self.open(r)); self.drawer_box.add_widget(db)
+            page=PanelCard(size_hint=(1,1),pos_hint={"x":0,"y":0},on_panel_tap=lambda r=route:self.open(r)); page.add_widget(self._label(title,"23sp",PRIMARY,True,True)); page.add_widget(self._label(f"پنل {i} از {len(items)}","10sp",SECONDARY,False,True)); page.add_widget(self._label(self.desc(route),"11sp",SECONDARY,False,True)); enter=Button(text=rtl_text("ورود به محیط پنل"),font_name=font_name(),font_size="13sp",background_normal="",background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(48)); enter.bind(on_release=lambda *_args,r=route:self.open(r)); page.add_widget(enter); pages.append(page)
+            db=Button(text=rtl_text(title),font_name=font_name(),font_size="12sp",background_normal="",background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(40)); db.bind(on_release=lambda *_args,r=route:self.open(r)); self.drawer_box.add_widget(db)
         self.deck.set_pages(pages); return True
     def _deck_changed(self,index,total): self.counter.text=rtl_text(f"پنل {index+1} از {total}") if total else rtl_text("پنلی وجود ندارد")
-    def desc(self,route): return {"management":"مدیریت دانش‌آموزان، دبیران، کارکنان و کلاس‌ها.","educational":"دروس، نمرات، حضور و غیاب و برنامه آموزشی.","executive":"پرونده دانش‌آموزان، اولیا و امور اجرایی.","cultural":"فعالیت‌های فرهنگی و پرورشی مدرسه.","advisor":"پرونده و پیگیری جلسات مشاوره.","teachers":"فهرست دبیران و کلاس‌ها.","students":"پرونده و وضعیت تحصیلی دانش‌آموزان.","parents":"اولیا و وضعیت تحصیلی فرزندان.","finance":"حساب‌ها، تراکنش‌ها و کمک‌های داوطلبانه.","payment":"پرداخت و سوابق تراکنش.","online":"کلاس، جلسه، حضور و غیاب و گفت‌وگو.","teacher_exams":"آزمون آنلاین، سؤال و نمره.","smart_board":"محتوای آموزشی تابلو هوشمند.","ai":"دستیار هوشمند و گزارش‌های تحلیلی.","reports":"گزارش‌های آموزشی و حضور و غیاب.","schedule":"برنامه هفتگی و امتحانات.","messages":"صندوق پیام‌ها.","settings":"تنظیمات حساب و مدرسه.","about":"اطلاعات سامانه فراهوش."}.get(route,"ورود به بخش عملیاتی سامانه.")
-    def toggle_drawer(self,*_): self.close_drawer() if self.drawer_open else self.open_drawer()
-    def open_drawer(self,*_): self.drawer_open=True; self.drawer_layer.opacity=1; self.drawer_layer.disabled=False
-    def close_drawer(self,*_): self.drawer_open=False; self.drawer_layer.opacity=0; self.drawer_layer.disabled=True
+    def desc(self,route): return {"management":"مدیریت دانش‌آموزان، دبیران، کارکنان و کلاس‌ها.","educational":"دروس، نمرات، حضور و غیاب و برنامه آموزشی.","executive":"پرونده دانش‌آموزان، اولیا و امور اجرایی.","cultural":"فعالیت‌های فرهنگی و پرورشی مدرسه.","advisor":"پرونده و پیگیری جلسات مشاوره.","teachers":"پرونده و کلاس‌های دبیران.","students":"پرونده، نمرات و حضور دانش‌آموزان.","parents":"اطلاعات اولیا و ارتباط با فرزند.","finance":"حساب‌ها و گردش‌های مالی مدرسه.","payment":"گزینه‌ها و سوابق پرداخت.","online":"مدیریت کلاس‌ها و جلسات آنلاین.","teacher_exams":"ساخت و مدیریت آزمون‌های آنلاین.","smart_board":"محتوای آموزشی و فعالیت‌های تابلو.","ai":"پرسش، تحلیل و گزارش هوشمند.","reports":"گزارش‌های آموزشی و اجرایی.","schedule":"برنامه هفتگی و امتحانات.","messages":"پیام‌های مدرسه و مخاطبان.","settings":"تنظیمات حساب و مدرسه.","about":"معرفی سامانه فراهوش."}.get(route,"محیط عملیاتی سامانه")
     def open(self,route):
-        if self.app_state is None or not self.app_state.logged_in:
-            if self.manager:self.manager.current="login"
-            return
-        self.close_drawer()
         try:
+            if not self.manager:return
+            self.close_drawer()
             if route=="about":
-                if not self.manager.has_screen("about"):
-                    from mobile.screens.about import AboutScreen; self.manager.add_widget(AboutScreen(name="about",app_state=self.app_state))
+                from mobile.screens.about import AboutScreen
+                if not self.manager.has_screen("about"):self.manager.add_widget(AboutScreen(name="about",app_state=self.app_state))
                 self.manager.current="about"; return
             if route=="participation":
-                if not self.manager.has_screen("participation"):
-                    from mobile.screens.participation import ParticipationScreen; self.manager.add_widget(ParticipationScreen(name="participation",app_state=self.app_state))
-                self.manager.get_screen("participation").set_route(self.role()); self.manager.current="participation"; return
+                from mobile.screens.participation import ParticipationScreen
+                if not self.manager.has_screen("participation"):self.manager.add_widget(ParticipationScreen(name="participation",app_state=self.app_state))
+                self.manager.current="participation"; return
             if route=="teacher_exams":
-                if not self.manager.has_screen("teacher_exams"):
-                    from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen; self.manager.add_widget(TeacherExamsV4Screen(name="teacher_exams",app_state=self.app_state))
+                from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen
+                if not self.manager.has_screen("teacher_exams"):self.manager.add_widget(TeacherExamsV4Screen(name="teacher_exams",app_state=self.app_state))
                 self.manager.current="teacher_exams"; return
             if route in OPERATIONS_ROUTES:
                 if not self.manager.has_screen("operations"):
@@ -122,3 +128,7 @@ class DashboardScreen(Screen):
             if self.app_state:self.app_state.logout()
         except Exception: pass
         if self.manager:self.manager.current="login"
+    def toggle_drawer(self,*_):
+        self.drawer_layer.opacity=1; self.drawer_layer.disabled=False; self.drawer_open=True
+    def close_drawer(self,*_):
+        self.drawer_layer.opacity=0; self.drawer_layer.disabled=True; self.drawer_open=False
