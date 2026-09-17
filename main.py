@@ -32,8 +32,6 @@ class FrahooshApp(App):
             self.app_state = None
         self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
         self.sm.current = "login"
-
-        # School mark stays as a small, non-interactive brand mark above every screen.
         root = FloatLayout()
         root.add_widget(self.sm)
         try:
@@ -76,9 +74,8 @@ class FrahooshApp(App):
             return self.sm.get_screen("dashboard")
         except Exception:
             pass
-        # The clean dashboard used by the supplied reference APK is the primary dashboard.
         try:
-            from mobile.screens.dashboard import DashboardScreen
+            from mobile.screens.dashboard_safe import DashboardScreen
             dashboard = DashboardScreen(name="dashboard", app_state=self.app_state)
             self.sm.add_widget(dashboard)
             return dashboard
