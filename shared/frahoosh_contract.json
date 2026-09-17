@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "school_year": "1405-1406",
+  "backend": "supabase",
+  "clients": ["android", "web"],
+  "principle": "Android and Web use the same module keys, submenu keys, Supabase table names and field vocabulary.",
+  "routes": {
+    "management": ["school_profile", "students", "teachers", "staff", "school_class_config", "users", "school_events", "messages", "report_cards", "weekly_schedule", "teacher_exams", "finance_accounts"],
+    "educational": ["teacher_classes", "lesson_plans", "attendance", "grades", "student_grades", "assignments", "weekly_schedule", "exam_schedule", "teacher_exams", "report_cards", "students"],
+    "executive": ["students", "parents", "parent_children", "staff", "attendance", "school_events", "school_class_config", "messages", "report_cards"],
+    "cultural": ["educational_activities", "school_events", "students", "parent_meetings", "messages", "smart_board_content", "report_cards"],
+    "advisor": ["counseling_records", "counseling_followups", "students", "parents", "report_cards", "messages"],
+    "teachers": ["teachers", "teacher_classes", "attendance", "grades", "student_grades", "assignments", "lesson_plans", "teacher_exams", "online_class_sessions"],
+    "students": ["students", "student_grades", "attendance", "assignments", "teacher_exams", "weekly_schedule", "report_cards", "educational_activities"],
+    "parents": ["parents", "parent_children", "student_grades", "attendance", "report_cards", "parent_meetings", "finance_donations", "messages"],
+    "finance": ["finance_accounts", "finance_transactions", "finance_donations", "payment_offers", "payment_attempts", "payment_records"],
+    "online": ["online_classes", "online_class_sessions", "online_class_students", "online_class_teachers", "smart_board_whiteboards"],
+    "smart_board": ["smart_board_content", "smart_board_activities", "smart_board_quizzes", "smart_board_whiteboards"],
+    "ai": ["ai_smart_reports", "ai_questions", "ai_assistant_sessions"],
+    "messages": ["messages", "message_targets", "message_reads"],
+    "reports": ["report_cards", "report_card_snapshots", "grades", "attendance", "student_grades"],
+    "schedule": ["weekly_schedule", "generated_weekly_schedule", "exam_schedule", "teacher_classes"],
+    "settings": ["account_settings", "school_profile", "school_class_config", "users"],
+    "student_info": ["students", "student_grades", "attendance", "assignments", "report_cards"]
+  },
+  "exam_tables": ["teacher_exams", "quiz_questions", "teacher_exam_slots", "teacher_exam_shares", "teacher_exam_attempts", "teacher_exam_answers"],
+  "online_class_tables": ["online_classes", "online_class_sessions", "online_class_students", "online_class_teachers"],
+  "rules": {
+    "payment_label": "کمک‌های داوطلبانه",
+    "no_course_selection": true,
+    "access_denied_text": "شما دسترسی به این قسمت را ندارید",
+    "rtl": true,
+    "real_data_only": true
+  }
+}
