@@ -1,12 +1,9 @@
-from kivy.animation import Animation
 from kivy.metrics import dp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.scrollview import ScrollView
-from kivy.graphics import Color, RoundedRectangle
+from kivy.uix.pagelayout import PageLayout
 
 from mobile.config import APP_NAME, SCHOOL_YEAR, PRIMARY, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text
@@ -28,98 +25,32 @@ ROLES = {
 class Card(BoxLayout):
     def __init__(self, **kw):
         super().__init__(orientation="vertical", padding=dp(13), spacing=dp(8), **kw)
-        with self.canvas.before:
-            Color(1, 1, 1, .98)
-            self.bg = RoundedRectangle(radius=[dp(18)])
-        self.bind(pos=self.sync, size=self.sync)
-    def sync(self, *_):
-        self.bg.pos = self.pos
-        self.bg.size = self.size
 
-class SwipeDeck(FloatLayout):
-    """A build-safe one-page-at-a-time vertical touch deck.
-    All permitted panels are mounted in the same frame; only the active page is shown.
-    Swipe up/down changes the active page without relying on Kivy Carousel touch routing.
-    """
+class SwipeDeck(PageLayout):
+    """One-page vertical deck using Kivy's native touch-safe PageLayout."""
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.pages = []
-        self.index = 0
-        self._touch_start = None
-        self._animating = False
+        super().__init__(orientation="tb", border=0, swipe_threshold=.10, **kwargs)
         self.on_index_change = None
+        self.bind(page=self._page_changed)
+
+    @property
+    def index(self):
+        return int(self.page)
 
     def set_pages(self, pages):
-        Animation.cancel_all(self)
         self.clear_widgets()
-        self.pages = list(pages or [])
-        self.index = 0
-        for page in self.pages:
+        for page in list(pages or []):
             page.size_hint = (1, 1)
-            page.pos_hint = {"x": 0, "y": 0}
             self.add_widget(page)
-        self._show_index(0, immediate=True)
+        self.page = 0
+        self._page_changed(self, 0)
 
-    def _show_index(self, index, immediate=False):
-        if not self.pages:
-            self.index = 0
-            return
-        self.index = max(0, min(int(index), len(self.pages) - 1))
-        for i, page in enumerate(self.pages):
-            page.opacity = 1 if i == self.index else 0
-            page.disabled = i != self.index
-            page.pos = self.pos
-            page.size = self.size
+    def _page_changed(self, *_):
+        total = len(self.children)
         if callable(self.on_index_change):
-            self.on_index_change(self.index, len(self.pages))
-
-    def go(self, delta):
-        if self._animating or not self.pages:
-            return
-        target = self.index + int(delta)
-        if target < 0 or target >= len(self.pages):
-            return
-        old = self.pages[self.index]
-        new = self.pages[target]
-        direction = -1 if delta > 0 else 1
-        new.pos = (self.x, self.y + direction * self.height)
-        new.size = self.size
-        new.opacity = 1
-        new.disabled = False
-        self._animating = True
-        Animation(pos=(self.x, self.y), duration=.20, t='out_quad').start(new)
-        Animation(pos=(self.x, self.y - direction * self.height), duration=.20, t='out_quad').start(old)
-        def finish(*_):
-            self._animating = False
-            self.index = target
-            for i, page in enumerate(self.pages):
-                page.opacity = 1 if i == self.index else 0
-                page.disabled = i != self.index
-                page.pos = self.pos
-                page.size = self.size
-            if callable(self.on_index_change):
-                self.on_index_change(self.index, len(self.pages))
-        ClockSchedule.once(finish, .21)
-
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            self._touch_start = touch.pos
-        return super().on_touch_down(touch)
-
-    def on_touch_up(self, touch):
-        start = self._touch_start
-        self._touch_start = None
-        result = super().on_touch_up(touch)
-        if start is not None and self.collide_point(*touch.pos):
-            dy = touch.pos[1] - start[1]
-            dx = touch.pos[0] - start[0]
-            threshold = dp(45)
-            if abs(dy) >= threshold and abs(dy) > abs(dx) * 1.15:
-                self.go(-1 if dy > 0 else 1)
-        return result
+            self.on_index_change(int(self.page), total)
 
 class ClockSchedule:
-    """Tiny local wrapper to keep the dashboard import list simple."""
     @staticmethod
     def once(callback, delay):
         from kivy.clock import Clock
@@ -185,7 +116,7 @@ class DashboardScreen(Screen):
         self.drawer = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(6), size_hint=(None, 1),
                                 width=dp(285), pos_hint={"right": 1}, opacity=0, disabled=True)
         self.drawer.add_widget(self.label(APP_NAME, "19sp", PRIMARY, True, True))
-        self.ds = ScrollView(do_scroll_x=False)
+        self.ds = __import__('kivy.uix.scrollview', fromlist=['ScrollView']).ScrollView(do_scroll_x=False)
         self.db = BoxLayout(orientation="vertical", spacing=dp(6), size_hint_y=None)
         self.db.bind(minimum_height=self.db.setter("height"))
         self.ds.add_widget(self.db); self.drawer.add_widget(self.ds)
