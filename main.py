@@ -6,7 +6,6 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import Image
 
 from mobile.screens.login import LoginScreen
-from mobile.config import SCHOOL_YEAR
 
 SCHOOL_LOGO = "mobile/assets/school_logo.jpg"
 
@@ -34,12 +33,12 @@ class FrahooshApp(App):
         self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
         self.sm.current = "login"
 
-        # School logo is a non-interactive watermark/header mark visible above every screen.
+        # School mark stays as a small, non-interactive brand mark above every screen.
         root = FloatLayout()
         root.add_widget(self.sm)
         try:
-            logo = Image(source=SCHOOL_LOGO, size_hint=(None, None), size=(56, 56),
-                         pos_hint={"right": 0.985, "top": 0.985}, opacity=0.82,
+            logo = Image(source=SCHOOL_LOGO, size_hint=(None, None), size=(52, 52),
+                         pos_hint={"right": .985, "top": .985}, opacity=.86,
                          allow_stretch=True, keep_ratio=True)
             logo.disabled = True
             root.add_widget(logo)
@@ -77,21 +76,15 @@ class FrahooshApp(App):
             return self.sm.get_screen("dashboard")
         except Exception:
             pass
+        # The clean dashboard used by the supplied reference APK is the primary dashboard.
         try:
-            from mobile.screens.dashboard3 import DashboardScreen
+            from mobile.screens.dashboard import DashboardScreen
             dashboard = DashboardScreen(name="dashboard", app_state=self.app_state)
             self.sm.add_widget(dashboard)
             return dashboard
         except Exception as exc:
             print("DASHBOARD BUILD ERROR:", repr(exc))
-            try:
-                from mobile.screens.dashboard_fallback import DashboardFallbackScreen
-                dashboard = DashboardFallbackScreen(name="dashboard", app_state=self.app_state)
-                self.sm.add_widget(dashboard)
-                return dashboard
-            except Exception as fallback_exc:
-                print("DASHBOARD FALLBACK BUILD ERROR:", repr(fallback_exc))
-                return None
+            return None
 
     def ensure_exam(self):
         if self.sm is None:
