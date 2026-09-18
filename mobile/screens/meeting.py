@@ -216,7 +216,10 @@ class MeetingScreen(Screen):
 
     def _reload_targets(self):
         role_text = str(self.target_role.text)
-        target_role = {"دبیر": "teacher", "کادر": "staff", "مشاور": "advisor", "مدیریت": "manager"}.get(role_text, "teacher")
+        target_map = {"دبیر": "teacher", "کادر": "staff", "مشاور": "advisor", "مدیریت": "manager"}
+        target_role = target_map.get(role_text)
+        if not target_role:
+            target_role = next((v for k, v in target_map.items() if rtl_text(k) == role_text), "teacher")
         def work():
             try:
                 if target_role == "teacher":
@@ -243,7 +246,7 @@ class MeetingScreen(Screen):
     def _selected_student_id(self):
         selected = str(getattr(self, "student_spinner", None).text or "")
         for r in self.students:
-            if self._student_label(r) == selected:
+            if self._student_label(r) == selected or rtl_text(self._student_label(r)) == selected:
                 return r.get("id")
         return None
 
@@ -268,7 +271,10 @@ class MeetingScreen(Screen):
         student_id = self._selected_student_id()
         if role == "parent":
             target_role_text = str(self.target_role.text)
-            target_role = {"دبیر": "teacher", "کادر": "staff", "مشاور": "advisor", "مدیریت": "manager"}.get(target_role_text, "teacher")
+            target_map = {"دبیر": "teacher", "کادر": "staff", "مشاور": "advisor", "مدیریت": "manager"}
+            target_role = target_map.get(target_role_text) or next(
+                (v for k, v in target_map.items() if rtl_text(k) == target_role_text), "teacher"
+            )
             target_name = str(self.target_spinner.text)
             parent_username = self._username()
             parent_name = getattr(self.app_state, "display_name", "") or parent_username
