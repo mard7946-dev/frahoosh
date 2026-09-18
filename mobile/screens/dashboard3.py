@@ -15,6 +15,10 @@ ALIASES = {"admin":"manager","administrator":"manager","مدیر":"manager","م�
 TITLES = {"manager":"مدیریت","executive":"معاون اجرایی","educational":"معاون آموزشی","cultural":"معاون پرورشی","advisor":"مشاوره","teacher":"دبیر","student":"دانش‌آموز","parent":"ولی"}
 MANAGER = [("مدیریت","management"),("معاون آموزشی","educational"),("معاون اجرایی","executive"),("معاون پرورشی","cultural"),("مشاوره","advisor"),("دبیران","teachers"),("دانش‌آموزان","students"),("اولیا","parents"),("مالی","finance"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("هوش مصنوعی","ai"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")]
 
+# Only these three operational areas are enabled in the current release.
+# The animated 19-panel dashboard remains visible; inactive panels are locked in-place.
+ACTIVE_ROUTES = {"payment", "online", "teacher_exams"}
+
 class Card(BoxLayout):
     def __init__(self, **kw):
         super().__init__(orientation="vertical", padding=dp(13), spacing=dp(8), **kw)
@@ -66,8 +70,8 @@ class DashboardScreen(Screen):
         return ALIASES.get(r, r)
 
     def items(self):
-        # All agreed school panels must be visible in the installed APK.
-        # Role permissions are enforced inside each module, not by hiding panels.
+        # Keep the full animated dashboard visible, but only the three released
+        # operational areas can currently be opened.
         return MANAGER
 
     def build(self):
@@ -139,30 +143,34 @@ class DashboardScreen(Screen):
         self.db.clear_widgets()
         pages = []
         for i, (title, route) in enumerate(items, 1):
-            p = PanelCard(padding=dp(16))
+            active = route in ACTIVE_ROUTES
+            p = PanelCard(padding=dp(16), disabled=not active, opacity=1 if active else .48)
             p.bind(on_release=lambda *_ , x=route: self.open(x))
             p.add_widget(self.label(title, "23sp", PRIMARY, True, True))
             p.add_widget(self.label(f"پنل {i} از {len(items)}", "11sp", SECONDARY, False, True))
-            p.add_widget(self.label(self.desc(route), "13sp", SECONDARY, False, True))
-            b = Button(text=rtl_text("ورود به پنل و اجرای عملیات"), font_name=font_name(), background_normal="",
-                       background_color=PRIMARY, color=WHITE, size_hint_y=None, height=dp(52))
+            p.add_widget(self.label(self.desc(route) if active else "این پنل در این نسخه غیرفعال است.", "13sp", SECONDARY, False, True))
+            b = Button(text=rtl_text("ورود به پنل و اجرای عملیات" if active else "فعلاً غیرفعال"), font_name=font_name(), background_normal="",
+                       background_color=PRIMARY if active else SECONDARY, color=WHITE, size_hint_y=None, height=dp(52), disabled=not active)
             b.bind(on_release=lambda *_ , x=route: self.open(x))
             p.add_widget(b)
             pages.append(p)
-            d = Button(text=rtl_text(title), font_name=font_name(), background_normal="",
-                       background_color=(.08, .30, .48, 1), color=WHITE, size_hint_y=None, height=dp(42))
+            d = Button(text=rtl_text(title + ("  • فعال" if active else "  • غیرفعال")), font_name=font_name(), background_normal="",
+                       background_color=(.08, .30, .48, 1) if active else SECONDARY, color=WHITE, size_hint_y=None, height=dp(42), disabled=not active)
             d.bind(on_release=lambda *_ , x=route: self.open(x))
             self.db.add_widget(d)
         # Keep the approved animated/swipe panel experience on the main dashboard.
         # The two-column professional layout belongs inside each opened panel, not here.
         self.deck.set_pages(pages)
-        self.counter.text = rtl_text(f"تعداد پنل‌ها: {len(pages)}")
+        self.counter.text = rtl_text(f"پنل‌های فعال: {sum(1 for _, route in items if route in ACTIVE_ROUTES)} از {len(pages)}")
         return True
 
     def desc(self, r):
         return {"management":"مدیریت دانش‌آموزان، دبیران، کارکنان، کلاس‌ها و اطلاعات مدرسه.","educational":"کلاس‌ها، حضور و غیاب، نمرات، تکالیف و برنامه آموزشی.","executive":"پرونده دانش‌آموزان، اولیا، ثبت‌نام و امور اجرایی.","cultural":"فعالیت‌های فرهنگی و پرورشی و رویدادها.","advisor":"پرونده و پیگیری جلسات مشاوره.","teachers":"فهرست دبیران و کلاس‌های آنان.","students":"پرونده، نمرات و حضور و غیاب دانش‌آموزان.","parents":"اولیا و وضعیت تحصیلی فرزندان.","finance":"حساب‌ها، تراکنش‌ها و کمک‌های داوطلبانه.","payment":"گزینه‌های پرداخت و سوابق تراکنش.","online":"کلاس، جلسه، حضور و غیاب، گفت‌وگو، تخته و اطلاع غیبت.","teacher_exams":"پنج نوع سؤال، تصحیح خودکار، زمان‌بندی، اشتراک و آزمون واقعی.","smart_board":"محتوای آموزشی و ابزارهای تعاملی.","ai":"پرسش و تحلیل آموزشی.","reports":"گزارش‌های مدرسه و آموزشی.","schedule":"برنامه هفتگی کلاس‌ها و دبیران.","messages":"صندوق پیام‌ها و ارسال پیام.","settings":"تنظیمات حساب و مدرسه.","about":"اطلاعات برنامه و مدرسه."}.get(r, "امکانات اجرایی این بخش بر اساس نقش کاربر.")
 
     def open(self, r):
+        if r not in ACTIVE_ROUTES:
+            self.counter.text = rtl_text("این پنل در نسخه فعلی غیرفعال است.")
+            return
         if not self.manager:
             return
         try:
