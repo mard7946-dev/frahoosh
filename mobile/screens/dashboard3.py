@@ -160,17 +160,13 @@ class DashboardScreen(Screen):
         if route not in ACTIVE_ROUTES or not self.manager:
             return
         try:
-            # All dashboard buttons enter one standalone, dependency-light shell.
-            # This removes the failing wrapper/import chain from panel navigation.
-            from mobile.screens.panel_screen import PanelScreen
-            if not self.manager.has_screen("panel"):
-                self.manager.add_widget(PanelScreen(name="panel", app_state=self.app_state))
+            # PanelScreen is created during app startup. Opening a panel is now
+            # a deterministic ScreenManager switch, not a dynamic import.
             screen = self.manager.get_screen("panel")
             screen.set_route(route)
             self.manager.current = "panel"
         except Exception as exc:
-            # Keep the dashboard usable even if a future optional module fails.
-            self.status.text = rtl_text("پنل آماده نشد؛ لطفاً دوباره تلاش کنید.")
+            self.status.text = rtl_text("خطای داخلی پنل: " + str(exc))
             self.status.color = (0.85, 0.15, 0.15, 1)
             print("DASHBOARD PANEL OPEN ERROR:", repr(exc))
 
