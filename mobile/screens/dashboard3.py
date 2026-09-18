@@ -3,6 +3,9 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.pagelayout import PageLayout
 
 from mobile.config import APP_NAME, SCHOOL_YEAR, PRIMARY, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text
@@ -84,7 +87,6 @@ class DashboardScreen(Screen):
 
         self.frame = Card(size_hint_y=1, padding=dp(8))
         self.frame.add_widget(self.label("همه پنل‌های سامانه در این صفحه قابل مشاهده و ورود هستند.", "10sp", SECONDARY, False, True))
-        from kivy.uix.scrollview import ScrollView
         self.deck = ScrollView(do_scroll_x=False, do_scroll_y=True, size_hint_y=1)
         self.panel_box = GridLayout(cols=2, spacing=dp(8), size_hint_y=None, padding=dp(4))
         self.panel_box.bind(minimum_height=self.panel_box.setter("height"))
