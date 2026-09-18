@@ -103,6 +103,23 @@ TABLE_FIELDS = {
     "account_settings":["username","email","role","status"],
     "teacher_exams":["title","subject","grade","class_name","exam_type","duration","published","passing_score"],
     "quiz_questions":["quiz_id","question","question_type","correct_answer","points","auto_grade"],
+    "discipline_records":["student_id","discipline_type","record_date","decision_type","deduct_score","referral_to","description"],
+    "educational_followups":["student_id","followup_date","followup_items","decision"],
+    "academic_followups":["student_id","followup_date","followup_items","decision"],
+    "certificate_requests":["student_id","student_name","destination","request_date","status","executive_note"],
+    "parent_meeting_requests":["student_id","parent_id","target_type","target_person","requested_date","reason","status"],
+    "student_referrals":["student_id","teacher_id","referral_to","reason","referral_date","status"],
+    "khwarizmi_registrations":["title","category","grade","class_name","student_id","status"],
+    "assignment_submissions":["assignment_id","student_id","file_url","answer_text","submitted_at","status"],
+    "class_seat_assignments":["class_id","student_id","seat_number","academic_year"],
+    "exam_seat_assignments":["exam_id","student_id","subject","exam_date","seat_number"],
+    "monthly_report_cards":["student_id","month_name","active","created_at"],
+    "parent_activities":["title","activity_type","event_date","active","description"],
+    "program_activations":["program_key","title","active","activated_by"],
+    "lesson_plan_entries":["teacher_id","subject","weekly_sessions","session_no","teaching_amount","teaching_date","teaching_title","activity_type"],
+    "teacher_parent_meetings":["teacher_id","student_id","parent_id","requested_date","status","manager_status","reason"],
+    "morning_ceremony":["ceremony_date","title","qari_name","leader_name","program"],
+    "activity_programs":["activity_key","title","category","active","amount","settings"],
 }
 
 # Explicit write policy. Reads remain available through the existing API for all visible tables.
