@@ -252,7 +252,7 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
 
     def _save_online(self, inputs, popup):
         payload = {k: v.text.strip() for k, v in inputs.items() if v.text.strip()}
-        payload.setdefault("status", "inactive")
+        payload.setdefault("status", "active")
         try: payload["duration"] = int(payload.get("duration", 60))
         except ValueError:
             self.message("کلاس آنلاین", "مدت باید عددی باشد."); return
