@@ -4,6 +4,8 @@ from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager, FadeTransition
 
 from mobile.screens.login import LoginScreen
+from mobile.screens.panel_screen import PanelScreen
+
 
 class FrahooshApp(App):
     def __init__(self, **kwargs):
@@ -18,14 +20,23 @@ class FrahooshApp(App):
             Window.softinput_mode = "below_target"
         except Exception:
             pass
+
         self.sm = ScreenManager(transition=FadeTransition(duration=.15))
+
         try:
             from mobile.services.app_state import AppState
             self.app_state = AppState()
         except Exception as exc:
             print("APP STATE STARTUP ERROR:", repr(exc))
             self.app_state = None
+
         self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
+
+        # Preload the real operational panel workspace. Dashboard navigation
+        # now switches to an already-created screen instead of dynamically
+        # importing/constructing a panel at touch time.
+        self.sm.add_widget(PanelScreen(name="panel", app_state=self.app_state))
+
         self.sm.current = "login"
         Clock.schedule_once(self._startup_check, 0)
         return self.sm
@@ -39,7 +50,11 @@ class FrahooshApp(App):
     def _set_screen_capture_policy(self):
         try:
             role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
-            allowed = {"manager", "admin", "administrator", "مدیر", "مدیریت", "معاون آموزشی", "معاون اجرایی", "معاون پرورشی", "educational", "executive", "cultural"}
+            allowed = {
+                "manager", "admin", "administrator", "مدیر", "مدیریت",
+                "معاون آموزشی", "معاون اجرایی", "معاون پرورشی",
+                "educational", "executive", "cultural"
+            }
             secure = role not in allowed
             from jnius import autoclass
             activity = autoclass("org.kivy.android.PythonActivity").mActivity
@@ -120,29 +135,21 @@ class FrahooshApp(App):
             dashboard = self.sm.get_screen("dashboard")
             dashboard.refresh()
         except Exception as exc:
-            # A dashboard data/rendering error must never send the user back to login.
-            # Keep the authenticated dashboard visible and report the real error in logcat.
             print("DASHBOARD REFRESH ERROR:", repr(exc))
 
     def open_dashboard(self):
-        """Navigate to dashboard first; refresh its contents outside the login flow.
-
-        Previously refresh() was executed inside the same try block as navigation.
-        Any rendering error therefore made this method return False and login.py
-        displayed «ورود موفق شد اما داشبورد باز نشد» even though authentication had
-        already succeeded. Navigation is now independent from dashboard rendering.
-        """
         if self.sm is None:
             print("DASHBOARD OPEN ERROR: ScreenManager is not ready")
             return False
+
         dashboard = self.ensure_dashboard()
         if dashboard is None:
             print("DASHBOARD OPEN ERROR: dashboard screen could not be created")
             return False
+
         try:
             self._set_screen_capture_policy()
             self.sm.current = "dashboard"
-            # Let ScreenManager finish entering the screen, then render its panels.
             Clock.schedule_once(self._refresh_dashboard_safe, 0.05)
             return True
         except Exception as exc:
