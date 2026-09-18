@@ -1,0 +1,1 @@
+-- placeholder: operational schema is maintained with the existing Supabase project.
