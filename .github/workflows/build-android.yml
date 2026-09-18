@@ -116,8 +116,8 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          grep -q '^version = 1.5.5$' buildozer.spec
-          grep -q '^android.numeric_version = 155$' buildozer.spec
+          grep -q '^version = 1.5.6$' buildozer.spec
+          grep -q '^android.numeric_version = 156$' buildozer.spec
           echo "Frahoosh APK build mode: debug (delete old app, then install new APK)"
       - name: Build APK
         shell: bash
