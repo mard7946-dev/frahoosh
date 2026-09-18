@@ -80,7 +80,7 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
             "teachers":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","subject"],
             "staff":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","role"],
             "teacher_classes":["teacher_id","teacher_name","subject","grade","class_name","academic_year"],
-            "lesson_plans":["teacher_id","teacher_name","subject","weekly_sessions","teaching_amount_1","teaching_date_1","teaching_title_1","activity_type_1","teaching_amount_2","teaching_date_2","teaching_title_2","activity_type_2"],
+            "lesson_plans": ["teacher_id","teacher_name","subject","weekly_sessions"] + [x for i in range(1,33) for x in (f"teaching_amount_{i}",f"teaching_date_{i}",f"teaching_title_{i}",f"activity_type_{i}")],
             "assignments":["student_id","teacher_id","class_name","title","assignment_type","due_at","description","status"],
             "attendance":["student_id","teacher_id","class_name","subject","attendance_date","period","status"],
             "grades":["student_id","teacher_id","subject","score","max_score","term"],
