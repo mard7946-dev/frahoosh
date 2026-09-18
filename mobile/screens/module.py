@@ -75,33 +75,45 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
         root.add_widget(actions); popup.open()
 
     def _form_fields(self, table, row):
+        # Only render fields that really exist in Supabase.
         forms = {
-            "students":["first_name","last_name","father_name","mother_name","national_code","birth_certificate_place","birth_place","religion","sect","nationality","student_phone","father_phone","mother_phone","grade","class_name"],
-            "teachers":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","subject"],
-            "staff":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","role"],
-            "teacher_classes":["teacher_id","teacher_name","subject","grade","class_name","academic_year"],
-            "lesson_plans": ["teacher_id","teacher_name","subject","weekly_sessions"] + [x for i in range(1,33) for x in (f"teaching_amount_{i}",f"teaching_date_{i}",f"teaching_title_{i}",f"activity_type_{i}")],
-            "assignments":["student_id","teacher_id","class_name","title","assignment_type","due_at","description","status"],
-            "attendance":["student_id","teacher_id","class_name","subject","attendance_date","period","status"],
-            "grades":["student_id","teacher_id","subject","score","max_score","term"],
-            "discipline_records":["student_id","teacher_id","discipline_type","record_date","decision_type","deduct_score","referral_to","description"],
-            "educational_followups":["student_id","followup_date","followup_items","decision"],
-            "academic_followups":["student_id","followup_date","followup_items","decision"],
-            "teacher_exams":["teacher_id","title","subject","grade","class_name","exam_type","duration","description","published","secure_mode","max_attempts","passing_score"],
-            "online_classes":["title","subject","lesson","teacher","grade","class_name","duration","start_time_shamsi","end_time_shamsi","status","join_url","meeting_url"],
+            "students":["first_name","last_name","father_name","mother_name","national_code","student_code","birth_date","religion","sect","nationality","phone","parent_phone","grade","class_name","email","address"],
+            "teachers":["first_name","last_name","national_code","employee_code","phone","email","subject","grades","employment_status"],
+            "staff":["first_name","last_name","role","phone","work_experience","employee_code","national_code","religion","sect","employment_status","teaching_hours"],
+            "teacher_classes":["teacher_id","teacher_name","subject","grade","class_name","active"],
+            "lesson_plans":["teacher_id","teacher_name","subject","grade","class_name","title","content","session_date","lesson_title","description","plan_date"],
+            "assignments":["student_id","teacher_id","title","description","status","due_date","subject","class_name"],
+            "attendance":["student_id","teacher_id","class_name","subject","attendance_date","status","description"],
+            "grades":["student_id","teacher_id","subject","exam_name","score","max_score","description","grade_type","term","grade_date","title"],
+            "student_grades":["student_id","teacher_id","subject","class_name","assessment_type","assessment_title","score","coefficient","grade_date","description","term","manager_released"],
+            "discipline_records":["student_id","teacher_id","title","description","priority","status","item_id","deduction","actor_username","actor_role","note"],
+            "educational_followups":["student_id","followup_date","followup_items","decision","status"],
+            "academic_followups":["student_id","followup_date","followup_items","decision","status"],
+            "teacher_exams":["teacher_id","title","subject","grade","class_name","exam_type","exam_date","duration","description","published","secure_mode","share_enabled","share_code","standard_mode","max_attempts","passing_score"],
+            "online_classes":["title","subject","lesson","teacher","grade","class_name","duration","pages","record","smart_board","quiz","camera","microphone","start_time","end_time","status","activated_by","join_url","meeting_url"],
             "certificate_requests":["student_id","student_name","destination","request_date","status","executive_note"],
-            "parent_meeting_requests":["student_id","parent_id","target_type","target_person","requested_date","reason","status"],
+            "parent_meetings":["student_id","teacher_id","parent_phone","reason","meeting_date","status"],
+            "teacher_parent_meetings":["teacher_id","student_id","parent_id","requested_date","status","manager_status","reason"],
             "student_referrals":["student_id","teacher_id","referral_to","reason","referral_date","status"],
             "khwarizmi_registrations":["title","category","grade","class_name","student_id","status"],
-            "activity_offers":["activity_key","title","amount","active","description"],
-            "activity_registrations":["activity_key","role","national_code","display_name","sport_mode","team_name","team_members","offer_id","amount","payment_status"],
+            "activity_offers":["title","category","event_date","active","amount","settings"],
+            "activity_registrations":["activity_id","student_id","participation_type","team_members","competition_type","payment_status","status"],
             "school_events":["title","description","event_date","status"],
-            "finance_donations":["title","description","amount","status"],
-            "messages":["title","body","audience_type","audience_value","status"],
-            "school_profile":["title","description","academic_year","status"],
+            "finance_donations":["donor_name","amount","description","donation_date"],
+            "messages":["sender","receiver","text","sender_user_id","sender_name","title","body","audience_type","audience_value"],
+            "school_profile":["school_name","school_code","principal_name","phone","address","academic_year","logo_path","request_date_shamsi"],
+            "monthly_report_cards":["student_id","month_name","active"],
+            "class_seat_assignments":["class_id","student_id","seat_number","academic_year"],
+            "exam_seat_assignments":["exam_id","student_id","subject","exam_date","seat_number"],
+            "assignment_submissions":["assignment_id","student_id","file_url","answer_text","submitted_at","status"],
         }
-        return forms.get(table) or [k for k in (row or {}) if k not in {"id","created_at","updated_at","deleted_at"}] or ["title","description","status"]
-
+        requested = forms.get(table)
+        real = set(TABLE_FIELDS.get(table, []))
+        fields = [f for f in requested if not real or f in real] if requested else list(real)
+        fields = [f for f in fields if f not in {"id","created_at","updated_at","deleted_at"}]
+        if not fields:
+            fields = [k for k in (row or {}) if k not in {"id","created_at","updated_at","deleted_at"}]
+        return fields or ["title","description","status"]
     def _column_label(self, key):
         return {
             "first_name":"نام","last_name":"نام خانوادگی","father_name":"نام پدر","mother_name":"نام مادر",
