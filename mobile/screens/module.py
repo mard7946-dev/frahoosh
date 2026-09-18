@@ -7,6 +7,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
+from kivy.uix.scrollview import ScrollView
 from mobile.ui import font_name, rtl_text
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, WHITE
 
