@@ -201,17 +201,14 @@ class DashboardScreen(Screen):
                 self.manager.current = "online"
                 return
 
-            # Generic panels intentionally bypass the old wrapper module.
-            # This is the direct, shared Supabase workspace and removes an
-            # unnecessary failure point from panel navigation.
-            from mobile.screens.module_workspace import ModuleWorkspaceScreen
-            if not self.manager.has_screen("module_workspace"):
-                self.manager.add_widget(ModuleWorkspaceScreen(
-                    name="module_workspace", app_state=self.app_state
-                ))
-            screen = self.manager.get_screen("module_workspace")
+            # Generic panels use the existing module controller. It owns
+            # the shared workspace plus role-specific/specialized behavior.
+            from mobile.screens.module import ModuleScreen
+            if not self.manager.has_screen("module"):
+                self.manager.add_widget(ModuleScreen(name="module", app_state=self.app_state))
+            screen = self.manager.get_screen("module")
             screen.set_module(route, "dashboard")
-            self.manager.current = "module_workspace"
+            self.manager.current = "module"
 
         except Exception as exc:
             self.status.text = rtl_text("خطا در باز کردن پنل: " + str(exc))
