@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from kivy.metrics import dp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -203,7 +204,7 @@ class MeetingsScreen(Screen):
     def _manager_approve(self, rid):
         try:
             self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
-                "manager_status":"approved", "manager_approved_at":"now()", "status":"manager_approved"
+                "manager_status":"approved", "manager_approved_at":datetime.now(timezone.utc).isoformat(), "status":"manager_approved"
             })
             self._message("درخواست تأیید و برای معاون آموزشی ارجاع شد.", SUCCESS)
             self.show_home()
