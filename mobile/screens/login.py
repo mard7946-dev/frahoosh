@@ -9,39 +9,25 @@ from kivy.uix.button import Button
 from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
-from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget
 
 from mobile.config import (
-    APP_NAME, APP_VERSION, SYSTEM_TITLE, SCHOOL_NAME, APP_SLOGAN,
+    APP_VERSION, SYSTEM_TITLE, SCHOOL_NAME, APP_SLOGAN,
     LOGO_PATH, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
     PRIMARY, SECONDARY, SUCCESS, WHITE, ERROR,
 )
 from mobile.ui import font_name, rtl_text, PersianTextInput
 
 
-NAVY = (0.025, 0.075, 0.20, 1)
-BLUE = (0.05, 0.34, 0.78, 1)
-CYAN = (0.03, 0.78, 0.92, 1)
-ORANGE = (1.0, 0.48, 0.10, 1)
-GLASS = (0.05, 0.16, 0.36, .92)
-FIELD = (0.04, 0.13, 0.29, .98)
-
-
-class GlassPanel(BoxLayout):
-    def __init__(self, bg=GLASS, radius=22, **kwargs):
-        super().__init__(**kwargs)
-        with self.canvas.before:
-            Color(*bg)
-            self.rect = RoundedRectangle(radius=[dp(radius)])
-        self.bind(pos=self._sync, size=self._sync)
-
-    def _sync(self, *_):
-        self.rect.pos = self.pos
-        self.rect.size = self.size
+NAVY = (0.035, 0.09, 0.20, 1)
+BLUE = (0.07, 0.38, 0.76, 1)
+CYAN = (0.04, 0.75, 0.90, 1)
+GREEN = (0.10, 0.62, 0.34, 1)
+CARD = (1, 1, 1, .97)
 
 
 class LoginScreen(Screen):
-    """Production login screen: RTL, touch-first, branded and connected to the real auth service."""
+    """Clean fixed-size branded login; one logo, one slogan, configurable school name."""
 
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
@@ -49,107 +35,84 @@ class LoginScreen(Screen):
         self._busy = False
         self._build()
 
-    def label(self, text, size="12sp", color=WHITE, bold=False, center=True):
-        w = Label(
-            text=rtl_text(str(text)),
-            font_name=font_name(),
-            font_size=size,
-            color=color,
-            bold=bold,
-            halign="center" if center else "right",
-            valign="middle",
-        )
-        w.bind(size=lambda obj, value: setattr(obj, "text_size", value))
+    def label(self, value, size="11sp", color=SECONDARY, bold=False):
+        w = Label(text=rtl_text(str(value)), font_name=font_name(), font_size=size,
+                  color=color, bold=bold, halign="center", valign="middle")
+        w.bind(size=lambda o, v: setattr(o, "text_size", v))
         return w
 
     def _build(self):
-        root = BoxLayout(orientation="vertical", padding=[dp(18), dp(12), dp(18), dp(10)], spacing=dp(7))
+        root = BoxLayout(orientation="vertical", padding=[dp(18), dp(14), dp(18), dp(10)], spacing=dp(7))
         with root.canvas.before:
             Color(*NAVY)
-            self._bg = RoundedRectangle(radius=[0])
+            bg = RoundedRectangle(radius=[0])
             Color(*BLUE)
-            self._orb1 = Ellipse()
-            Color(*ORANGE)
-            self._orb2 = Ellipse()
+            orb1 = Ellipse()
+            Color(*CYAN)
+            orb2 = Ellipse()
 
         def sync(*_):
-            self._bg.pos = root.pos
-            self._bg.size = root.size
-            self._orb1.pos = (root.right - dp(135), root.top - dp(150))
-            self._orb1.size = (dp(230), dp(230))
-            self._orb2.pos = (root.x - dp(90), root.y + dp(55))
-            self._orb2.size = (dp(150), dp(150))
+            bg.pos = root.pos
+            bg.size = root.size
+            orb1.pos = (root.right - dp(105), root.top - dp(105))
+            orb1.size = (dp(155), dp(155))
+            orb2.pos = (root.x - dp(65), root.y + dp(45))
+            orb2.size = (dp(105), dp(105))
 
         root.bind(pos=sync, size=sync)
 
-        # Hero / brain-and-book branding. The existing repository logo is reused;
-        # no new external asset is required.
-        hero = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(188), spacing=dp(0))
-        logo = Image(source=LOGO_PATH, allow_stretch=True, keep_ratio=True, size_hint_y=None, height=dp(118))
-        hero.add_widget(logo)
-        hero.add_widget(self.label(APP_NAME, "31sp", WHITE, True))
-        hero.add_widget(self.label(SYSTEM_TITLE, "9sp", (0.78, 0.87, 1, 1), False))
-        root.add_widget(hero)
+        root.add_widget(Widget(size_hint_y=None, height=dp(8)))
 
-        # The school name intentionally comes only from config/runtime_config.json,
-        # so it can be changed without touching the login UI.
-        school = GlassPanel(orientation="horizontal", padding=[dp(12), dp(4)], spacing=dp(6),
-                            size_hint_y=None, height=dp(48), bg=(0.08, 0.30, 0.58, .72), radius=18)
-        school.add_widget(self.label(SCHOOL_NAME or "نام مدرسه", "13sp", WHITE, True))
-        root.add_widget(school)
+        # The logo asset has a fixed display box, so it cannot stretch the layout.
+        logo_wrap = BoxLayout(size_hint_y=None, height=dp(112), padding=[dp(10), dp(4)])
+        logo = Image(source=LOGO_PATH, size_hint=(None, None), size=(dp(102), dp(102)),
+                     allow_stretch=True, keep_ratio=True, pos_hint={"center_x": .5})
+        logo_wrap.add_widget(Widget())
+        logo_wrap.add_widget(logo)
+        logo_wrap.add_widget(Widget())
+        root.add_widget(logo_wrap)
 
+        # Exactly one visible occurrence of the product name: it is inside the logo.
+        root.add_widget(self.label(SCHOOL_NAME or "نام مدرسه", "17sp", WHITE, True))
+        root.add_widget(self.label(SYSTEM_TITLE, "9sp", (0.78, 0.87, 1, 1), False))
         root.add_widget(self.label(APP_SLOGAN, "11sp", CYAN, True))
 
-        card = GlassPanel(orientation="vertical", padding=[dp(16), dp(12)], spacing=dp(7),
-                          size_hint_y=None, height=dp(285), bg=GLASS, radius=24)
+        card = BoxLayout(orientation="vertical", padding=[dp(16), dp(12)], spacing=dp(7),
+                         size_hint_y=None, height=dp(250))
+        with card.canvas.before:
+            Color(*CARD)
+            panel = RoundedRectangle(radius=[dp(22)])
+        card.bind(pos=lambda o, v: setattr(panel, "pos", v), size=lambda o, v: setattr(panel, "size", v))
 
-        card.add_widget(self.label("به فراهوش خوش آمدید", "19sp", WHITE, True))
-        card.add_widget(self.label("برای ورود، اطلاعات خود را وارد کنید.", "9sp", (0.75, 0.84, .95, 1), False))
-
+        card.add_widget(self.label("ورود کاربران", "18sp", PRIMARY, True))
         self.identifier = PersianTextInput(
-            hint_text=rtl_text(LOGIN_USERNAME_HINT),
-            font_name=font_name(), font_size="14sp", multiline=False,
-            size_hint_y=None, height=dp(48), halign="right",
-            padding=[dp(13), dp(10)], background_color=FIELD,
-            foreground_color=WHITE, cursor_color=CYAN,
+            hint_text=rtl_text(LOGIN_USERNAME_HINT), font_name=font_name(), font_size="14sp",
+            multiline=False, size_hint_y=None, height=dp(46), halign="right",
+            padding=[dp(13), dp(10)], background_color=(0.95, .97, 1, 1),
+            foreground_color=NAVY, cursor_color=BLUE,
         )
         self.password = PersianTextInput(
-            hint_text=rtl_text(LOGIN_PASSWORD_HINT),
-            password=True, password_mask="*",
-            font_name="Roboto", font_size="14sp", multiline=False,
-            size_hint_y=None, height=dp(48), halign="right",
-            padding=[dp(13), dp(10)], background_color=FIELD,
-            foreground_color=WHITE, cursor_color=CYAN,
+            hint_text=rtl_text(LOGIN_PASSWORD_HINT), password=True, password_mask="*",
+            font_name="Roboto", font_size="14sp", multiline=False, size_hint_y=None, height=dp(46),
+            halign="right", padding=[dp(13), dp(10)], background_color=(0.95, .97, 1, 1),
+            foreground_color=NAVY, cursor_color=BLUE,
         )
         card.add_widget(self.identifier)
         card.add_widget(self.password)
-
-        self.status = self.label("", "9sp", (0.78, 0.87, 1, 1), False)
+        self.status = self.label("", "8sp", SECONDARY, False)
         card.add_widget(self.status)
-
         self.login_button = Button(
-            text=rtl_text("ورود   →"),
-            font_name=font_name(), font_size="15sp", bold=True,
-            background_normal="", background_down="",
-            background_color=CYAN, color=NAVY,
-            size_hint_y=None, height=dp(48),
+            text=rtl_text("ورود به سامانه"),
+            font_name=font_name(), font_size="14sp", bold=True,
+            background_normal="", background_color=CYAN, color=NAVY,
+            size_hint_y=None, height=dp(46),
         )
         self.login_button.bind(on_release=self.login)
         card.add_widget(self.login_button)
         root.add_widget(card)
 
-        footer = BoxLayout(size_hint_y=None, height=dp(38), spacing=dp(8))
-        bio = Button(text=rtl_text("◉  ورود با اثر انگشت"), font_name=font_name(), font_size="9sp",
-                     background_normal="", background_color=(0.08, .22, .43, .9), color=WHITE)
-        bio.bind(on_release=lambda *_: self._set_status("ورود با اثر انگشت در این نسخه فعال نشده است.", SECONDARY))
-        recovery = Button(text=rtl_text("رمز عبور را فراموش کرده‌اید؟"), font_name=font_name(), font_size="9sp",
-                          background_normal="", background_color=(0.08, .22, .43, .9), color=CYAN)
-        recovery.bind(on_release=lambda *_: self._set_status("بازیابی رمز عبور از طریق مدیریت سامانه انجام می‌شود.", SECONDARY))
-        footer.add_widget(bio)
-        footer.add_widget(recovery)
-        root.add_widget(footer)
-
-        root.add_widget(self.label(f"نسخه {APP_VERSION}  |  اندروید 156", "8sp", (0.60, 0.72, .88, 1), False))
+        root.add_widget(Widget())
+        root.add_widget(self.label(f"نسخه {APP_VERSION}", "8sp", (0.64, .73, .88, 1), False))
         self.add_widget(root)
 
     def _set_status(self, text, color=SECONDARY):
@@ -197,19 +160,15 @@ class LoginScreen(Screen):
         if not password:
             self._set_status("رمز عبور را وارد کنید.", ERROR)
             return
-        if self.app_state is None:
-            self._set_status("وضعیت برنامه آماده نیست.", ERROR)
-            return
-        if self.app_state.api is None:
+        if self.app_state is None or self.app_state.api is None:
             self._set_status("سرویس اتصال آماده نیست.", ERROR)
             return
         if not self.app_state.api.configured:
             self._set_status("تنظیمات اتصال سرور در برنامه وجود ندارد.", ERROR)
             return
-
         self._busy = True
         self.login_button.disabled = True
-        self._set_status("در حال بررسی اطلاعات...", (0.78, 0.87, 1, 1))
+        self._set_status("در حال بررسی اطلاعات...", SECONDARY)
         Thread(target=self._authenticate, args=(identifier, password), daemon=True).start()
 
     def _authenticate(self, identifier, password):
@@ -236,9 +195,6 @@ class LoginScreen(Screen):
                     return
                 raise RuntimeError("داشبورد باز نشد.")
             if self.manager:
-                dashboard = self.manager.get_screen("dashboard")
-                if hasattr(dashboard, "refresh"):
-                    dashboard.refresh()
                 self.manager.current = "dashboard"
         except Exception as exc:
             print("DASHBOARD ERROR:", repr(exc))
