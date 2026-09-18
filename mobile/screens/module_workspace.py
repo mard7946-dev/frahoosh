@@ -56,9 +56,9 @@ HIDDEN = {"id", "created_at", "updated_at", "deleted_at"}
 
 # Business-specific columns for each subpanel.
 TABLE_FIELDS = {
-    "students":["first_name","last_name","national_code","grade","class_name","phone"],
-    "teachers":["first_name","last_name","subject","phone","national_code"],
-    "staff":["first_name","last_name","role","phone"],
+    "students":["first_name","last_name","father_name","mother_name","national_code","birth_certificate_place","birth_place","religion","sect","nationality","student_phone","father_phone","mother_phone","grade","class_name"],
+    "teachers":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","subject"],
+    "staff":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","role"],
     "parents":["first_name","last_name","national_code","phone"],
     "parent_children":["parent_id","student_id","relationship","status"],
     "teacher_classes":["teacher_name","subject","grade","class_name","academic_year"],
