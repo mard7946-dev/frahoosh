@@ -101,22 +101,24 @@ as $$
 begin
   if tg_op = 'INSERT' then
     insert into public.school_notifications(recipient_username,title,body,related_type,related_id)
-    values (
-      'manager@frahoosh.local',
+    select u.username,
       'درخواست ملاقات جدید',
       coalesce(new.student_name,'دانش‌آموز') || ' — ' || new.target_name || ' | ' || new.requested_date_shamsi || ' ' || new.requested_time,
       'school_meeting',
       new.id
-    );
+    from public.users u
+    where lower(coalesce(u.role,'')) in ('مدیر','مدیریت','manager');
     return new;
   end if;
 
   if new.status is distinct from old.status then
     if new.status = 'pending_educational' then
       insert into public.school_notifications(recipient_username,title,body,related_type,related_id)
-      values ('educational@frahoosh.local','ارجاع درخواست ملاقات به معاون آموزشی',
-              coalesce(new.student_name,'دانش‌آموز') || ' — ' || new.target_name,
-              'school_meeting',new.id);
+      select u.username,'ارجاع درخواست ملاقات به معاون آموزشی',
+             coalesce(new.student_name,'دانش‌آموز') || ' — ' || new.target_name,
+             'school_meeting',new.id
+      from public.users u
+      where lower(coalesce(u.role,'')) in ('معاون آموزشی','educational');
     elsif new.status in ('confirmed','rejected') then
       if nullif(new.requester_username,'') is not null then
         insert into public.school_notifications(recipient_username,title,body,related_type,related_id)
