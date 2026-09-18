@@ -5,7 +5,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.image import Image
-from kivy.uix.pagelayout import PageLayout
 from kivy.graphics import Color, RoundedRectangle
 
 from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, LOGO_PATH, PRIMARY, SECONDARY, SUCCESS, WHITE
@@ -33,18 +32,23 @@ class Card(BoxLayout):
         self.bind(pos=self._sync,size=self._sync)
     def _sync(self,*_): self.bg.pos=self.pos; self.bg.size=self.size
 
-class SwipeDeck(PageLayout):
+class SwipeDeck(ScrollView):
+    """Panel container without PageLayout/swipe navigation.
+    Panels are opened from the hamburger drawer; this container only provides vertical scrolling.
+    """
     def __init__(self, **kwargs):
-        # PageLayout has no orientation property; its page order is controlled by its built-in page/swipe behavior.
-        super().__init__(border=0, swipe_threshold=.08, **kwargs)
-        self.on_index_change=None; self.bind(page=self._changed)
+        super().__init__(do_scroll_x=False, do_scroll_y=True, bar_width=dp(4), **kwargs)
+        self.on_index_change=None
+        self._box=BoxLayout(orientation="vertical", spacing=dp(10), padding=dp(4), size_hint_y=None)
+        self._box.bind(minimum_height=self._box.setter("height"))
+        self.add_widget(self._box)
     def set_pages(self,pages):
-        self.clear_widgets()
+        self._box.clear_widgets()
         for page in pages or []:
-            page.size_hint=(1,1); self.add_widget(page)
-        self.page=0; self._changed(self,0)
-    def _changed(self,*_):
-        if callable(self.on_index_change): self.on_index_change(int(self.page),len(self.children))
+            page.size_hint_y=None
+            self._box.add_widget(page)
+        if callable(self.on_index_change):
+            self.on_index_change(0,len(pages or []))
 
 class DashboardScreen(Screen):
     def __init__(self,app_state=None,**kwargs):
