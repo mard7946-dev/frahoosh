@@ -149,9 +149,9 @@ class ModuleWorkspaceScreen(Screen):
     def _build(self):
         root=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(6))
         top=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(5))
-        top.add_widget(self.btn("‹ بازگشت",self.go_back,PRIMARY,dp(40),dp(78)))
+        top.add_widget(self.btn("بازگشت",self.go_back,PRIMARY,dp(40),dp(78)))
         self.title=self.label(APP_NAME,"18sp",PRIMARY,True,"center"); top.add_widget(self.title)
-        top.add_widget(self.btn("⌂",self.go_dashboard,PRIMARY,dp(40),dp(45)))
+        top.add_widget(self.btn("داشبورد",self.go_dashboard,PRIMARY,dp(40),dp(45)))
         root.add_widget(top)
         root.add_widget(self.label(f"{SCHOOL_NAME}  •  سال تحصیلی {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}","9sp",SECONDARY,False,"center"))
         self.status=self.label("اتصال فعال • اطلاعات واقعی سامانه","9sp",SUCCESS,True,"center"); root.add_widget(self.status)
@@ -199,7 +199,7 @@ class ModuleWorkspaceScreen(Screen):
             row.add_widget(title_box)
             c.add_widget(row)
             c.add_widget(self.label(("ثبت / ویرایش / حذف" if self.can_write(table) else "مشاهده اطلاعات بر اساس سطح دسترسی"),"8sp",SECONDARY,False,"right"))
-            c.add_widget(self.btn("ورود به محیط این بخش  ›",lambda *_a,t=table:self.open_table(t),SUCCESS if self.can_write(table) else PRIMARY,dp(38)))
+            c.add_widget(self.btn("ورود به محیط این بخش",lambda *_a,t=table:self.open_table(t),SUCCESS if self.can_write(table) else PRIMARY,dp(38)))
             grid.add_widget(c)
         scroll.add_widget(grid); self.body.add_widget(scroll)
 
@@ -213,10 +213,10 @@ class ModuleWorkspaceScreen(Screen):
         if refresh_subbar:
             self.render(); return
         self.body.clear_widgets(); self.title.text=rtl_text(FRIENDLY.get(table,table))
-        hero=Surface(height=dp(76)); line=BoxLayout(size_hint_y=None,height=dp(34),spacing=dp(5)); line.add_widget(self.btn("‹ زیرپنل‌ها",lambda *_:self._back_to_submenus(),PRIMARY,dp(34),dp(82))); line.add_widget(self.label(FRIENDLY.get(table,table),"16sp",PRIMARY,True,"center")); line.add_widget(self.btn("↻",lambda *_:self.load_table(),PRIMARY,dp(34),dp(45))); hero.add_widget(line)
+        hero=Surface(height=dp(76)); line=BoxLayout(size_hint_y=None,height=dp(34),spacing=dp(5)); line.add_widget(self.btn("زیرپنل‌ها",lambda *_:self._back_to_submenus(),PRIMARY,dp(34),dp(82))); line.add_widget(self.label(FRIENDLY.get(table,table),"16sp",PRIMARY,True,"center")); line.add_widget(self.btn("تازه‌سازی",lambda *_:self.load_table(),PRIMARY,dp(34),dp(45))); hero.add_widget(line)
         self.search=TextInput(hint_text=rtl_text("جستجو در همین زیرپنل"),font_name=font_name(),font_size="10sp",halign="right",multiline=False,size_hint_y=None,height=dp(32),padding=[dp(8),dp(5)]); hero.add_widget(self.search); self.body.add_widget(hero)
         bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5));
-        if self.can_write(table): bar.add_widget(self.btn("＋ ثبت جدید",lambda *_:self.editor(table,None),SUCCESS,dp(38)))
+        if self.can_write(table): bar.add_widget(self.btn("ثبت جدید",lambda *_:self.editor(table,None),SUCCESS,dp(38)))
         bar.add_widget(self.btn("جستجو",lambda *_:self.render_rows(self.filtered()),PRIMARY,dp(38))); bar.add_widget(self.btn("پاک کردن",lambda *_:self.clear_search(),SECONDARY,dp(38))); self.body.add_widget(bar)
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
 
