@@ -1,0 +1,47 @@
+name: Frahoosh Validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/frahoosh-professional-integration
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "kivy==2.3.1" "requests" "urllib3" "arabic-reshaper" "python-bidi"
+
+      - name: Compile Python sources
+        run: |
+          python -m compileall -q mobile main.py
+
+      - name: Validate meeting workflow migration
+        run: |
+          test -s supabase/migrations/20260918090000_meeting_requests_workflow.sql
+          grep -q "create table if not exists public.meeting_requests" supabase/migrations/20260918090000_meeting_requests_workflow.sql
+          grep -q "manager_status" supabase/migrations/20260918090000_meeting_requests_workflow.sql
+          grep -q "educational_status" supabase/migrations/20260918090000_meeting_requests_workflow.sql
+          grep -q "enable row level security" supabase/migrations/20260918090000_meeting_requests_workflow.sql
+
+      - name: Validate manager smart-class preview
+        run: |
+          test -s mobile/screens/smart_class_preview.py
+          grep -q "محتوای آخرین کلاس ثبت‌شده در سرور" mobile/screens/smart_class_preview.py
+          grep -q "دبیر" mobile/screens/smart_class_preview.py
+          grep -q "دانش‌آموز" mobile/screens/smart_class_preview.py
+          grep -q "اولیا" mobile/screens/smart_class_preview.py
