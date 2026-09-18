@@ -36,7 +36,7 @@ class LoginScreen(Screen):
         root.add_widget(Label(text=rtl_text(SCHOOL_NAME or "دبیرستان سردار حاجی زاده ۲"), font_name=font_name(), font_size="18sp", bold=True, color=PRIMARY, halign="center", valign="middle", size_hint_y=None, height=dp(48)))
         root.add_widget(Label(text=rtl_text("ورود کاربران"), font_name=font_name(), font_size="21sp", color=PRIMARY, bold=True, halign="center", valign="middle", size_hint_y=None, height=dp(42)))
         self.identifier = PersianTextInput(hint_text=rtl_text("نام کاربری / کد ملی"), font_size="17sp", multiline=False, size_hint_y=None, height=dp(64), halign="right", padding=[dp(16), dp(15)], background_color=(1,1,1,1), foreground_color=(0.12,0.14,0.18,1))
-        self.password = PersianTextInput(hint_text=rtl_text("رمز عبور"), password=True, password_mask="*", font_name=font_name(), font_size="17sp", multiline=False, size_hint_y=None, height=dp(64), halign="right", padding=[dp(16), dp(15)], background_color=(1,1,1,1), foreground_color=(0.12,0.14,0.18,1))
+        self.password = PersianTextInput(hint_text=rtl_text("رمز عبور"), password=True, password_mask="*", font_name="Roboto", font_size="17sp", multiline=False, size_hint_y=None, height=dp(64), halign="right", padding=[dp(16), dp(15)], background_color=(1,1,1,1), foreground_color=(0.12,0.14,0.18,1))
         root.add_widget(self.identifier); root.add_widget(self.password)
         self.status = Label(text="", font_name=font_name(), font_size="13sp", color=SECONDARY, halign="center", valign="middle", size_hint_y=None, height=dp(48))
         self.status.bind(size=lambda obj, value: setattr(obj, "text_size", value)); root.add_widget(self.status)
