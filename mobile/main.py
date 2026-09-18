@@ -82,6 +82,18 @@ class FrahooshApp(App):
             print("DASHBOARD BUILD ERROR:", repr(exc))
             return None
 
+    def ensure_online_class(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("online_class")
+        except Exception:
+            pass
+        from mobile.screens.online_class import OnlineClassScreen
+        screen = OnlineClassScreen(name="online_class", app_state=self.app_state)
+        self.sm.add_widget(screen)
+        return screen
+
     def ensure_exam(self):
         if self.sm is None:
             return None
