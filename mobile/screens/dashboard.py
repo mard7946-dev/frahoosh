@@ -18,9 +18,9 @@ ROLE_MENU = {
 "educational":[("معاون آموزشی","educational"),("دانش‌آموزان","students"),("دبیران","teachers"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
 "cultural":[("معاون پرورشی","cultural"),("دانش‌آموزان","students"),("اولیا","parents"),("مشارکت و فعالیت‌ها","participation"),("پرداخت آنلاین","payment"),("تابلو هوشمند","smart_board"),("گزارش‌ها","reports"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
 "advisor":[("مشاوره","advisor"),("دانش‌آموزان","students"),("اولیا","parents"),("گزارش‌ها","reports"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-"teacher":[("پنل دبیر","teacher"),("آزمون آنلاین","teacher_exams"),("دانش‌آموزان","students"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
+"teacher":[("پنل دبیر","teacher"),("آزمون آنلاین","teacher_exams"),("دانش‌آموزان","students"),("کلاس‌های آنلاین","online"),("نمونه کلاس هوشمند مدیر","smart_class_demo"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
 "student":[("پنل دانش‌آموز","student"),("آزمون‌های آنلاین","teacher_exams"),("برنامه هفتگی","schedule"),("وضعیت تحصیلی","student_info"),("مشارکت و فعالیت‌ها","participation"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")],
-"parent":[("پنل اولیا","parent"),("وضعیت تحصیلی فرزند","student_info"),("مشارکت اولیا","participation"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")]
+"parent":[("پنل اولیا","parent"),("وضعیت تحصیلی فرزند","student_info"),("ملاقات با دبیر / کادر / مشاور","meeting_requests"),("مشارکت اولیا","participation"),("پرداخت آنلاین","payment"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")]
 }
 OPERATIONS_ROUTES = {"payment","online","messages"}
 
@@ -108,6 +108,22 @@ class DashboardScreen(Screen):
             if not self.manager.has_screen("about"):
                 from mobile.screens.about import AboutScreen; self.manager.add_widget(AboutScreen(name="about",app_state=self.app_state))
             self.manager.current="about"; return
+        if route in {"meeting_requests", "smart_class_demo"}:
+            if not self.manager.has_screen("module"):
+                from mobile.screens.module import ModuleScreen
+                self.manager.add_widget(ModuleScreen(name="module", app_state=self.app_state))
+            self.manager.get_screen("module").set_module(
+                "management" if route == "smart_class_demo" else ("parents" if self.role() == "parent" else "teachers"),
+                "dashboard"
+            )
+            if route == "meeting_requests":
+                # ModuleWorkspace intercepts this table key and opens the real meeting screen.
+                from mobile.screens.module_workspace import ModuleWorkspaceScreen
+                module = self.manager.get_screen("module")
+                if hasattr(module, "workspace"):
+                    pass
+            self.manager.current = "module"
+            return
         if route=="participation":
             if not self.manager.has_screen("participation"):
                 from mobile.screens.participation import ParticipationScreen; self.manager.add_widget(ParticipationScreen(name="participation",app_state=self.app_state))
