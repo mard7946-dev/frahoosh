@@ -7,25 +7,26 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
+from kivy.uix.spinner import Spinner
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 
-from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, WHITE
+from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text
 
 # One shared operational vocabulary for Android and the future web client.
 # Both clients must bind these keys to the same Supabase tables and field names.
 SUBMENUS = {
-"management":[("اطلاعات مدرسه","school_profile"),("دانش‌آموزان","students"),("دبیران","teachers"),("کادر و کارکنان","staff"),("پایه و کلاس‌ها","school_class_config"),("حساب‌های سامانه","users"),("رویدادها","school_events"),("صندوق پیام","messages"),("کارنامه‌ها","report_cards"),("برنامه هفتگی","weekly_schedule"),("آزمون آنلاین","teacher_exams"),("کلاس آنلاین","online_classes"),("مالی","finance_accounts"),("پرداخت آنلاین","payment_offers"),("تابلو هوشمند","smart_board_content"),("گزارش‌های مدیریتی","report_cards")],
+"management":[("اطلاعات مدرسه","school_profile"),("دانش‌آموزان","students"),("دبیران","teachers"),("کادر و کارکنان","staff"),("پایه و کلاس‌ها","school_class_config"),("حساب‌های سامانه","users"),("رویدادها","school_events"),("صندوق پیام","messages"),("کارنامه‌ها","report_cards"),("برنامه هفتگی","weekly_schedule"),("آزمون آنلاین","teacher_exams"),("کلاس آنلاین","online_classes"),("نمونه کلاس هوشمند","smart_class_demo"),("درخواست‌های ملاقات","meeting_requests"),("مالی","finance_accounts"),("پرداخت آنلاین","payment_offers"),("تابلو هوشمند","smart_board_content"),("گزارش‌های مدیریتی","report_cards")],
 "educational":[("پرونده اطلاعاتی دانش‌آموز","students"),("پرونده پرسنلی همکاران","staff"),("کلاس‌های دبیران","teacher_classes"),("فعال‌سازی کلاس آنلاین","online_classes"),("برنامه هفتگی","weekly_schedule"),("برنامه امتحانی","exam_schedule"),("پیگیری آموزشی","educational_followups"),("پیگیری درسی","academic_followups"),("پیگیری انضباطی","discipline_records"),("ثبت انضباطی","discipline_records"),("نمرات و کارنامه‌ها","student_grades"),("گزارش آموزشی هوشمند","ai_smart_reports"),("جشنواره خوارزمی","khwarizmi_registrations"),("آزمون آنلاین","teacher_exams"),("صندوق پیام","messages")],
-"executive":[("پرونده دانش‌آموزی","students"),("پرونده پرسنلی کارکنان","staff"),("اولیا و ارتباط فرزند","parent_children"),("فعال‌سازی برنامه هفتگی","weekly_schedule"),("فعال‌سازی کارنامه ماهیانه","monthly_report_cards"),("فعال‌سازی کارنامه مستمر و پایان ترم","report_cards"),("ثبت انضباطی","discipline_records"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("کلاس‌های آنلاین","online_classes"),("رویدادها و مراسمات","school_events"),("صندوق پیام","messages")],
-"cultural":[("پیام‌های پرورشی","messages"),("ایجاد مسابقات","activity_offers"),("مسابقات فرهنگی","cultural_competitions"),("مسابقات هنری","art_competitions"),("مسابقات ورزشی","sport_competitions"),("فعالیت‌ها و مراسمات","educational_activities"),("انتخابات شورای دانش‌آموزی","student_council"),("بسیج دانش‌آموزی","basij_registration"),("شهردار مدرسه","school_mayor"),("مکبر","morning_leaders"),("قاری برنامه ظهرگاهی","qari_registration"),("جدول مراسم ظهرگاهی","morning_ceremony"),("ثبت انضباطی","discipline_records"),("صندوق پیام","messages")],
-"advisor":[("پرونده‌های مشاوره","counseling_records"),("پیگیری جلسات","counseling_followups"),("دانش‌آموزان","students"),("اولیا","parent_children"),("درخواست ملاقات","parent_meetings"),("گزارش‌های مشاوره","report_cards"),("صندوق پیام","messages")],
-"teachers":[("کلاس‌های من","teacher_classes"),("طرح درس","lesson_plans"),("برنامه هفتگی","weekly_schedule"),("کلاس‌های آنلاین فعال","online_classes"),("آزمون آنلاین","teacher_exams"),("حضور و غیاب","attendance"),("نمرات درسی","grades"),("تکالیف","assignments"),("موارد انضباطی","discipline_records"),("ارجاع دانش‌آموز","student_referrals"),("درخواست ملاقات اولیا","teacher_parent_meetings"),("صندوق پیام","messages")],
+"executive":[("پرونده دانش‌آموزی","students"),("پرونده پرسنلی کارکنان","staff"),("اولیا و ارتباط فرزند","parent_children"),("فعال‌سازی برنامه هفتگی","weekly_schedule"),("فعال‌سازی کارنامه ماهیانه","monthly_report_cards"),("فعال‌سازی کارنامه مستمر و پایان ترم","report_cards"),("ثبت انضباطی","discipline_records"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("کلاس‌های آنلاین","online_classes"),("درخواست ملاقات","meeting_requests"),("رویدادها و مراسمات","school_events"),("صندوق پیام","messages")],
+"cultural":[("پیام‌های پرورشی","messages"),("ایجاد مسابقات","activity_offers"),("مسابقات فرهنگی","cultural_competitions"),("مسابقات هنری","art_competitions"),("مسابقات ورزشی","sport_competitions"),("فعالیت‌ها و مراسمات","educational_activities"),("انتخابات شورای دانش‌آموزی","student_council"),("بسیج دانش‌آموزی","basij_registration"),("شهردار مدرسه","school_mayor"),("مکبر","morning_leaders"),("قاری برنامه ظهرگاهی","qari_registration"),("جدول مراسم ظهرگاهی","morning_ceremony"),("ثبت انضباطی","discipline_records"),("درخواست ملاقات","meeting_requests"),("صندوق پیام","messages")],
+"advisor":[("پرونده‌های مشاوره","counseling_records"),("پیگیری جلسات","counseling_followups"),("دانش‌آموزان","students"),("اولیا","parent_children"),("درخواست ملاقات","meeting_requests"),("گزارش‌های مشاوره","report_cards"),("صندوق پیام","messages")],
+"teachers":[("کلاس‌های من","teacher_classes"),("طرح درس","lesson_plans"),("برنامه هفتگی","weekly_schedule"),("کلاس‌های آنلاین فعال","online_classes"),("آزمون آنلاین","teacher_exams"),("حضور و غیاب","attendance"),("نمرات درسی","grades"),("تکالیف","assignments"),("موارد انضباطی","discipline_records"),("ارجاع دانش‌آموز","student_referrals"),("درخواست ملاقات","meeting_requests"),("صندوق پیام","messages")],
 "students":[("اطلاعات شخصی","students"),("پایه و کلاس","student_class_info"),("نمرات","student_grades"),("وضعیت حضور و غیاب","attendance"),("کلاس‌های آنلاین فعال","online_classes"),("شرکت در فعالیت‌ها","activity_registrations"),("انتخابات شورای دانش‌آموزی","student_council"),("بسیج دانش‌آموزی","basij_registration"),("همیار مدرسه","school_ally"),("شهردار مدرسه","school_mayor"),("ارسال تکالیف","assignment_submissions"),("برنامه هفتگی","weekly_schedule"),("برنامه امتحانی","exam_schedule"),("شماره صندلی کلاسی","class_seat_assignments"),("شماره صندلی امتحانی","exam_seat_assignments"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("صندوق پیام","messages"),("کمک‌های داوطلبانه / پرداخت آنلاین","payment_offers")],
-"parents":[("انتخاب یک یا چند دانش‌آموز","parent_children"),("اطلاعات دانش‌آموز","students"),("نمرات کلاسی و امتحانی","student_grades"),("حضور و غیاب","attendance"),("کارنامه ماهیانه","monthly_report_cards"),("کارنامه مستمر و پایان ترم","report_cards"),("ملاقات با دبیر","teacher_parent_meetings"),("ملاقات با معاون","parent_meetings"),("ملاقات با مشاور","parent_meetings"),("ملاقات با مدیریت","parent_meetings"),("انتخابات و مراسمات انجمن اولیا","parent_activities"),("کلاس آموزش خانواده","parent_activities"),("بهداشت روان","parent_activities"),("کمک‌های داوطلبانه / پرداخت آنلاین","payment"),("صندوق پیام","messages")],
+"parents":[("انتخاب یک یا چند دانش‌آموز","parent_children"),("اطلاعات دانش‌آموز","students"),("نمرات کلاسی و امتحانی","student_grades"),("حضور و غیاب","attendance"),("کارنامه ماهیانه","monthly_report_cards"),("کارنامه مستمر و پایان ترم","report_cards"),("درخواست ملاقات","meeting_requests"),("انتخابات و مراسمات انجمن اولیا","parent_activities"),("کلاس آموزش خانواده","parent_activities"),("بهداشت روان","parent_activities"),("کمک‌های داوطلبانه / پرداخت آنلاین","payment"),("صندوق پیام","messages")],
 "finance":[("حساب‌ها","finance_accounts"),("تراکنش‌ها","finance_transactions"),("کمک‌های داوطلبانه","finance_donations"),("تعریف گزینه پرداخت","payment_offers"),("درخواست‌های پرداخت","payment_attempts"),("سوابق پرداخت","payment_records")],
 "online":[("کلاس‌های آنلاین","online_classes"),("جلسات","online_class_sessions"),("دانش‌آموزان کلاس","online_class_students"),("دبیران کلاس","online_class_teachers"),("حضور آنلاین","online_attendance"),("تخته کلاس","smart_board_whiteboards")],
 "smart_board":[("محتوای آموزشی","smart_board_content"),("فعالیت‌ها","smart_board_activities"),("آزمون‌های کوتاه","smart_board_quizzes"),("تخته‌های آموزشی","smart_board_whiteboards")],
@@ -209,6 +210,14 @@ class ModuleWorkspaceScreen(Screen):
         w.bind(pos=lambda o,v:setattr(bg,"pos",v),size=lambda o,v:setattr(bg,"size",v))
 
     def open_table(self,table,refresh_subbar=True):
+        if table == "smart_class_demo":
+            self.table = None
+            self.render_smart_class_demo()
+            return
+        if table == "meeting_requests":
+            self.table = None
+            self.render_meeting_requests()
+            return
         self.table=table
         if refresh_subbar:
             self.render(); return
@@ -314,6 +323,176 @@ class ModuleWorkspaceScreen(Screen):
 
     def message(self,title,text):
         root=BoxLayout(orientation='vertical',padding=dp(12),spacing=dp(8)); root.add_widget(self.label(text,'10sp',SECONDARY,False,'center')); p=Popup(title=rtl_text(title),content=root,size_hint=(.88,.34)); root.add_widget(self.btn('متوجه شدم',lambda *_:p.dismiss(),PRIMARY,dp(40))); p.open()
+
+    def _role_key(self):
+        raw=str(getattr(self.app_state,"role","student") or "student").strip().lower()
+        return {"مدیر":"manager","مدیریت":"manager","admin":"manager","administrator":"manager","معاون آموزشی":"educational","معاون اجرایی":"executive","معاون پرورشی":"cultural","مشاور":"advisor","دبیر":"teacher","معلم":"teacher","دانش‌آموز":"student","دانش آموز":"student","ولی":"parent","اولیا":"parent"}.get(raw,raw)
+
+    def _person_name(self):
+        return str(getattr(self.app_state,"display_name","کاربر فراهوش") or "کاربر فراهوش")
+
+    def render_smart_class_demo(self):
+        self.body.clear_widgets(); self.subbar.clear_widgets(); self.title.text=rtl_text("نمونه کلاس هوشمند")
+        hero=Surface(height=dp(115))
+        hero.add_widget(self.label("نمونه کلاس هوشمند فراهوش","23sp",PRIMARY,True,"center"))
+        hero.add_widget(self.label("این صفحه نمونه‌ای واقعی از محتوای کلاس است تا مدیر بتواند اجزای کلاس را برای دبیر، دانش‌آموز و اولیا توضیح دهد.","11sp",SECONDARY,False,"center"))
+        hero.add_widget(self.label("مدیریت کلاس • تخته هوشمند • فایل‌ها • صدا/تصویر • گفت‌وگو • حضور","10sp",SUCCESS,True,"center"))
+        self.body.add_widget(hero)
+        tools=GridLayout(cols=2,spacing=dp(7),size_hint_y=None,height=dp(250),padding=[dp(3),dp(3)])
+        demo=[("تخته هوشمند","نمایش درس و نوشتن زنده روی تخته"),("قلم‌ها","قلم نازک، متوسط و ضخیم + پاک‌کن"),("صوت کلاس","اشتراک و کنترل میکروفون / صدای کلاس"),("دوربین و تصویر","دوربین، تصویر و عکس آموزشی"),("PDF","نمایش و ارائه فایل PDF درس"),("اشکال","خط، مستطیل، دایره و فلش"),("گفت‌وگوی کلاس","پیام و پرسش و پاسخ زنده"),("حضور آنلاین","ثبت حضور دانش‌آموزان جلسه")]
+        for title,desc in demo:
+            card=Surface(height=dp(112)); card.add_widget(self.label(title,"14sp",PRIMARY,True,"center")); card.add_widget(self.label(desc,"10sp",SECONDARY,False,"center")); tools.add_widget(card)
+        self.body.add_widget(tools)
+        self._add_demo_section("محتوای نمونه جلسه","درس: ریاضی پایه هفتم\nموضوع: عبارت‌های جبری\nمدرس: دبیر ریاضی\nمدت: ۵۰ دقیقه\nجلسه: فعال")
+        self._add_demo_section("نمایش تخته","۱) تعریف عبارت جبری\n۲) مثال حل‌شده\n۳) تمرین کلاسی\n۴) پرسش پایانی\n\nمدیر در این قسمت می‌تواند محتوای جلسه را ببیند و هر بخش را برای کاربران توضیح دهد.")
+        self._add_demo_section("نکته اتصال سرور","کلاس‌ها و جلسات واقعی از online_classes و online_class_sessions خوانده می‌شوند. محتوای تخته و فایل‌ها نیز باید با جداول/ذخیره‌سازی همان پروژه Supabase همگام شوند.")
+        self._add_action("راهنمای بخش‌های کلاس برای دبیر",lambda *_:self._show_class_guide("دبیر","ایجاد و مدیریت جلسه، تخته هوشمند، انتخاب قلم و پاک‌کن، ارائه PDF و تصویر، کنترل صدا و دوربین، گفت‌وگوی کلاس و ثبت حضور."),PRIMARY)
+        self._add_action("راهنمای بخش‌های کلاس برای دانش‌آموز",lambda *_:self._show_class_guide("دانش‌آموز","ورود به جلسه، مشاهده تخته و فایل، پاسخ به فعالیت‌ها، استفاده از گفت‌وگو، مشاهده وضعیت حضور و ارسال پرسش به دبیر."),PRIMARY)
+        self._add_action("راهنمای بخش‌های کلاس برای اولیا",lambda *_:self._show_class_guide("اولیا","مشاهده عنوان و زمان کلاس، وضعیت حضور فرزند و گزارش آموزشی جلسه. اولیا وارد ابزارهای تدریس و تخته کلاس نمی‌شوند."),PRIMARY)
+        self._add_action("باز کردن کلاس‌های واقعی",lambda *_:self.open_table("online_classes",False),PRIMARY)
+
+    def _show_class_guide(self,role,text):
+        content=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(8))
+        content.add_widget(self.label(f"راهنمای کلاس هوشمند برای {role}","17sp",PRIMARY,True,"center"))
+        content.add_widget(self.label(text,"12sp",SECONDARY,False,"center"))
+        popup=Popup(title=rtl_text(f"راهنمای {role}"),content=content,size_hint=(.88,.42))
+        content.add_widget(self.btn("بستن",lambda *_:popup.dismiss(),PRIMARY,dp(42)))
+        popup.open()
+
+    def _add_demo_section(self,title,text):
+        box=Surface(height=dp(145)); box.add_widget(self.label(title,"15sp",PRIMARY,True,"center")); box.add_widget(self.label(text,"11sp",SECONDARY,False,"center")); self.body.add_widget(box)
+
+    def _add_action(self,text,cb,color=PRIMARY):
+        self.body.add_widget(self.btn(text,cb,color,dp(46)))
+
+    def _meeting_field(self,hint,height=48,multiline=False):
+        f=TextInput(hint_text=rtl_text(hint),font_name=font_name(),font_size="13sp",halign="right",multiline=multiline,size_hint_y=None,height=dp(height),padding=[dp(10),dp(7)])
+        self.body.add_widget(f); return f
+
+    def _load_people(self,table):
+        try:
+            rows=self.app_state.api.table_select(table,{"order":"id.asc","limit":"100"})
+            out=[]
+            for r in rows:
+                name=r.get("full_name") or r.get("display_name") or r.get("name") or r.get("title") or r.get("username") or r.get("email")
+                if name: out.append((str(name),r.get("id"),r.get("user_id") or r.get("auth_user_id")))
+            return out
+        except Exception as exc:
+            self.status.text=rtl_text("خواندن فهرست افراد انجام نشد: "+str(exc)); self.status.color=ERROR
+            return []
+
+    def _meeting_targets(self, role):
+        if role=="parent": return [("دبیر","teachers"),("کادر","staff"),("مشاور","staff")]
+        if role=="teacher": return [("ولی","users")]
+        if role in {"executive","cultural","advisor"}: return [("ولی","users")]
+        return [("دبیر","teachers"),("کادر","staff"),("مشاور","staff")]
+
+    def render_meeting_requests(self):
+        self.body.clear_widgets(); self.subbar.clear_widgets(); self.title.text=rtl_text("درخواست‌های ملاقات")
+        role=self._role_key()
+        self.body.add_widget(self.label("همه درخواست‌های ملاقات ابتدا برای تأیید مدیر ثبت می‌شوند و پس از تأیید به معاون آموزشی ارجاع می‌گردند.","12sp",PRIMARY,True,"center"))
+        if role=="manager":
+            self._render_manager_meetings()
+            return
+        if role=="educational":
+            self._render_educational_meetings()
+            return
+        self._render_meeting_form(role)
+        self._render_my_meetings(role)
+
+    def _render_meeting_form(self,role):
+        self.body.add_widget(self.label("ثبت درخواست جدید","18sp",PRIMARY,True,"center"))
+        target_role=Spinner(text="انتخاب طرف ملاقات",values=[x[0] for x in self._meeting_targets(role)],size_hint_y=None,height=dp(48))
+        self.body.add_widget(target_role)
+        target_name=self._meeting_field("نام دبیر / کادر / مشاور / ولی")
+        date=self._meeting_field("تاریخ ملاقات")
+        time=self._meeting_field("ساعت ملاقات")
+        period=self._meeting_field("نوبت / زنگ / بازه زمانی؛ اختیاری")
+        reason=self._meeting_field("علت ملاقات",75,True)
+        note=self._meeting_field("توضیحات تکمیلی؛ اختیاری",85,True)
+        def save(*_):
+            if not target_role.text or target_role.text=="انتخاب طرف ملاقات" or not target_name.text.strip() or not date.text.strip() or not time.text.strip() or not reason.text.strip():
+                self.status.text=rtl_text("طرف ملاقات، تاریخ، ساعت و علت ملاقات الزامی است."); self.status.color=ERROR; return
+            target_map=dict(self._meeting_targets(role)); target_table=target_map.get(target_role.text)
+            people=self._load_people(target_table) if target_table else []
+            selected=next((p for p in people if p[0]==target_name.text.strip()),None)
+            payload={"requester_user_id":(getattr(self.app_state,"user",{}) or {}).get("id"),"requester_role":role,"requester_name":self._person_name(),"target_role":target_role.text.strip(),"target_name":target_name.text.strip(),"target_user_id":selected[2] if selected else None,"target_record_id":selected[1] if selected else None,"meeting_date":date.text.strip(),"meeting_time":time.text.strip(),"meeting_period":period.text.strip(),"reason":reason.text.strip(),"description":note.text.strip(),"status":"pending_manager","manager_approved":False}
+            try:
+                self.app_state.api.table_insert("meeting_requests",payload)
+                self.status.text=rtl_text("درخواست ثبت شد و برای تأیید مدیر ارسال گردید."); self.status.color=SUCCESS
+                self.render_meeting_requests()
+            except Exception as exc:
+                self.status.text=rtl_text("ثبت درخواست انجام نشد: "+str(exc)); self.status.color=ERROR
+        self._add_action("ارسال درخواست برای مدیر",save,SUCCESS)
+        self.body.add_widget(self.label("نام طرف ملاقات را دقیقاً مطابق فهرست سامانه وارد کنید؛ در نسخه بعدی انتخاب مستقیم از فهرست نیز در همین فرم فعال می‌شود.","9sp",SECONDARY,False,"center"))
+
+    def _render_my_meetings(self,role):
+        self.body.add_widget(self.label("سوابق درخواست‌های من","17sp",PRIMARY,True,"center"))
+        uid=(getattr(self.app_state,"user",{}) or {}).get("id")
+        try:
+            rows=self.app_state.api.table_select("meeting_requests",{"requester_user_id":f"eq.{uid}","order":"id.desc","limit":"30"})
+        except Exception as exc:
+            self.body.add_widget(self.label("هنوز جدول درخواست ملاقات روی سرور فعال نشده است.\n"+str(exc),"11sp",ERROR,False,"center")); return
+        for r in rows:
+            self._add_meeting_card(r,False)
+        if not rows:self.body.add_widget(self.label("درخواستی ثبت نشده است.","11sp",SECONDARY,False,"center"))
+
+    def _render_manager_meetings(self):
+        self.body.add_widget(self.label("صف تأیید مدیر","19sp",PRIMARY,True,"center"))
+        try: rows=self.app_state.api.table_select("meeting_requests",{"order":"id.desc","limit":"100"})
+        except Exception as exc:
+            self.body.add_widget(self.label("جدول meeting_requests هنوز روی سرور ایجاد نشده است.\nپس از اجرای Migration همین صفحه به‌صورت خودکار عملیاتی می‌شود.","11sp",ERROR,False,"center")); return
+        for r in rows:
+            if str(r.get("status") or "")=="pending_manager": self._add_meeting_card(r,True)
+        if not any(str(r.get("status") or "")=="pending_manager" for r in rows): self.body.add_widget(self.label("درخواست در انتظار تأیید مدیر وجود ندارد.","11sp",SECONDARY,False,"center"))
+
+    def _add_meeting_card(self,r,manager_actions=False):
+        box=Surface(height=dp(210))
+        box.add_widget(self.label(f"درخواست #{r.get('id')} | {r.get('requester_name','کاربر')} → {r.get('target_name','طرف ملاقات')}","14sp",PRIMARY,True,"center"))
+        box.add_widget(self.label(f"نقش درخواست‌کننده: {r.get('requester_role','')} | طرف ملاقات: {r.get('target_role','')}\nتاریخ: {r.get('meeting_date','')} | ساعت: {r.get('meeting_time','')} | نوبت: {r.get('meeting_period','')}\nعلت: {r.get('reason','')}\nوضعیت: {r.get('status','')}","10sp",SECONDARY,False,"center"))
+        if manager_actions:
+            bar=BoxLayout(size_hint_y=None,height=dp(45),spacing=dp(6))
+            bar.add_widget(self.btn("تأیید مدیر",lambda *_:self._manager_decide(r.get("id"),True),SUCCESS,dp(42)))
+            bar.add_widget(self.btn("رد درخواست",lambda *_:self._manager_decide(r.get("id"),False),ERROR,dp(42)))
+            box.add_widget(bar)
+        self.body.add_widget(box)
+
+    def _manager_decide(self,request_id,approved):
+        if not request_id:return
+        try:
+            payload={"manager_approved":bool(approved),"manager_approved_at":__import__("datetime").datetime.utcnow().isoformat(),"status":"referred_to_educational_deputy" if approved else "rejected_by_manager"}
+            self.app_state.api.table_update("meeting_requests",{"id":f"eq.{int(request_id)}"},payload)
+            self.status.text=rtl_text("درخواست تأیید شد و به معاون آموزشی ارجاع شد." if approved else "درخواست رد شد."); self.status.color=SUCCESS if approved else ERROR
+            self.render_meeting_requests()
+        except Exception as exc:
+            self.status.text=rtl_text("عملیات مدیر انجام نشد: "+str(exc)); self.status.color=ERROR
+
+    def _render_educational_meetings(self):
+        self.body.add_widget(self.label("درخواست‌های ارجاع‌شده به معاون آموزشی","19sp",PRIMARY,True,"center"))
+        try: rows=self.app_state.api.table_select("meeting_requests",{"status":"eq.referred_to_educational_deputy","order":"id.desc","limit":"100"})
+        except Exception as exc:
+            self.body.add_widget(self.label("خواندن درخواست‌ها انجام نشد: "+str(exc),"11sp",ERROR,False,"center")); return
+        for r in rows:
+            box=Surface(height=dp(250))
+            box.add_widget(self.label(f"#{r.get('id')} | {r.get('requester_name','')} → {r.get('target_name','')}","14sp",PRIMARY,True,"center"))
+            box.add_widget(self.label(f"زمان پیشنهادی: {r.get('meeting_date','')} {r.get('meeting_time','')}\nعلت: {r.get('reason','')}","10sp",SECONDARY,False,"center"))
+            final_date=TextInput(hint_text=rtl_text("تاریخ نهایی"),font_name=font_name(),font_size="12sp",halign="right",size_hint_y=None,height=dp(42))
+            final_time=TextInput(hint_text=rtl_text("ساعت نهایی"),font_name=font_name(),font_size="12sp",halign="right",size_hint_y=None,height=dp(42))
+            bar=BoxLayout(size_hint_y=None,height=dp(45),spacing=dp(5))
+            bar.add_widget(final_date); bar.add_widget(final_time)
+            box.add_widget(bar)
+            box.add_widget(self.btn("تأیید زمان نهایی و اعلام به طرفین",lambda *_ ,x=r.get("id"),d=final_date,t=final_time:self._educational_confirm(x,d.text,t.text),SUCCESS,dp(42)))
+            self.body.add_widget(box)
+
+    def _educational_confirm(self,request_id,date,time):
+        if not date.strip() or not time.strip():
+            self.status.text=rtl_text("تاریخ و ساعت نهایی را وارد کنید."); self.status.color=ERROR; return
+        try:
+            self.app_state.api.table_update("meeting_requests",{"id":f"eq.{int(request_id)}"},{"final_confirmed_date":date.strip(),"final_confirmed_time":time.strip(),"referred_to_educational_deputy":True,"status":"confirmed"})
+            self.status.text=rtl_text("زمان نهایی ثبت شد و درخواست به وضعیت تأییدشده رفت."); self.status.color=SUCCESS
+            self.render_meeting_requests()
+        except Exception as exc:
+            self.status.text=rtl_text("تأیید زمان نهایی انجام نشد: "+str(exc)); self.status.color=ERROR
 
     def go_dashboard(self,*_):
         if self.manager: self.manager.current=self.return_to or 'dashboard'
