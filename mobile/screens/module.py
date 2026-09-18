@@ -20,6 +20,72 @@ ONLINE_CLASS_CREATORS = {"manager", "educational", "executive"}
 class FinalModuleScreen(ProfessionalWorkspaceScreen):
     """Stable final entry point: accordion subpanels and touch-friendly forms."""
 
+    def render(self):
+        # Spacious operational home: every subpanel is a real touch card.
+        self.body.clear_widgets()
+        items = SUBMENUS.get(self.route, [])
+        self.title.text = rtl_text(FRIENDLY.get(self.route, self.route))
+        intro = self._surface(dp(104))
+        intro.add_widget(self.label(FRIENDLY.get(self.route, self.route), "21sp", PRIMARY, True, "center"))
+        intro.add_widget(self.label("محیط اختصاصی این پنل • هر کارت یک زیرپنل مستقل و متصل به اطلاعات واقعی سامانه است.", "10sp", SECONDARY, False, "center"))
+        intro.add_widget(self.label(f"{len(items)} زیرپنل فعال", "9sp", SUCCESS, True, "center"))
+        self.body.add_widget(intro)
+        scroll = ScrollView(do_scroll_x=False)
+        grid = GridLayout(cols=2, spacing=dp(9), padding=[dp(2), dp(2)], size_hint_y=None)
+        grid.bind(minimum_height=grid.setter("height"))
+        for i, (text, table) in enumerate(items, 1):
+            card = self._surface(dp(142))
+            card.add_widget(self.label(f"{i:02d}", "10sp", WHITE, True, "center"))
+            # Give the number its own visible header strip without changing the actual data model.
+            card.add_widget(self.label(text, "14sp", PRIMARY, True, "center"))
+            card.add_widget(self.label(FRIENDLY.get(table, table), "8sp", SECONDARY, False, "center"))
+            card.add_widget(self.btn("ورود به محیط این بخش  ›", lambda *_a, t=table: self.open_table(t), SUCCESS if self.can_write(table) else PRIMARY, dp(40)))
+            grid.add_widget(card)
+        scroll.add_widget(grid)
+        self.body.add_widget(scroll)
+
+    def editor(self, table, row):
+        # Never allow a form-construction exception to terminate the Android process.
+        try:
+            fields = [k for k in self._form_fields(table, row)
+                      if k not in {"id", "created_at", "updated_at", "deleted_at"}]
+            if not fields:
+                self.message("ثبت اطلاعات", "برای این زیرپنل فیلد قابل ثبت تعریف نشده است.")
+                return
+            root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(7))
+            sc = ScrollView(do_scroll_x=False)
+            form = GridLayout(cols=1, spacing=dp(5), size_hint_y=None)
+            form.bind(minimum_height=form.setter("height"))
+            inputs = {}
+            for field in fields:
+                label_text = self._column_label(field)
+                form.add_widget(self.label(label_text, "9sp", PRIMARY, True))
+                ti = TextInput(
+                    text="" if row is None else str(row.get(field, "")),
+                    hint_text=rtl_text(label_text),
+                    font_name=font_name(), font_size="12sp", halign="right",
+                    multiline=field in {"description", "content", "body", "question", "note", "decision"},
+                    size_hint_y=None,
+                    height=dp(76 if field in {"description", "content", "body", "question", "note", "decision"} else 44),
+                    padding=[dp(9), dp(7)],
+                )
+                inputs[field] = ti
+                form.add_widget(ti)
+            sc.add_widget(form)
+            root.add_widget(sc)
+            actions = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(6))
+            popup = Popup(
+                title=rtl_text(("ویرایش" if row else "ثبت جدید") + " • " + FRIENDLY.get(table, table)),
+                content=root, size_hint=(.95, .90), auto_dismiss=False
+            )
+            actions.add_widget(self.btn("انصراف", lambda *_: popup.dismiss(), SECONDARY, dp(44)))
+            actions.add_widget(self.btn("ذخیره", lambda *_: self.save(table, row, inputs, popup), SUCCESS, dp(44)))
+            root.add_widget(actions)
+            popup.open()
+        except Exception as exc:
+            print("NEW RECORD EDITOR ERROR:", repr(exc))
+            self.message("ثبت اطلاعات", "باز کردن فرم این زیرپنل با خطا روبه‌رو شد. اطلاعات سامانه محفوظ است.")
+
     def open_table(self, table, refresh_subbar=True):
         if table in ("teacher_exams", "online_classes", "messages", "payment_offers"):
             return super().open_table(table, refresh_subbar=False)
