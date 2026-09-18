@@ -10,7 +10,6 @@ from mobile.services.session import (
 class AppState:
 
     def __init__(self):
-
         self.session = {}
         self.api = None
 
@@ -39,73 +38,111 @@ class AppState:
 
     @property
     def user(self):
-        if not isinstance(self.session, dict): return {}
+        if not isinstance(self.session, dict):
+            return {}
         value = self.session.get("user") or {}
         return value if isinstance(value, dict) else {}
 
     @property
     def profile(self):
-        if not isinstance(self.session, dict): return {}
+        if not isinstance(self.session, dict):
+            return {}
         value = self.session.get("profile") or {}
         return value if isinstance(value, dict) else {}
 
     @property
     def role(self):
-        profile=self.profile; user=self.user; role=profile.get("role") or user.get("role")
-        metadata=user.get("user_metadata")
-        if not role and isinstance(metadata,dict): role=metadata.get("role")
+        profile = self.profile
+        user = self.user
+        role = profile.get("role") or user.get("role")
+        metadata = user.get("user_metadata")
+        if not role and isinstance(metadata, dict):
+            role = metadata.get("role")
         return str(role or "student").strip().lower()
 
     @property
     def national_code(self):
-        p=self.profile
+        p = self.profile
         return str(p.get("national_code") or p.get("nationalcode") or p.get("national_id") or "").strip()
 
     @property
     def display_name(self):
-        p=self.profile
-        for key in ("display_name","full_name","name"):
-            if p.get(key): return str(p[key])
-        user=self.user; metadata=user.get("user_metadata")
-        if isinstance(metadata,dict):
-            for key in ("display_name","full_name","name"):
-                if metadata.get(key): return str(metadata[key])
-        for key in ("display_name","full_name","name"):
-            if user.get(key): return str(user[key])
+        p = self.profile
+        for key in ("display_name", "full_name", "name"):
+            if p.get(key):
+                return str(p[key])
+        user = self.user
+        metadata = user.get("user_metadata")
+        if isinstance(metadata, dict):
+            for key in ("display_name", "full_name", "name"):
+                if metadata.get(key):
+                    return str(metadata[key])
+        for key in ("display_name", "full_name", "name"):
+            if user.get(key):
+                return str(user[key])
         return user.get("email") or "کاربر فراهوش"
 
     @property
     def logged_in(self):
-        return bool(self.api is not None and self.api.access_token and isinstance(self.session,dict))
+        return bool(self.api is not None and self.api.access_token and isinstance(self.session, dict))
 
-    def set_session(self,payload):
-        if not isinstance(payload,dict): return False
+    def set_session(self, payload, remember=True):
+        if not isinstance(payload, dict):
+            return False
         if not payload.get("access_token"):
-            self.logout(); return False
-        self.session=dict(payload); self._load_tokens(); return save_session(self.session)
+            self.logout()
+            return False
+
+        self.session = dict(payload)
+        self.session["remember_me"] = bool(remember)
+        self._load_tokens()
+
+        if remember:
+            return save_session(self.session)
+
+        clear_session()
+        return True
 
     def persist_refreshed_token(self):
-        if self.api is None or not self.api.access_token: return False
-        if not isinstance(self.session,dict): self.session={}
-        self.session["access_token"]=self.api.access_token
-        if self.api.refresh_token: self.session["refresh_token"]=self.api.refresh_token
-        if self.api.expires_in is not None: self.session["expires_in"]=self.api.expires_in
-        if self.api.expires_at is not None: self.session["expires_at"]=self.api.expires_at
-        if self.api.token_type: self.session["token_type"]=self.api.token_type
+        if self.api is None or not self.api.access_token:
+            return False
+        if not isinstance(self.session, dict):
+            self.session = {}
+        self.session["access_token"] = self.api.access_token
+        if self.api.refresh_token:
+            self.session["refresh_token"] = self.api.refresh_token
+        if self.api.expires_in is not None:
+            self.session["expires_in"] = self.api.expires_in
+        if self.api.expires_at is not None:
+            self.session["expires_at"] = self.api.expires_at
+        if self.api.token_type:
+            self.session["token_type"] = self.api.token_type
+        if not self.session.get("remember_me", False):
+            return True
         return save_session(self.session)
 
     def refresh_session(self):
-        if self.api is None or not self.api.refresh_token: return False
+        if self.api is None or not self.api.refresh_token:
+            return False
         try:
-            if self.api.refresh_access_token(): return self.persist_refreshed_token()
-        except Exception as exc: print("REFRESH ERROR:",repr(exc))
+            if self.api.refresh_access_token():
+                return self.persist_refreshed_token()
+        except Exception as exc:
+            print("REFRESH ERROR:", repr(exc))
         return False
 
     def logout(self):
         try:
-            if self.api is not None: self.api.sign_out()
-        except Exception: pass
-        clear_session(); self.session={}
+            if self.api is not None:
+                self.api.sign_out()
+        except Exception:
+            pass
+        clear_session()
+        self.session = {}
         if self.api is not None:
-            self.api.access_token=""; self.api.refresh_token=""; self.api.expires_in=None; self.api.expires_at=None; self.api.token_type="bearer"
+            self.api.access_token = ""
+            self.api.refresh_token = ""
+            self.api.expires_in = None
+            self.api.expires_at = None
+            self.api.token_type = "bearer"
         return True
