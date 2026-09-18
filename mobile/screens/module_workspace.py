@@ -133,6 +133,57 @@ COLUMNS = {
 
 HIDDEN = {"id", "created_at", "updated_at", "deleted_at"}
 
+# Business-specific columns for each subpanel.
+TABLE_FIELDS = {
+    "students":["first_name","last_name","national_code","grade","class_name","phone"],
+    "teachers":["first_name","last_name","subject","phone","national_code"],
+    "staff":["first_name","last_name","role","phone"],
+    "parents":["first_name","last_name","national_code","phone"],
+    "parent_children":["parent_id","student_id","relationship","status"],
+    "teacher_classes":["teacher_name","subject","grade","class_name","academic_year"],
+    "attendance":["student_id","teacher_id","class_name","subject","attendance_date","status"],
+    "grades":["student_id","teacher_id","subject","score","max_score","term"],
+    "student_grades":["student_id","subject","score","max_score","term","academic_year"],
+    "assignments":["student_id","teacher_id","title","subject","class_name","status"],
+    "lesson_plans":["teacher_name","subject","grade","class_name","title","description"],
+    "school_events":["title","event_date","status","description"],
+    "weekly_schedule":["day_of_week","period","class_name","subject","teacher_name","grade"],
+    "generated_weekly_schedule":["day_of_week","period","class_name","subject","teacher_name","grade"],
+    "exam_schedule":["exam_date","subject","grade","class_name","start_at","end_at"],
+    "report_cards":["student_id","grade","term","academic_year","status"],
+    "report_card_snapshots":["student_id","term","academic_year","created_at"],
+    "finance_accounts":["title","account_type","account_number","balance","status"],
+    "finance_transactions":["title","amount","transaction_type","account_id","status","created_at"],
+    "finance_donations":["title","amount","status","description","created_at"],
+    "payment_offers":["title","amount","payment_reason","target_type","active","status"],
+    "payment_attempts":["student_id","offer_id","amount","status","created_at"],
+    "payment_records":["student_id","amount","status","gateway","created_at"],
+    "online_classes":["title","subject","teacher","grade","class_name","status","start_time_shamsi","end_time_shamsi"],
+    "online_class_sessions":["class_id","started_at","ended_at","status"],
+    "online_class_students":["class_id","student_id","student_name","status"],
+    "online_class_teachers":["class_id","teacher_id","teacher_name","status"],
+    "smart_board_content":["title","content","status","created_at"],
+    "smart_board_activities":["title","description","status","created_at"],
+    "smart_board_quizzes":["title","question","question_type","correct_answer","points"],
+    "smart_board_whiteboards":["title","class_id","teacher_id","status"],
+    "educational_activities":["title","description","event_date","status"],
+    "parent_meetings":["title","event_date","class_name","status","description"],
+    "counseling_records":["student_id","counselor_id","subject","description","status","created_at"],
+    "counseling_followups":["student_id","counselor_id","followup_date","description","status"],
+    "ai_questions":["question","answer","category","created_at"],
+    "ai_assistant_sessions":["title","status","created_at","updated_at"],
+    "ai_smart_reports":["title","report_type","status","created_at"],
+    "messages":["title","body","audience_type","audience_value","status","created_at"],
+    "message_targets":["message_id","target_role","target_name","target_class_name","status"],
+    "message_reads":["message_id","reader_id","read_at"],
+    "school_profile":["title","description","academic_year","status"],
+    "school_class_config":["grade","class_name","capacity","academic_year","status"],
+    "users":["username","email","role","status","created_at"],
+    "account_settings":["username","email","role","status"],
+    "teacher_exams":["title","subject","grade","class_name","exam_type","duration","published","passing_score"],
+    "quiz_questions":["quiz_id","question","question_type","correct_answer","points","auto_grade"],
+}
+
 # Explicit write policy. Reads remain available through the existing API for all visible tables.
 EDITABLE = {
     "manager": {table for items in SUBMENUS.values() for _, table in items},
@@ -272,11 +323,13 @@ class ModuleWorkspaceScreen(Screen):
         self.area.clear_widgets()
         if not rows:
             e=Surface(height=dp(130)); e.add_widget(self.label("رکوردی برای نمایش وجود ندارد","16sp",PRIMARY,True,"center")); e.add_widget(self.label("در صورت داشتن دسترسی، از «ثبت جدید» استفاده کنید.","9sp",SECONDARY,False,"center")); self.area.add_widget(e); return
-        keys=[]
-        for r in rows:
-            if isinstance(r,dict):
-                for k in r:
-                    if k not in HIDDEN and k not in keys: keys.append(k)
+        preferred = TABLE_FIELDS.get(self.table, [])
+        keys = [k for k in preferred if any(isinstance(r,dict) and k in r for r in rows)]
+        if not keys:
+            for r in rows:
+                if isinstance(r,dict):
+                    for k in r:
+                        if k not in HIDDEN and k not in keys: keys.append(k)
         keys=keys[:8]; totalw=max(dp(440),dp(135)*max(2,len(keys))+dp(140 if self.can_write(self.table) else 0))
         scroll=ScrollView(do_scroll_x=True); content=BoxLayout(orientation='vertical',size_hint=(None,None),width=totalw,spacing=dp(3),padding=dp(2)); content.bind(minimum_height=content.setter('height'))
         header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(40),spacing=dp(2));
