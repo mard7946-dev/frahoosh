@@ -5,6 +5,8 @@ from mobile.screens.module_workspace import ModuleWorkspaceScreen, SUBMENUS, FRI
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
+from kivy.uix.popup import Popup
+from mobile.ui import font_name, rtl_text
 
 SUBMENUS.setdefault("participation", [
     ("فعالیت‌ها", "educational_activities"),
@@ -74,27 +76,58 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
 
     def _form_fields(self, table, row):
         forms = {
-            "students":["first_name","last_name","national_code","grade","class_name","phone"],
-            "teachers":["first_name","last_name","national_code","phone","subject"],
-            "staff":["first_name","last_name","phone","role"],
-            "school_events":["title","description","event_date","status"],
-            "lesson_plans":["teacher_id","teacher_name","subject","grade","class_name","title","description"],
-            "assignments":["student_id","teacher_id","title","subject","class_name","description","status"],
-            "attendance":["student_id","teacher_id","class_name","subject","attendance_date","status"],
+            "students":["first_name","last_name","father_name","mother_name","national_code","birth_certificate_place","birth_place","religion","sect","nationality","student_phone","father_phone","mother_phone","grade","class_name"],
+            "teachers":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","subject"],
+            "staff":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","role"],
+            "teacher_classes":["teacher_id","teacher_name","subject","grade","class_name","academic_year"],
+            "lesson_plans":["teacher_id","teacher_name","subject","weekly_sessions","teaching_amount_1","teaching_date_1","teaching_title_1","activity_type_1","teaching_amount_2","teaching_date_2","teaching_title_2","activity_type_2"],
+            "assignments":["student_id","teacher_id","class_name","title","assignment_type","due_at","description","status"],
+            "attendance":["student_id","teacher_id","class_name","subject","attendance_date","period","status"],
             "grades":["student_id","teacher_id","subject","score","max_score","term"],
+            "discipline_records":["student_id","teacher_id","discipline_type","record_date","decision_type","deduct_score","referral_to","description"],
+            "educational_followups":["student_id","followup_date","followup_items","decision"],
+            "academic_followups":["student_id","followup_date","followup_items","decision"],
             "teacher_exams":["teacher_id","title","subject","grade","class_name","exam_type","duration","description","published","secure_mode","max_attempts","passing_score"],
             "online_classes":["title","subject","lesson","teacher","grade","class_name","duration","start_time_shamsi","end_time_shamsi","status","join_url","meeting_url"],
+            "certificate_requests":["student_id","student_name","destination","request_date","status","executive_note"],
+            "parent_meeting_requests":["student_id","parent_id","target_type","target_person","requested_date","reason","status"],
+            "student_referrals":["student_id","teacher_id","referral_to","reason","referral_date","status"],
+            "khwarizmi_registrations":["title","category","grade","class_name","student_id","status"],
+            "activity_offers":["activity_key","title","amount","active","description"],
+            "activity_registrations":["activity_key","role","national_code","display_name","sport_mode","team_name","team_members","offer_id","amount","payment_status"],
+            "school_events":["title","description","event_date","status"],
             "finance_donations":["title","description","amount","status"],
-            "messages":["title","description","status"],
-            "school_profile":["title","description"],
+            "messages":["title","body","audience_type","audience_value","status"],
+            "school_profile":["title","description","academic_year","status"],
         }
         return forms.get(table) or [k for k in (row or {}) if k not in {"id","created_at","updated_at","deleted_at"}] or ["title","description","status"]
 
     def _column_label(self, key):
         return {
-            "first_name":"نام", "last_name":"نام خانوادگی", "national_code":"کد ملی", "grade":"پایه", "class_name":"کلاس", "phone":"تلفن", "subject":"درس", "teacher_name":"نام دبیر", "teacher_id":"شناسه دبیر", "student_id":"شناسه دانش‌آموز", "score":"نمره", "max_score":"حداکثر نمره", "status":"وضعیت", "amount":"مبلغ", "title":"عنوان", "description":"توضیحات", "attendance_date":"تاریخ حضور", "event_date":"تاریخ رویداد", "exam_date":"تاریخ آزمون", "start_time_shamsi":"تاریخ و ساعت شروع", "end_time_shamsi":"تاریخ و ساعت پایان", "role":"نقش", "email":"ایمیل", "username":"نام کاربری", "term":"نوبت", "academic_year":"سال تحصیلی", "content":"محتوا", "question":"متن سؤال", "question_type":"نوع سؤال", "published":"انتشار", "duration":"مدت به دقیقه", "share_code":"کد اشتراک", "target_class_name":"کلاس مقصد", "start_at":"شروع", "end_at":"پایان", "lesson":"مبحث/جلسه", "exam_type":"نوع آزمون", "secure_mode":"حالت امن", "max_attempts":"حداکثر دفعات شرکت", "passing_score":"نمره قبولی", "join_url":"لینک ورود", "meeting_url":"لینک جلسه"
+            "first_name":"نام","last_name":"نام خانوادگی","father_name":"نام پدر","mother_name":"نام مادر",
+            "national_code":"کد ملی / شناسه یکتا","personnel_code":"کد پرسنلی","birth_certificate_place":"محل صدور",
+            "birth_place":"محل تولد","religion":"دین","sect":"مذهب","nationality":"ملیت","student_phone":"شماره تماس دانش‌آموز",
+            "father_phone":"شماره تماس پدر","mother_phone":"شماره تماس مادر","phone":"شماره تماس","service_years":"سابقه خدمت",
+            "grade":"پایه","class_name":"کلاس","subject":"درس","teacher_name":"نام دبیر","teacher_id":"شناسه دبیر",
+            "student_id":"شناسه دانش‌آموز","score":"نمره","max_score":"حداکثر نمره","status":"وضعیت","amount":"مبلغ",
+            "title":"عنوان","description":"توضیحات","attendance_date":"تاریخ حضور","event_date":"تاریخ رویداد",
+            "exam_date":"تاریخ آزمون","start_time_shamsi":"تاریخ و ساعت شروع","end_time_shamsi":"تاریخ و ساعت پایان",
+            "role":"نقش","email":"ایمیل","username":"نام کاربری","term":"نوبت","academic_year":"سال تحصیلی","content":"محتوا",
+            "question":"متن سؤال","question_type":"نوع سؤال","published":"انتشار","duration":"مدت به دقیقه","share_code":"کد اشتراک",
+            "target_class_name":"کلاس مقصد","start_at":"شروع","end_at":"پایان","lesson":"مبحث / جلسه","exam_type":"نوع آزمون",
+            "secure_mode":"حالت امن","max_attempts":"حداکثر دفعات شرکت","passing_score":"نمره قبولی","join_url":"لینک ورود",
+            "meeting_url":"لینک جلسه","weekly_sessions":"تعداد جلسات در هفته","teaching_amount_1":"میزان تدریس جلسه ۱",
+            "teaching_date_1":"تاریخ جلسه ۱","teaching_title_1":"عنوان تدریس جلسه ۱","activity_type_1":"نوع فعالیت جلسه ۱",
+            "teaching_amount_2":"میزان تدریس جلسه ۲","teaching_date_2":"تاریخ جلسه ۲","teaching_title_2":"عنوان تدریس جلسه ۲",
+            "activity_type_2":"نوع فعالیت جلسه ۲","assignment_type":"نوع تکلیف","due_at":"زمان تحویل","period":"زنگ",
+            "discipline_type":"نوع مورد انضباطی","record_date":"تاریخ ثبت","decision_type":"نوع تصمیم","deduct_score":"میزان کسر نمره",
+            "referral_to":"ارجاع به","followup_date":"تاریخ پیگیری","followup_items":"موارد پیگیری شده","decision":"تصمیم‌گیری",
+            "destination":"برای کجا صادر شود","request_date":"تاریخ درخواست","executive_note":"یادداشت معاون اجرایی",
+            "target_type":"نوع مخاطب","target_person":"شخص مورد ملاقات","requested_date":"تاریخ ملاقات","reason":"علت درخواست",
+            "category":"دسته‌بندی","activity_key":"نوع فعالیت","sport_mode":"نوع شرکت (تیمی / انفرادی)","team_name":"نام تیم / همگروه‌ها",
+            "team_members":"همگروه‌ها","offer_id":"گزینه پرداخت","payment_status":"وضعیت پرداخت","audience_type":"نوع مخاطب",
+            "audience_value":"مخاطب انتخاب‌شده"
         }.get(key, FRIENDLY.get(key, key))
-
     def _special_content(self, content, table):
         if table in ("online_classes", "online_class_sessions"):
             if self.role() not in ONLINE_CLASS_CREATORS:
