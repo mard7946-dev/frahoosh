@@ -76,15 +76,37 @@ class OperationsScreen(Screen):
         student_map={}
         for s in students:
             sid=s.get("id"); label=f"{s.get('first_name','')} {s.get('last_name','')} | {s.get('grade','')} {s.get('class_name','')}".strip()
-            student_map[label]=sid
+            if sid: student_map[label]=sid
         sp_student=Spinner(text=next(iter(student_map)),values=list(student_map),size_hint_y=None,height=dp(50)); self.body.add_widget(sp_student)
         target_sp=Spinner(text="دبیر",values=["دبیر","کادر","مشاور"],size_hint_y=None,height=dp(50)); self.body.add_widget(target_sp)
-        names=self._target_names("teacher")
-        teacher_sp=Spinner(text=(names[0] if names else "انتخاب فرد"),values=names or ["انتخاب فرد"],size_hint_y=None,height=dp(50)); self.body.add_widget(teacher_sp)
+        self._parent_target_map={}
+        names=self._meeting_targets_for_role("teacher")
+        teacher_sp=Spinner(text=(next(iter(names)) if names else "انتخاب فرد"),values=list(names) or ["انتخاب فرد"],size_hint_y=None,height=dp(50)); self.body.add_widget(teacher_sp)
+        target_sp.bind(text=lambda _w,value:self._refresh_parent_targets(value,teacher_sp))
         date=self._meeting_field("تاریخ ملاقات")
         time=self._meeting_field("ساعت ملاقات")
         reason=self._meeting_field("علت ملاقات")
-        self._button("ثبت درخواست ملاقات",lambda *_:self._create_meeting(student_map.get(sp_student.text),sp_student.text,teacher_sp.text,target_sp.text,date.text,time.text,reason.text),SUCCESS)
+        self._button("ثبت درخواست ملاقات",lambda *_:self._create_meeting(student_map.get(sp_student.text),sp_student.text,teacher_sp.text,target_sp.text,date.text,time.text,reason.text,self._parent_target_map.get(teacher_sp.text,"")),SUCCESS)
+
+    def _refresh_parent_targets(self,role_label,spinner):
+        kind={"دبیر":"teacher","کادر":"staff","مشاور":"advisor"}.get(role_label,"teacher")
+        names=self._meeting_targets_for_role(kind)
+        spinner.values=list(names) or ["انتخاب فرد"]
+        spinner.text=spinner.values[0]
+
+    def _meeting_targets_for_role(self,kind):
+        table="teachers" if kind=="teacher" else "staff"
+        rows=self._safe_rows(table)
+        mapping={}
+        for row in rows:
+            role=str(row.get("role") or "").lower()
+            if kind=="advisor" and role not in {"advisor","مشاور","counselor","مشاوره"}: continue
+            if kind=="staff" and role in {"advisor","مشاور","counselor","مشاوره"}: continue
+            name=f"{row.get('first_name','')} {row.get('last_name','')}".strip()
+            username=str(row.get("username") or row.get("email") or row.get("national_code") or name).strip()
+            if name: mapping[name]=username
+        self._parent_target_map.update(mapping)
+        return list(mapping)
 
     def _staff_meeting_form(self,role):
         self._label("درخواست ملاقات با ولی", "16sp", PRIMARY, 44, True)
@@ -92,7 +114,7 @@ class OperationsScreen(Screen):
         student_map={}
         for s in students:
             label=f"{s.get('first_name','')} {s.get('last_name','')} | {s.get('grade','')} {s.get('class_name','')}".strip()
-            student_map[label]=s.get("id")
+            if s.get("id"): student_map[label]=s.get("id")
         if not student_map:
             self._label("فهرست دانش‌آموزان در دسترس نیست.",height=60); return
         sp=Spinner(text=next(iter(student_map)),values=list(student_map),size_hint_y=None,height=dp(50)); self.body.add_widget(sp)
@@ -100,12 +122,14 @@ class OperationsScreen(Screen):
         parent_map={}
         for p in parents:
             label=f"{p.get('first_name','')} {p.get('last_name','')}".strip()
-            parent_map[label]=p.get("id")
-        parent_sp=Spinner(text=(next(iter(parent_map)) if parent_map else "ولی دانش‌آموز"),values=list(parent_map) or ["ولی دانش‌آموز"],size_hint_y=None,height=dp(50)); self.body.add_widget(parent_sp)
+            username=str(p.get("username") or p.get("email") or p.get("national_code") or label).strip()
+            if p.get("id"): parent_map[label]=(p.get("id"),username)
+        parent_names=list(parent_map)
+        parent_sp=Spinner(text=(parent_names[0] if parent_names else "ولی دانش‌آموز"),values=parent_names or ["ولی دانش‌آموز"],size_hint_y=None,height=dp(50)); self.body.add_widget(parent_sp)
         date=self._meeting_field("تاریخ ملاقات")
         time=self._meeting_field("ساعت ملاقات")
         reason=self._meeting_field("علت ملاقات")
-        self._button("ثبت درخواست ملاقات با ولی",lambda *_:self._create_meeting(student_map.get(sp.text),sp.text,parent_sp.text,"parent",date.text,time.text,reason.text),SUCCESS)
+        self._button("ثبت درخواست ملاقات با ولی",lambda *_:self._create_meeting(student_map.get(sp.text),sp.text,parent_sp.text,"parent",date.text,time.text,reason.text,(parent_map.get(parent_sp.text) or (None,""))[1]),SUCCESS)
 
     def _target_names(self,kind):
         table={"teacher":"teachers","staff":"staff","advisor":"staff"}.get(kind,kind)
@@ -122,7 +146,7 @@ class OperationsScreen(Screen):
         try:return self.app_state.api.table_select(table,{"limit":"100","order":"id.asc"}) or []
         except Exception:return []
 
-    def _create_meeting(self,student_id,student_label,target_name,target_role,date,time,reason):
+    def _create_meeting(self,student_id,student_label,target_name,target_role,date,time,reason,target_username=""):
         if not student_id or not target_name or target_name=="انتخاب فرد": return self._error("دانش‌آموز و فرد مورد ملاقات را انتخاب کنید.")
         if not date.strip() or not time.strip() or not reason.strip(): return self._error("تاریخ، ساعت و علت ملاقات الزامی است.")
         role=role_of(self.app_state); email=self._profile_email()
@@ -134,7 +158,7 @@ class OperationsScreen(Screen):
             "student_name":student_label,
             "target_role":target_role,
             "target_name":target_name,
-            "target_username":target_name,
+            "target_username":target_username or target_name,
             "requested_date_shamsi":date.strip(),
             "requested_time":time.strip(),
             "reason":reason.strip(),
