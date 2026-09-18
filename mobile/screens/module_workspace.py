@@ -18,106 +18,27 @@ from mobile.ui import font_name, rtl_text
 # One shared operational vocabulary for Android and the future web client.
 # Both clients must bind these keys to the same Supabase tables and field names.
 SUBMENUS = {
-    "management": [
-        ("داشبورد مدیریت", "school_profile"), ("دانش‌آموزان", "students"), ("دبیران", "teachers"),
-        ("کارکنان", "staff"), ("کلاس‌ها و پایه‌ها", "school_class_config"), ("حساب‌های سامانه", "users"),
-        ("رویدادهای مدرسه", "school_events"), ("اطلاعیه‌ها", "messages"), ("گزارش‌های مدیریتی", "report_cards"),
-        ("برنامه هفتگی", "weekly_schedule"), ("آزمون‌های آنلاین", "teacher_exams"), ("مالی", "finance_accounts"),
-    ],
-    "educational": [
-        ("داشبورد آموزشی", "teacher_classes"), ("کلاس‌های دبیران", "teacher_classes"), ("طرح درس", "lesson_plans"),
-        ("حضور و غیاب", "attendance"), ("نمرات", "grades"), ("ارزیابی دانش‌آموزان", "student_grades"),
-        ("تکالیف", "assignments"), ("برنامه هفتگی", "weekly_schedule"), ("برنامه امتحانات", "exam_schedule"),
-        ("آزمون‌های آنلاین", "teacher_exams"), ("گزارش آموزشی", "report_cards"), ("دانش‌آموزان", "students"),
-    ],
-    "executive": [
-        ("داشبورد اجرایی", "students"), ("پرونده دانش‌آموزان", "students"), ("اولیا", "parents"),
-        ("ارتباط ولی و فرزند", "parent_children"), ("کارکنان", "staff"), ("حضور و غیاب", "attendance"),
-        ("رویدادها", "school_events"), ("ثبت‌نام و کلاس‌ها", "school_class_config"), ("پیام‌ها", "messages"),
-        ("گزارش‌های اجرایی", "report_cards"),
-    ],
-    "cultural": [
-        ("داشبورد پرورشی", "educational_activities"), ("فعالیت‌ها", "educational_activities"),
-        ("رویدادهای مدرسه", "school_events"), ("دانش‌آموزان", "students"), ("مشارکت اولیا", "parent_meetings"),
-        ("پیام‌ها", "messages"), ("تابلو هوشمند", "smart_board_content"), ("گزارش فعالیت‌ها", "report_cards"),
-    ],
-    "advisor": [
-        ("داشبورد مشاوره", "counseling_records"), ("پرونده‌های مشاوره", "counseling_records"),
-        ("پیگیری جلسات", "counseling_followups"), ("دانش‌آموزان", "students"), ("اولیا", "parents"),
-        ("گزارش‌های مشاوره", "report_cards"), ("پیام‌ها", "messages"),
-    ],
-    "teachers": [
-        ("داشبورد دبیران", "teachers"), ("مشخصات دبیران", "teachers"), ("کلاس‌های من", "teacher_classes"),
-        ("حضور و غیاب", "attendance"), ("نمرات", "grades"), ("ارزیابی", "student_grades"),
-        ("تکالیف", "assignments"), ("طرح درس", "lesson_plans"), ("آزمون آنلاین", "teacher_exams"),
-        ("جلسات آنلاین", "online_class_sessions"),
-    ],
-    "students": [
-        ("داشبورد دانش‌آموز", "students"), ("پرونده من", "students"), ("نمرات و ارزیابی", "student_grades"),
-        ("حضور و غیاب", "attendance"), ("تکالیف", "assignments"), ("آزمون‌های آنلاین", "teacher_exams"),
-        ("برنامه هفتگی", "weekly_schedule"), ("کارنامه", "report_cards"), ("فعالیت‌ها", "educational_activities"),
-    ],
-    "parents": [
-        ("داشبورد اولیا", "parents"), ("فرزندان من", "parent_children"), ("وضعیت تحصیلی", "student_grades"),
-        ("حضور و غیاب", "attendance"), ("کارنامه", "report_cards"), ("جلسات اولیا", "parent_meetings"),
-        ("کمک‌های داوطلبانه", "finance_donations"), ("پیام‌ها", "messages"),
-    ],
-    "finance": [
-        ("داشبورد مالی", "finance_accounts"), ("حساب‌ها", "finance_accounts"), ("تراکنش‌ها", "finance_transactions"),
-        ("کمک‌های داوطلبانه", "finance_donations"), ("تعریف پرداخت", "payment_offers"),
-        ("درخواست‌های پرداخت", "payment_attempts"), ("سوابق پرداخت", "payment_records"),
-    ],
-    "online": [
-        ("کلاس‌های آنلاین", "online_classes"), ("جلسات", "online_class_sessions"),
-        ("دانش‌آموزان کلاس", "online_class_students"), ("دبیران کلاس", "online_class_teachers"),
-        ("حضور آنلاین", "online_class_students"), ("تخته کلاس", "smart_board_whiteboards"),
-    ],
-    "smart_board": [
-        ("محتوای آموزشی", "smart_board_content"), ("فعالیت‌ها", "smart_board_activities"),
-        ("آزمون‌های کوتاه", "smart_board_quizzes"), ("تخته‌های آموزشی", "smart_board_whiteboards"),
-    ],
-    "ai": [
-        ("داشبورد هوشمند", "ai_smart_reports"), ("پرسش‌های هوشمند", "ai_questions"),
-        ("جلسات دستیار", "ai_assistant_sessions"), ("گزارش‌های هوشمند", "ai_smart_reports"),
-    ],
-    "messages": [
-        ("صندوق ورودی", "messages"), ("ارسال پیام", "message_targets"), ("مخاطبان", "message_targets"),
-        ("وضعیت خواندن", "message_reads"),
-    ],
-    "reports": [
-        ("داشبورد گزارش", "report_cards"), ("کارنامه‌ها", "report_cards"),
-        ("نسخه‌های کارنامه", "report_card_snapshots"), ("نمرات", "grades"), ("حضور و غیاب", "attendance"),
-        ("ارزیابی دانش‌آموزان", "student_grades"),
-    ],
-    "schedule": [
-        ("برنامه هفتگی", "weekly_schedule"), ("برنامه تولیدشده", "generated_weekly_schedule"),
-        ("برنامه امتحانات", "exam_schedule"), ("کلاس‌های دبیران", "teacher_classes"),
-    ],
-    "settings": [
-        ("تنظیمات حساب", "account_settings"), ("مشخصات مدرسه", "school_profile"),
-        ("ساختار کلاس‌ها", "school_class_config"), ("حساب‌های سامانه", "users"),
-    ],
-    "student_info": [
-        ("پرونده دانش‌آموز", "students"), ("نمرات", "student_grades"), ("حضور و غیاب", "attendance"),
-        ("تکالیف", "assignments"), ("کارنامه", "report_cards"),
-    ],
+"management":[("اطلاعات مدرسه","school_profile"),("دانش‌آموزان","students"),("دبیران","teachers"),("کادر و کارکنان","staff"),("پایه و کلاس‌ها","school_class_config"),("حساب‌های سامانه","users"),("رویدادها","school_events"),("صندوق پیام","messages"),("کارنامه‌ها","report_cards"),("برنامه هفتگی","weekly_schedule"),("آزمون آنلاین","teacher_exams"),("کلاس آنلاین","online_classes"),("مالی","finance_accounts"),("پرداخت آنلاین","payment_offers"),("تابلو هوشمند","smart_board_content"),("گزارش‌های مدیریتی","report_cards")],
+"educational":[("پرونده اطلاعاتی دانش‌آموز","students"),("پرونده پرسنلی همکاران","staff"),("کلاس‌های دبیران","teacher_classes"),("فعال‌سازی کلاس آنلاین","online_classes"),("برنامه هفتگی","weekly_schedule"),("برنامه امتحانی","exam_schedule"),("پیگیری آموزشی","educational_followups"),("پیگیری درسی","academic_followups"),("پیگیری انضباطی","discipline_records"),("ثبت انضباطی","discipline_records"),("نمرات و کارنامه‌ها","student_grades"),("گزارش آموزشی هوشمند","ai_smart_reports"),("جشنواره خوارزمی","khwarizmi_registrations"),("آزمون آنلاین","teacher_exams"),("صندوق پیام","messages")],
+"executive":[("پرونده دانش‌آموزی","students"),("پرونده پرسنلی کارکنان","staff"),("اولیا و ارتباط فرزند","parent_children"),("فعال‌سازی برنامه هفتگی","weekly_schedule"),("فعال‌سازی کارنامه ماهیانه","monthly_report_cards"),("فعال‌سازی کارنامه مستمر و پایان ترم","report_cards"),("ثبت انضباطی","discipline_records"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("کلاس‌های آنلاین","online_classes"),("رویدادها و مراسمات","school_events"),("صندوق پیام","messages")],
+"cultural":[("پیام‌های پرورشی","messages"),("ایجاد مسابقات","activity_offers"),("مسابقات فرهنگی","cultural_competitions"),("مسابقات هنری","art_competitions"),("مسابقات ورزشی","sport_competitions"),("فعالیت‌ها و مراسمات","educational_activities"),("انتخابات شورای دانش‌آموزی","student_council"),("بسیج دانش‌آموزی","basij_registration"),("شهردار مدرسه","school_mayor"),("مکبر","morning_leaders"),("قاری برنامه ظهرگاهی","qari_registration"),("جدول مراسم ظهرگاهی","morning_ceremony"),("ثبت انضباطی","discipline_records"),("صندوق پیام","messages")],
+"advisor":[("پرونده‌های مشاوره","counseling_records"),("پیگیری جلسات","counseling_followups"),("دانش‌آموزان","students"),("اولیا","parents"),("درخواست ملاقات","parent_meeting_requests"),("گزارش‌های مشاوره","report_cards"),("صندوق پیام","messages")],
+"teachers":[("کلاس‌های من","teacher_classes"),("طرح درس","lesson_plans"),("برنامه هفتگی","weekly_schedule"),("کلاس‌های آنلاین فعال","online_classes"),("آزمون آنلاین","teacher_exams"),("حضور و غیاب","attendance"),("نمرات درسی","grades"),("تکالیف","assignments"),("موارد انضباطی","discipline_records"),("ارجاع دانش‌آموز","student_referrals"),("درخواست ملاقات اولیا","teacher_parent_meetings"),("صندوق پیام","messages")],
+"students":[("اطلاعات شخصی","students"),("پایه و کلاس","student_class_info"),("نمرات","student_grades"),("وضعیت حضور و غیاب","attendance"),("کلاس‌های آنلاین فعال","online_classes"),("شرکت در فعالیت‌ها","activity_registrations"),("انتخابات شورای دانش‌آموزی","student_council"),("بسیج دانش‌آموزی","basij_registration"),("همیار مدرسه","school_ally"),("شهردار مدرسه","school_mayor"),("ارسال تکالیف","assignment_submissions"),("برنامه هفتگی","weekly_schedule"),("برنامه امتحانی","exam_schedule"),("شماره صندلی کلاسی","class_seat_assignments"),("شماره صندلی امتحانی","exam_seat_assignments"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("صندوق پیام","messages"),("کمک‌های داوطلبانه / پرداخت آنلاین","payment")],
+"parents":[("انتخاب یک یا چند دانش‌آموز","parent_children"),("اطلاعات دانش‌آموز","students"),("نمرات کلاسی و امتحانی","student_grades"),("حضور و غیاب","attendance"),("کارنامه ماهیانه","monthly_report_cards"),("کارنامه مستمر و پایان ترم","report_cards"),("ملاقات با دبیر","parent_meeting_requests"),("ملاقات با معاون","parent_meeting_requests"),("ملاقات با مشاور","parent_meeting_requests"),("ملاقات با مدیریت","parent_meeting_requests"),("انتخابات و مراسمات انجمن اولیا","parent_activities"),("کلاس آموزش خانواده","parent_activities"),("بهداشت روان","parent_activities"),("کمک‌های داوطلبانه / پرداخت آنلاین","payment"),("صندوق پیام","messages")],
+"finance":[("حساب‌ها","finance_accounts"),("تراکنش‌ها","finance_transactions"),("کمک‌های داوطلبانه","finance_donations"),("تعریف گزینه پرداخت","payment_offers"),("درخواست‌های پرداخت","payment_attempts"),("سوابق پرداخت","payment_records")],
+"online":[("کلاس‌های آنلاین","online_classes"),("جلسات","online_class_sessions"),("دانش‌آموزان کلاس","online_class_students"),("دبیران کلاس","online_class_teachers"),("حضور آنلاین","online_class_students"),("تخته کلاس","smart_board_whiteboards")],
+"smart_board":[("محتوای آموزشی","smart_board_content"),("فعالیت‌ها","smart_board_activities"),("آزمون‌های کوتاه","smart_board_quizzes"),("تخته‌های آموزشی","smart_board_whiteboards")],
+"ai":[("گزارش تحلیلی کلاس به کلاس","ai_smart_reports"),("گزارش تحلیلی دانش‌آموز","ai_smart_reports"),("پرسش هوشمند","ai_questions"),("جلسات دستیار","ai_assistant_sessions")],
+"messages":[("صندوق ورودی","messages"),("ارسال پیام","message_targets"),("مخاطبان","message_targets"),("وضعیت خواندن","message_reads")],
+"reports":[("کارنامه‌ها","report_cards"),("نسخه‌های کارنامه","report_card_snapshots"),("نمرات","grades"),("حضور و غیاب","attendance"),("ارزیابی دانش‌آموزان","student_grades"),("گزارش هوشمند","ai_smart_reports")],
+"schedule":[("برنامه هفتگی","weekly_schedule"),("برنامه تولیدشده","generated_weekly_schedule"),("برنامه امتحانات","exam_schedule"),("کلاس‌های دبیران","teacher_classes"),("صندلی امتحانی","exam_seat_assignments")],
+"settings":[("تنظیمات حساب","account_settings"),("مشخصات مدرسه","school_profile"),("ساختار کلاس‌ها","school_class_config"),("حساب‌های سامانه","users")],
+"student_info":[("اطلاعات شخصی","students"),("پایه و کلاس","student_class_info"),("نمرات","student_grades"),("حضور و غیاب","attendance"),("تکالیف","assignments"),("کارنامه","report_cards")]
 }
 
 FRIENDLY = {
-    "school_profile":"مشخصات مدرسه", "school_class_config":"ساختار کلاس‌ها", "users":"حساب‌های سامانه",
-    "students":"دانش‌آموزان", "teachers":"دبیران", "staff":"کارکنان", "teacher_classes":"کلاس‌های دبیران",
-    "lesson_plans":"طرح درس‌ها", "attendance":"حضور و غیاب", "grades":"نمرات", "student_grades":"ارزیابی دانش‌آموزان",
-    "assignments":"تکالیف", "parents":"اولیا", "parent_children":"ارتباط ولی و فرزند", "parent_meetings":"جلسات اولیا",
-    "finance_accounts":"حساب‌های مالی", "finance_transactions":"تراکنش‌های مالی", "finance_donations":"کمک‌های داوطلبانه",
-    "payment_offers":"تعریف پرداخت", "payment_attempts":"درخواست‌های پرداخت", "payment_records":"سوابق پرداخت",
-    "online_classes":"کلاس‌های آنلاین", "online_class_sessions":"جلسات آنلاین", "online_class_students":"دانش‌آموزان کلاس",
-    "online_class_teachers":"دبیران کلاس", "educational_activities":"فعالیت‌های پرورشی", "school_events":"رویدادهای مدرسه",
-    "counseling_records":"سوابق مشاوره", "counseling_followups":"پیگیری مشاوره", "smart_board_content":"محتوای تابلو",
-    "smart_board_activities":"فعالیت‌های تابلو", "smart_board_quizzes":"آزمون‌های کوتاه", "smart_board_whiteboards":"تخته‌های آموزشی",
-    "ai_assistant_sessions":"جلسات دستیار", "ai_questions":"پرسش‌های هوشمند", "ai_smart_reports":"گزارش‌های هوشمند",
-    "messages":"پیام‌ها", "message_targets":"مخاطبان پیام", "message_reads":"وضعیت خواندن", "report_cards":"کارنامه‌ها",
-    "report_card_snapshots":"نسخه‌های کارنامه", "weekly_schedule":"برنامه هفتگی", "generated_weekly_schedule":"برنامه تولیدشده",
-    "exam_schedule":"برنامه امتحانات", "account_settings":"تنظیمات حساب", "teacher_exams":"آزمون‌های آنلاین",
+"school_profile":"مشخصات مدرسه","school_class_config":"ساختار کلاس‌ها","users":"حساب‌های سامانه","students":"دانش‌آموزان","teachers":"دبیران","staff":"کادر و کارکنان","teacher_classes":"کلاس‌های دبیران","lesson_plans":"طرح درس","attendance":"حضور و غیاب","grades":"نمرات","student_grades":"ارزیابی دانش‌آموزان","assignments":"تکالیف","parents":"اولیا","parent_children":"ارتباط ولی و فرزند","parent_meetings":"جلسات اولیا","finance_accounts":"حساب‌های مالی","finance_transactions":"تراکنش‌های مالی","finance_donations":"کمک‌های داوطلبانه","payment_offers":"گزینه‌های پرداخت","payment_attempts":"درخواست‌های پرداخت","payment_records":"سوابق پرداخت","online_classes":"کلاس‌های آنلاین","online_class_sessions":"جلسات آنلاین","online_class_students":"دانش‌آموزان کلاس","online_class_teachers":"دبیران کلاس","educational_activities":"فعالیت‌های پرورشی","school_events":"رویدادهای مدرسه","counseling_records":"سوابق مشاوره","counseling_followups":"پیگیری مشاوره","smart_board_content":"محتوای تابلو","smart_board_activities":"فعالیت‌های تابلو","smart_board_quizzes":"آزمون‌های کوتاه","smart_board_whiteboards":"تخته‌های آموزشی","ai_assistant_sessions":"جلسات دستیار","ai_questions":"پرسش‌های هوشمند","ai_smart_reports":"گزارش‌های هوشمند","messages":"پیام‌ها","message_targets":"مخاطبان پیام","message_reads":"وضعیت خواندن","report_cards":"کارنامه‌ها","report_card_snapshots":"نسخه‌های کارنامه","weekly_schedule":"برنامه هفتگی","generated_weekly_schedule":"برنامه تولیدشده","exam_schedule":"برنامه امتحانات","account_settings":"تنظیمات حساب","teacher_exams":"آزمون‌های آنلاین","discipline_records":"موارد انضباطی","educational_followups":"پیگیری‌های آموزشی","academic_followups":"پیگیری‌های درسی","certificate_requests":"درخواست گواهی اشتغال به تحصیل","activity_offers":"مسابقات و فعالیت‌ها","activity_registrations":"ثبت‌نام فعالیت‌ها","student_council":"انتخابات شورای دانش‌آموزی","basij_registration":"عضویت بسیج دانش‌آموزی","school_ally":"طرح همیار مدرسه","school_mayor":"طرح شهردار مدرسه","cultural_competitions":"مسابقات فرهنگی","art_competitions":"مسابقات هنری","sport_competitions":"مسابقات ورزشی","morning_leaders":"مکبر","qari_registration":"قاری برنامه ظهرگاهی","morning_ceremony":"مراسم ظهرگاهی","student_referrals":"ارجاع دانش‌آموز","teacher_parent_meetings":"درخواست ملاقات اولیا","parent_meeting_requests":"درخواست ملاقات","khwarizmi_registrations":"جشنواره خوارزمی","monthly_report_cards":"کارنامه ماهیانه","class_seat_assignments":"شماره صندلی کلاسی","exam_seat_assignments":"شماره صندلی امتحانی","assignment_submissions":"ارسال تکالیف","parent_activities":"فعالیت‌های اولیا","student_class_info":"پایه و کلاس"
 }
 
 COLUMNS = {
