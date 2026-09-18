@@ -186,3 +186,18 @@ grant execute on function public.frahoosh_meeting_create(text,text,bigint,text,t
 grant execute on function public.frahoosh_meeting_manager_review(bigint,boolean,text) to authenticated;
 grant execute on function public.frahoosh_meeting_educational_review(bigint,boolean,text,text,text) to authenticated;
 grant execute on function public.frahoosh_meeting_notify(bigint,text,text,text,text) to authenticated;
+
+
+-- Smart classroom board metadata. Existing installations keep their data.
+alter table public.smart_board_whiteboards add column if not exists tool text default 'pen';
+alter table public.smart_board_whiteboards add column if not exists pen_size integer default 3;
+alter table public.smart_board_whiteboards add column if not exists color text default '#111111';
+alter table public.smart_board_whiteboards add column if not exists page_no integer default 1;
+alter table public.smart_board_whiteboards add column if not exists media_type text;
+alter table public.smart_board_whiteboards add column if not exists media_url text;
+alter table public.smart_board_whiteboards add column if not exists created_by text;
+
+alter table public.smart_board_content add column if not exists media_type text;
+alter table public.smart_board_content add column if not exists media_url text;
+alter table public.smart_board_content add column if not exists published_to_parent boolean default false;
+alter table public.smart_board_content add column if not exists published_to_student boolean default true;
