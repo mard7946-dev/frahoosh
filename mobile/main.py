@@ -118,6 +118,38 @@ class FrahooshApp(App):
         self.sm.add_widget(screen)
         return screen
 
+    def ensure_meetings(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("meetings")
+        except Exception:
+            pass
+        try:
+            from mobile.screens.meetings import MeetingsScreen
+            screen = MeetingsScreen(name="meetings", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+        except Exception as exc:
+            print("MEETINGS BUILD ERROR:", repr(exc))
+            return None
+
+    def ensure_smart_class_preview(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("smart_class_preview")
+        except Exception:
+            pass
+        try:
+            from mobile.screens.smart_class_preview import SmartClassPreviewScreen
+            screen = SmartClassPreviewScreen(name="smart_class_preview", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+        except Exception as exc:
+            print("SMART CLASS PREVIEW BUILD ERROR:", repr(exc))
+            return None
+
     def ensure_update(self):
         if self.sm is None:
             return None

@@ -27,3 +27,12 @@ Set these GitHub repository Secrets/Variables before expecting online login insi
 
 ## Android CI fix — 2026-08-31
 The Android workflow was corrected so SDK package installation does not use `yes | sdkmanager ...` under `set -o pipefail`. That pattern causes a false `Broken pipe` exit code after sdkmanager finishes normally. The workflow now installs SDK packages directly, installs NDK 28c explicitly, generates `mobile/runtime_config.json` from GitHub Secrets/Variables, and runs `python -m compileall -q mobile` before Buildozer.
+
+
+## 2026-09-18 — professional workflow expansion
+- Parent online-class access was removed from the role menu.
+- Added real `meeting_requests` workflow: parent/teacher/staff/counselor can create meeting requests; manager approval moves them to the educational deputy; final confirmation stores the confirmed date/time.
+- Added a manager-facing `نمونه کلاس هوشمند` screen that explains the classroom experience for teacher, parent, student and manager and reads the latest online-class/whiteboard/content/activity/quiz records from the shared backend.
+- Added dedicated Android screens and navigation for meetings and the smart-class preview while preserving the existing generic module/table engine.
+- Added Supabase RLS for meeting requester/target access and manager/educational-deputy review.
+- Next validation step: run the Android CI build and apply the new Supabase migration in the project's database before production use.
