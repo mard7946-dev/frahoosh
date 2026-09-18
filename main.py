@@ -106,7 +106,7 @@ class BootstrapDashboard(Screen):
                     screen.set_route(route)
                 app.sm.current = screen.name
             else:
-                screen = app.ensure_screen("module", "mobile.screens.module", "ModuleScreen")
+                screen = app.ensure_screen("module_workspace", "mobile.screens.module_workspace", "ModuleWorkspaceScreen")
                 if hasattr(screen, "set_module"):
                     screen.set_module(route, "dashboard")
                 app.sm.current = screen.name
