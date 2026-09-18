@@ -95,12 +95,10 @@ class LoginScreen(Screen):
         # so it can be changed without touching the login UI.
         school = GlassPanel(orientation="horizontal", padding=[dp(12), dp(4)], spacing=dp(6),
                             size_hint_y=None, height=dp(48), bg=(0.08, 0.30, 0.58, .72), radius=18)
-        school.add_widget(self.label("🏫", "17sp", WHITE, True))
         school.add_widget(self.label(SCHOOL_NAME or "نام مدرسه", "13sp", WHITE, True))
         root.add_widget(school)
 
         root.add_widget(self.label(APP_SLOGAN, "11sp", CYAN, True))
-        root.add_widget(self.label("دانش آموز خلاق", "11sp", CYAN, True))
 
         card = GlassPanel(orientation="vertical", padding=[dp(16), dp(12)], spacing=dp(7),
                           size_hint_y=None, height=dp(285), bg=GLASS, radius=24)
