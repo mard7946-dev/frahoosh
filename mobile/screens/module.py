@@ -1,5 +1,5 @@
 # Frahoosh final mobile module entry point.
-# Accordion navigation only: no PageLayout and no swipe between subpanels.
+# Professional operational navigation: two-column subpanel cards with real table workspaces.
 from mobile.screens.professional_workspace import ProfessionalWorkspaceScreen
 from mobile.screens.module_workspace import ModuleWorkspaceScreen, SUBMENUS, FRIENDLY, TABLE_FIELDS, HIDDEN
 from kivy.metrics import dp
@@ -19,7 +19,7 @@ FRIENDLY.setdefault("participation", "مشارکت و فعالیت‌ها")
 ONLINE_CLASS_CREATORS = {"manager", "educational", "executive"}
 
 class FinalModuleScreen(ProfessionalWorkspaceScreen):
-    """Stable final entry point: accordion subpanels and touch-friendly forms."""
+    """Stable final entry point: two-column subpanels and touch-friendly forms."""
 
     def render(self):
         # Spacious operational home: every subpanel is a real touch card.
@@ -121,25 +121,6 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
         actions.add_widget(self.btn("ذخیره", lambda *_: save_cb(inputs, popup), SUCCESS, dp(44)))
         root.add_widget(actions)
         popup.open()
-
-    def editor(self, table, row):
-        fields = [k for k in (self.FORMS.get(table) if hasattr(self, "FORMS") else None) or [] if k not in self.HIDDEN] if False else [k for k in (self._form_fields(table, row)) if k not in {"id", "created_at", "updated_at", "deleted_at"}]
-        root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(7))
-        from kivy.uix.scrollview import ScrollView
-        sc = ScrollView(do_scroll_x=False)
-        form = BoxLayout(orientation="vertical", spacing=dp(7), size_hint_y=None)
-        form.bind(minimum_height=form.setter("height"))
-        inputs = {}
-        for f in fields:
-            ti = TextInput(text="" if row is None else str(row.get(f, "")), hint_text=rtl_text(FRIENDLY.get(f, self._column_label(f))), font_name=font_name(), font_size="15sp", halign="right", multiline=f in {"description", "content", "body", "question"}, size_hint_y=None, height=dp(78 if f in {"description", "content", "body", "question"} else 52), padding=[dp(12), dp(12)])
-            inputs[f] = ti
-            form.add_widget(ti)
-        sc.add_widget(form); root.add_widget(sc)
-        actions = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(6))
-        popup = Popup(title=rtl_text(("ویرایش" if row else "ثبت جدید") + " • " + FRIENDLY.get(table, table)), content=root, size_hint=(.94, .90), auto_dismiss=False)
-        actions.add_widget(self.btn("انصراف", lambda *_: popup.dismiss(), SECONDARY, dp(44)))
-        actions.add_widget(self.btn("ذخیره", lambda *_: self.save(table, row, inputs, popup), SUCCESS, dp(44)))
-        root.add_widget(actions); popup.open()
 
     def _form_fields(self, table, row):
         # Only render fields that really exist in Supabase.
