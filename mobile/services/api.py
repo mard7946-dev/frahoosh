@@ -247,10 +247,22 @@ class SupabaseClient:
         self.token_type = data.get("token_type") or self.token_type
         return True
 
-    def table_select(self, table, params=None):
+    def _authenticated_request(self, method, url, payload=None, params=None, prefer=None):
         if not self.configured or not self.access_token:
             raise ApiError("نشست معتبر وجود ندارد.")
-        response = _request("GET", f"{self.url}/rest/v1/{table}", headers=self._headers(True), params=params or {}, timeout=API_TIMEOUT)
+        headers = self._headers(True)
+        if prefer:
+            headers["Prefer"] = prefer
+        response = _request(method, url, headers=headers, payload=payload, params=params or {}, timeout=API_TIMEOUT)
+        if response.status_code == 401 and self.refresh_access_token():
+            headers = self._headers(True)
+            if prefer:
+                headers["Prefer"] = prefer
+            response = _request(method, url, headers=headers, payload=payload, params=params or {}, timeout=API_TIMEOUT)
+        return response
+
+    def table_select(self, table, params=None):
+        response = self._authenticated_request("GET", f"{self.url}/rest/v1/{table}", params=params)
         if not response.ok:
             raise ApiError(self._error(response))
         return response.json()
@@ -258,10 +270,7 @@ class SupabaseClient:
     def table_insert(self, table, payload, return_representation=True):
         if not self.configured or not self.access_token:
             raise ApiError("نشست معتبر برای ثبت اطلاعات وجود ندارد.")
-        headers = self._headers(True)
-        if return_representation:
-            headers["Prefer"] = "return=representation"
-        response = _request("POST", f"{self.url}/rest/v1/{table}", headers=headers, payload=payload, timeout=API_TIMEOUT)
+        response = self._authenticated_request("POST", f"{self.url}/rest/v1/{table}", payload=payload, prefer="return=representation" if return_representation else None)
         if not response.ok:
             raise ApiError(self._error(response))
         return response.json()
@@ -269,9 +278,7 @@ class SupabaseClient:
     def table_update(self, table, filters, payload):
         if not self.configured or not self.access_token:
             raise ApiError("نشست معتبر برای ویرایش اطلاعات وجود ندارد.")
-        headers = self._headers(True)
-        headers["Prefer"] = "return=representation"
-        response = _request("PATCH", f"{self.url}/rest/v1/{table}", headers=headers, payload=payload, params=dict(filters or {}), timeout=API_TIMEOUT)
+        response = self._authenticated_request("PATCH", f"{self.url}/rest/v1/{table}", payload=payload, params=dict(filters or {}), prefer="return=representation")
         if not response.ok:
             raise ApiError(self._error(response))
         return response.json()
@@ -279,7 +286,7 @@ class SupabaseClient:
     def rpc(self, function_name, payload=None):
         if not self.configured or not self.access_token:
             raise ApiError("نشست معتبر برای اجرای عملیات وجود ندارد.")
-        response = _request("POST", f"{self.url}/rest/v1/rpc/{function_name}", headers=self._headers(True), payload=payload or {}, timeout=API_TIMEOUT)
+        response = self._authenticated_request("POST", f"{self.url}/rest/v1/rpc/{function_name}", payload=payload or {})
         if not response.ok:
             raise ApiError(self._error(response))
         return response.json()
@@ -287,7 +294,7 @@ class SupabaseClient:
     def table_delete(self, table, filters):
         if not self.configured or not self.access_token:
             raise ApiError("نشست معتبر برای حذف اطلاعات وجود ندارد.")
-        response = _request("DELETE", f"{self.url}/rest/v1/{table}", headers=self._headers(True), params=filters or {}, timeout=API_TIMEOUT)
+        response = self._authenticated_request("DELETE", f"{self.url}/rest/v1/{table}", params=filters or {})
         if not response.ok:
             raise ApiError(self._error(response))
         return response.json()
