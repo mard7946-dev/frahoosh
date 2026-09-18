@@ -8,6 +8,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 from mobile.ui import font_name, rtl_text
+from mobile.config import PRIMARY, SECONDARY, SUCCESS, WHITE
 
 SUBMENUS.setdefault("participation", [
     ("فعالیت‌ها", "educational_activities"),
@@ -40,7 +41,7 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
             # Give the number its own visible header strip without changing the actual data model.
             card.add_widget(self.label(text, "14sp", PRIMARY, True, "center"))
             card.add_widget(self.label(FRIENDLY.get(table, table), "8sp", SECONDARY, False, "center"))
-            card.add_widget(self.btn("ورود به محیط این بخش  ›", lambda *_a, t=table: self.open_table(t), SUCCESS if self.can_write(table) else PRIMARY, dp(40)))
+            card.add_widget(self.btn("ورود به محیط این بخش", lambda *_a, t=table: self.open_table(t), SUCCESS if self.can_write(table) else PRIMARY, dp(40)))
             grid.add_widget(card)
         scroll.add_widget(grid)
         self.body.add_widget(scroll)
@@ -202,7 +203,7 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
         head = self._surface(dp(74))
         head.add_widget(self.label("کلاس‌های آنلاین", "17sp", PRIMARY, True, "center"))
         if self.role() in ONLINE_CLASS_CREATORS:
-            head.add_widget(self.btn("＋ ایجاد کلاس", lambda *_: self._online_editor(), SUCCESS, dp(38)))
+            head.add_widget(self.btn(" ایجاد کلاس", lambda *_: self._online_editor(), SUCCESS, dp(38)))
         else:
             head.add_widget(self.label("کلاس‌های فعال برای دبیر و دانش‌آموز از اینجا قابل مشاهده هستند.", "9sp", SECONDARY, False, "center"))
         self.body.add_widget(head)
