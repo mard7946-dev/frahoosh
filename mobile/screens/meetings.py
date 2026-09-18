@@ -6,6 +6,7 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.spinner import Spinner
 
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text
@@ -24,17 +25,21 @@ def role_of(state):
 
 
 class MeetingsScreen(Screen):
-    """Real school meeting workflow: request -> manager approval -> educational deputy."""
+    """Real meeting workflow: request -> manager approval -> educational deputy -> confirmation."""
 
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
         self.app_state = app_state
         self.target_role = "teacher"
+        self._student_rows = []
+        self._target_rows = []
+        self._parent_rows = []
         self._build()
 
-    def _label(self, text, size="12sp", color=SECONDARY, height=42, bold=False):
+    def _label(self, text, size="12sp", color=SECONDARY, height=42, bold=False, center=False):
         w = Label(text=rtl_text(text), font_name=font_name(), font_size=size, color=color,
-                  bold=bold, halign="right", valign="middle", size_hint_y=None, height=dp(height))
+                  bold=bold, halign="center" if center else "right", valign="middle",
+                  size_hint_y=None, height=dp(height))
         w.bind(size=lambda o, v: setattr(o, "text_size", v))
         return w
 
@@ -53,10 +58,21 @@ class MeetingsScreen(Screen):
     def _username(self):
         p = self.app_state.profile if self.app_state else {}
         u = self.app_state.user if self.app_state else {}
-        return str(p.get("username") or u.get("email") or "").strip()
+        return str(u.get("email") or p.get("email") or p.get("username") or "").strip()
 
     def _role(self):
         return role_of(self.app_state)
+
+    def _spinner(self, text, values, height=48):
+        s = Spinner(
+            text=rtl_text(text),
+            values=[rtl_text(v) for v in values],
+            font_name=font_name(), font_size="12sp",
+            size_hint_y=None, height=dp(height),
+            background_normal="", background_color=(0.05, 0.18, 0.34, 1),
+            color=WHITE,
+        )
+        return s
 
     def on_pre_enter(self, *args):
         self.show_home()
@@ -65,11 +81,12 @@ class MeetingsScreen(Screen):
         self.clear_widgets()
         root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(7))
         head = BoxLayout(size_hint_y=None, height=dp(50), spacing=dp(7))
-        back = self._button("‹ بازگشت", self._back, SECONDARY, 46)
-        head.add_widget(back)
-        head.add_widget(self._label("ملاقات و درخواست جلسه", "20sp", PRIMARY, 46, True))
+        head.add_widget(self._button("‹ بازگشت", self._back, SECONDARY, 46))
+        head.add_widget(self._label("ملاقات و درخواست جلسه", "20sp", PRIMARY, 46, True, True))
         root.add_widget(head)
-        root.add_widget(self._label("درخواست‌ها واقعی در سرور ذخیره می‌شوند. تأیید مدیر انجام می‌شود و سپس درخواست برای معاون آموزشی ارجاع می‌گردد.", "10sp", SECONDARY, 58))
+        root.add_widget(self._label(
+            "درخواست در سرور ثبت می‌شود؛ ابتدا مدیر بررسی می‌کند، سپس برای معاون آموزشی ارجاع می‌شود و نتیجه برای طرف‌های مجاز قابل پیگیری است.",
+            "10sp", SECONDARY, 58, True, True))
 
         role = self._role()
         if role == "parent":
@@ -79,7 +96,7 @@ class MeetingsScreen(Screen):
         elif role in {"manager", "educational"}:
             self._review(root, role)
         else:
-            root.add_widget(self._label("این بخش برای نقش فعلی فعال نشده است.", height=60))
+            root.add_widget(self._label("این بخش برای نقش فعلی فعال نشده است.", height=60, center=True))
         self.add_widget(root)
 
     def _scroll(self, widget):
@@ -87,61 +104,207 @@ class MeetingsScreen(Screen):
         s.add_widget(widget)
         return s
 
+    def _load_parent_children(self):
+        api = getattr(self.app_state, "api", None)
+        if api is None:
+            return []
+        username = self._username()
+        try:
+            links = api.table_select("parent_children", {"parent_username": f"eq.{username}", "limit": "100"})
+            rows = []
+            for link in links or []:
+                sid = link.get("student_id")
+                if sid is None:
+                    continue
+                try:
+                    students = api.table_select("students", {"id": f"eq.{sid}", "limit": "1"})
+                    if students:
+                        rows.append(students[0])
+                except Exception:
+                    pass
+            if not rows:
+                # Compatible fallback for older installations where the link is stored
+                # in account settings or where the parent has not been linked yet.
+                rows = api.table_select("students", {"order": "id.asc", "limit": "100"}) or []
+            self._student_rows = rows
+            return rows
+        except Exception as exc:
+            print("PARENT CHILDREN LOAD ERROR:", repr(exc))
+            return []
+
+    def _load_targets(self, role):
+        api = getattr(self.app_state, "api", None)
+        if api is None:
+            return []
+        try:
+            if role == "teacher":
+                rows = api.table_select("teachers", {"order": "id.asc", "limit": "100"})
+            elif role == "staff":
+                rows = api.table_select("staff", {"order": "id.asc", "limit": "100"})
+            elif role == "counselor":
+                rows = api.table_select("staff", {"order": "id.asc", "limit": "100"})
+                rows = [r for r in rows if "مشاور" in str(r.get("role", "")) or "counsel" in str(r.get("role", "")).lower()]
+            elif role == "manager":
+                rows = api.table_select("account_settings", {"role": "eq.manager", "limit": "20"})
+            else:
+                rows = []
+            self._target_rows = rows or []
+            return self._target_rows
+        except Exception as exc:
+            print("MEETING TARGET LOAD ERROR:", repr(exc))
+            return []
+
     def _parent_form(self, root):
-        root.add_widget(self._label("ثبت درخواست از طرف ولی", "15sp", PRIMARY, 36, True))
+        root.add_widget(self._label("ثبت درخواست ملاقات از طرف ولی", "15sp", PRIMARY, 36, True, True))
         form = BoxLayout(orientation="vertical", spacing=dp(6), size_hint_y=None)
         form.bind(minimum_height=form.setter("height"))
-        student = self._field("انتخاب دانش‌آموز")
-        target_name = self._field("نام دبیر / کادر / مشاور")
+
+        children = self._load_parent_children()
+        child_names = [
+            f"{r.get('first_name','')} {r.get('last_name','')}".strip() + (f" • {r.get('class_name')}" if r.get("class_name") else "")
+            for r in children
+        ]
+        if not child_names:
+            child_names = ["فرزند متصل به حساب پیدا نشد"]
+        student = self._spinner("انتخاب دانش‌آموز", child_names)
+
+        self.target_role = "teacher"
+        target_type = self._spinner("نوع فرد مورد ملاقات", ["دبیر", "کادر", "مشاور", "مدیریت"])
+        target_map = {"دبیر": "teacher", "کادر": "staff", "مشاور": "counselor", "مدیریت": "manager"}
+        target_name = self._spinner("نام فرد مورد ملاقات", ["ابتدا نوع فرد را انتخاب کنید"])
+
+        def refresh_targets(spinner, value):
+            role = target_map.get(str(value).replace("ي", "ی"), "teacher")
+            self.target_role = role
+            rows = self._load_targets(role)
+            names = [self._person_name(r) for r in rows if self._person_name(r)]
+            target_name.values = [rtl_text(n) for n in (names or ["فردی برای این نقش پیدا نشد"])]
+            target_name.text = target_name.values[0]
+        target_type.bind(text=refresh_targets)
+        target_type.text = rtl_text("دبیر")
+        refresh_targets(target_type, "دبیر")
+
         date = self._field("تاریخ ملاقات")
         time = self._field("ساعت ملاقات")
         reason = self._field("علت ملاقات")
         desc = self._field("توضیحات تکمیلی", 72)
         desc.multiline = True
-        for w in [student, target_name, date, time, reason, desc]:
+        for w in [student, target_type, target_name, date, time, reason, desc]:
             form.add_widget(w)
-        chooser = GridLayout(cols=4, spacing=dp(5), size_hint_y=None, height=dp(46))
-        for label, key in [("دبیر","teacher"),("کادر","staff"),("مشاور","counselor"),("مدیریت","manager")]:
-            chooser.add_widget(self._button(label, lambda *_a, k=key, b=None: self._set_target(k), PRIMARY, 44))
-        form.add_widget(chooser)
-        submit = self._button("ثبت درخواست ملاقات", lambda *_: self._create(
-            student.text, target_name.text, date.text, time.text, reason.text, desc.text, "parent",
-            parent_username=self._username(), student_id=None), SUCCESS, 48)
+
+        submit = self._button("ثبت درخواست ملاقات", lambda *_: self._create_parent(
+            student, target_name, date, time, reason, desc), SUCCESS, 48)
         form.add_widget(submit)
         root.add_widget(self._scroll(form))
-        self._load_people_for_parent(student)
 
-    def _load_people_for_parent(self, student_field):
-        # The visible field remains touch-friendly; target lists are loaded from the
-        # same server tables so a later web client can use the identical identifiers.
+    def _person_name(self, row):
+        display = row.get("display_name") or row.get("full_name")
+        if display:
+            return str(display).strip()
+        name = f"{row.get('first_name','')} {row.get('last_name','')}".strip()
+        if name:
+            return name
+        return str(row.get("username") or row.get("email") or "").strip()
+
+    def _selected_student(self, spinner):
+        text = str(spinner.text or "").strip()
+        for row in self._student_rows:
+            label = self._person_name(row)
+            if row.get("class_name"):
+                label += f" • {row.get('class_name')}"
+            if text == label:
+                return row
+        return self._student_rows[0] if self._student_rows else None
+
+    def _selected_target(self, spinner):
+        text = str(spinner.text or "").strip()
+        for row in self._target_rows:
+            if text == self._person_name(row):
+                return row
+        return self._target_rows[0] if self._target_rows else None
+
+    def _create_parent(self, student, target, date, time, reason, desc):
+        srow = self._selected_student(student)
+        trow = self._selected_target(target)
+        if not srow or not trow:
+            return self._message("دانش‌آموز و فرد مورد ملاقات را از فهرست انتخاب کنید.", ERROR)
+        self._create(
+            student_name=f"{srow.get('first_name','')} {srow.get('last_name','')}".strip(),
+            target_name=self._person_name(trow),
+            date=date.text, time=time.text, reason=reason.text, description=desc.text,
+            requester_role="parent",
+            student_id=srow.get("id"),
+            target_user_id=trow.get("id"),
+            target_username=trow.get("username") or trow.get("email"),
+            parent_username=self._username(),
+            parent_name=self.app_state.display_name,
+        )
+
+    def _load_parents_for_student(self, student_id):
+        api = getattr(self.app_state, "api", None)
+        if api is None or student_id is None:
+            return []
         try:
-            rows = self.app_state.api.table_select("students", {"order":"id.asc", "limit":"100"})
-            names = [str(r.get("first_name",""))+" "+str(r.get("last_name","")) for r in rows]
-            student_field.hint_text = rtl_text("انتخاب دانش‌آموز: " + (" / ".join(names[:5]) if names else "پرونده فرزند"))
+            student = api.table_select("students", {"id": f"eq.{student_id}", "limit": "1"})
+            if not student:
+                return []
+            s = student[0]
+            rows = []
+            for key in ("father_name", "mother_name"):
+                if s.get(key):
+                    rows.append({"display_name": str(s[key]), "student_id": student_id})
+            self._parent_rows = rows
+            return rows
         except Exception:
-            pass
+            return []
 
     def _staff_form(self, root, role):
-        root.add_widget(self._label("ثبت درخواست ملاقات با ولی", "15sp", PRIMARY, 36, True))
+        root.add_widget(self._label("ثبت درخواست ملاقات با اولیا", "15sp", PRIMARY, 36, True, True))
         form = BoxLayout(orientation="vertical", spacing=dp(6), size_hint_y=None)
         form.bind(minimum_height=form.setter("height"))
-        student = self._field("نام دانش‌آموز")
-        parent = self._field("نام اولیا")
+
+        students = []
+        try:
+            students = self.app_state.api.table_select("students", {"order": "id.asc", "limit": "100"}) or []
+        except Exception:
+            pass
+        self._student_rows = students
+        student_labels = [self._person_name(r) + (f" • {r.get('class_name')}" if r.get("class_name") else "") for r in students]
+        student = self._spinner("انتخاب دانش‌آموز", student_labels or ["دانش‌آموز پیدا نشد"])
+        parent = self._spinner("انتخاب ولی دانش‌آموز", ["ابتدا دانش‌آموز را انتخاب کنید"])
+
+        def refresh_parents(spinner, value):
+            row = self._selected_student(spinner)
+            rows = self._load_parents_for_student(row.get("id") if row else None)
+            names = [self._person_name(r) for r in rows]
+            parent.values = [rtl_text(n) for n in (names or ["نام ولی در پرونده ثبت نشده است"])]
+            parent.text = parent.values[0]
+        student.bind(text=refresh_parents)
+        if students:
+            student.text = rtl_text(student_labels[0])
+            refresh_parents(student, student_labels[0])
+
         date = self._field("تاریخ ملاقات")
         time = self._field("ساعت ملاقات")
         reason = self._field("علت ملاقات")
-        desc = self._field("توضیحات تکمیلی", 72); desc.multiline = True
-        for w in [student, parent, date, time, reason, desc]: form.add_widget(w)
-        form.add_widget(self._button("ثبت درخواست ملاقات با اولیا", lambda *_: self._create(
-            student.text, parent.text, date.text, time.text, reason.text, desc.text, role,
-            parent_name=parent.text.strip()), SUCCESS, 48))
+        desc = self._field("توضیحات تکمیلی", 72)
+        desc.multiline = True
+        for w in [student, parent, date, time, reason, desc]:
+            form.add_widget(w)
+
+        form.add_widget(self._button("ثبت درخواست ملاقات با اولیا", lambda *_: self._create_staff(
+            student, parent, date, time, reason, desc, role), SUCCESS, 48))
         root.add_widget(self._scroll(form))
 
-    def _set_target(self, role):
-        self.target_role = role
-        self.status_text = getattr(self, "status_text", None)
-        if self.status_text:
-            self.status_text.text = rtl_text("مخاطب ملاقات: " + role)
+    def _create_staff(self, student, parent, date, time, reason, desc, role):
+        srow = self._selected_student(student)
+        if not srow or not parent.text or "ثبت نشده" in str(parent.text):
+            return self._message("دانش‌آموز و ولی او را از فهرست انتخاب کنید.", ERROR)
+        self._create(
+            student_name=self._person_name(srow), target_name=str(parent.text),
+            date=date.text, time=time.text, reason=reason.text, description=desc.text,
+            requester_role=role, student_id=srow.get("id"), parent_name=str(parent.text),
+        )
 
     def _create(self, student_name, target_name, date, time, reason, description, requester_role, **extra):
         if not all(str(x or "").strip() for x in [student_name, target_name, date, time, reason]):
@@ -150,13 +313,13 @@ class MeetingsScreen(Screen):
             "requester_username": self._username(),
             "requester_role": requester_role,
             "requester_name": getattr(self.app_state, "display_name", "کاربر"),
-            "student_name": student_name.strip(),
+            "student_name": str(student_name).strip(),
             "target_role": self.target_role if requester_role == "parent" else "parent",
-            "target_name": target_name.strip(),
-            "requested_date": date.strip(),
-            "requested_time": time.strip(),
-            "reason": reason.strip(),
-            "description": description.strip(),
+            "target_name": str(target_name).strip(),
+            "requested_date": str(date).strip(),
+            "requested_time": str(time).strip(),
+            "reason": str(reason).strip(),
+            "description": str(description or "").strip(),
             "status": "pending_manager",
             "manager_status": "pending",
             "educational_status": "pending",
@@ -164,73 +327,91 @@ class MeetingsScreen(Screen):
         payload.update(extra)
         try:
             self.app_state.api.table_insert("meeting_requests", payload)
-            self._message("درخواست با موفقیت به مدیر ارسال شد.", SUCCESS)
-            self.show_home()
+            self._message("درخواست با موفقیت ثبت شد و برای تأیید مدیر ارسال گردید.", SUCCESS)
         except Exception as exc:
             self._message("ثبت درخواست انجام نشد: " + str(exc), ERROR)
 
     def _review(self, root, role):
-        title = "تأیید و ارجاع درخواست‌های ملاقات" if role == "manager" else "ملاقات‌های ارجاع‌شده برای معاون آموزشی"
-        root.add_widget(self._label(title, "15sp", PRIMARY, 36, True))
+        title = "مدیریت درخواست‌های ملاقات" if role == "manager" else "ملاقات‌های ارجاع‌شده برای معاون آموزشی"
+        root.add_widget(self._label(title, "15sp", PRIMARY, 36, True, True))
         try:
-            filters = {"order":"id.desc","limit":"100"}
+            filters = {"order": "id.desc", "limit": "100"}
             if role == "educational":
                 filters["status"] = "eq.manager_approved"
-            rows = self.app_state.api.table_select("meeting_requests", filters)
+            rows = self.app_state.api.table_select("meeting_requests", filters) or []
         except Exception as exc:
             root.add_widget(self._label("خواندن درخواست‌ها انجام نشد: " + str(exc), color=ERROR, height=60))
             return
         if not rows:
-            root.add_widget(self._label("درخواستی برای نمایش وجود ندارد.", height=60))
+            root.add_widget(self._label("درخواستی برای نمایش وجود ندارد.", height=60, center=True))
             return
+
         scroll_box = BoxLayout(orientation="vertical", spacing=dp(7), size_hint_y=None)
         scroll_box.bind(minimum_height=scroll_box.setter("height"))
         for row in rows:
-            card = BoxLayout(orientation="vertical", padding=dp(9), spacing=dp(4), size_hint_y=None, height=dp(166))
+            status = self._status_text(row.get("status"))
+            card = BoxLayout(orientation="vertical", padding=dp(9), spacing=dp(4),
+                             size_hint_y=None, height=dp(190))
             card.add_widget(self._label(
                 f"#{row.get('id')} | {row.get('requester_name') or row.get('requester_username')} → {row.get('target_name') or 'مخاطب'}\n"
                 f"دانش‌آموز: {row.get('student_name') or '-'} | تاریخ: {row.get('requested_date')} | ساعت: {row.get('requested_time')}\n"
-                f"علت: {row.get('reason')}\nوضعیت: {row.get('status')}", "10sp", SECONDARY, 92, True))
+                f"علت: {row.get('reason') or '-'}\nوضعیت: {status}",
+                "10sp", SECONDARY, 108, True))
             actions = BoxLayout(size_hint_y=None, height=dp(45), spacing=dp(5))
             if role == "manager" and row.get("status") == "pending_manager":
                 actions.add_widget(self._button("تأیید مدیر و ارجاع", lambda *_a, rid=row["id"]: self._manager_approve(rid), SUCCESS, 44))
                 actions.add_widget(self._button("رد درخواست", lambda *_a, rid=row["id"]: self._reject(rid), ERROR, 44))
             elif role == "educational" and row.get("status") == "manager_approved":
-                actions.add_widget(self._button("تأیید نهایی / تعیین وقت", lambda *_a, rid=row["id"], d=row.get("requested_date"), t=row.get("requested_time"): self._educational_approve(rid,d,t), SUCCESS, 44))
-            card.add_widget(actions); scroll_box.add_widget(card)
+                actions.add_widget(self._button("تأیید نهایی / تعیین وقت", lambda *_a, rid=row["id"], d=row.get("requested_date"), t=row.get("requested_time"): self._educational_approve(rid, d, t), SUCCESS, 44))
+            card.add_widget(actions)
+            scroll_box.add_widget(card)
         root.add_widget(self._scroll(scroll_box))
+
+    def _status_text(self, status):
+        return {
+            "pending_manager": "در انتظار تأیید مدیر",
+            "manager_approved": "تأیید مدیر؛ ارجاع‌شده به معاون آموزشی",
+            "confirmed": "تأیید نهایی و زمان‌بندی‌شده",
+            "rejected": "رد شده",
+        }.get(str(status), str(status or "-"))
 
     def _manager_approve(self, rid):
         try:
             self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
-                "manager_status":"approved", "manager_approved_at":"now()", "status":"manager_approved"
+                "manager_status": "approved",
+                "manager_approved_at": "now()",
+                "status": "manager_approved",
             })
             self._message("درخواست تأیید و برای معاون آموزشی ارجاع شد.", SUCCESS)
-            self.show_home()
-        except Exception as exc: self._message(str(exc), ERROR)
+        except Exception as exc:
+            self._message(str(exc), ERROR)
 
     def _educational_approve(self, rid, date, time):
         try:
             self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
-                "educational_status":"approved", "final_date":date, "final_time":time,
-                "status":"confirmed"
+                "educational_status": "approved",
+                "final_date": date,
+                "final_time": time,
+                "status": "confirmed",
             })
             self._message("ملاقات نهایی شد و برای طرفین قابل پیگیری است.", SUCCESS)
-            self.show_home()
-        except Exception as exc: self._message(str(exc), ERROR)
+        except Exception as exc:
+            self._message(str(exc), ERROR)
 
     def _reject(self, rid):
         try:
-            self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {"manager_status":"rejected","status":"rejected"})
-            self._message("درخواست رد شد.", ERROR); self.show_home()
-        except Exception as exc: self._message(str(exc), ERROR)
+            self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
+                "manager_status": "rejected", "status": "rejected"
+            })
+            self._message("درخواست رد شد.", ERROR)
+        except Exception as exc:
+            self._message(str(exc), ERROR)
 
     def _message(self, text, color):
-        # Keep feedback in a small modal-free banner to avoid Android popup crashes.
         try:
             self.clear_widgets()
             root = BoxLayout(orientation="vertical", padding=dp(20), spacing=dp(12))
-            root.add_widget(self._label(text, "15sp", color, 90, True))
+            root.add_widget(self._label(text, "15sp", color, 90, True, True))
             root.add_widget(self._button("بازگشت", self.show_home, PRIMARY, 48))
             self.add_widget(root)
         except Exception:
