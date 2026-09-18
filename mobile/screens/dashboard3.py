@@ -203,9 +203,9 @@ class DashboardScreen(Screen):
 
             # Generic panels use the existing module controller. It owns
             # the shared workspace plus role-specific/specialized behavior.
-            from mobile.screens.module import ModuleScreen
+            from mobile.screens.module import FinalModuleScreen
             if not self.manager.has_screen("module"):
-                self.manager.add_widget(ModuleScreen(name="module", app_state=self.app_state))
+                self.manager.add_widget(FinalModuleScreen(name="module", app_state=self.app_state))
             screen = self.manager.get_screen("module")
             screen.set_module(route, "dashboard")
             self.manager.current = "module"
