@@ -157,61 +157,20 @@ class DashboardScreen(Screen):
         return True
 
     def open(self, route):
-        if route not in ACTIVE_ROUTES:
+        if route not in ACTIVE_ROUTES or not self.manager:
             return
-
-        if not self.manager:
-            return
-
         try:
-            # Keep the specialized operational screens where they already exist.
-            if route == "about":
-                from mobile.screens.about import AboutScreen
-                if not self.manager.has_screen("about"):
-                    self.manager.add_widget(AboutScreen(name="about", app_state=self.app_state))
-                self.manager.current = "about"
-                return
-
-            if route == "teacher_exams":
-                if self.role() == "manager":
-                    from mobile.screens.manager_exams import ManagerExamsScreen
-                    cls = ManagerExamsScreen
-                else:
-                    from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen
-                    cls = TeacherExamsV4Screen
-                if not self.manager.has_screen("teacher_exams"):
-                    self.manager.add_widget(cls(name="teacher_exams", app_state=self.app_state))
-                self.manager.current = "teacher_exams"
-                return
-
-            if route in {"payment", "messages"}:
-                from mobile.screens.operations import OperationsScreen
-                if not self.manager.has_screen("operations"):
-                    self.manager.add_widget(OperationsScreen(name="operations", app_state=self.app_state))
-                screen = self.manager.get_screen("operations")
-                if hasattr(screen, "set_route"):
-                    screen.set_route(route)
-                self.manager.current = "operations"
-                return
-
-            if route == "online":
-                from mobile.screens.online_class import OnlineClassScreen
-                if not self.manager.has_screen("online"):
-                    self.manager.add_widget(OnlineClassScreen(name="online", app_state=self.app_state))
-                self.manager.current = "online"
-                return
-
-            # Generic panels use the existing module controller. It owns
-            # the shared workspace plus role-specific/specialized behavior.
-            from mobile.screens.module import FinalModuleScreen
-            if not self.manager.has_screen("module"):
-                self.manager.add_widget(FinalModuleScreen(name="module", app_state=self.app_state))
-            screen = self.manager.get_screen("module")
-            screen.set_module(route, "dashboard")
-            self.manager.current = "module"
-
+            # All dashboard buttons enter one standalone, dependency-light shell.
+            # This removes the failing wrapper/import chain from panel navigation.
+            from mobile.screens.panel_screen import PanelScreen
+            if not self.manager.has_screen("panel"):
+                self.manager.add_widget(PanelScreen(name="panel", app_state=self.app_state))
+            screen = self.manager.get_screen("panel")
+            screen.set_route(route)
+            self.manager.current = "panel"
         except Exception as exc:
-            self.status.text = rtl_text("خطا در باز کردن پنل: " + str(exc))
+            # Keep the dashboard usable even if a future optional module fails.
+            self.status.text = rtl_text("پنل آماده نشد؛ لطفاً دوباره تلاش کنید.")
             self.status.color = (0.85, 0.15, 0.15, 1)
             print("DASHBOARD PANEL OPEN ERROR:", repr(exc))
 
