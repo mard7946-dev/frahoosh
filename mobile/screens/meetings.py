@@ -122,10 +122,8 @@ class MeetingsScreen(Screen):
                         rows.append(students[0])
                 except Exception:
                     pass
-            if not rows:
-                # Compatible fallback for older installations where the link is stored
-                # in account settings or where the parent has not been linked yet.
-                rows = api.table_select("students", {"order": "id.asc", "limit": "100"}) or []
+            # Never fall back to the whole student table: a parent must only
+            # see children explicitly linked to the authenticated account.
             self._student_rows = rows
             return rows
         except Exception as exc:
