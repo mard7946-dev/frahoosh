@@ -2,6 +2,7 @@
 # Professional operational navigation: two-column subpanel cards with real table workspaces.
 from mobile.screens.professional_workspace import ProfessionalWorkspaceScreen
 from mobile.screens.module_workspace import ModuleWorkspaceScreen, SUBMENUS, FRIENDLY, TABLE_FIELDS, HIDDEN
+from kivy.app import App
 from kivy.metrics import dp
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
@@ -96,6 +97,18 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
             self.message("ثبت اطلاعات", "باز کردن فرم این زیرپنل با خطا روبه‌رو شد. اطلاعات سامانه محفوظ است.")
 
     def open_table(self, table, refresh_subbar=True):
+        # Dedicated workflows use real screens while the generic CRUD engine remains intact.
+        app = App.get_running_app()
+        if table == "meeting_requests" and app is not None and hasattr(app, "ensure_meetings"):
+            screen = app.ensure_meetings()
+            if screen is not None:
+                self.manager.current = "meetings"
+                return screen
+        if table == "smart_class_preview" and app is not None and hasattr(app, "ensure_smart_class_preview"):
+            screen = app.ensure_smart_class_preview()
+            if screen is not None:
+                self.manager.current = "smart_class_preview"
+                return screen
         if table in ("teacher_exams", "online_classes", "messages", "payment_offers"):
             return super().open_table(table, refresh_subbar=False)
         return ModuleWorkspaceScreen.open_table(self, table, refresh_subbar=False)

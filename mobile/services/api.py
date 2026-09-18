@@ -178,6 +178,30 @@ class SupabaseClient:
             return data[0].strip() or None
         return None
 
+    def send_password_recovery(self, identifier):
+        identifier = self._normalize_digits(identifier).strip()
+        if not identifier:
+            raise ApiError("نام کاربری یا کد ملی را وارد کنید.")
+        if "@" in identifier:
+            email = identifier
+        else:
+            if not identifier.isdigit() or len(identifier) != 10:
+                raise ApiError("کد ملی باید ۱۰ رقم باشد.")
+            email = self.resolve_email_by_national_code(identifier)
+            if not email:
+                raise ApiError("برای این کد ملی، حساب کاربری در سامانه پیدا نشد.")
+
+        response = _request(
+            "POST",
+            f"{self.url}/auth/v1/recover",
+            headers=self._headers(),
+            payload={"email": email},
+            timeout=API_TIMEOUT,
+        )
+        if not response.ok:
+            raise ApiError(self._error(response, "ارسال لینک بازیابی رمز انجام نشد."))
+        return True
+
     def get_user(self):
         if not self.configured or not self.access_token or self.access_token == "local-bootstrap-admin":
             return None
