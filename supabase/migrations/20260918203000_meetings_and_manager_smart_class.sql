@@ -42,6 +42,7 @@ drop policy if exists "meeting manager all" on public.meeting_requests;
 drop policy if exists "meeting staff read" on public.meeting_requests;
 drop policy if exists "meeting requester read" on public.meeting_requests;
 drop policy if exists "meeting parent insert" on public.meeting_requests;
+drop policy if exists "meeting requester insert" on public.meeting_requests;
 
 create policy "meeting manager all" on public.meeting_requests
 for all to authenticated
@@ -59,10 +60,15 @@ using (
   or lower(coalesce(requester_user_id,'')) = lower(coalesce(auth.uid()::text,''))
 );
 
-create policy "meeting parent insert" on public.meeting_requests
+create policy "meeting requester insert" on public.meeting_requests
 for insert to authenticated
 with check (
-  requester_role in ('parent','اولیا')
+  requester_role in (
+    'parent','اولیا','teacher','دبیر','teachers',
+    'staff','کادر','advisor','counselor','مشاوره',
+    'educational','معاون آموزشی','executive','معاون اجرایی',
+    'cultural','معاون پرورشی'
+  )
   and (
     lower(coalesce(requester_user_id,'')) = lower(coalesce(auth.jwt()->>'email',''))
     or lower(coalesce(requester_user_id,'')) = lower(coalesce(auth.uid()::text,''))
@@ -78,8 +84,9 @@ create or replace function public.frahoosh_update_meeting_request(
 )
 returns public.meeting_requests
 language plpgsql
-security invoker
-as $$
+security definer
+set search_path = public, private
+as $
 declare r public.meeting_requests;
 begin
   select * into r from public.meeting_requests where id=p_id for update;
