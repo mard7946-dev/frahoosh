@@ -202,7 +202,7 @@ class FrahooshApp(App):
         except Exception:
             pass
         try:
-            from mobile.screens.dashboard_safe import DashboardScreen
+            from mobile.screens.dashboard3 import DashboardScreen
             dashboard = DashboardScreen(name="dashboard", app_state=self.app_state)
             self.sm.add_widget(dashboard)
             self.dashboard_error = ""
