@@ -102,7 +102,7 @@ class OperationsScreen(Screen):
         try:dur=max(1,int(digits(duration.text or "60")))
         except Exception:return self._error("مدت کلاس باید عدد باشد.")
         try:
-            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":dur,"status":"inactive","start_time_shamsi":start.text.strip(),"end_time_shamsi":end.text.strip(),"join_url":join.text.strip(),"meeting_url":join.text.strip()}); self._success("کلاس در سامانه ثبت شد."); self.set_route("online")
+            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":dur,"status":"active","start_time_shamsi":start.text.strip(),"end_time_shamsi":end.text.strip(),"join_url":join.text.strip(),"meeting_url":join.text.strip()}); self._success("کلاس در سامانه ثبت شد."); self.set_route("online")
         except Exception as exc:self._error("ساخت کلاس انجام نشد: "+str(exc))
     def _online_user(self):self._label("کلاس‌های آنلاین\nکلاس‌های فعال و جلسات واقعی سامانه در اینجا نمایش داده می‌شوند.",height=72); self._load_classes(False)
     def _load_classes(self,management=False):
