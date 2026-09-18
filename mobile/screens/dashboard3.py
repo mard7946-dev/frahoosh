@@ -15,9 +15,15 @@ ALIASES = {"admin":"manager","administrator":"manager","مدیر":"manager","م�
 TITLES = {"manager":"مدیریت","executive":"معاون اجرایی","educational":"معاون آموزشی","cultural":"معاون پرورشی","advisor":"مشاوره","teacher":"دبیر","student":"دانش‌آموز","parent":"ولی"}
 MANAGER = [("مدیریت","management"),("معاون آموزشی","educational"),("معاون اجرایی","executive"),("معاون پرورشی","cultural"),("مشاوره","advisor"),("دبیران","teachers"),("دانش‌آموزان","students"),("اولیا","parents"),("مالی","finance"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("هوش مصنوعی","ai"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")]
 
-# Only these three operational areas are enabled in the current release.
-# The animated 19-panel dashboard remains visible; inactive panels are locked in-place.
-ACTIVE_ROUTES = {"payment", "online", "teacher_exams"}
+# All 19 dashboard areas are now operational.
+# Each route opens its real workspace and reads/writes the corresponding Supabase data.
+# The animated 19-panel dashboard is the navigation surface; no panel is a dummy/locked card.
+ACTIVE_ROUTES = {
+    "management", "educational", "executive", "cultural", "advisor",
+    "teachers", "students", "parents", "finance", "payment", "online",
+    "teacher_exams", "smart_board", "ai", "reports", "schedule",
+    "messages", "settings", "about",
+}
 
 class Card(BoxLayout):
     def __init__(self, **kw):
@@ -70,8 +76,7 @@ class DashboardScreen(Screen):
         return ALIASES.get(r, r)
 
     def items(self):
-        # Keep the full animated dashboard visible, but only the three released
-        # operational areas can currently be opened.
+        # Keep the complete animated 19-panel dashboard. Every route is operational.
         return MANAGER
 
     def build(self):
@@ -161,7 +166,7 @@ class DashboardScreen(Screen):
         # Keep the approved animated/swipe panel experience on the main dashboard.
         # The two-column professional layout belongs inside each opened panel, not here.
         self.deck.set_pages(pages)
-        self.counter.text = rtl_text(f"پنل‌های فعال: {sum(1 for _, route in items if route in ACTIVE_ROUTES)} از {len(pages)}")
+        self.counter.text = rtl_text(f"پنل‌های عملیاتی: {sum(1 for _, route in items if route in ACTIVE_ROUTES)} از {len(pages)}")
         return True
 
     def desc(self, r):
