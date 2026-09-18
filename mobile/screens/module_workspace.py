@@ -187,12 +187,20 @@ class ModuleWorkspaceScreen(Screen):
         for caption,value in [("زیرپنل‌ها",str(len(items))), ("قابل ویرایش",str(sum(1 for _,t in items if self.can_write(t)))), ("منبع داده","Supabase")]:
             c=Surface(height=dp(70)); c.add_widget(self.label(value,"19sp",PRIMARY,True,"center")); c.add_widget(self.label(caption,"9sp",SECONDARY,False,"center")); stats.add_widget(c)
         self.body.add_widget(stats)
-        scroll=ScrollView(do_scroll_x=False); grid=GridLayout(cols=1,spacing=dp(6),size_hint_y=None); grid.bind(minimum_height=grid.setter("height"))
+        scroll=ScrollView(do_scroll_x=False); grid=GridLayout(cols=2,spacing=dp(8),padding=[dp(2),dp(2)],size_hint_y=None); grid.bind(minimum_height=grid.setter('height'))
         for i,(text,table) in enumerate(items,1):
-            c=Surface(height=dp(82)); row=BoxLayout(spacing=dp(5))
-            badge=BoxLayout(size_hint_x=None,width=dp(45)); badge.add_widget(self.label(f"{i:02d}","12sp",WHITE,True,"center")); self._badge(badge)
-            row.add_widget(badge); row.add_widget(self.label(text,"13sp",PRIMARY,True)); row.add_widget(self.btn("ورود",lambda *_a,t=table:self.open_table(t),SUCCESS if self.can_write(table) else PRIMARY,dp(40),dp(74)))
-            c.add_widget(row); c.add_widget(self.label(("عملیات ثبت/ویرایش/حذف فعال" if self.can_write(table) else "مشاهده اطلاعات واقعی بر اساس سطح دسترسی"),"8sp",SECONDARY,False,"right")); grid.add_widget(c)
+            c=Surface(height=dp(128),size_hint_y=None,padding=dp(10))
+            row=BoxLayout(size_hint_y=None,height=dp(54),spacing=dp(6))
+            badge=BoxLayout(size_hint_x=None,width=dp(42)); badge.add_widget(self.label(f"{i:02d}","11sp",WHITE,True,"center")); self._badge(badge)
+            row.add_widget(badge)
+            title_box=BoxLayout(orientation="vertical",spacing=dp(2))
+            title_box.add_widget(self.label(text,"13sp",PRIMARY,True,"right"))
+            title_box.add_widget(self.label(FRIENDLY.get(table,table),"8sp",SECONDARY,False,"right"))
+            row.add_widget(title_box)
+            c.add_widget(row)
+            c.add_widget(self.label(("ثبت / ویرایش / حذف" if self.can_write(table) else "مشاهده اطلاعات بر اساس سطح دسترسی"),"8sp",SECONDARY,False,"right"))
+            c.add_widget(self.btn("ورود به محیط این بخش  ›",lambda *_a,t=table:self.open_table(t),SUCCESS if self.can_write(table) else PRIMARY,dp(38)))
+            grid.add_widget(c)
         scroll.add_widget(grid); self.body.add_widget(scroll)
 
     def _badge(self,w):
