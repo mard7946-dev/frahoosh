@@ -36,8 +36,9 @@ class PanelCard(ButtonBehavior, Card):
         self.background_color = (1, 1, 1, 0)
 
 class SwipeDeck(PageLayout):
+    """Kivy 2.3.1 PageLayout is horizontal; keep swipe navigation without invalid orientation."""
     def __init__(self, **kwargs):
-        super().__init__(orientation="tb", border=0, swipe_threshold=.10, **kwargs)
+        super().__init__(border=0, swipe_threshold=.10, **kwargs)
         self.on_index_change = None
         self.bind(page=self._page_changed)
 
