@@ -6,10 +6,10 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.pagelayout import PageLayout
 
-from mobile.config import APP_NAME, SCHOOL_YEAR, PRIMARY, SECONDARY, SUCCESS, WHITE
+from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, PRIMARY, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text
 
-SCHOOL = "دبیرستان سردارشهیدحاجی زاده ۲"
+SCHOOL = SCHOOL_NAME or "دبیرستان سردار شهید حاجی زاده ۲"
 ALIASES = {"admin":"manager","administrator":"manager","مدیر":"manager","مدیریت":"manager","executive":"executive","معاون اجرایی":"executive","educational":"educational","معاون آموزشی":"educational","cultural":"cultural","معاون پرورشی":"cultural","advisor":"advisor","مشاور":"advisor","teacher":"teacher","دبیر":"teacher","معلم":"teacher","student":"student","دانش‌آموز":"student","دانش آموز":"student","parent":"parent","ولی":"parent","اولیا":"parent"}
 TITLES = {"manager":"مدیریت","executive":"معاون اجرایی","educational":"معاون آموزشی","cultural":"معاون پرورشی","advisor":"مشاوره","teacher":"دبیر","student":"دانش‌آموز","parent":"ولی"}
 MANAGER = [("مدیریت","management"),("معاون آموزشی","educational"),("معاون اجرایی","executive"),("معاون پرورشی","cultural"),("مشاوره","advisor"),("دبیران","teachers"),("دانش‌آموزان","students"),("اولیا","parents"),("مالی","finance"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("هوش مصنوعی","ai"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")]
