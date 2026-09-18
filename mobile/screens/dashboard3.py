@@ -86,7 +86,7 @@ class DashboardScreen(Screen):
         self.frame.add_widget(self.label("همه پنل‌های سامانه در این صفحه قابل مشاهده و ورود هستند.", "10sp", SECONDARY, False, True))
         from kivy.uix.scrollview import ScrollView
         self.deck = ScrollView(do_scroll_x=False, do_scroll_y=True, size_hint_y=1)
-        self.panel_box = BoxLayout(orientation="vertical", spacing=dp(8), size_hint_y=None, padding=dp(4))
+        self.panel_box = GridLayout(cols=2, spacing=dp(8), size_hint_y=None, padding=dp(4))
         self.panel_box.bind(minimum_height=self.panel_box.setter("height"))
         self.deck.add_widget(self.panel_box)
         self.frame.add_widget(self.deck)
@@ -147,9 +147,11 @@ class DashboardScreen(Screen):
             d.bind(on_release=lambda *_ , x=route: self.open(x))
             self.db.add_widget(d)
         self.panel_box.clear_widgets()
+        # Spacious two-column dashboard cards; each card opens a dedicated operational workspace.
+        self.panel_box.cols = 2 if hasattr(self.panel_box, "cols") else 2
         for page in pages:
             page.size_hint_y = None
-            page.height = dp(205)
+            page.height = dp(190)
             self.panel_box.add_widget(page)
         self.counter.text = rtl_text(f"تعداد پنل‌ها: {len(pages)}")
         return True
