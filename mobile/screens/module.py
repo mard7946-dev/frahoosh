@@ -7,6 +7,7 @@ from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.textinput import TextInput
+from kivy.uix.spinner import Spinner
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from mobile.ui import font_name, rtl_text
@@ -96,9 +97,186 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
             self.message("ثبت اطلاعات", "باز کردن فرم این زیرپنل با خطا روبه‌رو شد. اطلاعات سامانه محفوظ است.")
 
     def open_table(self, table, refresh_subbar=True):
+        if table == "meeting_requests":
+            return self._meeting_workspace()
+        if table == "smart_class_monitor":
+            return self._smart_class_monitor()
         if table in ("teacher_exams", "online_classes", "messages", "payment_offers"):
             return super().open_table(table, refresh_subbar=False)
         return ModuleWorkspaceScreen.open_table(self, table, refresh_subbar=False)
+
+
+
+    def _meeting_workspace(self):
+        """Real parent/teacher/staff/counselor meeting workflow backed by Supabase."""
+        self.table = "meeting_requests"
+        self.body.clear_widgets()
+        role = self.role()
+        title = "ملاقات و درخواست جلسه"
+        head = self._surface(dp(92))
+        head.add_widget(self.label(title, "18sp", PRIMARY, True, "center"))
+        if role in {"parent", "اولیا"}:
+            head.add_widget(self.label("درخواست ملاقات با دبیر، کادر، مشاور یا مدیریت", "10sp", SECONDARY, False, "center"))
+            self._meeting_parent_form()
+        else:
+            head.add_widget(self.label("ثبت درخواست ملاقات با اولیای دانش‌آموز؛ درخواست پس از تایید مدیر به معاون آموزشی ارجاع می‌شود.", "9sp", SECONDARY, False, "center"))
+            self._meeting_staff_form()
+        self.body.add_widget(head)
+        self._meeting_list()
+
+    def _spinner(self, values, default=None, height=48):
+        vals = list(values) or ["—"]
+        return Spinner(text=default or vals[0], values=vals, font_name=font_name(), font_size="13sp",
+                       size_hint_y=None, height=dp(height), background_normal="", background_color=CARD)
+
+    def _meeting_parent_form(self):
+        role_names = [("teacher","دبیر"),("staff","کادر"),("advisor","مشاور"),("manager","مدیریت")]
+        target = self._spinner([x[1] for x in role_names], "دبیر")
+        self.body.add_widget(self.label("ملاقات با", "10sp", PRIMARY, True, "right"))
+        self.body.add_widget(target)
+        person = TextInput(hint_text=rtl_text("نام دبیر / کادر / مشاور / مدیر"), font_name=font_name(), font_size="13sp", halign="right", size_hint_y=None, height=dp(48))
+        student = TextInput(hint_text=rtl_text("شناسه دانش‌آموز"), font_name=font_name(), font_size="13sp", halign="right", size_hint_y=None, height=dp(48), text=str(self.app_state.profile.get("linked_student_id") or ""))
+        date = TextInput(hint_text=rtl_text("تاریخ ملاقات"), font_name=font_name(), font_size="13sp", halign="right", size_hint_y=None, height=dp(48))
+        time = TextInput(hint_text=rtl_text("ساعت ملاقات"), font_name=font_name(), font_size="13sp", halign="right", size_hint_y=None, height=dp(48))
+        reason = TextInput(hint_text=rtl_text("علت ملاقات"), font_name=font_name(), font_size="13sp", halign="right", size_hint_y=None, height=dp(52))
+        description = TextInput(hint_text=rtl_text("توضیحات تکمیلی"), font_name=font_name(), font_size="13sp", halign="right", multiline=True, size_hint_y=None, height=dp(80))
+        for w in (person, student, date, time, reason, description): self.body.add_widget(w)
+        self.body.add_widget(self.btn("ثبت درخواست ملاقات", lambda *_: self._save_meeting(
+            requester_role="parent", target_role=dict(role_names).get(target.text,"teacher"), target_name=person.text,
+            student_id=student.text, requested_date=date.text, requested_time=time.text,
+            reason=reason.text, description=description.text
+        ), SUCCESS, dp(46)))
+
+    def _meeting_staff_form(self):
+        role = self.role()
+        requester_role = "teacher" if role in {"teacher","دبیر","teachers"} else ("advisor" if role in {"advisor","counselor","مشاوره"} else "staff")
+        student = TextInput(hint_text=rtl_text("شناسه دانش‌آموز"), font_name=font_name(), font_size="13sp", halign="right", size_hint_y=None, height=dp(48))
+        parent = TextInput(hint_text=rtl_text("نام ولی دانش‌آموز"), font_name=font_name(), font_size="13sp", halign="right", size_hint_y=None, height=dp(48))
+        date = TextInput(hint_text=rtl_text("تاریخ ملاقات"), font_name=font_name(), font_size="13sp", halign="right", size_hint_y=None, height=dp(48))
+        time = TextInput(hint_text=rtl_text("ساعت ملاقات"), font_name=font_name(), font_size="13sp", halign="right", size_hint_y=None, height=dp(48))
+        reason = TextInput(hint_text=rtl_text("علت ملاقات"), font_name=font_name(), font_size="13sp", halign="right", size_hint_y=None, height=dp(52))
+        description = TextInput(hint_text=rtl_text("توضیحات تکمیلی"), font_name=font_name(), font_size="13sp", halign="right", multiline=True, size_hint_y=None, height=dp(80))
+        for w in (student,parent,date,time,reason,description): self.body.add_widget(w)
+        self.body.add_widget(self.btn("ثبت درخواست ملاقات با ولی", lambda *_: self._save_meeting(
+            requester_role=requester_role, target_role="parent", target_name=parent.text,
+            student_id=student.text, requested_date=date.text, requested_time=time.text,
+            reason=reason.text, description=description.text, parent_name=parent.text
+        ), SUCCESS, dp(46)))
+
+    def _save_meeting(self, requester_role, target_role, target_name, student_id, requested_date, requested_time, reason, description, parent_name=""):
+        if not all(str(x or "").strip() for x in (target_name, student_id, requested_date, requested_time, reason)):
+            self.message("درخواست ملاقات", "نام طرف ملاقات، دانش‌آموز، تاریخ، ساعت و علت الزامی است.")
+            return
+        profile = self.app_state.profile
+        payload = {
+            "requester_user_id": str(profile.get("username") or profile.get("email") or self.app_state.user.get("email") or ""),
+            "requester_role": requester_role,
+            "requester_name": self.app_state.display_name,
+            "parent_id": profile.get("linked_parent_id"),
+            "parent_name": parent_name or (self.app_state.display_name if requester_role == "parent" else ""),
+            "student_id": int(student_id) if str(student_id).isdigit() else None,
+            "student_name": "",
+            "target_role": target_role,
+            "target_name": str(target_name).strip(),
+            "requested_date_shamsi": str(requested_date).strip(),
+            "requested_time": str(requested_time).strip(),
+            "reason": str(reason).strip(),
+            "description": str(description or "").strip(),
+        }
+        try:
+            self.app_state.api.table_insert("meeting_requests", payload)
+            self.message("درخواست ملاقات", "درخواست ثبت شد و برای تایید مدیر ارسال شد.")
+            self._meeting_workspace()
+        except Exception as exc:
+            self.message("خطا", str(exc))
+
+    def _meeting_list(self):
+        try:
+            rows = self.app_state.api.table_select("meeting_requests", {"order":"id.desc", "limit":"30"})
+        except Exception as exc:
+            self.body.add_widget(self.label("خواندن درخواست‌های ملاقات انجام نشد: "+str(exc), "9sp", SECONDARY, False, "center"))
+            return
+        if not rows:
+            self.body.add_widget(self.label("هنوز درخواست ملاقاتی ثبت نشده است.", "10sp", SECONDARY, False, "center"))
+            return
+        for row in rows:
+            text = (
+                f"#{row.get('id')}  {row.get('requester_name') or 'کاربر'} → {row.get('target_name') or 'مخاطب'}\n"
+                f"دانش‌آموز: {row.get('student_name') or row.get('student_id') or '—'} | "
+                f"{row.get('requested_date_shamsi') or '—'} | {row.get('requested_time') or '—'}\n"
+                f"علت: {row.get('reason') or '—'}\n"
+                f"مدیر: {row.get('manager_status') or '—'} | معاون آموزشی: {row.get('educational_status') or '—'} | وضعیت: {row.get('final_status') or '—'}"
+            )
+            self.body.add_widget(self.label(text, "10sp", PRIMARY, True, "right", 112))
+            if self.role() in {"manager","admin","administrator","مدیر","مدیریت"} and row.get("manager_status") == "در انتظار تایید مدیر":
+                self.body.add_widget(self.btn("✓ تایید مدیر و ارجاع به معاون آموزشی", lambda *_ ,x=row.get("id"): self._meeting_action(x,"approve"), SUCCESS, dp(42)))
+                self.body.add_widget(self.btn("✕ رد درخواست", lambda *_ ,x=row.get("id"): self._meeting_action(x,"reject"), ERROR, dp(42)))
+            if self.role() in {"educational","معاون آموزشی"} and row.get("manager_status") == "تایید مدیر":
+                self.body.add_widget(self.btn("تایید نهایی / تعیین وقت", lambda *_ ,x=row.get("id"): self._meeting_schedule(x), SUCCESS, dp(42)))
+
+    def _meeting_action(self, meeting_id, action):
+        try:
+            self.app_state.api.rpc("frahoosh_update_meeting_request", {"p_id":meeting_id,"p_action":action})
+            self._meeting_workspace()
+        except Exception as exc: self.message("عملیات ملاقات", str(exc))
+
+    def _meeting_schedule(self, meeting_id):
+        root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(7))
+        date = TextInput(hint_text=rtl_text("تاریخ نهایی"), font_name=font_name(), halign="right", size_hint_y=None, height=dp(48))
+        time = TextInput(hint_text=rtl_text("ساعت نهایی"), font_name=font_name(), halign="right", size_hint_y=None, height=dp(48))
+        note = TextInput(hint_text=rtl_text("یادداشت معاون آموزشی"), font_name=font_name(), halign="right", multiline=True, size_hint_y=None, height=dp(80))
+        for w in (date,time,note): root.add_widget(w)
+        pop = Popup(title=rtl_text("تعیین زمان ملاقات"), content=root, size_hint=(.92,.48), auto_dismiss=False)
+        actions=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(6))
+        actions.add_widget(self.btn("انصراف",lambda *_:pop.dismiss(),SECONDARY,dp(44)))
+        actions.add_widget(self.btn("تایید نهایی",lambda *_: self._finish_meeting(pop,meeting_id,date,time,note),SUCCESS,dp(44)))
+        root.add_widget(actions); pop.open()
+
+    def _finish_meeting(self,pop,meeting_id,date,time,note):
+        try:
+            self.app_state.api.rpc("frahoosh_update_meeting_request", {"p_id":meeting_id,"p_action":"schedule","p_note":note.text,"p_final_date":date.text,"p_final_time":time.text})
+            pop.dismiss(); self._meeting_workspace()
+        except Exception as exc: self.message("تعیین وقت", str(exc))
+
+    def _smart_class_monitor(self):
+        """Manager-only live content view: board, files, chat, quizzes and session data."""
+        self.table = "smart_class_monitor"
+        self.body.clear_widgets()
+        if self.role() not in {"manager","admin","administrator","مدیر","مدیریت"}:
+            self.body.add_widget(self.label("این بخش فقط برای مدیریت فعال است.", "14sp", SECONDARY, True, "center", 90))
+            return
+        head=self._surface(dp(96))
+        head.add_widget(self.label("نمونه کلاس هوشمند — مشاهده محتوای کلاس", "18sp", PRIMARY, True, "center"))
+        head.add_widget(self.label("مدیریت می‌تواند محتوای ثبت‌شده کلاس را بررسی کند و بخش‌های مختلف آن را برای دبیر، دانش‌آموز و اولیا توضیح دهد.", "9sp", SECONDARY, False, "center"))
+        self.body.add_widget(head)
+        try: classes=self.app_state.api.table_select("online_classes", {"order":"id.desc","limit":"20"})
+        except Exception: classes=[]
+        if not classes:
+            self.body.add_widget(self.label("هنوز کلاس آنلاینی ثبت نشده است؛ بعد از ساخت کلاس، محتوای واقعی آن در اینجا نمایش داده می‌شود.", "10sp", SECONDARY, False, "center", 80))
+            return
+        for c in classes:
+            cid=c.get("id")
+            self.body.add_widget(self.label(f"کلاس #{cid} | {c.get('title') or 'کلاس آنلاین'}\nدرس: {c.get('subject') or '—'} | پایه: {c.get('grade') or '—'} | کلاس: {c.get('class_name') or '—'}", "11sp", PRIMARY, True, "right", 82))
+            for table,title in [
+                ("smart_board_content","📚 محتوای آموزشی"),
+                ("smart_board_whiteboards","🖊 تخته و نوشته‌ها"),
+                ("smart_board_media","🖼 عکس و رسانه"),
+                ("smart_board_files","📎 فایل و PDF"),
+                ("smart_board_quizzes","❓ آزمون کوتاه"),
+                ("online_class_chat","💬 گفت‌وگو"),
+                ("online_class_activity","📋 فعالیت کلاس"),
+                ("online_class_sessions","⏱ جلسات"),
+            ]:
+                try:
+                    params={"class_id":f"eq.{cid}","order":"id.desc","limit":"20"}
+                    rows=self.app_state.api.table_select(table,params)
+                except Exception:
+                    rows=[]
+                if rows:
+                    self.body.add_widget(self.label(title, "11sp", SUCCESS, True, "right", 34))
+                    for row in rows:
+                        content=row.get("content") or row.get("text") or row.get("title") or row.get("body") or row.get("file_name") or row.get("file_url") or row.get("question") or "مورد ثبت‌شده"
+                        self.body.add_widget(self.label(str(content), "9sp", SECONDARY, False, "right", 58))
 
     def _start_session(self, class_id):
         if not class_id:
