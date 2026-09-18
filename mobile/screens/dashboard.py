@@ -108,21 +108,19 @@ class DashboardScreen(Screen):
             if not self.manager.has_screen("about"):
                 from mobile.screens.about import AboutScreen; self.manager.add_widget(AboutScreen(name="about",app_state=self.app_state))
             self.manager.current="about"; return
-        if route in {"meeting_requests", "smart_class_demo"}:
-            if not self.manager.has_screen("module"):
-                from mobile.screens.module import ModuleScreen
-                self.manager.add_widget(ModuleScreen(name="module", app_state=self.app_state))
-            self.manager.get_screen("module").set_module(
-                "management" if route == "smart_class_demo" else ("parents" if self.role() == "parent" else "teachers"),
-                "dashboard"
-            )
-            if route == "meeting_requests":
-                # ModuleWorkspace intercepts this table key and opens the real meeting screen.
-                from mobile.screens.module_workspace import ModuleWorkspaceScreen
-                module = self.manager.get_screen("module")
-                if hasattr(module, "workspace"):
-                    pass
-            self.manager.current = "module"
+        if route == "meeting_requests":
+            from mobile.screens.meeting import MeetingScreen
+            if not self.manager.has_screen("meetings"):
+                self.manager.add_widget(MeetingScreen(name="meetings", app_state=self.app_state))
+            self.manager.get_screen("meetings").show()
+            self.manager.current = "meetings"
+            return
+        if route == "smart_class_demo":
+            from mobile.screens.smart_class_demo import SmartClassDemoScreen
+            if not self.manager.has_screen("smart_class_demo"):
+                self.manager.add_widget(SmartClassDemoScreen(name="smart_class_demo", app_state=self.app_state))
+            self.manager.get_screen("smart_class_demo").show()
+            self.manager.current = "smart_class_demo"
             return
         if route=="participation":
             if not self.manager.has_screen("participation"):
