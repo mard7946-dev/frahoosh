@@ -30,6 +30,54 @@ class OnlineClassScreen(Screen):
         self.status=Label(text="",font_name=font_name(),font_size="11sp",color=SECONDARY,halign="center",valign="middle",size_hint_y=None,height=dp(38)); self.status.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(self.status)
         scroll=ScrollView(do_scroll_x=False); self.body=BoxLayout(orientation="vertical",spacing=dp(8),padding=dp(4),size_hint_y=None); self.body.bind(minimum_height=self.body.setter("height")); scroll.add_widget(self.body); root.add_widget(scroll); self.add_widget(root)
     def on_pre_enter(self,*args): self.show_home()
+    def show_manager_demo(self):
+        self._clear()
+        if role_of(self.app_state) != "manager":
+            self._error("این نمونه فقط برای پنل مدیریت فعال است.")
+            self.show_home()
+            return
+        self._label("نمونه کلاس هوشمند مدیر", "21sp", PRIMARY, 52, True)
+        self._label("مدیر می‌تواند محتوای کلاس را ببیند، اجزای کلاس را برای دبیر، دانش‌آموز و اولیا توضیح دهد و روند جلسه را از یک نقطه کنترل کند.", height=86)
+        self._button("📋 توضیح برای دبیر", lambda *_: self._explain_role("teacher"), SUCCESS)
+        self._button("🎓 توضیح برای دانش‌آموز", lambda *_: self._explain_role("student"), SUCCESS)
+        self._button("👨‍👩‍👦 توضیح برای اولیا", lambda *_: self._explain_role("parent"), SUCCESS)
+        self._button("🖥 مشاهده محتوای نمونه کلاس", lambda *_: self._load_demo_content(), PRIMARY)
+        self._button("بازگشت به کلاس‌ها", lambda *_: self.show_home())
+
+    def _explain_role(self, role):
+        texts = {
+            "teacher": "برای دبیر: برنامه کلاس، شروع جلسه، تخته هوشمند، قلم و پاک‌کن، اشتراک صدا و تصویر، PDF و فایل، حضور و غیاب، گفت‌وگو، تکلیف و ثبت محتوای تدریس.",
+            "student": "برای دانش‌آموز: ورود به جلسه، مشاهده تخته، دریافت فایل و PDF، گفت‌وگو، پاسخ به فعالیت‌ها، مشاهده برنامه و وضعیت حضور.",
+            "parent": "برای اولیا: کلاس آنلاین نمایش داده نمی‌شود؛ اولیا فقط گزارش‌های مجاز فرزند مانند حضور و غیاب، تکلیف، نمره و اطلاعیه‌های مرتبط را مشاهده می‌کند."
+        }
+        self._clear()
+        self._label("راهنمای ارائه کلاس هوشمند", "20sp", PRIMARY, 52, True)
+        self._label(texts.get(role, ""), "13sp", SECONDARY, 130)
+        self._button("بازگشت به نمونه کلاس", lambda *_: self.show_manager_demo())
+
+    def _load_demo_content(self):
+        self._clear()
+        self._label("محتوای کلاس هوشمند", "21sp", PRIMARY, 52, True)
+        self._label("این صفحه برای مدیر طراحی شده تا اجزای واقعی ثبت‌شده در کلاس را بررسی کند؛ محتوای ساختگی به عنوان رکورد واقعی ثبت نمی‌شود.", height=72)
+        tables = [
+            ("smart_board_whiteboards", "تخته و یادداشت‌های کلاس"),
+            ("smart_board_content", "محتوای آموزشی تابلو"),
+            ("smart_board_files", "فایل‌ها و PDF"),
+            ("online_class_chat", "گفت‌وگوی کلاس"),
+            ("online_class_activity", "فعالیت‌های کلاس"),
+            ("online_class_sessions", "جلسه‌ها و زمان شروع/پایان"),
+        ]
+        for table, title in tables:
+            try:
+                rows = self.app_state.api.table_select(table, {"limit": "10", "order": "id.desc"})
+            except Exception as exc:
+                rows = []
+            self._label(f"{title} — {len(rows)} مورد قابل مشاهده", "14sp", PRIMARY, 48, True)
+            for row in rows[:5]:
+                summary = " | ".join(f"{k}: {v}" for k, v in row.items() if v not in (None, "") and k not in {"id"} )
+                self._label(summary[:320] if summary else "رکورد بدون محتوای متنی", "10sp", SECONDARY, 62)
+        self._button("بازگشت به نمونه کلاس", lambda *_: self.show_manager_demo())
+
     def _clear(self): self.body.clear_widgets(); self.current_id=None
     def _label(self,text,size="13sp",color=SECONDARY,height=58,bold=False):
         w=Label(text=rtl_text(text),font_name=font_name(),font_size=size,color=color,bold=bold,halign="right",valign="middle",size_hint_y=None,height=dp(height)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); self.body.add_widget(w); return w
@@ -38,7 +86,13 @@ class OnlineClassScreen(Screen):
     def _field(self,hint,height=48,multiline=False):
         f=TextInput(hint_text=rtl_text(hint),font_name=font_name(),font_size="13sp",multiline=multiline,size_hint_y=None,height=dp(height),halign="right",padding=[dp(10),dp(10)]); self.body.add_widget(f); return f
     def show_home(self):
-        self._clear(); role=role_of(self.app_state); self._label("کلاس آنلاین واقعی","21sp",PRIMARY,52,True); self._label("ساخت کلاس، شروع/پایان جلسه، حضور و غیاب، گفت‌وگو، تخته مشترک، کنترل دوربین/میکروفون و اطلاع غیبت به ولی در همین پنل ثبت می‌شود.",height=82)
+        self._clear(); role=role_of(self.app_state)
+        if role == "parent":
+            self._label("کلاس آنلاین برای پنل اولیا فعال نیست.", "18sp", PRIMARY, 70, True)
+            self._label("گزارش‌های مرتبط با فرزند در پنل اولیا نمایش داده می‌شود.", height=70)
+            self._button("بازگشت به داشبورد", lambda *_: self._back())
+            return
+        self._label("کلاس آنلاین واقعی","21sp",PRIMARY,52,True); self._label("ساخت کلاس، شروع/پایان جلسه، حضور و غیاب، گفت‌وگو، تخته مشترک، کنترل دوربین/میکروفون و اطلاع غیبت به ولی در همین پنل ثبت می‌شود.",height=82)
         if role in MANAGERS:self._create_form()
         self._load_classes()
     def _create_form(self):

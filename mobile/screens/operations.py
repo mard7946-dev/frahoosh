@@ -34,14 +34,181 @@ class OperationsScreen(Screen):
         self.status=Label(text="",font_name=font_name(),font_size="12sp",color=SECONDARY,halign="right",valign="middle",size_hint_y=None,height=dp(42)); self.status.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(self.status)
         scroll=ScrollView(do_scroll_x=False); self.body=BoxLayout(orientation="vertical",spacing=dp(9),padding=dp(4),size_hint_y=None); self.body.bind(minimum_height=self.body.setter("height")); scroll.add_widget(self.body); root.add_widget(scroll); self.add_widget(root)
     def set_route(self,route):
-        self.route=route; self.body.clear_widgets(); self.title.text=rtl_text({"payment":"پرداخت آنلاین","messages":"صندوق پیام‌ها","online":"کلاس‌های آنلاین"}.get(route,APP_NAME))
+        self.route=route; self.body.clear_widgets(); self.title.text=rtl_text({"payment":"پرداخت آنلاین","messages":"صندوق پیام‌ها","online":"کلاس‌های آنلاین","meetings":"ملاقات با مدرسه"}.get(route,APP_NAME))
         if route=="payment":self._payment()
         elif route=="online":self._online()
+        elif route=="meetings":self._meetings()
         else:self._messages()
     def _label(self,text,size="14sp",color=SECONDARY,height=68):
         w=Label(text=rtl_text(text),font_name=font_name(),font_size=size,color=color,halign="right",valign="middle",size_hint_y=None,height=dp(height)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); self.body.add_widget(w); return w
     def _button(self,text,cb,color=PRIMARY,height=48):
         b=Button(text=rtl_text(text),font_name=font_name(),font_size="13sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=dp(height)); b.bind(on_release=cb); self.body.add_widget(b); return b
+    def _meetings(self):
+        role=role_of(self.app_state)
+        self._label("ملاقات با مدرسه", "21sp", PRIMARY, 52, True)
+        self._label("درخواست ملاقات از مسیر واقعی سامانه ثبت می‌شود و تأیید مدیر، سپس ارجاع و تعیین زمان توسط معاون آموزشی در همان رکورد انجام می‌شود.", height=82)
+        if role == "parent":
+            self._parent_meeting_form()
+        elif role in {"teacher","advisor","executive","cultural"}:
+            self._staff_meeting_form(role)
+        if role in {"manager","educational","executive","cultural","advisor","teacher","parent"}:
+            self._load_meetings(role)
+
+    def _meeting_field(self,hint):
+        return self._field(hint,50,False)
+
+    def _profile_email(self):
+        p=getattr(self.app_state,"profile",{}) or {}
+        return str(p.get("email") or p.get("username") or getattr(self.app_state,"display_name","") or "").strip()
+
+    def _profile_id(self,key):
+        p=getattr(self.app_state,"profile",{}) or {}
+        value=p.get(key)
+        try:return int(value) if value not in (None,"") else None
+        except Exception:return None
+
+    def _parent_meeting_form(self):
+        self._label("ثبت درخواست ملاقات", "16sp", PRIMARY, 44, True)
+        students=self._safe_rows("students")
+        if not students:
+            self._label("پرونده فرزند در دسترس نیست؛ ابتدا ارتباط والد و دانش‌آموز را در پرونده اولیا ثبت کنید.",height=70)
+            return
+        student_map={}
+        for s in students:
+            sid=s.get("id"); label=f"{s.get('first_name','')} {s.get('last_name','')} | {s.get('grade','')} {s.get('class_name','')}".strip()
+            if sid: student_map[label]=sid
+        sp_student=Spinner(text=next(iter(student_map)),values=list(student_map),size_hint_y=None,height=dp(50)); self.body.add_widget(sp_student)
+        target_sp=Spinner(text="دبیر",values=["دبیر","کادر","مشاور"],size_hint_y=None,height=dp(50)); self.body.add_widget(target_sp)
+        self._parent_target_map={}
+        names=self._meeting_targets_for_role("teacher")
+        teacher_sp=Spinner(text=(next(iter(names)) if names else "انتخاب فرد"),values=list(names) or ["انتخاب فرد"],size_hint_y=None,height=dp(50)); self.body.add_widget(teacher_sp)
+        target_sp.bind(text=lambda _w,value:self._refresh_parent_targets(value,teacher_sp))
+        date=self._meeting_field("تاریخ ملاقات")
+        time=self._meeting_field("ساعت ملاقات")
+        reason=self._meeting_field("علت ملاقات")
+        self._button("ثبت درخواست ملاقات",lambda *_:self._create_meeting(student_map.get(sp_student.text),sp_student.text,teacher_sp.text,target_sp.text,date.text,time.text,reason.text,self._parent_target_map.get(teacher_sp.text,"")),SUCCESS)
+
+    def _refresh_parent_targets(self,role_label,spinner):
+        kind={"دبیر":"teacher","کادر":"staff","مشاور":"advisor"}.get(role_label,"teacher")
+        names=self._meeting_targets_for_role(kind)
+        spinner.values=list(names) or ["انتخاب فرد"]
+        spinner.text=spinner.values[0]
+
+    def _meeting_targets_for_role(self,kind):
+        table="teachers" if kind=="teacher" else "staff"
+        rows=self._safe_rows(table)
+        mapping={}
+        for row in rows:
+            role=str(row.get("role") or "").lower()
+            if kind=="advisor" and role not in {"advisor","مشاور","counselor","مشاوره"}: continue
+            if kind=="staff" and role in {"advisor","مشاور","counselor","مشاوره"}: continue
+            name=f"{row.get('first_name','')} {row.get('last_name','')}".strip()
+            username=str(row.get("username") or row.get("email") or row.get("national_code") or name).strip()
+            if name: mapping[name]=username
+        self._parent_target_map.update(mapping)
+        return list(mapping)
+
+    def _staff_meeting_form(self,role):
+        self._label("درخواست ملاقات با ولی", "16sp", PRIMARY, 44, True)
+        students=self._safe_rows("students")
+        student_map={}
+        for s in students:
+            label=f"{s.get('first_name','')} {s.get('last_name','')} | {s.get('grade','')} {s.get('class_name','')}".strip()
+            if s.get("id"): student_map[label]=s.get("id")
+        if not student_map:
+            self._label("فهرست دانش‌آموزان در دسترس نیست.",height=60); return
+        sp=Spinner(text=next(iter(student_map)),values=list(student_map),size_hint_y=None,height=dp(50)); self.body.add_widget(sp)
+        parents=self._safe_rows("parents")
+        parent_map={}
+        for p in parents:
+            label=f"{p.get('first_name','')} {p.get('last_name','')}".strip()
+            username=str(p.get("username") or p.get("email") or p.get("national_code") or label).strip()
+            if p.get("id"): parent_map[label]=(p.get("id"),username)
+        parent_names=list(parent_map)
+        parent_sp=Spinner(text=(parent_names[0] if parent_names else "ولی دانش‌آموز"),values=parent_names or ["ولی دانش‌آموز"],size_hint_y=None,height=dp(50)); self.body.add_widget(parent_sp)
+        date=self._meeting_field("تاریخ ملاقات")
+        time=self._meeting_field("ساعت ملاقات")
+        reason=self._meeting_field("علت ملاقات")
+        self._button("ثبت درخواست ملاقات با ولی",lambda *_:self._create_meeting(student_map.get(sp.text),sp.text,parent_sp.text,"parent",date.text,time.text,reason.text,(parent_map.get(parent_sp.text) or (None,""))[1]),SUCCESS)
+
+    def _target_names(self,kind):
+        table={"teacher":"teachers","staff":"staff","advisor":"staff"}.get(kind,kind)
+        rows=self._safe_rows(table)
+        names=[]
+        for r in rows:
+            role=str(r.get("role") or "").lower()
+            if kind=="advisor" and role not in {"advisor","مشاور","counselor","مشاوره"}: continue
+            label=f"{r.get('first_name','')} {r.get('last_name','')}".strip()
+            if label:names.append(label)
+        return names[:100]
+
+    def _safe_rows(self,table):
+        try:return self.app_state.api.table_select(table,{"limit":"100","order":"id.asc"}) or []
+        except Exception:return []
+
+    def _create_meeting(self,student_id,student_label,target_name,target_role,date,time,reason,target_username=""):
+        if not student_id or not target_name or target_name=="انتخاب فرد": return self._error("دانش‌آموز و فرد مورد ملاقات را انتخاب کنید.")
+        if not date.strip() or not time.strip() or not reason.strip(): return self._error("تاریخ، ساعت و علت ملاقات الزامی است.")
+        role=role_of(self.app_state); email=self._profile_email()
+        payload={
+            "requester_id":self._profile_id("id"),
+            "requester_username":email,
+            "requester_role":role,
+            "student_id":int(student_id),
+            "student_name":student_label,
+            "target_role":target_role,
+            "target_name":target_name,
+            "target_username":target_username or target_name,
+            "requested_date_shamsi":date.strip(),
+            "requested_time":time.strip(),
+            "reason":reason.strip(),
+            "status":"pending_manager",
+            "manager_status":"pending",
+            "educational_status":"pending"
+        }
+        try:
+            self.app_state.api.table_insert("school_meeting_requests",payload)
+            self._success("درخواست ملاقات ثبت شد و برای تأیید مدیر ارسال گردید.")
+            self.set_route("meetings")
+        except Exception as exc:self._error("ثبت درخواست ملاقات انجام نشد: "+str(exc))
+
+    def _load_meetings(self,role):
+        self._label("درخواست‌های ملاقات", "16sp", PRIMARY, 44, True)
+        rows=self._safe_rows("school_meeting_requests")
+        if not rows:
+            self._label("درخواستی برای نمایش وجود ندارد.",height=60); return
+        for row in rows[:80]:
+            status=row.get("status") or "pending_manager"
+            title=f"#{row.get('id')} | {row.get('student_name','')} | {row.get('target_name','')}"
+            detail=f"{row.get('requested_date_shamsi','')} — {row.get('requested_time','')} | علت: {row.get('reason','')}\nوضعیت: {status}"
+            self._label(title+"\n"+detail,height=82)
+            rid=row.get("id")
+            if role=="manager" and status=="pending_manager":
+                self._button("تأیید مدیر",lambda *_ ,x=rid:self._meeting_status(x,"manager"),SUCCESS,42)
+                self._button("رد درخواست",lambda *_ ,x=rid:self._meeting_status(x,"reject_manager"),ERROR,42)
+            elif role=="educational" and status=="pending_educational":
+                self._button("تأیید و تعیین وقت نهایی",lambda *_ ,x=rid:self._meeting_status(x,"educational"),SUCCESS,42)
+                self._button("رد توسط معاون آموزشی",lambda *_ ,x=rid:self._meeting_status(x,"reject_educational"),ERROR,42)
+
+    def _meeting_status(self,rid,action):
+        now=now_iso()
+        if action=="manager":
+            payload={"manager_status":"approved","status":"pending_educational","manager_approved_at":now}
+            msg="درخواست تأیید شد و به معاون آموزشی ارجاع شد."
+        elif action=="reject_manager":
+            payload={"manager_status":"rejected","status":"rejected","manager_approved_at":now}
+            msg="درخواست توسط مدیر رد شد."
+        elif action=="educational":
+            payload={"educational_status":"approved","status":"confirmed","educational_approved_at":now}
+            msg="ملاقات تأیید نهایی شد."
+        else:
+            payload={"educational_status":"rejected","status":"rejected","educational_approved_at":now}
+            msg="درخواست توسط معاون آموزشی رد شد."
+        try:
+            self.app_state.api.table_update("school_meeting_requests",{"id":f"eq.{int(rid)}"},payload)
+            self._success(msg); self.set_route("meetings")
+        except Exception as exc:self._error("تغییر وضعیت درخواست انجام نشد: "+str(exc))
+
     def _payment(self):
         if role_of(self.app_state) in PAYMENT_MANAGERS:self._payment_management()
         else:self._payment_user()
