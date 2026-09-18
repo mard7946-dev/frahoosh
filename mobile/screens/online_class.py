@@ -92,7 +92,7 @@ class OnlineClassScreen(Screen):
             self._label("گزارش‌های مرتبط با فرزند در پنل اولیا نمایش داده می‌شود.", height=70)
             self._button("بازگشت به داشبورد", lambda *_: self._back())
             return
-         self._label("کلاس آنلاین واقعی","21sp",PRIMARY,52,True); self._label("ساخت کلاس، شروع/پایان جلسه، حضور و غیاب، گفت‌وگو، تخته مشترک، کنترل دوربین/میکروفون و اطلاع غیبت به ولی در همین پنل ثبت می‌شود.",height=82)
+        self._label("کلاس آنلاین واقعی","21sp",PRIMARY,52,True); self._label("ساخت کلاس، شروع/پایان جلسه، حضور و غیاب، گفت‌وگو، تخته مشترک، کنترل دوربین/میکروفون و اطلاع غیبت به ولی در همین پنل ثبت می‌شود.",height=82)
         if role in MANAGERS:self._create_form()
         self._load_classes()
     def _create_form(self):
