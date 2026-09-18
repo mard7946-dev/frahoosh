@@ -21,10 +21,10 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
     def _build(self):
         root = BoxLayout(orientation="vertical", padding=dp(9), spacing=dp(6))
         top = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(5))
-        top.add_widget(self.btn("‹ بازگشت", self.go_back, PRIMARY, dp(40), dp(78)))
+        top.add_widget(self.btn("بازگشت", self.go_back, PRIMARY, dp(40), dp(78)))
         self.title = self.label(APP_NAME, "18sp", PRIMARY, True, "center")
         top.add_widget(self.title)
-        top.add_widget(self.btn("⌂", self.go_dashboard, PRIMARY, dp(40), dp(45)))
+        top.add_widget(self.btn("داشبورد", self.go_dashboard, PRIMARY, dp(40), dp(45)))
         root.add_widget(top)
         root.add_widget(self.label(SCHOOL_NAME + "  •  سال تحصیلی " + (SCHOOL_YEAR or "۱۴۰۵-۱۴۰۶"), "9sp", SECONDARY, False, "center"))
         self.status = self.label("محیط عملیاتی آماده است", "9sp", SUCCESS, True, "center")
@@ -69,7 +69,7 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
 
     def _accordion(self, text, table, index):
         holder = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(52), spacing=dp(3))
-        header = Button(text=rtl_text("▾  " + text), font_name=font_name(), font_size="12sp", background_normal="", background_color=PRIMARY, color=WHITE, size_hint_y=None, height=dp(48))
+        header = Button(text=rtl_text("باز کردن: " + text), font_name=font_name(), font_size="12sp", background_normal="", background_color=PRIMARY, color=WHITE, size_hint_y=None, height=dp(48))
         content = BoxLayout(orientation="vertical", size_hint_y=None, height=0, padding=dp(8), spacing=dp(5))
         header.bind(on_release=lambda *_: self._toggle(holder, header, content, table, text))
         holder.add_widget(header)
@@ -81,10 +81,10 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
             content.clear_widgets()
             content.height = 0
             holder.height = dp(52)
-            header.text = rtl_text("▾  " + text)
+            header.text = rtl_text("باز کردن: " + text)
             return
         content.clear_widgets()
-        header.text = rtl_text("▴  " + text)
+        header.text = rtl_text("بستن: " + text)
         if table in ("teacher_exams", "quiz_questions", "online_classes", "online_class_sessions"):
             self._special_content(content, table)
         elif table in ("messages", "message_targets", "message_reads"):
