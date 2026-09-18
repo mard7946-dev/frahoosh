@@ -3,7 +3,6 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.pagelayout import PageLayout
 
@@ -87,10 +86,8 @@ class DashboardScreen(Screen):
 
         self.frame = Card(size_hint_y=1, padding=dp(8))
         self.frame.add_widget(self.label("همه پنل‌های سامانه در این صفحه قابل مشاهده و ورود هستند.", "10sp", SECONDARY, False, True))
-        self.deck = ScrollView(do_scroll_x=False, do_scroll_y=True, size_hint_y=1)
-        self.panel_box = GridLayout(cols=2, spacing=dp(8), size_hint_y=None, padding=dp(4))
-        self.panel_box.bind(minimum_height=self.panel_box.setter("height"))
-        self.deck.add_widget(self.panel_box)
+        self.deck = SwipeDeck(size_hint_y=1)
+        self.deck.on_index_change = self._deck_changed
         self.frame.add_widget(self.deck)
         root.add_widget(self.frame)
         self.counter = self.label("", "10sp", SUCCESS, True, True)
@@ -131,7 +128,7 @@ class DashboardScreen(Screen):
         name = str(getattr(self.app_state, "display_name", "کاربر فراهوش") or "کاربر فراهوش")
         self.welcome.text = rtl_text(f"خوش آمدید، {name}")
         self.role_text.text = rtl_text(f"پنل {TITLES.get(r, 'کاربر')} | دسترسی فعال")
-        self.school.text = rtl_text(SCHOOL)
+        self.school.text = rtl_text(getattr(self.app_state, "school_name", None) or SCHOOL)
         self.db.clear_widgets()
         pages = []
         for i, (title, route) in enumerate(items, 1):
@@ -148,13 +145,9 @@ class DashboardScreen(Screen):
                        background_color=(.08, .30, .48, 1), color=WHITE, size_hint_y=None, height=dp(42))
             d.bind(on_release=lambda *_ , x=route: self.open(x))
             self.db.add_widget(d)
-        self.panel_box.clear_widgets()
-        # Spacious two-column dashboard cards; each card opens a dedicated operational workspace.
-        self.panel_box.cols = 2 if hasattr(self.panel_box, "cols") else 2
-        for page in pages:
-            page.size_hint_y = None
-            page.height = dp(190)
-            self.panel_box.add_widget(page)
+        # Keep the approved animated/swipe panel experience on the main dashboard.
+        # The two-column professional layout belongs inside each opened panel, not here.
+        self.deck.set_pages(pages)
         self.counter.text = rtl_text(f"تعداد پنل‌ها: {len(pages)}")
         return True
 
