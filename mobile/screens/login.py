@@ -5,6 +5,7 @@ from kivy.clock import Clock
 from kivy.graphics import Color, RoundedRectangle, Ellipse
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.button import Button
 from kivy.uix.image import Image
 from kivy.uix.label import Label
@@ -42,7 +43,7 @@ class LoginScreen(Screen):
         return w
 
     def _build(self):
-        root = BoxLayout(orientation="vertical", padding=[dp(18), dp(14), dp(18), dp(10)], spacing=dp(7))
+        root = BoxLayout(orientation="vertical", padding=[dp(18), dp(10), dp(18), dp(8)], spacing=dp(5))
         with root.canvas.before:
             Color(*NAVY)
             bg = RoundedRectangle(radius=[0])
@@ -61,20 +62,18 @@ class LoginScreen(Screen):
 
         root.bind(pos=sync, size=sync)
 
-        root.add_widget(Widget(size_hint_y=None, height=dp(8)))
+        root.add_widget(Widget(size_hint_y=None, height=dp(4)))
 
-        # The logo asset has a fixed display box, so it cannot stretch the layout.
-        logo_wrap = BoxLayout(size_hint_y=None, height=dp(112), padding=[dp(10), dp(4)])
-        logo = Image(source=LOGO_PATH, size_hint=(None, None), size=(dp(102), dp(102)),
-                     allow_stretch=True, keep_ratio=True, pos_hint={"center_x": .5})
-        logo_wrap.add_widget(Widget())
-        logo_wrap.add_widget(logo)
-        logo_wrap.add_widget(Widget())
-        root.add_widget(logo_wrap)
+        # Dedicated visual area keeps the logo centered and at a predictable size.
+        hero = AnchorLayout(anchor_x="center", anchor_y="center",
+                            size_hint_y=None, height=dp(176), padding=[dp(8), dp(6)])
+        logo = Image(source=LOGO_PATH, size_hint=(None, None), size=(dp(148), dp(148)),
+                     allow_stretch=True, keep_ratio=True)
+        hero.add_widget(logo)
+        root.add_widget(hero)
 
-        # Exactly one visible occurrence of the product name: it is inside the logo.
+        # The product name appears only once: inside the logo asset.
         root.add_widget(self.label(SCHOOL_NAME or "نام مدرسه", "17sp", WHITE, True))
-        root.add_widget(self.label(SYSTEM_TITLE, "9sp", (0.78, 0.87, 1, 1), False))
         root.add_widget(self.label(APP_SLOGAN, "11sp", CYAN, True))
 
         card = BoxLayout(orientation="vertical", padding=[dp(16), dp(12)], spacing=dp(7),
@@ -111,7 +110,7 @@ class LoginScreen(Screen):
         card.add_widget(self.login_button)
         root.add_widget(card)
 
-        root.add_widget(Widget())
+        root.add_widget(Widget(size_hint_y=None, height=dp(2)))
         root.add_widget(self.label(f"نسخه {APP_VERSION}", "8sp", (0.64, .73, .88, 1), False))
         self.add_widget(root)
 
