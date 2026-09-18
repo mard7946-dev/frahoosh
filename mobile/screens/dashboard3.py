@@ -11,23 +11,13 @@ from mobile.ui import font_name, rtl_text
 SCHOOL = "دبیرستان سردارشهیدحاجی زاده ۲"
 ALIASES = {"admin":"manager","administrator":"manager","مدیر":"manager","مدیریت":"manager","executive":"executive","معاون اجرایی":"executive","educational":"educational","معاون آموزشی":"educational","cultural":"cultural","معاون پرورشی":"cultural","advisor":"advisor","مشاور":"advisor","teacher":"teacher","دبیر":"teacher","معلم":"teacher","student":"student","دانش‌آموز":"student","دانش آموز":"student","parent":"parent","ولی":"parent","اولیا":"parent"}
 TITLES = {"manager":"مدیریت","executive":"معاون اجرایی","educational":"معاون آموزشی","cultural":"معاون پرورشی","advisor":"مشاوره","teacher":"دبیر","student":"دانش‌آموز","parent":"ولی"}
-MANAGER = [("مدیریت","management"),("معاون آموزشی","educational"),("معاون اجرایی","executive"),("معاون پرورشی","cultural"),("مشاوره","advisor"),("دبیران","teachers"),("اولیا","parents"),("دانش‌آموزان","students"),("مالی","finance"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("دستیار هوش مصنوعی","ai"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")]
-ROLES = {
-    "executive": [("معاون اجرایی","executive"),("دانش‌آموزان","students"),("اولیا","parents"),("کلاس‌های آنلاین","online"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-    "educational": [("معاون آموزشی","educational"),("دانش‌آموزان","students"),("دبیران","teachers"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-    "cultural": [("معاون پرورشی","cultural"),("دانش‌آموزان","students"),("اولیا","parents"),("مشارکت و فعالیت‌ها","participation"),("پرداخت آنلاین","payment"),("تابلو هوشمند","smart_board"),("گزارش‌ها","reports"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-    "advisor": [("مشاوره","advisor"),("دانش‌آموزان","students"),("اولیا","parents"),("گزارش‌ها","reports"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-    "teacher": [("پنل دبیر","teacher"),("آزمون آنلاین","teacher_exams"),("دانش‌آموزان","students"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-    "student": [("پنل دانش‌آموز","student"),("آزمون‌های آنلاین","teacher_exams"),("برنامه هفتگی","schedule"),("وضعیت تحصیلی","student_info"),("مشارکت و فعالیت‌ها","participation"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")],
-    "parent": [("پنل اولیا","parent"),("وضعیت تحصیلی فرزند","student_info"),("مشارکت اولیا","participation"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")]
-}
+MANAGER = [("مدیریت","management"),("معاون آموزشی","educational"),("معاون اجرایی","executive"),("معاون پرورشی","cultural"),("مشاوره","advisor"),("دبیران","teachers"),("دانش‌آموزان","students"),("اولیا","parents"),("مالی","finance"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("هوش مصنوعی","ai"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")]
 
 class Card(BoxLayout):
     def __init__(self, **kw):
         super().__init__(orientation="vertical", padding=dp(13), spacing=dp(8), **kw)
 
 class SwipeDeck(PageLayout):
-    """One-page vertical deck using Kivy's native touch-safe PageLayout."""
     def __init__(self, **kwargs):
         super().__init__(orientation="tb", border=0, swipe_threshold=.10, **kwargs)
         self.on_index_change = None
@@ -50,12 +40,6 @@ class SwipeDeck(PageLayout):
         if callable(self.on_index_change):
             self.on_index_change(int(self.page), total)
 
-class ClockSchedule:
-    @staticmethod
-    def once(callback, delay):
-        from kivy.clock import Clock
-        return Clock.schedule_once(callback, delay)
-
 class DashboardScreen(Screen):
     def __init__(self, app_state=None, **kw):
         super().__init__(**kw)
@@ -74,8 +58,9 @@ class DashboardScreen(Screen):
         return ALIASES.get(r, r)
 
     def items(self):
-        r = self.role()
-        return MANAGER if r == "manager" else ROLES.get(r, [("صندوق پیام‌ها","messages"),("درباره برنامه","about")])
+        # All agreed school panels must be visible in the installed APK.
+        # Role permissions are enforced inside each module, not by hiding panels.
+        return MANAGER
 
     def build(self):
         root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(7))
@@ -96,7 +81,7 @@ class DashboardScreen(Screen):
         self.school = self.label(SCHOOL, "11sp", PRIMARY, True)
         w.add_widget(self.welcome); w.add_widget(self.role_text); w.add_widget(self.school)
         root.add_widget(w)
-        root.add_widget(self.label("پنل‌های سامانه", "15sp", PRIMARY, True))
+        root.add_widget(self.label("همه پنل‌های سامانه", "15sp", PRIMARY, True))
 
         self.frame = Card(size_hint_y=1, padding=dp(8))
         self.frame.add_widget(self.label("با حرکت انگشت بالا یا پایین، پنل‌ها یکی‌یکی جابه‌جا می‌شوند.", "10sp", SECONDARY, False, True))
@@ -116,7 +101,8 @@ class DashboardScreen(Screen):
         self.drawer = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(6), size_hint=(None, 1),
                                 width=dp(285), pos_hint={"right": 1}, opacity=0, disabled=True)
         self.drawer.add_widget(self.label(APP_NAME, "19sp", PRIMARY, True, True))
-        self.ds = __import__('kivy.uix.scrollview', fromlist=['ScrollView']).ScrollView(do_scroll_x=False)
+        from kivy.uix.scrollview import ScrollView
+        self.ds = ScrollView(do_scroll_x=False)
         self.db = BoxLayout(orientation="vertical", spacing=dp(6), size_hint_y=None)
         self.db.bind(minimum_height=self.db.setter("height"))
         self.ds.add_widget(self.db); self.drawer.add_widget(self.ds)
@@ -174,12 +160,11 @@ class DashboardScreen(Screen):
                 if not self.manager.has_screen("online"): self.manager.add_widget(s)
                 self.manager.current = "online"; return
             if r == "teacher_exams":
-                if self.role() == "manager":
-                    from mobile.screens.manager_exams import ManagerExamsScreen
-                    s = self.manager.get_screen("teacher_exams") if self.manager.has_screen("teacher_exams") else ManagerExamsScreen(name="teacher_exams", app_state=self.app_state)
-                else:
+                from mobile.screens.manager_exams import ManagerExamsScreen if self.role() == "manager" else TeacherExamsV4Screen
+                s = self.manager.get_screen("teacher_exams") if self.manager.has_screen("teacher_exams") else None
+                if s is None:
                     from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen
-                    s = self.manager.get_screen("teacher_exams") if self.manager.has_screen("teacher_exams") else TeacherExamsV4Screen(name="teacher_exams", app_state=self.app_state)
+                    s = TeacherExamsV4Screen(name="teacher_exams", app_state=self.app_state)
                 if not self.manager.has_screen("teacher_exams"): self.manager.add_widget(s)
                 self.manager.current = "teacher_exams"; return
             if r == "about":
@@ -187,12 +172,7 @@ class DashboardScreen(Screen):
                 s = self.manager.get_screen("about") if self.manager.has_screen("about") else AboutScreen(name="about", app_state=self.app_state)
                 if not self.manager.has_screen("about"): self.manager.add_widget(s)
                 self.manager.current = "about"; return
-            if r == "participation":
-                from mobile.screens.participation import ParticipationScreen
-                s = self.manager.get_screen("participation") if self.manager.has_screen("participation") else ParticipationScreen(name="participation", app_state=self.app_state)
-                if not self.manager.has_screen("participation"): self.manager.add_widget(s)
-                s.set_route(self.role()); self.manager.current = "participation"; return
-            if r in {"payment", "messages"}:
+            if r == "payment" or r == "messages":
                 from mobile.screens.operations import OperationsScreen
                 s = self.manager.get_screen("operations") if self.manager.has_screen("operations") else OperationsScreen(name="operations", app_state=self.app_state)
                 if not self.manager.has_screen("operations"): self.manager.add_widget(s)
