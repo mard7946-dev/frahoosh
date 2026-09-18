@@ -1,7 +1,7 @@
 # Frahoosh final mobile module entry point.
 # Accordion navigation only: no PageLayout and no swipe between subpanels.
 from mobile.screens.professional_workspace import ProfessionalWorkspaceScreen
-from mobile.screens.module_workspace import ModuleWorkspaceScreen, SUBMENUS, FRIENDLY
+from mobile.screens.module_workspace import ModuleWorkspaceScreen, SUBMENUS, FRIENDLY, TABLE_FIELDS, HIDDEN
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
