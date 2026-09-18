@@ -108,10 +108,6 @@ class DashboardScreen(Screen):
             if not self.manager.has_screen("online_class"):
                 from mobile.screens.online_class import OnlineClassScreen; self.manager.add_widget(OnlineClassScreen(name="online_class",app_state=self.app_state))
             self.manager.get_screen("online_class").show_manager_demo(); self.manager.current="online_class"; return
-        if route=="smart_class_demo":
-            if not self.manager.has_screen("online_class"):
-                from mobile.screens.online_class import OnlineClassScreen; self.manager.add_widget(OnlineClassScreen(name="online_class",app_state=self.app_state))
-            self.manager.get_screen("online_class").show_manager_demo(); self.manager.current="online_class"; return
         if route=="about":
             if not self.manager.has_screen("about"):
                 from mobile.screens.about import AboutScreen; self.manager.add_widget(AboutScreen(name="about",app_state=self.app_state))
