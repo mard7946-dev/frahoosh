@@ -127,7 +127,7 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
             "category":"دسته‌بندی","activity_key":"نوع فعالیت","sport_mode":"نوع شرکت (تیمی / انفرادی)","team_name":"نام تیم / همگروه‌ها",
             "team_members":"همگروه‌ها","offer_id":"گزینه پرداخت","payment_status":"وضعیت پرداخت","audience_type":"نوع مخاطب",
             "audience_value":"مخاطب انتخاب‌شده"
-        }.get(key, (f"میزان تدریس جلسه {key.split("_")[-1]}" if key.startswith("teaching_amount_") else f"تاریخ جلسه {key.split("_")[-1]}" if key.startswith("teaching_date_") else f"عنوان تدریس جلسه {key.split("_")[-1]}" if key.startswith("teaching_title_") else f"نوع فعالیت جلسه {key.split("_")[-1]}" if key.startswith("activity_type_") else FRIENDLY.get(key, key)))
+        }.get(key, (f"میزان تدریس جلسه {key.split('_')[-1]}" if key.startswith("teaching_amount_") else f"تاریخ جلسه {key.split("_")[-1]}" if key.startswith("teaching_date_") else f"عنوان تدریس جلسه {key.split("_")[-1]}" if key.startswith("teaching_title_") else f"نوع فعالیت جلسه {key.split("_")[-1]}" if key.startswith("activity_type_") else FRIENDLY.get(key, key)))
     def _special_content(self, content, table):
         if table in ("online_classes", "online_class_sessions"):
             if self.role() not in ONLINE_CLASS_CREATORS:
