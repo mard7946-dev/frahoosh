@@ -6,11 +6,12 @@ from kivy.metrics import dp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
+from kivy.uix.image import Image
 from kivy.uix.button import Button
 from kivy.graphics import Color, Rectangle
 from kivy.core.window import Window
 
-from mobile.config import APP_NAME, SYSTEM_TITLE, SCHOOL_NAME, PRIMARY, SECONDARY, SUCCESS, WHITE, ERROR
+from mobile.config import APP_NAME, SYSTEM_TITLE, SCHOOL_NAME, APP_SLOGAN, BACKGROUND_PATH, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT, PRIMARY, SECONDARY, SUCCESS, WHITE, ERROR
 from mobile.ui import font_name, rtl_text, PersianTextInput
 
 
@@ -31,12 +32,20 @@ class LoginScreen(Screen):
             self._background.pos = root.pos; self._background.size = root.size
             self._top_band.pos = (root.x, root.top - dp(7)); self._top_band.size = (root.width, dp(7))
         root.bind(pos=sync_background, size=sync_background)
+        if BACKGROUND_PATH:
+            try:
+                bg = Image(source=BACKGROUND_PATH, allow_stretch=True, keep_ratio=False, opacity=0.16)
+                bg.size_hint = (1, 1)
+                root.add_widget(bg, index=0)
+            except Exception as exc:
+                print("LOGIN BACKGROUND ERROR:", repr(exc))
         root.add_widget(Label(text=rtl_text(APP_NAME), font_name=font_name(), font_size="38sp", bold=True, color=PRIMARY, size_hint_y=None, height=dp(62)))
         root.add_widget(Label(text=rtl_text(SYSTEM_TITLE), font_name=font_name(), font_size="16sp", color=SECONDARY, halign="center", valign="middle", size_hint_y=None, height=dp(38)))
         root.add_widget(Label(text=rtl_text(SCHOOL_NAME or "دبیرستان سردار حاجی زاده ۲"), font_name=font_name(), font_size="18sp", bold=True, color=PRIMARY, halign="center", valign="middle", size_hint_y=None, height=dp(48)))
+        root.add_widget(Label(text=rtl_text(APP_SLOGAN), font_name=font_name(), font_size="12sp", color=SECONDARY, halign="center", valign="middle", size_hint_y=None, height=dp(30)))
         root.add_widget(Label(text=rtl_text("ورود کاربران"), font_name=font_name(), font_size="21sp", color=PRIMARY, bold=True, halign="center", valign="middle", size_hint_y=None, height=dp(42)))
-        self.identifier = PersianTextInput(hint_text=rtl_text("نام کاربری / کد ملی"), font_size="17sp", multiline=False, size_hint_y=None, height=dp(64), halign="right", padding=[dp(16), dp(15)], background_color=(1,1,1,1), foreground_color=(0.12,0.14,0.18,1))
-        self.password = PersianTextInput(hint_text=rtl_text("رمز عبور"), password=True, password_mask="*", font_name="Roboto", font_size="17sp", multiline=False, size_hint_y=None, height=dp(64), halign="right", padding=[dp(16), dp(15)], background_color=(1,1,1,1), foreground_color=(0.12,0.14,0.18,1))
+        self.identifier = PersianTextInput(hint_text=rtl_text(LOGIN_USERNAME_HINT), font_size="17sp", multiline=False, size_hint_y=None, height=dp(64), halign="right", padding=[dp(16), dp(15)], background_color=(1,1,1,1), foreground_color=(0.12,0.14,0.18,1))
+        self.password = PersianTextInput(hint_text=rtl_text(LOGIN_PASSWORD_HINT), password=True, password_mask="*", font_name="Roboto", font_size="17sp", multiline=False, size_hint_y=None, height=dp(64), halign="right", padding=[dp(16), dp(15)], background_color=(1,1,1,1), foreground_color=(0.12,0.14,0.18,1))
         root.add_widget(self.identifier); root.add_widget(self.password)
         self.status = Label(text="", font_name=font_name(), font_size="13sp", color=SECONDARY, halign="center", valign="middle", size_hint_y=None, height=dp(48))
         self.status.bind(size=lambda obj, value: setattr(obj, "text_size", value)); root.add_widget(self.status)
