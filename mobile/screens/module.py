@@ -36,13 +36,13 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
         self.body.add_widget(intro)
         # The module area is intentionally large: at least half of the screen,
         # so the two-column cards have a comfortable professional workspace.
-        module_height = max(dp(360), Window.height * 0.50)
+        module_height = max(dp(420), Window.height * 0.50)
         module_surface = self._surface(module_height)
         scroll = ScrollView(do_scroll_x=False, size_hint_y=None, height=module_height - dp(14))
         grid = GridLayout(cols=2, spacing=dp(10), padding=[dp(4), dp(4)], size_hint_y=None)
         grid.bind(minimum_height=grid.setter("height"))
         for i, (text, table) in enumerate(items, 1):
-            card = self._surface(dp(142))
+            card = self._surface(dp(154))
             card.add_widget(self.label(f"{i:02d}", "10sp", WHITE, True, "center"))
             # Give the number its own visible header strip without changing the actual data model.
             card.add_widget(self.label(text, "14sp", PRIMARY, True, "center"))
