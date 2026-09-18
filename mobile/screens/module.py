@@ -101,6 +101,8 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
             return self._meeting_workspace()
         if table == "smart_class_monitor":
             return self._smart_class_monitor()
+        if table == "smart_class_demo":
+            return self._smart_class_demo()
         if table in ("teacher_exams", "online_classes", "messages", "payment_offers"):
             return super().open_table(table, refresh_subbar=False)
         return ModuleWorkspaceScreen.open_table(self, table, refresh_subbar=False)
@@ -237,6 +239,54 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
             self.app_state.api.rpc("frahoosh_update_meeting_request", {"p_id":meeting_id,"p_action":"schedule","p_note":note.text,"p_final_date":date.text,"p_final_time":time.text})
             pop.dismiss(); self._meeting_workspace()
         except Exception as exc: self.message("تعیین وقت", str(exc))
+
+    def _smart_class_demo(self):
+        """Manager-facing, self-contained demonstration of the smart classroom."""
+        self.table = "smart_class_demo"
+        self.body.clear_widgets()
+        manager_roles = {"manager","admin","administrator","مدیر","مدیریت"}
+        if self.role() not in manager_roles:
+            self.body.add_widget(self.label("این نمونه فقط برای مدیریت مدرسه در دسترس است.", "14sp", SECONDARY, True, "center", 90))
+            return
+
+        head = self._surface(dp(118))
+        head.add_widget(self.label("نمونه کلاس هوشمند فراهوش", "20sp", PRIMARY, True, "center"))
+        head.add_widget(self.label("نمونه قابل ارائه به مدیریت • ریاضی پایه هفتم • کلاس ۷/۱ • جلسه ۵۰ دقیقه‌ای", "10sp", SECONDARY, False, "center"))
+        head.add_widget(self.label("این صفحه نمونه مسیر واقعی کلاس را نشان می‌دهد؛ محتوای کلاس واقعی از سرور و جداول کلاس آنلاین خوانده می‌شود.", "9sp", SUCCESS, True, "center"))
+        self.body.add_widget(head)
+
+        sections = [
+            ("📚 محتوای آموزشی", "درس‌نامه، عنوان جلسه، اهداف یادگیری و محتوای تدریس در یک نمای منظم."),
+            ("🖊 تخته هوشمند", "تخته مشترک با قلم در اندازه‌های مختلف، پاک‌کن، شکل‌ها و ذخیره محتوای نوشته‌شده."),
+            ("🎙 صوت و 🎥 دوربین", "فعال‌سازی صوت و دوربین جلسه برای ارتباط زنده دبیر و دانش‌آموزان."),
+            ("🖼 تصویر و 📷 عکس", "نمایش تصویر آموزشی و ثبت/اشتراک عکس در جریان تدریس."),
+            ("📄 PDF و فایل", "ارسال و مشاهده فایل‌های PDF و منابع درس در همان کلاس."),
+            ("🔷 ابزارهای ترسیم", "خط، مستطیل، دایره و دیگر شکل‌ها برای توضیح مفاهیم روی تخته."),
+            ("❓ آزمون کوتاه", "سؤال کوتاه داخل کلاس، پاسخ دانش‌آموز و ثبت نتیجه برای پیگیری آموزشی."),
+            ("📝 تکلیف و فعالیت", "ثبت تکلیف، فعالیت کلاس و پیگیری انجام آن توسط دانش‌آموز."),
+            ("👥 حضور و غیاب", "حضور هر دانش‌آموز در همان جلسه ثبت و برای گزارش‌های آموزشی قابل پیگیری است."),
+        ]
+        grid = GridLayout(cols=2, spacing=dp(8), padding=[dp(2),dp(2)], size_hint_y=None)
+        grid.bind(minimum_height=grid.setter("height"))
+        for title, desc in sections:
+            card = self._surface(dp(132))
+            card.add_widget(self.label(title, "12sp", PRIMARY, True, "center"))
+            card.add_widget(self.label(desc, "9sp", SECONDARY, False, "center"))
+            grid.add_widget(card)
+        self.body.add_widget(grid)
+
+        audience = self._surface(dp(210))
+        audience.add_widget(self.label("مدیریت برای هر نقش چه چیزی را توضیح می‌دهد؟", "16sp", PRIMARY, True, "center"))
+        audience.add_widget(self.label("👨‍🏫 دبیر: ابزار تدریس، تخته، فایل، آزمون، تکلیف و حضور و غیاب.", "10sp", SECONDARY, False, "right"))
+        audience.add_widget(self.label("👨‍🎓 دانش‌آموز: ورود به جلسه، مشاهده درس، تخته، فایل، آزمون، تکلیف و وضعیت حضور.", "10sp", SECONDARY, False, "right"))
+        audience.add_widget(self.label("👨‍👩‍👦 اولیا: فقط گزارش‌های قابل مشاهده فرزند مانند حضور، تکلیف، نتیجه و اطلاعیه‌های مرتبط؛ بدون دسترسی به محیط تدریس.", "10sp", SECONDARY, False, "right"))
+        audience.add_widget(self.label("🏫 مدیریت: مشاهده محتوای کلاس، جلسه‌ها، فعالیت‌ها و وضعیت اجرای کلاس برای نظارت مدرسه.", "10sp", SECONDARY, False, "right"))
+        self.body.add_widget(audience)
+
+        actions = self._surface(dp(112))
+        actions.add_widget(self.btn("مشاهده کلاس‌های واقعی و محتوای ثبت‌شده", lambda *_: self.open_table("smart_class_monitor"), SUCCESS, dp(44)))
+        actions.add_widget(self.btn("بازگشت به پنل مدیریت", self.go_back, PRIMARY, dp(44)))
+        self.body.add_widget(actions)
 
     def _smart_class_monitor(self):
         """Manager-only live content view: board, files, chat, quizzes and session data."""
