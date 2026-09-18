@@ -42,7 +42,7 @@ FRIENDLY = {
 }
 
 COLUMNS = {
-    "id":"شناسه", "first_name":"نام", "last_name":"نام خانوادگی", "national_code":"کد ملی", "grade":"پایه",
+    "id":"شناسه", "father_name":"نام پدر","mother_name":"نام مادر","birth_certificate_place":"محل صدور","birth_place":"محل تولد","religion":"دین","sect":"مذهب","nationality":"ملیت","student_phone":"شماره تماس دانش‌آموز","father_phone":"شماره تماس پدر","mother_phone":"شماره تماس مادر","personnel_code":"کد پرسنلی","service_years":"سابقه خدمت","discipline_type":"نوع مورد انضباطی","record_date":"تاریخ ثبت","decision_type":"نوع تصمیم","deduct_score":"میزان کسر نمره","referral_to":"ارجاع به","followup_date":"تاریخ پیگیری","followup_items":"موارد پیگیری‌شده","decision":"تصمیم","destination":"محل ارائه گواهی","request_date":"تاریخ درخواست","executive_note":"یادداشت معاون اجرایی","participation_type":"تیمی / انفرادی","team_members":"همگروهی‌ها","competition_type":"نوع مسابقه","payment_status":"وضعیت پرداخت","category":"دسته‌بندی","active":"فعال","activated_by":"فعال‌سازی توسط","reason":"علت","referral_date":"تاریخ ارجاع","requested_date":"تاریخ درخواست ملاقات","manager_status":"تأیید مدیر","file_url":"فایل","answer_text":"پاسخ","submitted_at":"زمان ارسال","seat_number":"شماره صندلی","month_name":"ماه","program_key":"کلید برنامه","account_type":"نوع حساب","account_number":"شماره حساب","balance":"موجودی","transaction_type":"نوع تراکنش","offer_id":"گزینه پرداخت","gateway":"درگاه","target_type":"نوع مخاطب","payment_reason":"علت پرداخت","audience_type":"نوع مخاطب","audience_value":"مخاطب","body":"متن پیام","target_role":"نقش مخاطب","target_name":"نام مخاطب","target_class_name":"کلاس مخاطب","first_name":"نام", "last_name":"نام خانوادگی", "national_code":"کد ملی", "grade":"پایه",
     "class_name":"کلاس", "phone":"تلفن", "subject":"درس", "teacher_name":"دبیر", "score":"نمره",
     "max_score":"حداکثر نمره", "status":"وضعیت", "amount":"مبلغ", "title":"عنوان", "description":"توضیحات",
     "created_at":"تاریخ ثبت", "attendance_date":"تاریخ حضور", "exam_date":"تاریخ آزمون", "event_date":"تاریخ رویداد",
@@ -59,7 +59,7 @@ TABLE_FIELDS = {
     "students":["first_name","last_name","father_name","mother_name","national_code","birth_certificate_place","birth_place","religion","sect","nationality","student_phone","father_phone","mother_phone","grade","class_name"],
     "teachers":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","subject"],
     "staff":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","role"],
-    "parents":["first_name","last_name","national_code","phone"],
+    "parents":["first_name","last_name","father_name","mother_name","national_code","phone"],
     "parent_children":["parent_id","student_id","relationship","status"],
     "teacher_classes":["teacher_name","subject","grade","class_name","academic_year"],
     "attendance":["student_id","teacher_id","class_name","subject","attendance_date","status"],
@@ -125,17 +125,17 @@ TABLE_FIELDS = {
 # Explicit write policy. Reads remain available through the existing API for all visible tables.
 EDITABLE = {
     "manager": {table for items in SUBMENUS.values() for _, table in items},
-    "educational": {"teacher_classes","lesson_plans","attendance","grades","student_grades","assignments","weekly_schedule","exam_schedule","teacher_exams"},
-    "executive": {"students","parents","parent_children","staff","attendance","school_events","school_class_config","messages"},
-    "cultural": {"educational_activities","school_events","messages","smart_board_content"},
+    "educational": {"teacher_classes","lesson_plans","attendance","grades","student_grades","assignments","weekly_schedule","exam_schedule","teacher_exams","online_classes","discipline_records","educational_followups","academic_followups","khwarizmi_registrations","ai_smart_reports","staff","students"},
+    "executive": {"students","parents","parent_children","staff","attendance","school_events","school_class_config","messages","weekly_schedule","monthly_report_cards","report_cards","discipline_records","certificate_requests","online_classes","program_activations"},
+    "cultural": {"educational_activities","school_events","messages","smart_board_content","activity_offers","activity_registrations","student_council","basij_registration","school_ally","school_mayor","cultural_competitions","art_competitions","sport_competitions","morning_leaders","qari_registration","morning_ceremony","discipline_records","program_activations"},
     "advisor": {"counseling_records","counseling_followups","messages"},
-    "teacher": {"attendance","grades","student_grades","assignments","lesson_plans","teacher_exams"},
+    "teacher": {"attendance","grades","student_grades","assignments","lesson_plans","lesson_plan_entries","teacher_exams","discipline_records","student_referrals","teacher_parent_meetings","messages"},
 }
 
 FORMS = {
-    "students":["first_name","last_name","national_code","grade","class_name","phone"],
-    "teachers":["first_name","last_name","national_code","phone","subject"],
-    "staff":["first_name","last_name","phone","role"],
+    "students":["first_name","last_name","father_name","mother_name","national_code","birth_certificate_place","birth_place","religion","sect","nationality","student_phone","father_phone","mother_phone","grade","class_name"],
+    "teachers":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","subject"],
+    "staff":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","role"],
     "school_events":["title","description","event_date","status"],
     "lesson_plans":["teacher_id","teacher_name","subject","grade","class_name","title","description"],
     "assignments":["student_id","teacher_id","title","subject","class_name","description","status"],
@@ -146,6 +146,20 @@ FORMS = {
     "finance_donations":["title","description","amount","status"],
     "messages":["title","description","status"],
     "school_profile":["title","description"],
+    "discipline_records":["student_id","discipline_type","record_date","decision_type","deduct_score","referral_to","description"],
+    "educational_followups":["student_id","followup_date","followup_items","decision"],
+    "academic_followups":["student_id","followup_date","followup_items","decision"],
+    "certificate_requests":["student_id","student_name","destination","request_date","status","executive_note"],
+    "student_referrals":["student_id","teacher_id","referral_to","reason","referral_date","status"],
+    "teacher_parent_meetings":["teacher_id","student_id","parent_id","requested_date","status","manager_status","reason"],
+    "activity_offers":["title","category","event_date","active","amount","settings"],
+    "activity_registrations":["activity_id","student_id","participation_type","team_members","competition_type","payment_status","status"],
+    "program_activations":["program_key","title","active","activated_by"],
+    "khwarizmi_registrations":["title","category","grade","class_name","student_id","status"],
+    "assignment_submissions":["assignment_id","student_id","file_url","answer_text","submitted_at","status"],
+    "class_seat_assignments":["class_id","student_id","seat_number","academic_year"],
+    "exam_seat_assignments":["exam_id","student_id","subject","exam_date","seat_number"],
+    "monthly_report_cards":["student_id","month_name","active","created_at"],
 }
 
 class Surface(BoxLayout):
