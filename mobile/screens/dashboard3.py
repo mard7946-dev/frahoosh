@@ -84,9 +84,12 @@ class DashboardScreen(Screen):
         root.add_widget(self.label("همه پنل‌های سامانه", "15sp", PRIMARY, True))
 
         self.frame = Card(size_hint_y=1, padding=dp(8))
-        self.frame.add_widget(self.label("با حرکت انگشت بالا یا پایین، پنل‌ها یکی‌یکی جابه‌جا می‌شوند.", "10sp", SECONDARY, False, True))
-        self.deck = SwipeDeck(size_hint_y=1)
-        self.deck.on_index_change = self._deck_changed
+        self.frame.add_widget(self.label("همه پنل‌های سامانه در این صفحه قابل مشاهده و ورود هستند.", "10sp", SECONDARY, False, True))
+        from kivy.uix.scrollview import ScrollView
+        self.deck = ScrollView(do_scroll_x=False, do_scroll_y=True, size_hint_y=1)
+        self.panel_box = BoxLayout(orientation="vertical", spacing=dp(8), size_hint_y=None, padding=dp(4))
+        self.panel_box.bind(minimum_height=self.panel_box.setter("height"))
+        self.deck.add_widget(self.panel_box)
         self.frame.add_widget(self.deck)
         root.add_widget(self.frame)
         self.counter = self.label("", "10sp", SUCCESS, True, True)
@@ -144,7 +147,12 @@ class DashboardScreen(Screen):
                        background_color=(.08, .30, .48, 1), color=WHITE, size_hint_y=None, height=dp(42))
             d.bind(on_release=lambda *_ , x=route: self.open(x))
             self.db.add_widget(d)
-        self.deck.set_pages(pages)
+        self.panel_box.clear_widgets()
+        for page in pages:
+            page.size_hint_y = None
+            page.height = dp(205)
+            self.panel_box.add_widget(page)
+        self.counter.text = rtl_text(f"تعداد پنل‌ها: {len(pages)}")
         return True
 
     def desc(self, r):
