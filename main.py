@@ -10,6 +10,7 @@ from kivy.uix.button import Button
 from kivy.uix.image import Image
 
 from mobile.screens.login import LoginScreen
+from mobile.screens.panel_screen import PanelScreen
 from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, LOGO_PATH, PRIMARY, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text
 
@@ -145,6 +146,9 @@ class FrahooshApp(App):
             print("APP STATE STARTUP ERROR:", repr(exc))
             self.app_state = None
         self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
+        # Build the generic panel shell before login. Panel navigation then only
+        # changes ScreenManager.current and cannot fail because of a late import.
+        self.sm.add_widget(PanelScreen(name="panel", app_state=self.app_state))
         self.sm.current = "login"
         root = FloatLayout()
         root.add_widget(self.sm)
