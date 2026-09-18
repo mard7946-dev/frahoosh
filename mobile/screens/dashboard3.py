@@ -3,7 +3,6 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.uix.pagelayout import PageLayout
 
 from mobile.config import APP_NAME, SCHOOL_YEAR, PRIMARY, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text
@@ -168,11 +167,15 @@ class DashboardScreen(Screen):
                 if not self.manager.has_screen("online"): self.manager.add_widget(s)
                 self.manager.current = "online"; return
             if r == "teacher_exams":
-                from mobile.screens.manager_exams import ManagerExamsScreen if self.role() == "manager" else TeacherExamsV4Screen
+                if self.role() == "manager":
+                    from mobile.screens.manager_exams import ManagerExamsScreen
+                    exam_screen_cls = ManagerExamsScreen
+                else:
+                    from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen
+                    exam_screen_cls = TeacherExamsV4Screen
                 s = self.manager.get_screen("teacher_exams") if self.manager.has_screen("teacher_exams") else None
                 if s is None:
-                    from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen
-                    s = TeacherExamsV4Screen(name="teacher_exams", app_state=self.app_state)
+                    s = exam_screen_cls(name="teacher_exams", app_state=self.app_state)
                 if not self.manager.has_screen("teacher_exams"): self.manager.add_widget(s)
                 self.manager.current = "teacher_exams"; return
             if r == "about":
