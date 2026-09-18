@@ -346,7 +346,18 @@ class ModuleWorkspaceScreen(Screen):
         self._add_demo_section("محتوای نمونه جلسه","درس: ریاضی پایه هفتم\nموضوع: عبارت‌های جبری\nمدرس: دبیر ریاضی\nمدت: ۵۰ دقیقه\nجلسه: فعال")
         self._add_demo_section("نمایش تخته","۱) تعریف عبارت جبری\n۲) مثال حل‌شده\n۳) تمرین کلاسی\n۴) پرسش پایانی\n\nمدیر در این قسمت می‌تواند محتوای جلسه را ببیند و هر بخش را برای کاربران توضیح دهد.")
         self._add_demo_section("نکته اتصال سرور","کلاس‌ها و جلسات واقعی از online_classes و online_class_sessions خوانده می‌شوند. محتوای تخته و فایل‌ها نیز باید با جداول/ذخیره‌سازی همان پروژه Supabase همگام شوند.")
+        self._add_action("راهنمای بخش‌های کلاس برای دبیر",lambda *_:self._show_class_guide("دبیر","ایجاد و مدیریت جلسه، تخته هوشمند، انتخاب قلم و پاک‌کن، ارائه PDF و تصویر، کنترل صدا و دوربین، گفت‌وگوی کلاس و ثبت حضور."),PRIMARY)
+        self._add_action("راهنمای بخش‌های کلاس برای دانش‌آموز",lambda *_:self._show_class_guide("دانش‌آموز","ورود به جلسه، مشاهده تخته و فایل، پاسخ به فعالیت‌ها، استفاده از گفت‌وگو، مشاهده وضعیت حضور و ارسال پرسش به دبیر."),PRIMARY)
+        self._add_action("راهنمای بخش‌های کلاس برای اولیا",lambda *_:self._show_class_guide("اولیا","مشاهده عنوان و زمان کلاس، وضعیت حضور فرزند و گزارش آموزشی جلسه. اولیا وارد ابزارهای تدریس و تخته کلاس نمی‌شوند."),PRIMARY)
         self._add_action("باز کردن کلاس‌های واقعی",lambda *_:self.open_table("online_classes",False),PRIMARY)
+
+    def _show_class_guide(self,role,text):
+        content=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(8))
+        content.add_widget(self.label(f"راهنمای کلاس هوشمند برای {role}","17sp",PRIMARY,True,"center"))
+        content.add_widget(self.label(text,"12sp",SECONDARY,False,"center"))
+        popup=Popup(title=rtl_text(f"راهنمای {role}"),content=content,size_hint=(.88,.42))
+        content.add_widget(self.btn("بستن",lambda *_:popup.dismiss(),PRIMARY,dp(42)))
+        popup.open()
 
     def _add_demo_section(self,title,text):
         box=Surface(height=dp(145)); box.add_widget(self.label(title,"15sp",PRIMARY,True,"center")); box.add_widget(self.label(text,"11sp",SECONDARY,False,"center")); self.body.add_widget(box)
