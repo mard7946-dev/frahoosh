@@ -2,6 +2,7 @@ from kivy.metrics import dp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.pagelayout import PageLayout
@@ -17,6 +18,12 @@ MANAGER = [("مدیریت","management"),("معاون آموزشی","educational
 class Card(BoxLayout):
     def __init__(self, **kw):
         super().__init__(orientation="vertical", padding=dp(13), spacing=dp(8), **kw)
+
+class PanelCard(ButtonBehavior, Card):
+    """Whole animated panel page is touchable; the visible action button remains too."""
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.background_color = (1, 1, 1, 0)
 
 class SwipeDeck(PageLayout):
     def __init__(self, **kwargs):
@@ -132,7 +139,8 @@ class DashboardScreen(Screen):
         self.db.clear_widgets()
         pages = []
         for i, (title, route) in enumerate(items, 1):
-            p = Card(padding=dp(16))
+            p = PanelCard(padding=dp(16))
+            p.bind(on_release=lambda *_ , x=route: self.open(x))
             p.add_widget(self.label(title, "23sp", PRIMARY, True, True))
             p.add_widget(self.label(f"پنل {i} از {len(items)}", "11sp", SECONDARY, False, True))
             p.add_widget(self.label(self.desc(route), "13sp", SECONDARY, False, True))
