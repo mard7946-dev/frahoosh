@@ -5,7 +5,7 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 
-from mobile.config import PRIMARY, SECONDARY, SUCCESS, WHITE, SCHOOL_NAME
+from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, SCHOOL_NAME
 from mobile.ui import font_name, rtl_text
 
 
