@@ -3,6 +3,7 @@
 from mobile.screens.professional_workspace import ProfessionalWorkspaceScreen
 from mobile.screens.module_workspace import ModuleWorkspaceScreen, SUBMENUS, FRIENDLY, TABLE_FIELDS, HIDDEN
 from kivy.metrics import dp
+from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.textinput import TextInput
@@ -33,8 +34,12 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
         intro.add_widget(self.label("محیط اختصاصی این پنل • هر کارت یک زیرپنل مستقل و متصل به اطلاعات واقعی سامانه است.", "10sp", SECONDARY, False, "center"))
         intro.add_widget(self.label(f"{len(items)} زیرپنل فعال", "9sp", SUCCESS, True, "center"))
         self.body.add_widget(intro)
-        scroll = ScrollView(do_scroll_x=False)
-        grid = GridLayout(cols=2, spacing=dp(9), padding=[dp(2), dp(2)], size_hint_y=None)
+        # The module area is intentionally large: at least half of the screen,
+        # so the two-column cards have a comfortable professional workspace.
+        module_height = max(dp(360), Window.height * 0.50)
+        module_surface = self._surface(module_height)
+        scroll = ScrollView(do_scroll_x=False, size_hint_y=None, height=module_height - dp(14))
+        grid = GridLayout(cols=2, spacing=dp(10), padding=[dp(4), dp(4)], size_hint_y=None)
         grid.bind(minimum_height=grid.setter("height"))
         for i, (text, table) in enumerate(items, 1):
             card = self._surface(dp(142))
@@ -45,7 +50,8 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
             card.add_widget(self.btn("ورود به محیط این بخش", lambda *_a, t=table: self.open_table(t), SUCCESS if self.can_write(table) else PRIMARY, dp(40)))
             grid.add_widget(card)
         scroll.add_widget(grid)
-        self.body.add_widget(scroll)
+        module_surface.add_widget(scroll)
+        self.body.add_widget(module_surface)
 
     def editor(self, table, row):
         # Never allow a form-construction exception to terminate the Android process.
