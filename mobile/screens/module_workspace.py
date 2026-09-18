@@ -249,10 +249,10 @@ class ModuleWorkspaceScreen(Screen):
                 if isinstance(r,dict):
                     for k in r:
                         if k not in HIDDEN and k not in keys: keys.append(k)
-        keys=keys[:8]; totalw=max(dp(440),dp(135)*max(2,len(keys))+dp(140 if self.can_write(self.table) else 0))
+        keys=keys[:8]; totalw=max(dp(520),dp(165)*max(2,len(keys))+dp(160 if self.can_write(self.table) else 0))
         scroll=ScrollView(do_scroll_x=True); content=BoxLayout(orientation='vertical',size_hint=(None,None),width=totalw,spacing=dp(3),padding=dp(2)); content.bind(minimum_height=content.setter('height'))
-        header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(52),spacing=dp(2),padding=[dp(2),dp(2)]);
-        for k in keys: header.add_widget(self.label(COLUMNS.get(k,k),"12sp",WHITE,True,"center"))
+        header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(62),spacing=dp(2),padding=[dp(2),dp(2)]);
+        for k in keys: header.add_widget(self.label(COLUMNS.get(k,k),"15sp",WHITE,True,"center"))
         if self.can_write(self.table): header.add_widget(self.label("عملیات","12sp",WHITE,True,"center"))
         self._header(header); content.add_widget(header)
         for i,r in enumerate(rows,1): content.add_widget(self.row(r,i,keys,totalw))
@@ -263,7 +263,7 @@ class ModuleWorkspaceScreen(Screen):
         w.bind(pos=lambda o,v:setattr(bg,'pos',v),size=lambda o,v:setattr(bg,'size',v))
 
     def row(self,r,index,keys,totalw):
-        b=BoxLayout(size_hint=(None,None),width=totalw,height=dp(62),spacing=dp(2),padding=[dp(3),dp(3)])
+        b=BoxLayout(size_hint=(None,None),width=totalw,height=dp(74),spacing=dp(2),padding=[dp(4),dp(4)])
         for k in keys:
             s=str(r.get(k,'')); b.add_widget(self.label(s[:36]+'…' if len(s)>37 else s,"12sp",SECONDARY,False,'center'))
         if self.can_write(self.table):
