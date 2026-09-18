@@ -4,6 +4,7 @@ from mobile.screens.professional_workspace import ProfessionalWorkspaceScreen
 from mobile.screens.module_workspace import ModuleWorkspaceScreen, SUBMENUS, FRIENDLY, TABLE_FIELDS, HIDDEN
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 from mobile.ui import font_name, rtl_text
