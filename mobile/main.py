@@ -4,7 +4,6 @@ from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager, FadeTransition
 
 from mobile.screens.login import LoginScreen
-from mobile.screens.panel_screen import PanelScreen
 
 
 class FrahooshApp(App):
