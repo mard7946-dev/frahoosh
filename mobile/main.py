@@ -173,6 +173,16 @@ class FrahooshApp(App):
             print("SPECIAL MODULE LOOKUP ERROR:", repr(exc))
             return None
 
+    def ensure_identity_gate(self):
+        if self.sm is None:
+            return None
+        try:
+            screen = self.sm.get_screen("special_identity_gate")
+        except Exception as exc:
+            print("IDENTITY GATE LOOKUP ERROR:", repr(exc))
+            return None
+        return screen
+
     def ensure_update(self):
         if self.sm is None:
             return None
@@ -202,8 +212,25 @@ class FrahooshApp(App):
             print("DASHBOARD OPEN ERROR: dashboard screen could not be created")
             return False
 
+        # Students and parents must verify the real student record before
+        # entering any role panel. A confirmed session can proceed normally.
+        role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
+        needs_gate = role in ("student", "دانش‌آموز", "parent", "parents", "ولی", "اولیا")
+        confirmed = bool(
+            isinstance(getattr(self.app_state, "session", None), dict)
+            and self.app_state.session.get("identity_confirmed")
+        )
         try:
             self._set_screen_capture_policy()
+            if needs_gate and not confirmed:
+                gate = self.ensure_identity_gate()
+                if gate is None:
+                    print("IDENTITY GATE ERROR: screen could not be created")
+                    return False
+                gate.pending_route = "dashboard"
+                self.sm.current = "special_identity_gate"
+                Clock.schedule_once(lambda *_: gate.load(), 0.05)
+                return True
             self.sm.current = "dashboard"
             Clock.schedule_once(self._refresh_dashboard_safe, 0.05)
             return True
