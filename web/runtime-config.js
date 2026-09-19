@@ -1,0 +1,1 @@
+window.FRAHOOH_CONFIG={supabase_url:"",supabase_anon_key:"",school_name:"دبیرستان سردار شهید حاجی زاده ۲",school_year:"۱۴۰۵-۱۴۰۶"};
