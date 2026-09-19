@@ -113,6 +113,22 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 if screen is not None and self.manager is not None:
                     self.manager.current = "meetings"
                     return screen
+            if table == "weekly_schedule":
+                try:
+                    screen = self.manager.get_screen("weekly_schedule_real") if self.manager is not None else None
+                except Exception:
+                    screen = None
+                if screen is None and app is not None:
+                    try:
+                        from mobile.screens.weekly_schedule import WeeklyScheduleScreen
+                        screen = WeeklyScheduleScreen(name="weekly_schedule_real", app_state=getattr(app, "app_state", None))
+                        self.manager.add_widget(screen)
+                    except Exception as exc:
+                        raise RuntimeError("محیط برنامه هفتگی آماده نشد: " + str(exc))
+                screen.return_to = "panel"
+                self.manager.current = "weekly_schedule_real"
+                return screen
+
             if table == "smart_class_preview":
                 # Smart classroom is a dedicated operational screen, never a
                 # Supabase CRUD table. Resolve the already-preloaded screen
