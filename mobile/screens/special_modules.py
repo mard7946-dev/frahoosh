@@ -825,8 +825,18 @@ class SpecialModuleScreen(Screen):
             self._set_status("ابتدا یک سند مالی را انتخاب کنید.", ERROR)
             return
         rid=row.get("id")
-        self._async(lambda:self._api().table_delete("finance_transactions",{"id":"eq."+str(rid)}),
-                    lambda r,e:self._set_status(("سند مالی حذف شد." if not e else "حذف سند ناموفق بود: "+e),SUCCESS if not e else ERROR))
+        self._async(
+            lambda: self._api().table_delete("finance_transactions", {"id": "eq." + str(rid)}),
+            lambda r, e: self._finance_delete_done(e),
+        )
+
+    def _finance_delete_done(self, error):
+        if error:
+            self._set_status("حذف سند ناموفق بود: " + error, ERROR)
+            return
+        self._set_status("سند مالی حذف شد.", SUCCESS)
+        self.finance_selected = None
+        self._finance()
 
     def _finance_editor(self,row=None):
         self.body.clear_widgets()
