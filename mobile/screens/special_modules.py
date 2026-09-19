@@ -118,6 +118,10 @@ class SpecialModuleScreen(Screen):
             self.manager.current = "dashboard"
 
     def _attendance(self):
+        role = str(getattr(self.app_state, "role", "") or "").strip().lower()
+        if role in ("student","دانش‌آموز","parent","parents","ولی","اولیا"):
+            self._student_attendance()
+            return
         self.title.text = rtl_text("حضور و غیاب دبیر")
         self._set_status("کلاس‌های دبیر از اطلاعات واقعی سامانه خوانده می‌شود.")
         top = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(5))
@@ -129,6 +133,64 @@ class SpecialModuleScreen(Screen):
         self.attendance_area = BoxLayout(orientation="vertical")
         self.body.add_widget(self.attendance_area)
         self._async(self._teacher_classes, self._classes_loaded)
+
+    def _student_attendance(self):
+        self.title.text = rtl_text("حضور و غیاب دانش‌آموز")
+        self._set_status("حضور و غیاب از جدول واقعی مدرسه برای پرونده تأییدشده خوانده می‌شود.")
+        self.body.clear_widgets()
+        role = str(getattr(self.app_state, "role", "") or "").strip().lower()
+        if role in ("parent","parents","ولی","اولیا"):
+            username = self.app_state.profile.get("username") or self.app_state.profile.get("email") or self.app_state.national_code
+            self._async(lambda: self._parent_children_with_attendance(username), self._student_attendance_loaded)
+            return
+        sid = self.app_state.profile.get("linked_student_id") or self.app_state.profile.get("student_id")
+        if not sid and isinstance(self.app_state.session, dict):
+            sid = self.app_state.session.get("selected_student_id")
+        self._async(lambda: self._api().table_select("attendance", {"student_id":"eq."+str(sid), "order":"attendance_date.desc", "limit":"100"}) if sid else [], self._student_attendance_loaded)
+
+    def _parent_children_with_attendance(self, username):
+        api = self._api()
+        links = api.table_select("parent_children", {"parent_username":"eq."+str(username), "limit":"20"}) or []
+        result = []
+        for link in links:
+            sid = link.get("student_id")
+            rows = api.table_select("students", {"id":"eq."+str(sid), "limit":"1"}) or []
+            if rows:
+                att = api.table_select("attendance", {"student_id":"eq."+str(sid), "order":"attendance_date.desc", "limit":"50"}) or []
+                result.append((rows[0], att))
+        return result
+
+    def _student_attendance_loaded(self, data, error):
+        if error:
+            self._set_status("حضور و غیاب دریافت نشد: " + error, ERROR)
+            return
+        self.body.clear_widgets()
+        if not data:
+            self.body.add_widget(self.label("برای این پرونده هنوز رکورد حضور و غیاب ثبت نشده است.", "12sp", SECONDARY, True, True, 60))
+            return
+        if isinstance(data, list) and data and isinstance(data[0], tuple):
+            for student, rows in data:
+                self._attendance_card(student, rows)
+        else:
+            sid = self.app_state.profile.get("linked_student_id") or self.app_state.profile.get("student_id")
+            rows = data or []
+            student_rows = self._api().table_select("students", {"id":"eq."+str(sid), "limit":"1"}) if sid else []
+            self._attendance_card(student_rows[0] if student_rows else {}, rows)
+        self._set_status("اطلاعات حضور و غیاب واقعی نمایش داده شد.", SUCCESS)
+
+    def _attendance_card(self, student, rows):
+        name = f"{student.get('first_name','')} {student.get('last_name','')}".strip() or "دانش‌آموز"
+        card = _Card(size_hint_y=None, height=dp(150))
+        card.add_widget(self.label(name + " • پایه " + str(student.get("grade") or "-") + " • کلاس " + str(student.get("class_name") or "-"), "12sp", PRIMARY, True, False, 32))
+        grid = GridLayout(cols=3, size_hint_y=None, height=dp(70), spacing=dp(3))
+        for caption in ("تاریخ","وضعیت","درس"):
+            grid.add_widget(self.label(caption, "10sp", WHITE, True, True, 28))
+        for row in rows[:4]:
+            grid.add_widget(self.label(str(row.get("attendance_date") or row.get("date") or "-"), "9sp", SECONDARY, False, True, 28))
+            grid.add_widget(self.label(str(row.get("status") or "-"), "9sp", SUCCESS if str(row.get("status")) == "حاضر" else ERROR, True, True, 28))
+            grid.add_widget(self.label(str(row.get("subject") or "-"), "9sp", SECONDARY, False, True, 28))
+        card.add_widget(grid)
+        self.body.add_widget(card)
 
     def _teacher_classes(self):
         p = self.app_state.profile
