@@ -249,7 +249,10 @@ class ModuleWorkspaceScreen(Screen):
                 if isinstance(r,dict):
                     for k in r:
                         if k not in HIDDEN and k not in keys: keys.append(k)
-        keys=keys[:8]; totalw=max(dp(680),dp(190)*max(2,len(keys))+dp(175 if self.can_write(self.table) else 0))
+        keys=keys[:8]
+        col_w=dp(230)
+        action_w=dp(175 if self.can_write(self.table) else 0)
+        totalw=max(dp(720),col_w*max(2,len(keys))+action_w)
         scroll=ScrollView(do_scroll_x=True); content=BoxLayout(orientation='vertical',size_hint=(None,None),width=totalw,spacing=dp(3),padding=dp(2)); content.bind(minimum_height=content.setter('height'))
         header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(78),spacing=dp(3),padding=[dp(4),dp(4)])
         for k in keys:
