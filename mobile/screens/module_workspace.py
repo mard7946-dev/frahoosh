@@ -249,8 +249,7 @@ class ModuleWorkspaceScreen(Screen):
                 if isinstance(r,dict):
                     for k in r:
                         if k not in HIDDEN and k not in keys: keys.append(k)
-        keys=keys[:8]
-        col_w=dp(230)
+        # Keep every Web-defined business column that exists in the live Supabase response.\n        # The Web tables are intentionally wide; Android uses horizontal touch scrolling\n        # instead of silently dropping columns.\n        col_w=dp(230)
         action_w=dp(175 if self.can_write(self.table) else 0)
         totalw=max(dp(720),col_w*max(2,len(keys))+action_w)
         scroll=ScrollView(do_scroll_x=True); content=BoxLayout(orientation='vertical',size_hint=(None,None),width=totalw,spacing=dp(3),padding=dp(2)); content.bind(minimum_height=content.setter('height'))
