@@ -467,9 +467,7 @@ class SpecialModuleScreen(Screen):
         username=self.app_state.profile.get("username") or self.app_state.profile.get("email") or self.app_state.national_code
         def work():
             api=self._api()
-            rows=api.table_select("parent_student_links",{"parent_username":"eq."+str(username),"limit":"20"})
-            if not rows:
-                rows=api.table_select("parent_children",{"parent_username":"eq."+str(username),"limit":"20"})
+            rows=api.table_select("parent_children",{"parent_username":"eq."+str(username),"limit":"20"})
             children=[]
             for r in rows or []:
                 sid=r.get("student_id")
@@ -523,7 +521,7 @@ class SpecialModuleScreen(Screen):
             rows=api.table_select("students",{"id":"eq."+str(sid),"limit":"1"}) if sid else api.table_select("students",{"national_code":"eq."+self.app_state.national_code,"limit":"1"})
             return rows[0] if rows else None
         username=self.app_state.profile.get("username") or self.app_state.profile.get("email") or self.app_state.national_code
-        links=api.table_select("parent_student_links",{"parent_username":"eq."+str(username),"limit":"20"})
+        links=api.table_select("parent_children",{"parent_username":"eq."+str(username),"limit":"20"})
         result=[]
         for link in links or []:
             rows=api.table_select("students",{"id":"eq."+str(link.get("student_id")),"limit":"1"})
