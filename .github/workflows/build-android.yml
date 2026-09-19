@@ -101,7 +101,74 @@ jobs:
           grep -q '^package.name = frahooshmobile$' buildozer.spec
           grep -q '^package.domain = ir.frahoosh$' buildozer.spec
           grep -q '^android.numeric_version = 160
+          grep -q '^version = 1.6.0
+      - name: Validate Android dependency versions
+        shell: bash
+        run: |
+          set -euxo pipefail
+          grep -q 'python-bidi==0.4.2' buildozer.spec
+          if grep -q 'python-bidi==0.6.6' buildozer.spec; then
+            echo 'ERROR: python-bidi 0.6.6 is not available in the Android build environment.' >&2
+            exit 1
+          fi
+          echo 'Android dependency check: python-bidi==0.4.2'
+      - name: Verify debug build configuration
+        shell: bash
+        run: |
+          set -euxo pipefail
           grep -q '^version = 1.5.6$' buildozer.spec
+          grep -q '^android.numeric_version = 156$' buildozer.spec
+          echo "Frahoosh APK build mode: debug (delete old app, then install new APK)"
+      - name: Build APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+          export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+          buildozer -v android debug
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Frahoosh-APK-v1.5.6
+          path: bin/*.apk
+          if-no-files-found: error
+          retention-days: 14
+ buildozer.spec
+          grep -q '^version = 1.5.6$' buildozer.spec
+      - name: Validate Android dependency versions
+        shell: bash
+        run: |
+          set -euxo pipefail
+          grep -q 'python-bidi==0.4.2' buildozer.spec
+          if grep -q 'python-bidi==0.6.6' buildozer.spec; then
+            echo 'ERROR: python-bidi 0.6.6 is not available in the Android build environment.' >&2
+            exit 1
+          fi
+          echo 'Android dependency check: python-bidi==0.4.2'
+      - name: Verify debug build configuration
+        shell: bash
+        run: |
+          set -euxo pipefail
+          grep -q '^version = 1.5.6$' buildozer.spec
+          grep -q '^android.numeric_version = 156$' buildozer.spec
+          echo "Frahoosh APK build mode: debug (delete old app, then install new APK)"
+      - name: Build APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+          export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+          buildozer -v android debug
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Frahoosh-APK-v1.5.6
+          path: bin/*.apk
+          if-no-files-found: error
+          retention-days: 14
+ buildozer.spec
       - name: Validate Android dependency versions
         shell: bash
         run: |
