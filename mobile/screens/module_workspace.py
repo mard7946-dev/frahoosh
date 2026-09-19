@@ -6,6 +6,7 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.spinner import Spinner
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
@@ -227,7 +228,10 @@ if _shared_modules:
     for _table_name, _definition in _shared_modules.items():
         _catalog_fields = list((_definition or {}).get("fields") or [])
         if _catalog_fields:
-            TABLE_FIELDS[_table_name] = _catalog_fields
+            TABLE_FIELDS[_table_name] = [
+                str(f) for f in _catalog_fields
+                if f and str(f) not in HIDDEN
+            ]
 
 # Human-readable labels for every field used by the canonical module contract.
 # Unknown fields are still given a useful Persian label instead of exposing
@@ -642,8 +646,55 @@ class ModuleWorkspaceScreen(Screen):
         # Never expose internal metadata or an unknown placeholder as a form field.
         fields=[k for k in fields if k and k not in {"password","school_id"}]
         root=BoxLayout(orientation='vertical',padding=dp(10),spacing=dp(6)); sc=ScrollView(do_scroll_x=False); form=GridLayout(cols=1,spacing=dp(5),size_hint_y=None); form.bind(minimum_height=form.setter('height')); inputs={}
+        spinner_values = {
+            "active": ("فعال", "غیرفعال"),
+            "published": ("منتشرشده", "پیش‌نویس"),
+            "secure_mode": ("فعال", "غیرفعال"),
+            "share_enabled": ("فعال", "غیرفعال"),
+            "manager_released": ("تأیید شده", "در انتظار تأیید"),
+            "status": ("فعال", "در انتظار", "تأیید شد", "رد شد", "بسته", "لغو شد"),
+            "priority": ("کم", "عادی", "زیاد", "فوری"),
+            "transaction_type": ("بدهکار", "بستانکار"),
+            "payment_status": ("پرداخت نشده", "در انتظار پرداخت", "پرداخت شده", "لغو شده"),
+            "grade_type": ("مستمر", "کلاسی", "امتحانی", "فعالیت", "نهایی"),
+            "term": ("نوبت اول", "نوبت دوم", "مستمر"),
+            "employment_status": ("فعال", "مرخصی", "پایان همکاری"),
+        }
+        multiline_fields = {
+            "description", "content", "body", "text", "note", "report",
+            "reason", "recommendation", "followup_items", "decision",
+        }
         for f in fields:
-            form.add_widget(self.label(COLUMNS.get(f,f),"9sp",PRIMARY,True)); ti=PersianTextInput(text='' if row is None else str(row.get(f,'')),font_name=font_name(),font_size='12sp',halign='right',multiline=False,size_hint_y=None,height=dp(44),padding=[dp(8),dp(6)]); inputs[f]=ti; form.add_widget(ti)
+            label_text = COLUMNS.get(f, f)
+            form.add_widget(self.label(label_text, "9sp", PRIMARY, True))
+            existing = "" if row is None else str(row.get(f, ""))
+            if existing and all(ch in "□�▯" for ch in existing.strip()):
+                existing = ""
+            if f in spinner_values:
+                values = tuple(rtl_text(v) for v in spinner_values[f])
+                selected = rtl_text(existing) if existing and existing in spinner_values[f] else values[0]
+                ti = Spinner(
+                    text=selected,
+                    values=values,
+                    font_name=font_name(),
+                    font_size="11sp",
+                    size_hint_y=None,
+                    height=dp(44),
+                )
+            else:
+                ti = PersianTextInput(
+                    text=existing,
+                    hint_text=rtl_text(label_text),
+                    font_name=font_name(),
+                    font_size="12sp",
+                    halign="right",
+                    multiline=f in multiline_fields,
+                    size_hint_y=None,
+                    height=dp(72 if f in multiline_fields else 44),
+                    padding=[dp(8), dp(6)],
+                )
+            inputs[f] = ti
+            form.add_widget(ti)
         sc.add_widget(form); root.add_widget(sc); actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5)); p=Popup(title=rtl_text(('ویرایش' if row else 'ثبت جدید')+' • '+FRIENDLY.get(table,table)),content=root,size_hint=(.94,.88),auto_dismiss=False); actions.add_widget(self.btn('انصراف',lambda *_:p.dismiss(),SECONDARY,dp(40))); actions.add_widget(self.btn('ذخیره',lambda *_:self.save(table,row,inputs,p),SUCCESS,dp(40))); root.add_widget(actions); p.open()
 
     def _infer(self,row): return [k for k in (row or {}).keys() if k not in HIDDEN] or ['title','description','status']
@@ -699,7 +750,7 @@ class ModuleWorkspaceScreen(Screen):
     def save(self,table,row,inputs,p):
         payload={}
         for k, widget in inputs.items():
-            raw = widget.text.strip()
+            raw = str(widget.text or "").strip()
             if raw:
                 payload[k] = self._payload_value(k, raw)
         if not payload:
