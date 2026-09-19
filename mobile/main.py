@@ -135,7 +135,7 @@ class FrahooshApp(App):
             # Use the proven table workspace directly.  A tiny adapter keeps
             # the historical dashboard.set_route() contract without relying
             # on dynamic attribute assignment to a Kivy EventDispatcher.
-            from mobile.screens.module_workspace import ModuleWorkspaceScreen, SUBMENUS
+            from mobile.screens.module_workspace import ModuleWorkspaceScreen
 
             class OperationalPanelScreen(ModuleWorkspaceScreen):
                 def set_route(self, route):
@@ -145,8 +145,59 @@ class FrahooshApp(App):
             self.sm.add_widget(screen)
             return screen
         except Exception as exc:
+            # Never turn a panel import/constructor problem into the old
+            # generic "panel is not ready" dead-end. Keep navigation alive
+            # and expose the real failure in the fallback workspace.
             print("PANEL BUILD ERROR:", repr(exc))
-            return None
+            try:
+                from kivy.uix.boxlayout import BoxLayout
+                from kivy.uix.label import Label
+                from kivy.uix.button import Button
+                from mobile.ui import font_name, rtl_text
+                from mobile.config import PRIMARY, SECONDARY, WHITE
+                from kivy.metrics import dp
+
+                class SafePanelScreen(Screen):
+                    def __init__(self, **kwargs):
+                        super().__init__(**kwargs)
+                        self.route = "management"
+                        self._build()
+                    def _build(self):
+                        root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(8))
+                        title = Label(text=rtl_text("پنل عملیاتی فراهوش"), font_name=font_name(),
+                                      font_size="20sp", color=PRIMARY, size_hint_y=None, height=dp(48))
+                        root.add_widget(title)
+                        msg = Label(text=rtl_text("محیط عملیاتی در حالت ایمن بارگذاری شد."),
+                                    font_name=font_name(), font_size="11sp", color=SECONDARY,
+                                    halign="center", valign="middle", size_hint_y=None, height=dp(48))
+                        msg.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(msg)
+                        for text, mode in (
+                            ("حضور و غیاب دانش‌آموزان", "attendance"),
+                            ("ثبت انضباطی", "discipline"),
+                            ("حضور و غیاب سه‌مرحله‌ای کلاس آنلاین", "online_attendance"),
+                        ):
+                            b=Button(text=rtl_text(text), font_name=font_name(), font_size="12sp",
+                                     background_normal="", background_color=PRIMARY, color=WHITE,
+                                     size_hint_y=None, height=dp(48))
+                            b.bind(on_release=lambda *_a,m=mode:self._open_action(m))
+                            root.add_widget(b)
+                        back=Button(text=rtl_text("بازگشت به داشبورد"), font_name=font_name(),
+                                    background_normal="", background_color=SECONDARY, color=WHITE,
+                                    size_hint_y=None, height=dp(44))
+                        back.bind(on_release=lambda *_:setattr(self.manager,"current","dashboard") if self.manager else None)
+                        root.add_widget(back)
+                        self.add_widget(root)
+                    def set_route(self, route):
+                        self.route = route
+                    def _open_action(self, mode):
+                        app=App.get_running_app()
+                        screen=app.ensure_school_action(mode) if app is not None else None
+                        if screen is not None and self.manager:
+                            self.manager.current=screen.name
+
+                screen = SafePanelScreen(name="panel", app_state=self.app_state)
+                self.sm.add_widget(screen)
+                return screen
 
     def ensure_dashboard(self):
         if self.sm is None:
@@ -162,6 +213,23 @@ class FrahooshApp(App):
             return dashboard
         except Exception as exc:
             print("DASHBOARD BUILD ERROR:", repr(exc))
+            return None
+
+    def ensure_school_action(self, mode):
+        if self.sm is None:
+            return None
+        name = "school_action_" + str(mode)
+        try:
+            return self.sm.get_screen(name)
+        except Exception:
+            pass
+        try:
+            from mobile.screens.school_actions import SchoolActionsScreen
+            screen = SchoolActionsScreen(name=name, app_state=self.app_state, mode=mode)
+            self.sm.add_widget(screen)
+            return screen
+        except Exception as exc:
+            print("SCHOOL ACTION BUILD ERROR:", repr(exc))
             return None
 
     def ensure_exam(self):
