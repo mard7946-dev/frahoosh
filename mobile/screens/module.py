@@ -70,8 +70,11 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
             for field in fields:
                 label_text = self._column_label(field)
                 form.add_widget(self.label(label_text, "9sp", PRIMARY, True))
+                existing = "" if row is None else str(row.get(field, ""))
+                if existing and all(ch in "□�▯" for ch in existing.strip()):
+                    existing = ""
                 ti = TextInput(
-                    text="" if row is None else str(row.get(field, "")),
+                    text=existing,
                     hint_text=rtl_text(label_text),
                     font_name=font_name(), font_size="12sp", halign="right",
                     multiline=field in {"description", "content", "body", "question", "note", "decision"},
@@ -79,7 +82,7 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                     height=dp(76 if field in {"description", "content", "body", "question", "note", "decision"} else 44),
                     padding=[dp(9), dp(7)],
                 )
-                inputs[field] = ti
+                            inputs[field] = ti
                 form.add_widget(ti)
             sc.add_widget(form)
             root.add_widget(sc)
