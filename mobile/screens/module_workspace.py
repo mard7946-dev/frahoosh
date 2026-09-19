@@ -98,6 +98,49 @@ COLUMNS = {
 
 HIDDEN = {"id", "created_at", "updated_at", "deleted_at"}
 
+COLUMNS.update({
+    "permissions":"سطح دسترسی","linked_student_id":"دانش‌آموز مرتبط","linked_teacher_id":"دبیر مرتبط","linked_staff_id":"کارمند مرتبط",
+    "display_name":"نام نمایشی","nationality":"ملیت","religion":"دین","sect":"مذهب","photo":"تصویر",
+    "description":"توضیحات","subject":"درس","assessment_type":"نوع ارزیابی","assessment_title":"عنوان ارزیابی",
+    "coefficient":"ضریب","manager_released":"تأیید مدیریت","due_date":"مهلت تحویل","active":"فعال",
+    "weekdays":"روزهای هفته","weekday":"روز","bell":"زنگ","period":"ساعت/زنگ","start_date":"تاریخ شروع","end_date":"تاریخ پایان",
+    "exam_start_time":"ساعت شروع","exam_end_time":"ساعت پایان","lesson":"مبحث/جلسه","start_time":"زمان شروع","end_time":"زمان پایان",
+    "pages":"صفحات","record":"ضبط","smart_board":"تخته هوشمند","quiz":"آزمونک","camera":"دوربین","microphone":"میکروفون",
+    "started_at":"شروع جلسه","ended_at":"پایان جلسه","student_name":"نام دانش‌آموز","teacher_name":"نام دبیر",
+    "join_time":"زمان ورود","leave_time":"زمان خروج","last_activity":"آخرین فعالیت","title":"عنوان","text":"متن",
+    "sender":"فرستنده","receiver":"گیرنده","sender_user_id":"شناسه فرستنده","sender_name":"نام فرستنده",
+    "target_role":"نقش مخاطب","target_name":"نام مخاطب","target_class_name":"کلاس مخاطب","message_id":"پیام",
+    "target_type":"نوع مخاطب","target_value":"مقدار مخاطب","read_at":"زمان خواندن",
+    "counterparty":"طرف حساب","debit":"بدهکار","credit":"بستانکار","invoice_number":"شماره فاکتور",
+    "account_type":"نوع حساب","account_number":"شماره حساب","gateway":"درگاه","reference":"شماره مرجع","authority":"شماره پیگیری",
+    "payment_type":"نوع پرداخت","payment_reason":"علت پرداخت","manual_amount":"مبلغ دستی","gateway_enabled":"درگاه فعال",
+    "term":"نوبت","average":"معدل","snapshot_data":"نسخه کارنامه","generated_date_shamsi":"تاریخ صدور",
+    "school_name":"نام مدرسه","school_code":"کد مدرسه","principal_name":"نام مدیر","academic_year":"سال تحصیلی",
+    "logo_path":"مسیر لوگو","capacity":"ظرفیت","grade_level":"پایه","report_date":"تاریخ کارنامه",
+    "class_id":"کلاس","file_path":"مسیر فایل","file_type":"نوع فایل","media_path":"مسیر رسانه","media_type":"نوع رسانه",
+    "tool_type":"نوع ابزار","content_date_shamsi":"تاریخ محتوای شمسی","board_date":"تاریخ تخته",
+    "activity_text":"شرح فعالیت","activity_date_shamsi":"تاریخ فعالیت","correct_option":"گزینه صحیح",
+    "username":"نام کاربری","answer":"پاسخ","answered_at":"زمان پاسخ","request_date_shamsi":"تاریخ درخواست",
+    "period":"دوره","score":"امتیاز","risk_level":"سطح ریسک","analysis_date_shamsi":"تاریخ تحلیل",
+    "report_type":"نوع گزارش","target_id":"شناسه هدف","created_by":"ثبت‌کننده","report_date_shamsi":"تاریخ گزارش",
+    "visit_reason":"علت مراجعه","recommendations":"توصیه‌ها","next_visit":"مراجعه بعدی","reason_summary":"خلاصه علت",
+    "interest":"علاقه","aptitude":"استعداد","recommendation":"پیشنهاد هدایت تحصیلی","body":"متن","active":"فعال",
+    "parent_phone":"شماره تماس ولی","meeting_date":"تاریخ جلسه","requester":"درخواست‌کننده","requester_role":"نقش درخواست‌کننده",
+    "requester_name":"نام درخواست‌کننده","student_name":"نام دانش‌آموز","parent_username":"نام کاربری ولی","parent_name":"نام ولی",
+    "target_user_id":"شناسه مخاطب","target_username":"نام کاربری مخاطب","target_person":"شخص مقصد","requested_date":"تاریخ درخواست",
+    "requested_time":"ساعت درخواست","reason":"علت","final_date":"تاریخ نهایی","final_time":"ساعت نهایی",
+    "manager_status":"وضعیت مدیر","manager_note":"یادداشت مدیر","educational_status":"وضعیت آموزشی","educational_note":"یادداشت آموزشی",
+    "discipline_type":"نوع مورد انضباطی","record_date":"تاریخ ثبت","decision_type":"نوع تصمیم","deduct_score":"کسر نمره",
+    "referral_to":"ارجاع به","priority":"اولویت","deduction":"کسر نمره","actor_username":"ثبت‌کننده","actor_role":"نقش ثبت‌کننده",
+    "note":"یادداشت","election_year":"سال انتخابات","registration_date":"تاریخ ثبت‌نام","participation_type":"تیمی/انفرادی",
+    "team_members":"اعضای تیم","competition_type":"نوع مسابقه","payment_status":"وضعیت پرداخت","activity_id":"فعالیت",
+    "activity_title":"عنوان فعالیت","activity_kind":"نوع فعالیت","fee":"هزینه","category":"دسته‌بندی","start_date":"شروع",
+    "end_date":"پایان","program_key":"کلید برنامه","settings":"تنظیمات","student_code":"شماره دانش‌آموزی",
+    "seat_number":"شماره صندلی","month_name":"ماه","file_url":"فایل","answer_text":"پاسخ دانش‌آموز","submitted_at":"زمان ارسال",
+    "survey_id":"نظرسنجی","respondent_username":"کاربر پاسخ‌دهنده","respondent_role":"نقش پاسخ‌دهنده","question_id":"سؤال",
+    "created_at":"تاریخ ثبت"
+})
+
 # Business-specific columns for each subpanel.
 TABLE_FIELDS = {
 "students":["first_name","last_name","national_code","student_code","grade","class_name","phone","parent_phone","father_name","mother_name","birth_date","email","address","nationality","religion","sect"],
@@ -137,13 +180,32 @@ if _shared_modules:
 # Explicit write policy. Reads remain available through the existing API for all visible tables.
 EDITABLE = {
     "manager": {table for items in SUBMENUS.values() for _, table in items},
-    "educational": {"meeting_requests","teacher_classes","lesson_plans","attendance","grades","student_grades","assignments","weekly_schedule","exam_schedule","teacher_exams","online_classes","discipline_records","educational_followups","academic_followups","khwarizmi_registrations","ai_smart_reports","staff","students"},
-    "executive": {"meeting_requests","students","parents","parent_children","staff","attendance","school_events","school_class_config","messages","weekly_schedule","monthly_report_cards","report_cards","discipline_records","certificate_requests","online_classes","program_activations"},
-    "cultural": {"meeting_requests","educational_activities","school_events","messages","smart_board_content","activity_offers","activity_registrations","student_council","basij_registration","school_ally","school_mayor","cultural_competitions","art_competitions","sport_competitions","morning_leaders","qari_registration","morning_ceremony","discipline_records","program_activations"},
-    "advisor": {"meeting_requests","counseling_records","counseling_followups","messages"},
-    "teacher": {"attendance","grades","student_grades","assignments","lesson_plans","lesson_plan_entries","teacher_exams","discipline_records","student_referrals","teacher_parent_meetings","messages"},
+    "educational": {
+        "attendance","student_referrals","meeting_requests","ai_smart_reports","online_classes",
+        "messages","message_targets","exam_schedule","quiz_questions","teacher_classes","students"
+    },
+    "executive": {
+        "students","executive_classes","staff","archive_items","executive_operations","executive_reports",
+        "report_cards","online_classes","messages","weekly_schedule","discipline_records",
+        "certificate_requests","school_class_config","parent_children"
+    },
+    "cultural": {
+        "morning_ceremony","cultural_competitions","activity_programs","competitions",
+        "educational_activities","cultural_reports","cultural_activity_registrations",
+        "messages","message_targets","activity_offers","activity_registrations",
+        "student_council","basij_registration","school_ally","school_mayor","qari_registration"
+    },
+    "advisor": {
+        "counselor_board","counseling_records","counseling_followups","student_referrals",
+        "parent_meetings","counseling_classes","parent_activities","counseling_guidance",
+        "ai_smart_reports","discipline_records","messages","message_targets"
+    },
+    "teacher": {
+        "teacher_classes","attendance","grades","assignments","teacher_exams","online_classes",
+        "lesson_plans","teacher_meetings","teacher_activities","grade_items","discipline_records",
+        "messages","message_targets","student_referrals"
+    },
 }
-
 FORMS = {
     "students":["first_name","last_name","father_name","mother_name","national_code","birth_certificate_place","birth_place","religion","sect","nationality","student_phone","father_phone","mother_phone","grade","class_name"],
     "teachers":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","subject"],
