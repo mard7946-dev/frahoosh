@@ -46,6 +46,7 @@ CARD = (0.97, 0.98, 1.0, 1)
 BORDER = (0.80, 0.84, 0.90, 1)
 # Always resolve the bundled portrait artwork from the APK itself. Runtime/local paths can point to a desktop file that does not exist on Android.
 _BACKGROUND_CANDIDATES = [
+    ASSETS_DIR / "frahoosh_login_mobile.jpg",
     ASSETS_DIR / "frahoosh_background_final.jpg",
     ASSETS_DIR / "frahoosh_background_final_small.jpg",
     ASSETS_DIR / "frahoosh_bg_270.jpg",
