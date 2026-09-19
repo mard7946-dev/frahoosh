@@ -233,6 +233,18 @@ if _shared_modules:
                 if f and str(f) not in {"id", "created_at", "updated_at", "deleted_at"}
             ]
 
+# HARD RULE: the uploaded ZIP is the source of truth for Android table columns.
+# This override is intentionally applied after the shared catalog so no legacy
+# or hand-invented field list can change the visible table contract.
+try:
+    from mobile.zip_table_contract import ZIP_TABLE_FIELDS, ZIP_COLUMN_LABELS
+    for _zip_table, _zip_fields in ZIP_TABLE_FIELDS.items():
+        TABLE_FIELDS[_zip_table] = list(_zip_fields)
+    for _zip_key, _zip_label in ZIP_COLUMN_LABELS.items():
+        COLUMNS[_zip_key] = _zip_label
+except Exception as _zip_contract_exc:
+    print("ZIP TABLE CONTRACT ERROR:", repr(_zip_contract_exc))
+
 # Human-readable labels for every field used by the canonical module contract.
 # Unknown fields are still given a useful Persian label instead of exposing
 # raw/internal placeholders or missing-glyph boxes.
