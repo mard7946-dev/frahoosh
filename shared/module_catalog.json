@@ -1,190 +1,109 @@
 {
-  "version": "2.0.0",
+  "version": "3.0.0",
+  "source": "Frahoosh_v16_12_LOGIN_BACKGROUND_FINAL_02.zip",
+  "backend": "supabase",
+  "clients": [
+    "web",
+    "android"
+  ],
+  "principle": "The ZIP is the canonical module source for Web and Android; Android renders special workflows with dedicated environments but uses the same table and field contract.",
   "panels": {
     "management": [
       [
-        "اطلاعات مدرسه",
-        "school_profile"
-      ],
-      [
-        "دانش‌آموزان",
-        "students"
-      ],
-      [
-        "دبیران",
-        "teachers"
-      ],
-      [
-        "کادر و کارکنان",
-        "staff"
-      ],
-      [
-        "پایه و کلاس‌ها",
-        "school_class_config"
-      ],
-      [
-        "حساب‌های سامانه",
+        "مدیریت کاربران و کارکنان",
         "users"
-      ],
-      [
-        "رویدادها",
-        "school_events"
-      ],
-      [
-        "صندوق پیام",
-        "messages"
-      ],
-      [
-        "کارنامه‌ها",
-        "report_cards"
-      ],
-      [
-        "برنامه هفتگی",
-        "weekly_schedule"
-      ],
-      [
-        "آزمون آنلاین",
-        "teacher_exams"
       ],
       [
         "کلاس آنلاین",
         "online_classes"
       ],
       [
-        "مالی",
-        "finance_accounts"
+        "برنامه هفتگی و برنامه امتحانات",
+        "weekly_schedule"
       ],
       [
-        "پرداخت آنلاین",
-        "payment_offers"
-      ],
-      [
-        "تابلو هوشمند",
-        "smart_board_content"
-      ],
-      [
-        "نمونه کلاس هوشمند",
-        "smart_class_preview"
-      ],
-      [
-        "ملاقات‌ها",
-        "meeting_requests"
-      ],
-      [
-        "گزارش‌های مدیریتی",
+        "گزارش‌ها و آمار",
         "report_cards"
+      ],
+      [
+        "تنظیمات مدرسه",
+        "school_profile"
       ]
     ],
     "educational": [
       [
-        "ملاقات‌ها",
+        "تأیید حضور و غیاب",
+        "attendance"
+      ],
+      [
+        "ارجاعات دانش‌آموزی",
+        "student_referrals"
+      ],
+      [
+        "درخواست جلسات",
         "meeting_requests"
       ],
       [
-        "پرونده اطلاعاتی دانش‌آموز",
-        "students"
-      ],
-      [
-        "پرونده پرسنلی همکاران",
-        "staff"
-      ],
-      [
-        "کلاس‌های دبیران",
-        "teacher_classes"
-      ],
-      [
-        "فعال‌سازی کلاس آنلاین",
-        "online_classes"
-      ],
-      [
-        "برنامه هفتگی",
-        "weekly_schedule"
-      ],
-      [
-        "برنامه امتحانی",
-        "exam_schedule"
-      ],
-      [
-        "پیگیری آموزشی",
-        "educational_followups"
-      ],
-      [
-        "پیگیری درسی",
-        "academic_followups"
-      ],
-      [
-        "پیگیری انضباطی",
-        "discipline_records"
-      ],
-      [
-        "ثبت انضباطی",
-        "discipline_records"
-      ],
-      [
-        "نمرات و کارنامه‌ها",
-        "student_grades"
-      ],
-      [
-        "گزارش آموزشی هوشمند",
+        "گزارش آموزشی",
         "ai_smart_reports"
       ],
       [
-        "جشنواره خوارزمی",
-        "khwarizmi_registrations"
+        "کلاس‌های مجازی",
+        "online_classes"
       ],
       [
-        "آزمون آنلاین",
-        "teacher_exams"
-      ],
-      [
-        "صندوق پیام",
+        "اطلاع‌رسانی",
         "messages"
+      ],
+      [
+        "برنامه امتحانات",
+        "exam_schedule"
+      ],
+      [
+        "بانک سؤال",
+        "quiz_questions"
+      ],
+      [
+        "پیام‌های دریافتی",
+        "messages"
+      ],
+      [
+        "ارسال پیام",
+        "message_targets"
       ]
     ],
     "executive": [
       [
-        "ملاقات با اولیا",
-        "meeting_requests"
-      ],
-      [
-        "پرونده دانش‌آموزی",
+        "دانش‌آموزان",
         "students"
       ],
       [
-        "پرونده پرسنلی کارکنان",
+        "کلاس‌ها",
+        "executive_classes"
+      ],
+      [
+        "کارکنان",
         "staff"
       ],
       [
-        "اولیا و ارتباط فرزند",
-        "parent_children"
+        "پرونده‌ها",
+        "archive_items"
       ],
       [
-        "فعال‌سازی برنامه هفتگی",
-        "weekly_schedule"
+        "امور اجرایی",
+        "executive_operations"
       ],
       [
-        "فعال‌سازی کارنامه ماهیانه",
-        "monthly_report_cards"
+        "گزارش‌ها",
+        "executive_reports"
       ],
       [
-        "فعال‌سازی کارنامه مستمر و پایان ترم",
+        "کارنامه‌ها",
         "report_cards"
       ],
       [
-        "ثبت انضباطی",
-        "discipline_records"
-      ],
-      [
-        "درخواست گواهی اشتغال به تحصیل",
-        "certificate_requests"
-      ],
-      [
-        "کلاس‌های آنلاین",
+        "کلاس آنلاین",
         "online_classes"
-      ],
-      [
-        "رویدادها و مراسمات",
-        "school_events"
       ],
       [
         "صندوق پیام",
@@ -193,98 +112,94 @@
     ],
     "cultural": [
       [
-        "ملاقات با اولیا",
-        "meeting_requests"
-      ],
-      [
-        "پیام‌های پرورشی",
-        "messages"
-      ],
-      [
-        "ایجاد مسابقات",
-        "activity_offers"
-      ],
-      [
-        "مسابقات فرهنگی",
-        "cultural_competitions"
-      ],
-      [
-        "مسابقات هنری",
-        "art_competitions"
-      ],
-      [
-        "مسابقات ورزشی",
-        "sport_competitions"
-      ],
-      [
-        "فعالیت‌ها و مراسمات",
-        "educational_activities"
-      ],
-      [
-        "انتخابات شورای دانش‌آموزی",
-        "student_council"
-      ],
-      [
-        "بسیج دانش‌آموزی",
-        "basij_registration"
-      ],
-      [
-        "شهردار مدرسه",
-        "school_mayor"
-      ],
-      [
-        "مکبر",
-        "morning_leaders"
-      ],
-      [
-        "قاری برنامه ظهرگاهی",
-        "qari_registration"
-      ],
-      [
-        "جدول مراسم ظهرگاهی",
+        "صبحگاه / ظهرگاه",
         "morning_ceremony"
       ],
       [
-        "ثبت انضباطی",
-        "discipline_records"
+        "مسابقات",
+        "cultural_competitions"
       ],
       [
-        "صندوق پیام",
+        "اردوها",
+        "activity_programs"
+      ],
+      [
+        "جشنواره‌ها",
+        "competitions"
+      ],
+      [
+        "استعداد",
+        "educational_activities"
+      ],
+      [
+        "قرآن و نماز",
+        "activity_programs"
+      ],
+      [
+        "گزارشات",
+        "cultural_reports"
+      ],
+      [
+        "ثبت‌نام فعالیت‌ها",
+        "cultural_activity_registrations"
+      ],
+      [
+        "پیام‌های دریافتی",
         "messages"
+      ],
+      [
+        "ارسال پیام",
+        "message_targets"
       ]
     ],
     "advisor": [
       [
-        "ملاقات با اولیا",
-        "meeting_requests"
+        "تابلو اعلانات مشاور",
+        "counselor_board"
       ],
       [
-        "پرونده‌های مشاوره",
+        "پرونده مشاوره",
         "counseling_records"
       ],
       [
-        "پیگیری جلسات",
+        "پیگیری وضعیت دانش‌آموز",
         "counseling_followups"
       ],
       [
-        "دانش‌آموزان",
-        "students"
+        "ارجاع به مدیریت",
+        "student_referrals"
       ],
       [
-        "اولیا",
-        "parent_children"
+        "جلسه اولیا",
+        "parent_meetings"
       ],
       [
-        "ملاقات و درخواست جلسه",
-        "meeting_requests"
+        "کلاس‌های آموزشی",
+        "counseling_classes"
       ],
       [
-        "گزارش‌های مشاوره",
-        "report_cards"
+        "آموزش خانواده",
+        "parent_activities"
       ],
       [
-        "صندوق پیام",
+        "هدایت تحصیلی",
+        "counseling_guidance"
+      ],
+      [
+        "گزارشات",
+        "ai_smart_reports"
+      ],
+      [
+        "موارد انضباطی",
+        "discipline_records"
+      ],
+      [
+        "پیام‌های دریافتی",
         "messages"
+      ],
+      [
+        "ارسال پیام",
+        "message_targets"
       ]
     ],
     "teachers": [
@@ -293,27 +208,11 @@
         "teacher_classes"
       ],
       [
-        "طرح درس",
-        "lesson_plans"
-      ],
-      [
-        "برنامه هفتگی",
-        "weekly_schedule"
-      ],
-      [
-        "کلاس‌های آنلاین فعال",
-        "online_classes"
-      ],
-      [
-        "آزمون آنلاین",
-        "teacher_exams"
-      ],
-      [
         "حضور و غیاب",
         "attendance"
       ],
       [
-        "نمرات درسی",
+        "ثبت نمرات",
         "grades"
       ],
       [
@@ -321,99 +220,87 @@
         "assignments"
       ],
       [
-        "موارد انضباطی",
-        "discipline_records"
+        "آزمون آنلاین",
+        "teacher_exams"
       ],
       [
-        "ارجاع دانش‌آموز",
-        "student_referrals"
+        "کلاس مجازی",
+        "online_classes"
       ],
       [
-        "ملاقات با اولیا",
-        "meeting_requests"
+        "طرح درس",
+        "lesson_plans"
       ],
       [
-        "صندوق پیام",
+        "جلسات اولیا",
+        "teacher_meetings"
+      ],
+      [
+        "گزارش‌ها",
+        "teacher_activities"
+      ],
+      [
+        "جداول آموزشی کامل",
+        "grade_items"
+      ],
+      [
+        "پیام‌های دریافتی",
         "messages"
+      ],
+      [
+        "ارسال پیام",
+        "message_targets"
       ]
     ],
     "students": [
       [
-        "اطلاعات شخصی",
+        "پروفایل",
         "students"
       ],
       [
-        "پایه و کلاس",
-        "student_class_info"
+        "حضور و غیاب",
+        "attendance"
       ],
       [
         "نمرات",
         "student_grades"
       ],
       [
-        "وضعیت حضور و غیاب",
-        "attendance"
-      ],
-      [
-        "کلاس‌های آنلاین فعال",
-        "online_classes"
-      ],
-      [
-        "شرکت در فعالیت‌ها",
-        "activity_registrations"
-      ],
-      [
-        "انتخابات شورای دانش‌آموزی",
-        "student_council"
-      ],
-      [
-        "بسیج دانش‌آموزی",
-        "basij_registration"
-      ],
-      [
-        "همیار مدرسه",
-        "school_ally"
-      ],
-      [
-        "شهردار مدرسه",
-        "school_mayor"
-      ],
-      [
-        "ارسال تکالیف",
-        "assignment_submissions"
-      ],
-      [
-        "برنامه هفتگی",
-        "weekly_schedule"
-      ],
-      [
-        "برنامه امتحانی",
-        "exam_schedule"
-      ],
-      [
-        "شماره صندلی کلاسی",
-        "class_seat_assignments"
-      ],
-      [
-        "شماره صندلی امتحانی",
-        "exam_seat_assignments"
-      ],
-      [
-        "درخواست گواهی اشتغال به تحصیل",
-        "certificate_requests"
+        "تکالیف",
+        "assignments"
       ],
       [
         "صندوق پیام",
         "messages"
       ],
       [
-        "کمک‌های داوطلبانه / پرداخت آنلاین",
+        "مسابقات و فعالیت‌ها",
+        "activity_registrations"
+      ],
+      [
+        "برنامه هفتگی",
+        "weekly_schedule"
+      ],
+      [
+        "امتحانات",
+        "exam_schedule"
+      ],
+      [
+        "گزارش عملکرد",
+        "ai_smart_reports"
+      ],
+      [
+        "کلاس آنلاین",
+        "online_classes"
+      ],
+      [
+        "پرداخت آنلاین",
         "payment_offers"
       ]
     ],
     "parents": [
       [
-        "انتخاب یک یا چند دانش‌آموز",
+        "انتخاب دانش‌آموز",
         "parent_children"
       ],
       [
@@ -421,82 +308,74 @@
         "students"
       ],
       [
-        "نمرات کلاسی و امتحانی",
+        "کارنامه و نمرات",
         "student_grades"
       ],
       [
-        "حضور و غیاب",
-        "attendance"
+        "وضعیت انضباطی",
+        "discipline_records"
       ],
       [
-        "کارنامه ماهیانه",
-        "monthly_report_cards"
-      ],
-      [
-        "کارنامه مستمر و پایان ترم",
-        "report_cards"
-      ],
-      [
-        "ملاقات با دبیر",
-        "meeting_requests"
-      ],
-      [
-        "ملاقات با کادر",
-        "meeting_requests"
-      ],
-      [
-        "ملاقات با مشاور",
-        "meeting_requests"
-      ],
-      [
-        "ملاقات با مدیریت",
-        "meeting_requests"
-      ],
-      [
-        "انتخابات و مراسمات انجمن اولیا",
-        "parent_activities"
-      ],
-      [
-        "کلاس آموزش خانواده",
-        "parent_activities"
-      ],
-      [
-        "بهداشت روان",
-        "parent_activities"
-      ],
-      [
-        "کمک‌های داوطلبانه / پرداخت آنلاین",
-        "payment"
+        "عملکرد",
+        "ai_smart_reports"
       ],
       [
         "صندوق پیام",
         "messages"
+      ],
+      [
+        "درخواست ملاقات",
+        "parent_meeting_requests"
+      ],
+      [
+        "نظرسنجی",
+        "survey_responses"
+      ],
+      [
+        "برنامه هفتگی",
+        "weekly_schedule"
+      ],
+      [
+        "برنامه امتحانات",
+        "exam_schedule"
+      ],
+      [
+        "پرداخت‌های ثبت‌شده",
+        "payment_records"
+      ],
+      [
+        "پرداخت آنلاین",
+        "payment_offers"
+      ],
+      [
+        "سرویس مدرسه",
+        "transport_requests"
+      ],
+      [
+        "همه اطلاعات مدرسه",
+        "grades"
       ]
     ],
     "finance": [
       [
-        "حساب‌ها",
-        "finance_accounts"
+        "پرداخت‌ها",
+        "payment_records"
       ],
       [
         "تراکنش‌ها",
         "finance_transactions"
       ],
       [
-        "کمک‌های داوطلبانه",
-        "finance_donations"
+        "حساب‌ها",
+        "finance_accounts"
       ],
       [
-        "تعریف گزینه پرداخت",
+        "گزارش مالی",
+        "finance_transactions"
+      ],
+      [
+        "تنظیمات پرداخت آنلاین",
         "payment_offers"
-      ],
-      [
-        "درخواست‌های پرداخت",
-        "payment_attempts"
-      ],
-      [
-        "سوابق پرداخت",
-        "payment_records"
       ]
     ],
     "online": [
@@ -527,38 +406,50 @@
     ],
     "smart_board": [
       [
-        "محتوای آموزشی",
-        "smart_board_content"
+        "تخته آموزشی",
+        "smart_board_whiteboards"
       ],
       [
-        "فعالیت‌ها",
-        "smart_board_activities"
+        "فایل‌ها",
+        "smart_board_files"
+      ],
+      [
+        "تصاویر و ویدئوها",
+        "smart_board_media"
+      ],
+      [
+        "ابزارهای تعاملی",
+        "smart_board_interactive_tools"
+      ],
+      [
+        "محتوای آموزشی",
+        "smart_board_content"
       ],
       [
         "آزمون‌های کوتاه",
         "smart_board_quizzes"
       ],
       [
-        "تخته‌های آموزشی",
-        "smart_board_whiteboards"
+        "فعالیت‌های کلاس",
+        "smart_board_activities"
       ]
     ],
     "ai": [
       [
-        "گزارش تحلیلی کلاس به کلاس",
-        "ai_smart_reports"
-      ],
-      [
-        "گزارش تحلیلی دانش‌آموز",
-        "ai_smart_reports"
-      ],
-      [
-        "پرسش هوشمند",
-        "ai_questions"
-      ],
-      [
-        "جلسات دستیار",
+        "دستیار هوشمند",
         "ai_assistant_sessions"
+      ],
+      [
+        "تحلیل آموزشی",
+        "ai_educational_analysis"
+      ],
+      [
+        "گزارش هوشمند",
+        "ai_smart_reports"
+      ],
+      [
+        "پرسش و پاسخ",
+        "ai_questions"
       ]
     ],
     "messages": [
@@ -633,16 +524,12 @@
         "account_settings"
       ],
       [
-        "مشخصات مدرسه",
+        "تنظیمات مدرسه",
         "school_profile"
       ],
       [
-        "ساختار کلاس‌ها",
-        "school_class_config"
-      ],
-      [
-        "حساب‌های سامانه",
-        "users"
+        "پشتیبان‌گیری",
+        "backup_records"
       ]
     ],
     "student_info": [
@@ -670,75 +557,1573 @@
         "کارنامه",
         "report_cards"
       ]
+    ],
+    "participation": [
+      [
+        "فعالیت‌ها",
+        "educational_activities"
+      ],
+      [
+        "رویدادها",
+        "school_events"
+      ],
+      [
+        "مشارکت اولیا",
+        "parent_activities"
+      ],
+      [
+        "مسابقات",
+        "competitions"
+      ],
+      [
+        "ثبت‌نام فعالیت‌ها",
+        "activity_registrations"
+      ]
     ]
   },
   "friendly": {
-    "school_profile": "مشخصات مدرسه",
-    "school_class_config": "ساختار کلاس‌ها",
-    "users": "حساب‌های سامانه",
-    "students": "دانش‌آموزان",
-    "teachers": "دبیران",
-    "staff": "کادر و کارکنان",
-    "teacher_classes": "کلاس‌های دبیران",
-    "lesson_plans": "طرح درس",
-    "attendance": "حضور و غیاب",
-    "grades": "نمرات",
-    "student_grades": "ارزیابی دانش‌آموزان",
-    "assignments": "تکالیف",
-    "parent_children": "ارتباط ولی و فرزند",
-    "finance_accounts": "حساب‌های مالی",
-    "finance_transactions": "تراکنش‌های مالی",
-    "finance_donations": "کمک‌های داوطلبانه",
-    "payment_offers": "گزینه‌های پرداخت",
-    "payment_attempts": "درخواست‌های پرداخت",
-    "payment_records": "سوابق پرداخت",
+    "users": "مدیریت کاربران و کارکنان",
     "online_classes": "کلاس‌های آنلاین",
-    "online_class_sessions": "جلسات آنلاین",
-    "online_class_students": "دانش‌آموزان کلاس",
-    "online_class_teachers": "دبیران کلاس",
-    "online_attendance": "حضور آنلاین",
-    "smart_board_content": "محتوای تابلو",
-    "smart_board_activities": "فعالیت‌های تابلو",
-    "smart_board_quizzes": "آزمون‌های کوتاه",
-    "smart_board_whiteboards": "تخته‌های آموزشی",
+    "weekly_schedule": "برنامه هفتگی",
+    "report_cards": "کارنامه‌ها",
+    "school_profile": "تنظیمات مدرسه",
+    "attendance": "حضور و غیاب",
+    "student_referrals": "ارجاع به مدیریت",
+    "meeting_requests": "درخواست جلسات",
     "ai_smart_reports": "گزارش‌های هوشمند",
-    "ai_questions": "پرسش‌های هوشمند",
-    "ai_assistant_sessions": "جلسات دستیار",
     "messages": "پیام‌ها",
     "message_targets": "مخاطبان پیام",
-    "message_reads": "وضعیت خواندن",
-    "report_cards": "کارنامه‌ها",
-    "report_card_snapshots": "نسخه‌های کارنامه",
-    "weekly_schedule": "برنامه هفتگی",
     "exam_schedule": "برنامه امتحانات",
-    "account_settings": "تنظیمات حساب",
-    "teacher_exams": "آزمون‌های آنلاین",
-    "discipline_records": "موارد انضباطی",
-    "educational_followups": "پیگیری‌های آموزشی",
-    "academic_followups": "پیگیری‌های درسی",
-    "certificate_requests": "درخواست گواهی اشتغال به تحصیل",
-    "activity_offers": "مسابقات و فعالیت‌ها",
-    "activity_registrations": "ثبت‌نام فعالیت‌ها",
-    "student_council": "انتخابات شورای دانش‌آموزی",
-    "basij_registration": "عضویت بسیج دانش‌آموزی",
-    "school_ally": "طرح همیار مدرسه",
-    "school_mayor": "طرح شهردار مدرسه",
+    "quiz_questions": "بانک سؤال",
+    "students": "دانش‌آموزان",
+    "executive_classes": "کلاس‌ها",
+    "staff": "کارکنان",
+    "archive_items": "پرونده‌ها",
+    "executive_operations": "امور اجرایی",
+    "executive_reports": "گزارش‌های اجرایی",
+    "morning_ceremony": "صبحگاه و ظهرگاه",
     "cultural_competitions": "مسابقات فرهنگی",
-    "art_competitions": "مسابقات هنری",
-    "sport_competitions": "مسابقات ورزشی",
-    "morning_leaders": "مکبر",
-    "qari_registration": "قاری برنامه ظهرگاهی",
-    "morning_ceremony": "مراسم ظهرگاهی",
-    "student_referrals": "ارجاع دانش‌آموز",
-    "teacher_parent_meetings": "درخواست ملاقات اولیا",
-    "meeting_requests": "ملاقات و درخواست جلسه",
-    "smart_class_preview": "نمونه کلاس هوشمند",
-    "khwarizmi_registrations": "جشنواره خوارزمی",
-    "monthly_report_cards": "کارنامه ماهیانه",
-    "class_seat_assignments": "شماره صندلی کلاسی",
-    "exam_seat_assignments": "شماره صندلی امتحانی",
-    "assignment_submissions": "ارسال تکالیف",
-    "parent_activities": "فعالیت‌های اولیا",
+    "activity_programs": "برنامه‌های پرورشی",
+    "competitions": "مسابقات",
+    "educational_activities": "فعالیت‌های آموزشی",
+    "cultural_reports": "گزارش‌های پرورشی",
+    "cultural_activity_registrations": "ثبت‌نام فعالیت‌ها",
+    "counselor_board": "تابلو اعلانات مشاور",
+    "counseling_records": "پرونده مشاوره",
+    "counseling_followups": "پیگیری مشاوره",
+    "parent_meetings": "جلسات اولیا",
+    "counseling_classes": "کلاس‌های آموزشی",
+    "parent_activities": "آموزش خانواده",
+    "counseling_guidance": "هدایت تحصیلی",
+    "discipline_records": "موارد انضباطی",
+    "teacher_classes": "کلاس‌های من",
+    "grades": "نمرات",
+    "assignments": "تکالیف",
+    "teacher_exams": "آزمون آنلاین",
+    "lesson_plans": "طرح درس",
+    "teacher_meetings": "جلسات اولیا",
+    "teacher_activities": "گزارش‌های دبیر",
+    "grade_items": "جداول آموزشی",
+    "parent_children": "انتخاب دانش‌آموز",
+    "student_grades": "کارنامه و نمرات",
+    "transport_requests": "سرویس مدرسه",
+    "survey_responses": "نظرسنجی",
+    "payment_records": "پرداخت‌های ثبت‌شده",
+    "payment_offers": "پرداخت آنلاین",
+    "finance_transactions": "تراکنش‌های مالی",
+    "finance_accounts": "حساب‌های مالی",
+    "payment_attempts": "درخواست‌های پرداخت",
+    "report_card_snapshots": "نسخه‌های کارنامه",
+    "account_settings": "تنظیمات حساب",
+    "backup_records": "پشتیبان‌گیری",
+    "smart_board_whiteboards": "تخته آموزشی",
+    "smart_board_files": "فایل‌ها",
+    "smart_board_media": "تصاویر و ویدئوها",
+    "smart_board_interactive_tools": "ابزارهای تعاملی",
+    "smart_board_content": "محتوای آموزشی",
+    "smart_board_quizzes": "آزمون‌های کوتاه",
+    "smart_board_activities": "فعالیت‌های کلاس",
+    "ai_assistant_sessions": "دستیار هوشمند",
+    "ai_educational_analysis": "تحلیل آموزشی",
+    "ai_questions": "پرسش و پاسخ",
+    "generated_weekly_schedule": "برنامه تولیدشده",
     "student_class_info": "پایه و کلاس"
-  }
+  },
+  "modules": {
+    "users": {
+      "table": "users",
+      "fields": [
+        "username",
+        "role",
+        "permissions",
+        "linked_student_id",
+        "linked_teacher_id",
+        "linked_staff_id",
+        "display_name"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "account_settings": {
+      "table": "account_settings",
+      "fields": [
+        "username",
+        "display_name",
+        "phone",
+        "email",
+        "preferences",
+        "updated_at",
+        "national_code"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "students": {
+      "table": "students",
+      "fields": [
+        "first_name",
+        "last_name",
+        "national_code",
+        "student_code",
+        "grade",
+        "class_name",
+        "phone",
+        "parent_phone",
+        "photo",
+        "father_name",
+        "mother_name",
+        "birth_date",
+        "email",
+        "address",
+        "description",
+        "nationality",
+        "religion",
+        "sect"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "teachers": {
+      "table": "teachers",
+      "fields": [
+        "first_name",
+        "last_name",
+        "national_code",
+        "phone",
+        "email",
+        "subject",
+        "grades",
+        "description",
+        "source_staff_id",
+        "mobile",
+        "lessons",
+        "employment_status",
+        "employee_code"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "staff": {
+      "table": "staff",
+      "fields": [
+        "first_name",
+        "last_name",
+        "role",
+        "phone",
+        "description",
+        "work_experience",
+        "employee_code",
+        "national_code",
+        "religion",
+        "sect",
+        "children_count",
+        "employment_status",
+        "teaching_hours"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "parent_children": {
+      "table": "parent_children",
+      "fields": [
+        "parent_username",
+        "student_id"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "attendance": {
+      "table": "attendance",
+      "fields": [
+        "student_id",
+        "date",
+        "status",
+        "description",
+        "teacher_id",
+        "subject",
+        "class_name",
+        "attendance_date"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "grades": {
+      "table": "grades",
+      "fields": [
+        "student_id",
+        "teacher_id",
+        "subject",
+        "exam_name",
+        "score",
+        "description",
+        "grade_type",
+        "term",
+        "max_score",
+        "grade_date",
+        "title",
+        "assessment_date"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "student_grades": {
+      "table": "student_grades",
+      "fields": [
+        "student_id",
+        "teacher_id",
+        "subject",
+        "class_name",
+        "assessment_type",
+        "assessment_title",
+        "score",
+        "coefficient",
+        "grade_date",
+        "grade_date_shamsi",
+        "description",
+        "term",
+        "manager_released"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "assignments": {
+      "table": "assignments",
+      "fields": [
+        "student_id",
+        "teacher_id",
+        "title",
+        "description",
+        "status",
+        "created_at",
+        "due_date",
+        "subject",
+        "class_name"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "teacher_classes": {
+      "table": "teacher_classes",
+      "fields": [
+        "teacher_id",
+        "teacher_name",
+        "subject",
+        "grade",
+        "class_name",
+        "active"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "weekly_schedule": {
+      "table": "weekly_schedule",
+      "fields": [
+        "teacher",
+        "hours",
+        "grade",
+        "class_count",
+        "subject",
+        "bell_pattern",
+        "class_names",
+        "teacher_id",
+        "weekdays"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "generated_weekly_schedule": {
+      "table": "generated_weekly_schedule",
+      "fields": [
+        "teacher",
+        "subject",
+        "grade",
+        "class_name",
+        "weekday",
+        "bell",
+        "period",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "exam_schedule": {
+      "table": "exam_schedule",
+      "fields": [
+        "subject",
+        "grade",
+        "start_date",
+        "end_date",
+        "weight",
+        "exam_date",
+        "duration",
+        "exam_start_time",
+        "exam_end_time"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_classes": {
+      "table": "online_classes",
+      "fields": [
+        "title",
+        "subject",
+        "lesson",
+        "teacher",
+        "grade",
+        "class_name",
+        "duration",
+        "start_time_shamsi",
+        "end_time_shamsi",
+        "status",
+        "join_url",
+        "meeting_url"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_class_sessions": {
+      "table": "online_class_sessions",
+      "fields": [
+        "class_id",
+        "started_at",
+        "ended_at"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_class_students": {
+      "table": "online_class_students",
+      "fields": [
+        "class_id",
+        "student_id",
+        "student_name"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_class_teachers": {
+      "table": "online_class_teachers",
+      "fields": [
+        "class_id",
+        "teacher_id",
+        "teacher_name"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_attendance": {
+      "table": "online_attendance",
+      "fields": [
+        "class_id",
+        "student_id",
+        "student_name",
+        "status",
+        "recorded_at"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "messages": {
+      "table": "messages",
+      "fields": [
+        "sender",
+        "receiver",
+        "text",
+        "sender_user_id",
+        "sender_name",
+        "title",
+        "body",
+        "audience_type",
+        "audience_value",
+        "target_role",
+        "target_name",
+        "target_class_name"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "message_targets": {
+      "table": "message_targets",
+      "fields": [
+        "message_id",
+        "target_role",
+        "target_name",
+        "target_class_name"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "message_reads": {
+      "table": "message_reads",
+      "fields": [
+        "message_id",
+        "username",
+        "read_at"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "finance_accounts": {
+      "table": "finance_accounts",
+      "fields": [
+        "account_type",
+        "account_number",
+        "balance",
+        "description"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "finance_transactions": {
+      "table": "finance_transactions",
+      "fields": [
+        "transaction_type",
+        "title",
+        "amount",
+        "invoice_number",
+        "debit",
+        "credit",
+        "counterparty",
+        "category",
+        "description",
+        "transaction_date"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "payment_offers": {
+      "table": "payment_offers",
+      "fields": [
+        "title",
+        "description",
+        "amount",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "payment_attempts": {
+      "table": "payment_attempts",
+      "fields": [
+        "offer_id",
+        "username",
+        "amount",
+        "gateway",
+        "status",
+        "reference",
+        "authority"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "payment_records": {
+      "table": "payment_records",
+      "fields": [
+        "student_id",
+        "parent_username",
+        "title",
+        "amount",
+        "status",
+        "payment_date",
+        "reference",
+        "authority"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "report_cards": {
+      "table": "report_cards",
+      "fields": [
+        "student_id",
+        "term",
+        "average",
+        "description"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "report_card_snapshots": {
+      "table": "report_card_snapshots",
+      "fields": [
+        "student_id",
+        "term",
+        "snapshot_data",
+        "created_at"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "school_profile": {
+      "table": "school_profile",
+      "fields": [
+        "school_name",
+        "school_code",
+        "principal_name",
+        "phone",
+        "address",
+        "academic_year",
+        "logo_path",
+        "request_date_shamsi"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "school_class_config": {
+      "table": "school_class_config",
+      "fields": [
+        "grade",
+        "class_name",
+        "teacher_id",
+        "capacity",
+        "academic_year",
+        "active"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "teacher_exams": {
+      "table": "teacher_exams",
+      "fields": [
+        "teacher_id",
+        "title",
+        "subject",
+        "grade",
+        "class_name",
+        "exam_type",
+        "exam_date",
+        "duration",
+        "description",
+        "published",
+        "secure_mode",
+        "share_enabled",
+        "share_code",
+        "standard_mode",
+        "max_attempts",
+        "passing_score"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "quiz_questions": {
+      "table": "quiz_questions",
+      "fields": [
+        "quiz_id",
+        "question",
+        "option1",
+        "option2",
+        "option3",
+        "option4",
+        "correct_answer",
+        "points",
+        "question_type",
+        "accepted_answers",
+        "difficulty",
+        "cognitive_level",
+        "auto_grade",
+        "negative_score"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "teacher_exam_slots": {
+      "table": "teacher_exam_slots",
+      "fields": [
+        "quiz_id",
+        "class_name",
+        "exam_date_shamsi",
+        "start_time_shamsi",
+        "end_time_shamsi",
+        "duration",
+        "coordinated",
+        "secure_mode",
+        "active"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "teacher_exam_attempts": {
+      "table": "teacher_exam_attempts",
+      "fields": [
+        "quiz_id",
+        "student_id",
+        "student_username",
+        "started_at",
+        "submitted_at",
+        "status",
+        "score",
+        "max_score"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "teacher_exam_answers": {
+      "table": "teacher_exam_answers",
+      "fields": [
+        "attempt_id",
+        "question_id",
+        "answer",
+        "auto_correct",
+        "score",
+        "teacher_score"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "teacher_attendance": {
+      "table": "teacher_attendance",
+      "fields": [
+        "class_id",
+        "student_id",
+        "student_name",
+        "teacher_id",
+        "class_name",
+        "subject",
+        "status",
+        "note",
+        "description",
+        "attendance_date"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "grade_items": {
+      "table": "grade_items",
+      "fields": [
+        "student_id",
+        "teacher_id",
+        "subject",
+        "grade_type",
+        "term",
+        "score",
+        "grade_date",
+        "description"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "educational_activities": {
+      "table": "educational_activities",
+      "fields": [
+        "title",
+        "subject",
+        "grade",
+        "class_name",
+        "teacher_id",
+        "student_id",
+        "activity_date",
+        "description"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "executive_classes": {
+      "table": "executive_classes",
+      "fields": [
+        "name",
+        "grade",
+        "teacher"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "executive_operations": {
+      "table": "executive_operations",
+      "fields": [
+        "operation_type",
+        "title",
+        "student_id",
+        "class_name",
+        "status",
+        "operation_date",
+        "description"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "executive_reports": {
+      "table": "executive_reports",
+      "fields": [
+        "title",
+        "report_type",
+        "student_id",
+        "class_name",
+        "report_date",
+        "created_by"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "archive_items": {
+      "table": "archive_items",
+      "fields": [
+        "title",
+        "student_id",
+        "location",
+        "description"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "cultural_activity_registrations": {
+      "table": "cultural_activity_registrations",
+      "fields": [
+        "student_id",
+        "activity_id",
+        "activity_title",
+        "activity_kind",
+        "fee",
+        "payment_status",
+        "registration_date"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "cultural_competitions": {
+      "table": "cultural_competitions",
+      "fields": [
+        "title",
+        "category",
+        "start_date",
+        "end_date",
+        "status",
+        "description"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "competitions": {
+      "table": "competitions",
+      "fields": [
+        "title",
+        "category",
+        "start_date",
+        "end_date",
+        "status",
+        "description"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "cultural_reports": {
+      "table": "cultural_reports",
+      "fields": [
+        "title",
+        "report_type",
+        "activity_id",
+        "report_date"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "morning_ceremony": {
+      "table": "morning_ceremony",
+      "fields": [
+        "ceremony_date",
+        "title",
+        "qari_name",
+        "leader_name",
+        "program"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "activity_programs": {
+      "table": "activity_programs",
+      "fields": [
+        "activity_key",
+        "title",
+        "category",
+        "active",
+        "amount",
+        "settings"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "activity_offers": {
+      "table": "activity_offers",
+      "fields": [
+        "title",
+        "category",
+        "event_date",
+        "active",
+        "amount",
+        "settings"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "activity_registrations": {
+      "table": "activity_registrations",
+      "fields": [
+        "activity_id",
+        "student_id",
+        "participation_type",
+        "team_members",
+        "competition_type",
+        "payment_status",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "student_council": {
+      "table": "student_council",
+      "fields": [
+        "student_id",
+        "student_name",
+        "election_year",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "basij_registration": {
+      "table": "basij_registration",
+      "fields": [
+        "student_id",
+        "student_name",
+        "registration_date",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "school_ally": {
+      "table": "school_ally",
+      "fields": [
+        "student_id",
+        "student_name",
+        "role",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "school_mayor": {
+      "table": "school_mayor",
+      "fields": [
+        "student_id",
+        "student_name",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "qari_registration": {
+      "table": "qari_registration",
+      "fields": [
+        "student_id",
+        "student_name",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "counseling_records": {
+      "table": "counseling_records",
+      "fields": [
+        "student_id",
+        "title",
+        "description",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "counseling_followups": {
+      "table": "counseling_followups",
+      "fields": [
+        "student_id",
+        "followup_date",
+        "followup_items",
+        "decision",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "counseling_guidance": {
+      "table": "counseling_guidance",
+      "fields": [
+        "student_id",
+        "grade",
+        "interest",
+        "aptitude",
+        "recommendation"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "counselor_board": {
+      "table": "counselor_board",
+      "fields": [
+        "title",
+        "body",
+        "active"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "parent_meetings": {
+      "table": "parent_meetings",
+      "fields": [
+        "student_id",
+        "teacher_id",
+        "parent_phone",
+        "reason",
+        "meeting_date",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "counseling_classes": {
+      "table": "counseling_classes",
+      "fields": [
+        "title",
+        "grade",
+        "subject",
+        "teacher_id",
+        "active"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "parent_activities": {
+      "table": "parent_activities",
+      "fields": [
+        "title",
+        "description",
+        "activity_date",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "student_referrals": {
+      "table": "student_referrals",
+      "fields": [
+        "student_id",
+        "teacher_id",
+        "referral_to",
+        "reason",
+        "referral_date",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "discipline_records": {
+      "table": "discipline_records",
+      "fields": [
+        "student_id",
+        "teacher_id",
+        "discipline_type",
+        "record_date",
+        "decision_type",
+        "deduct_score",
+        "referral_to",
+        "description"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "teacher_meetings": {
+      "table": "teacher_meetings",
+      "fields": [
+        "teacher_id",
+        "teacher_name",
+        "student_id",
+        "student_name",
+        "parent_name",
+        "meeting_at",
+        "subject",
+        "status",
+        "report"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "teacher_activities": {
+      "table": "teacher_activities",
+      "fields": [
+        "teacher_id",
+        "title",
+        "activity_type",
+        "description",
+        "activity_date"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "survey_responses": {
+      "table": "survey_responses",
+      "fields": [
+        "survey_id",
+        "respondent_username",
+        "respondent_role",
+        "student_id"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "transport_requests": {
+      "table": "transport_requests",
+      "fields": [
+        "parent_username",
+        "address",
+        "vehicle_type",
+        "origin",
+        "destination",
+        "note"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "backup_records": {
+      "table": "backup_records",
+      "fields": [
+        "title",
+        "backup_path",
+        "status",
+        "created_at"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "smart_board_content": {
+      "table": "smart_board_content",
+      "fields": [
+        "title",
+        "content",
+        "class_id",
+        "teacher_id",
+        "content_date_shamsi"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "smart_board_whiteboards": {
+      "table": "smart_board_whiteboards",
+      "fields": [
+        "title",
+        "content",
+        "class_id",
+        "teacher_id",
+        "board_date"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "smart_board_files": {
+      "table": "smart_board_files",
+      "fields": [
+        "title",
+        "file_path",
+        "file_type",
+        "class_id",
+        "teacher_id"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "smart_board_media": {
+      "table": "smart_board_media",
+      "fields": [
+        "title",
+        "media_path",
+        "media_type",
+        "class_id",
+        "teacher_id"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "smart_board_interactive_tools": {
+      "table": "smart_board_interactive_tools",
+      "fields": [
+        "title",
+        "tool_type",
+        "content",
+        "class_id",
+        "teacher_id"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "smart_board_quizzes": {
+      "table": "smart_board_quizzes",
+      "fields": [
+        "title",
+        "question",
+        "correct_option",
+        "class_id",
+        "teacher_id",
+        "quiz_date_shamsi"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "smart_board_activities": {
+      "table": "smart_board_activities",
+      "fields": [
+        "title",
+        "activity_text",
+        "class_id",
+        "teacher_id",
+        "activity_date_shamsi"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "ai_assistant_sessions": {
+      "table": "ai_assistant_sessions",
+      "fields": [
+        "username",
+        "role",
+        "title",
+        "request_date_shamsi"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "ai_questions": {
+      "table": "ai_questions",
+      "fields": [
+        "username",
+        "role",
+        "question",
+        "answer",
+        "answer_date_shamsi"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "ai_educational_analysis": {
+      "table": "ai_educational_analysis",
+      "fields": [
+        "student_id",
+        "teacher_id",
+        "subject",
+        "period",
+        "score",
+        "risk_level",
+        "analysis_date_shamsi"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "ai_smart_reports": {
+      "table": "ai_smart_reports",
+      "fields": [
+        "title",
+        "report_type",
+        "target_type",
+        "target_id",
+        "created_by",
+        "report_date_shamsi"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "meeting_requests": {
+      "table": "meeting_requests",
+      "fields": [
+        "student_id",
+        "teacher_id",
+        "parent_phone",
+        "target_type",
+        "target_person",
+        "requested_date",
+        "reason",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "certificate_requests": {
+      "table": "certificate_requests",
+      "fields": [
+        "student_id",
+        "student_name",
+        "destination",
+        "request_date",
+        "status",
+        "executive_note"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "monthly_report_cards": {
+      "table": "monthly_report_cards",
+      "fields": [
+        "student_id",
+        "month_name",
+        "active"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "class_seat_assignments": {
+      "table": "class_seat_assignments",
+      "fields": [
+        "class_id",
+        "student_id",
+        "seat_number",
+        "academic_year"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "exam_seat_assignments": {
+      "table": "exam_seat_assignments",
+      "fields": [
+        "exam_id",
+        "student_id",
+        "subject",
+        "exam_date",
+        "seat_number"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "assignment_submissions": {
+      "table": "assignment_submissions",
+      "fields": [
+        "assignment_id",
+        "student_id",
+        "file_url",
+        "answer_text",
+        "submitted_at",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "program_activations": {
+      "table": "program_activations",
+      "fields": [
+        "program_key",
+        "title",
+        "active",
+        "activated_by"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "school_events": {
+      "table": "school_events",
+      "fields": [
+        "title",
+        "description",
+        "event_date",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    }
+  },
+  "special": {
+    "weekly_schedule": "weekly_schedule",
+    "report_cards": "report_cards",
+    "attendance": "attendance",
+    "discipline_records": "discipline",
+    "finance_transactions": "finance",
+    "finance_accounts": "finance",
+    "parent_children": "parent_children",
+    "smart_class_preview": "smart_class"
+  },
+  "operations": [
+    "ثبت جدید",
+    "ویرایش",
+    "حذف"
+  ]
 }
