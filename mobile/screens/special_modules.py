@@ -746,11 +746,14 @@ class SpecialModuleScreen(Screen):
         self.fin_invoices=self.label("فاکتورها: …","12sp",SECONDARY,True,True,45)
         for w in (self.fin_balance,self.fin_receivable,self.fin_payable,self.fin_invoices): top.add_widget(w)
         self.body.add_widget(top)
-        actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5))
-        actions.add_widget(self.btn("ثبت جدید", self._finance_editor, SUCCESS, 40))
-        actions.add_widget(self.btn("ویرایش", self._finance_edit_selected, PRIMARY, 40))
-        actions.add_widget(self.btn("حذف", self._finance_delete_selected, ERROR, 40))
-        self.body.add_widget(actions)
+        role = str(getattr(self.app_state, "role", "") or "").strip().lower()
+        writable_roles = {"manager", "admin", "administrator", "مدیر", "مدیریت", "finance", "مالی"}
+        if role in writable_roles:
+            actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5))
+            actions.add_widget(self.btn("ثبت جدید", self._finance_editor, SUCCESS, 40))
+            actions.add_widget(self.btn("ویرایش", self._finance_edit_selected, PRIMARY, 40))
+            actions.add_widget(self.btn("حذف", self._finance_delete_selected, ERROR, 40))
+            self.body.add_widget(actions)
         self.finance_area=BoxLayout(orientation="vertical")
         self.finance_selected=None
         self.body.add_widget(self.finance_area)
