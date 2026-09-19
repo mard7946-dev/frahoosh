@@ -116,10 +116,8 @@ class SmartClassPreviewScreen(Screen):
         side.add_widget(self.label("شرکت‌کنندگان", "9sp", WHITE, 28, True, True))
         self.live_count = self.label("در حال اتصال…", "8sp", SUCCESS, 28, True, True)
         side.add_widget(self.live_count)
-        for name in ("دبیر کلاس","دانش‌آموز ۱","دانش‌آموز ۲","دانش‌آموز ۳","دانش‌آموز ۴","دانش‌آموز ۵"):
-            card = _Card(fill=(0.10,0.17,0.25,1), size_hint_y=None, height=dp(42), padding=dp(3))
-            card.add_widget(self.label("● " + name, "8sp", WHITE, 35, False, True))
-            side.add_widget(card)
+        self.participants_area = BoxLayout(orientation="vertical", spacing=dp(3))
+        side.add_widget(self.participants_area)
         side.add_widget(Widget())
         main.add_widget(side)
         root.add_widget(main)
@@ -142,22 +140,42 @@ class SmartClassPreviewScreen(Screen):
                 return
             try:
                 rows = api.table_select("online_classes", {"order":"id.desc","limit":"1"}) or []
-                if rows and isinstance(rows[0], dict):
-                    row = rows[0]
-                    self.class_id = row.get("id")
-                    title = str(row.get("title") or "کلاس هوشمند فراهوش")
-                    info = " | ".join(str(row.get(k)) for k in ("subject","grade","class_name") if row.get(k))
-                    Clock.schedule_once(lambda *_: self.apply_live(title, info), 0)
-                else:
+                if not rows:
                     Clock.schedule_once(lambda *_: self.set_status("کلاس ثبت‌شده‌ای نیست؛ محیط کلاس آماده استفاده است.", SUCCESS), 0)
+                    return
+                row = dict(rows[0])
+                self.class_id = row.get("id")
+                students = api.table_select("online_class_students", {"class_id":"eq."+str(self.class_id),"limit":"50"}) or []
+                teachers = api.table_select("online_class_teachers", {"class_id":"eq."+str(self.class_id),"limit":"10"}) or []
+                attendance = api.table_select("online_attendance", {"class_id":"eq."+str(self.class_id),"limit":"100"}) or []
+                files = api.table_select("smart_board_files", {"class_id":"eq."+str(self.class_id),"limit":"20"}) or []
+                title = str(row.get("title") or "کلاس هوشمند فراهوش")
+                info = " | ".join(str(row.get(k)) for k in ("subject","grade","class_name") if row.get(k))
+                bundle={"title":title,"info":info,"students":students,"teachers":teachers,"attendance":attendance,"files":files}
+                Clock.schedule_once(lambda *_: self.apply_live(bundle), 0)
             except Exception as exc:
-                Clock.schedule_once(lambda *_: self.set_status("محیط کلاس آماده است؛ اتصال زنده برقرار نشد.", SECONDARY), 0)
+                Clock.schedule_once(lambda *_: self.set_status("محیط کلاس آماده است؛ اتصال زنده کامل نشد.", SECONDARY), 0)
                 print("SMART CLASS LIVE ERROR:", repr(exc))
         Thread(target=work, daemon=True).start()
 
-    def apply_live(self, title, info):
-        self.class_title = title
-        self.set_status("کلاس زنده: " + title + ((" • " + info) if info else ""), SUCCESS)
+    def apply_live(self, bundle):
+        self.class_title = bundle.get("title") or "کلاس هوشمند فراهوش"
+        students = bundle.get("students") or []
+        teachers = bundle.get("teachers") or []
+        attendance = bundle.get("attendance") or []
+        self.live_count.text = rtl_text(f"{len(teachers)+len(students)} شرکت‌کننده • {len(attendance)} حضور آنلاین")
+        self.participants_area.clear_widgets()
+        for row in teachers:
+            name=str(row.get("teacher_name") or "دبیر کلاس")
+            card=_Card(fill=(0.10,0.17,0.25,1),size_hint_y=None,height=dp(40),padding=dp(3))
+            card.add_widget(self.label("● "+name,"8sp",WHITE,34,False,True))
+            self.participants_area.add_widget(card)
+        for row in students[:8]:
+            name=str(row.get("student_name") or "دانش‌آموز")
+            card=_Card(fill=(0.10,0.17,0.25,1),size_hint_y=None,height=dp(40),padding=dp(3))
+            card.add_widget(self.label("● "+name,"8sp",WHITE,34,False,True))
+            self.participants_area.add_widget(card)
+        self.set_status("کلاس زنده: " + self.class_title + ((" • " + bundle.get("info")) if bundle.get("info") else ""), SUCCESS)
 
     def set_status(self, text, color=SUCCESS):
         try:
@@ -174,16 +192,52 @@ class SmartClassPreviewScreen(Screen):
         self.set_status("کنترل کلاس تغییر کرد.", SUCCESS)
 
     def chat(self, *_):
-        self.set_status("چت کلاس فعال شد؛ اتصال آن به پیام‌های کلاس آماده است.", SUCCESS)
+        api=getattr(self.app_state,"api",None)
+        if api is None:
+            self.set_status("اتصال API آماده نیست.",ERROR); return
+        def work():
+            try:
+                rows=api.table_select("messages",{"order":"id.desc","limit":"10"}) or []
+                Clock.schedule_once(lambda *_: self.set_status(f"صندوق پیام کلاس: {len(rows)} پیام اخیر.",SUCCESS),0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_: self.set_status("پیام‌های کلاس دریافت نشد.",ERROR),0)
+        Thread(target=work,daemon=True).start()
 
     def attendance(self, *_):
-        self.set_status("حضور و غیاب کلاس آماده ثبت است.", SUCCESS)
+        try:
+            if self.manager:
+                self.manager.current="special_attendance"
+                self.set_status("محیط حضور و غیاب کلاس باز شد.",SUCCESS)
+        except Exception as exc:
+            self.set_status("محیط حضور و غیاب باز نشد: "+str(exc),ERROR)
 
     def files(self, *_):
-        self.set_status("فایل‌های درس: PDF، تصویر و محتوای آموزشی.", SUCCESS)
+        api=getattr(self.app_state,"api",None)
+        if api is None or not self.class_id:
+            self.set_status("کلاس فعال برای دریافت فایل مشخص نیست.",ERROR); return
+        def work():
+            try:
+                rows=api.table_select("smart_board_files",{"class_id":"eq."+str(self.class_id),"limit":"20"}) or []
+                names=[str(r.get("title") or r.get("file_path") or "فایل درس") for r in rows]
+                text="فایل‌های کلاس: "+("، ".join(names) if names else "فایلی ثبت نشده است.")
+                Clock.schedule_once(lambda *_: self.set_status(text,SUCCESS),0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_: self.set_status("فایل‌های درس دریافت نشد.",ERROR),0)
+        Thread(target=work,daemon=True).start()
 
     def finish(self, *_):
-        self.set_status("پایان جلسه از مسیر مدیریت جلسه انجام شود تا زمان جلسه ثبت شود.", ERROR)
+        if not self.class_id:
+            self.set_status("جلسه فعالی برای پایان دادن مشخص نیست.",ERROR); return
+        api=getattr(self.app_state,"api",None)
+        if api is None: return
+        def work():
+            try:
+                import datetime
+                api.table_insert("online_class_sessions",{"class_id":self.class_id,"ended_at":datetime.datetime.now().isoformat()})
+                Clock.schedule_once(lambda *_: self.set_status("زمان پایان جلسه در سامانه ثبت شد.",SUCCESS),0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_: self.set_status("ثبت پایان جلسه ناموفق بود: "+str(exc),ERROR),0)
+        Thread(target=work,daemon=True).start()
 
     def refresh_live(self, *_):
         self.set_status("در حال به‌روزرسانی کلاس…", SECONDARY)
