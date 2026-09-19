@@ -273,13 +273,12 @@ class FrahooshApp(App):
             print("DASHBOARD OPEN ERROR: dashboard screen could not be created")
             return False
 
-        panel = self.ensure_panel()
-        if panel is None:
-            print("DASHBOARD OPEN ERROR: operational panel could not be created")
-            return False
-
-        # Students and parents must verify the real student record before
-        # entering any role panel. A confirmed session can proceed normally.
+        # The dashboard is the post-login boundary. Do NOT require the
+        # heavy operational panel to be constructed before showing it.
+        # A panel failure must never make a successful login look like a
+        # failed login. The panel is created only when the user opens it.
+        # Students and parents still go through the identity gate from the
+        # dashboard/panel navigation layer.
         role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
         needs_gate = role in ("student", "دانش‌آموز", "parent", "parents", "ولی", "اولیا")
         confirmed = bool(
@@ -321,9 +320,10 @@ class FrahooshApp(App):
             }
             raw_role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
             target_route = role_routes.get(raw_role, "management")
-            panel = self.sm.get_screen("panel")
-            panel.set_route(target_route)
-            self.sm.current = "panel"
+            # Keep dashboard visible first; role panel is opened from there.
+            # This also makes panel construction fully lazy and isolates the
+            # authenticated dashboard from heavy module imports.
+            self.sm.current = "dashboard"
             return True
         except Exception as exc:
             print("DASHBOARD NAVIGATION ERROR:", repr(exc))
