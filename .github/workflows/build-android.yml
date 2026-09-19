@@ -183,6 +183,16 @@ jobs:
           PY
           test -s mobile/runtime_config.json
 
+      - name: Bridge legacy Buildozer SDK path
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT}"
+          mkdir -p "${SDK}/tools/bin"
+          ln -sf "${SDK}/cmdline-tools/latest/bin/sdkmanager" "${SDK}/tools/bin/sdkmanager"
+          test -x "${SDK}/tools/bin/sdkmanager"
+          echo "Legacy Buildozer sdkmanager bridge ready: ${SDK}/tools/bin/sdkmanager"
+
       - name: Build APK
         shell: bash
         env:
