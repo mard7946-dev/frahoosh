@@ -1,5 +1,5 @@
 {
-  "version": "3.0.0",
+  "version": "3.1.0",
   "source": "Frahoosh_v16_12_LOGIN_BACKGROUND_FINAL_02.zip",
   "backend": "supabase",
   "clients": [
@@ -895,14 +895,14 @@
     "generated_weekly_schedule": {
       "table": "generated_weekly_schedule",
       "fields": [
+        "source_id",
         "teacher",
         "subject",
         "grade",
         "class_name",
         "weekday",
         "bell",
-        "period",
-        "status"
+        "week_index"
       ],
       "operations": [
         "create",
@@ -1143,7 +1143,10 @@
         "student_id",
         "term",
         "average",
-        "description"
+        "description",
+        "grade_level",
+        "academic_year",
+        "report_date"
       ],
       "operations": [
         "create",
@@ -1736,12 +1739,16 @@
       "fields": [
         "student_id",
         "teacher_id",
-        "discipline_type",
-        "record_date",
-        "decision_type",
-        "deduct_score",
-        "referral_to",
-        "description"
+        "title",
+        "description",
+        "priority",
+        "status",
+        "created_at",
+        "item_id",
+        "deduction",
+        "actor_username",
+        "actor_role",
+        "note"
       ],
       "operations": [
         "create",
@@ -2140,5 +2147,19 @@
     "ثبت جدید",
     "ویرایش",
     "حذف"
-  ]
+  ],
+  "zip_contract": {
+    "source_file": "Frahoosh_v16_12_LOGIN_BACKGROUND_FINAL_02.zip",
+    "rule": "All module names, tables and business fields originate from the ZIP; special Android workspaces are visual/operational views over the same contract.",
+    "special_workspaces": [
+      "attendance",
+      "discipline_records",
+      "report_cards",
+      "weekly_schedule",
+      "smart_class_preview",
+      "finance_transactions",
+      "parent_children",
+      "identity_gate"
+    ]
+  }
 }
