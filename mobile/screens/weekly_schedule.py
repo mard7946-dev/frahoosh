@@ -73,11 +73,14 @@ class WeeklyScheduleScreen(Screen):
             )
         )
 
-        actions = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(5))
-        actions.add_widget(self.btn("ثبت جدید", lambda *_: self.editor(None), SUCCESS, 40))
-        actions.add_widget(self.btn("ویرایش", lambda *_: self.editor(self.selected), PRIMARY, 40))
-        actions.add_widget(self.btn("حذف", lambda *_: self.delete_selected(), ERROR, 40))
-        root.add_widget(actions)
+        role = str(getattr(self.app_state, "role", "") or "").strip().lower()
+        writable_roles = {"manager", "admin", "administrator", "مدیر", "مدیریت", "executive", "معاون اجرایی"}
+        if role in writable_roles:
+            actions = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(5))
+            actions.add_widget(self.btn("ثبت جدید", lambda *_: self.editor(None), SUCCESS, 40))
+            actions.add_widget(self.btn("ویرایش", lambda *_: self.editor(self.selected), PRIMARY, 40))
+            actions.add_widget(self.btn("حذف", lambda *_: self.delete_selected(), ERROR, 40))
+            root.add_widget(actions)
 
         self.status = self.label("در حال دریافت برنامه واقعی…", "9sp", SUCCESS, True, True, 28)
         root.add_widget(self.status)
