@@ -106,38 +106,180 @@ class FrahooshApp(App):
 
     def _set_screen_capture_policy(self):
         try:
-            # Dashboard is the authenticated landing page for every role.
-        # Do not block it on heavy panel construction or a role-specific gate.
+            role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
+            allowed = {
+                "manager", "admin", "administrator", "مدیر", "مدیریت",
+                "معاون آموزشی", "معاون اجرایی", "معاون پرورشی",
+                "educational", "executive", "cultural"
+            }
+            secure = role not in allowed
+            from jnius import autoclass
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            WindowManager = autoclass("android.view.WindowManager")
+            if secure:
+                activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            else:
+                activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        except Exception as exc:
+            print("SCREEN SECURITY POLICY ERROR:", repr(exc))
+
+    def ensure_panel(self):
+        """Lazy-load the operational panel only after the login/dashboard boundary."""
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("panel")
+        except Exception:
+            pass
+        try:
+            from mobile.screens.panel_screen import PanelScreen
+            screen = PanelScreen(name="panel", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+        except Exception as exc:
+            print("PANEL BUILD ERROR:", repr(exc))
+            return None
+
+    def ensure_dashboard(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("dashboard")
+        except Exception:
+            pass
+        try:
+            from mobile.screens.dashboard3 import DashboardScreen
+            dashboard = DashboardScreen(name="dashboard", app_state=self.app_state)
+            self.sm.add_widget(dashboard)
+            return dashboard
+        except Exception as exc:
+            print("DASHBOARD BUILD ERROR:", repr(exc))
+            return None
+
+    def ensure_exam(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("teacher_exams")
+        except Exception:
+            pass
+        from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen
+        screen = TeacherExamsV4Screen(name="teacher_exams", app_state=self.app_state)
+        self.sm.add_widget(screen)
+        return screen
+
+    def ensure_module(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("module")
+        except Exception:
+            pass
+        from mobile.screens.module import ModuleScreen
+        screen = ModuleScreen(name="module", app_state=self.app_state)
+        self.sm.add_widget(screen)
+        return screen
+
+    def ensure_school(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("school")
+        except Exception:
+            pass
+        from mobile.screens.school import SchoolScreen
+        screen = SchoolScreen(name="school", app_state=self.app_state)
+        self.sm.add_widget(screen)
+        return screen
+
+    def ensure_meetings(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("meetings")
+        except Exception:
+            pass
+        try:
+            from mobile.screens.meetings import MeetingsScreen
+            screen = MeetingsScreen(name="meetings", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+        except Exception as exc:
+            print("MEETINGS BUILD ERROR:", repr(exc))
+            return None
+
+    def ensure_smart_class_preview(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("smart_class_preview")
+        except Exception:
+            pass
+        try:
+            from mobile.screens.smart_class_preview import SmartClassPreviewScreen
+            screen = SmartClassPreviewScreen(name="smart_class_preview", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+        except Exception as exc:
+            print("SMART CLASS PREVIEW BUILD ERROR:", repr(exc))
+            return None
+
+    def ensure_special_module(self, mode):
+        name = "special_" + str(mode)
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen(name)
+        except Exception as exc:
+            print("SPECIAL MODULE LOOKUP ERROR:", repr(exc))
+            return None
+
+    def ensure_identity_gate(self):
+        if self.sm is None:
+            return None
+        try:
+            screen = self.sm.get_screen("special_identity_gate")
+        except Exception as exc:
+            print("IDENTITY GATE LOOKUP ERROR:", repr(exc))
+            return None
+        return screen
+
+    def ensure_update(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("update")
+        except Exception:
+            pass
+        from mobile.screens.update import UpdateScreen
+        screen = UpdateScreen(name="update", app_state=self.app_state)
+        self.sm.add_widget(screen)
+        return screen
+
+    def _refresh_dashboard_safe(self, *_):
+        try:
+            dashboard = self.sm.get_screen("dashboard")
+            dashboard.refresh()
+        except Exception as exc:
+            print("DASHBOARD REFRESH ERROR:", repr(exc))
+
+    def open_dashboard(self):
+        """Show the authenticated dashboard without constructing heavy panels first."""
+        if self.sm is None:
+            print("DASHBOARD OPEN ERROR: ScreenManager is not ready")
+            return False
+
+        dashboard = self.ensure_dashboard()
+        if dashboard is None:
+            print("DASHBOARD OPEN ERROR: dashboard screen could not be created")
+            return False
+
         try:
             self._set_screen_capture_policy()
-            role_routes = {
-                "manager": "management",
-                "admin": "management",
-                "administrator": "management",
-                "مدیر": "management",
-                "مدیریت": "management",
-                "educational": "educational",
-                "معاون آموزشی": "educational",
-                "executive": "executive",
-                "معاون اجرایی": "executive",
-                "cultural": "cultural",
-                "معاون پرورشی": "cultural",
-                "advisor": "advisor",
-                "مشاور": "advisor",
-                "teacher": "teachers",
-                "دبیر": "teachers",
-                "student": "students",
-                "دانش‌آموز": "students",
-                "parent": "parents",
-                "ولی": "parents",
-                "اولیا": "parents",
-            }
-            raw_role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
-            target_route = role_routes.get(raw_role, "management")
-            # Keep dashboard visible first; role panel is opened from there.
-            # This also makes panel construction fully lazy and isolates the
-            # authenticated dashboard from heavy module imports.
+            # Login success always lands on the dashboard. Identity checks and
+            # role-specific panels are deliberately handled after this boundary.
             self.sm.current = "dashboard"
+            Clock.schedule_once(self._refresh_dashboard_safe, 0)
             return True
         except Exception as exc:
             print("DASHBOARD NAVIGATION ERROR:", repr(exc))
