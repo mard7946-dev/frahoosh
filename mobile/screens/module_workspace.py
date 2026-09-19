@@ -237,6 +237,27 @@ class ModuleWorkspaceScreen(Screen):
         w.bind(pos=lambda o,v:setattr(bg,"pos",v),size=lambda o,v:setattr(bg,"size",v))
 
     def open_table(self,table,refresh_subbar=True):
+        # "نمونه کلاس هوشمند" is an interactive classroom, not a Supabase table.
+        # Route it directly to the real classroom screen so the generic table
+        # loader does not query a non-table key and show "خطا در نمایش اطلاعات".
+        if table == "smart_class_preview":
+            try:
+                from kivy.app import App
+                app = App.get_running_app()
+                screen = app.ensure_smart_class_preview() if app is not None else None
+                if screen is None:
+                    raise RuntimeError("محیط کلاس هوشمند آماده نشد.")
+                screen.return_to = "panel"
+                self.table = None
+                if self.manager:
+                    self.manager.current = "smart_class_preview"
+                return
+            except Exception as exc:
+                print("SMART CLASS OPEN ERROR:", repr(exc))
+                self.status.text = rtl_text("محیط کلاس هوشمند باز نشد: " + str(exc))
+                self.status.color = (.8, .15, .15, 1)
+                return
+
         self.table=table
         if refresh_subbar:
             self.render(); return
