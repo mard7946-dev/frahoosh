@@ -164,27 +164,27 @@ jobs:
           import re
           migrations = ""
           for path in Path("supabase/migrations").glob("*.sql"):
-              migrations += "\\n" + path.read_text(encoding="utf-8")
+              migrations += "\n" + path.read_text(encoding="utf-8")
 
           created = set(re.findall(
-              r"create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.([a-zA-Z0-9_]+)",
+              r"create\s+table\s+(?:if\s+not\s+exists\s+)?public\.([a-zA-Z0-9_]+)",
               migrations,
               re.I,
           ))
           altered = {}
           for table, body in re.findall(
-              r"alter\\s+table\\s+(?:if\\s+exists\\s+)?public\\.([a-zA-Z0-9_]+)\\s+([\\s\\S]*?);",
+              r"alter\s+table\s+(?:if\s+exists\s+)?public\.([a-zA-Z0-9_]+)\s+([\s\S]*?);",
               migrations,
               re.I,
           ):
               altered.setdefault(table, set()).update(
-                  re.findall(r"add\\s+column\\s+(?:if\\s+not\\s+exists\\s+)?([a-zA-Z0-9_]+)", body, re.I)
+                  re.findall(r"add\s+column\s+(?:if\s+not\s+exists\s+)?([a-zA-Z0-9_]+)", body, re.I)
               )
 
           def split_sql_columns(body):
               parts, current, depth, quote = [], [], 0, False
               for ch in body:
-                  if ch == "'" and (not current or current[-1] != "\\\\"):
+                  if ch == "'" and (not current or current[-1] != "\\"):
                       quote = not quote
                   if not quote:
                       if ch == "(":
@@ -202,13 +202,13 @@ jobs:
 
           columns = {}
           for table, body in re.findall(
-              r"create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.([a-zA-Z0-9_]+)\\s*\\(([\\s\\S]*?)\\n\\);",
+              r"create\s+table\s+(?:if\s+not\s+exists\s+)?public\.([a-zA-Z0-9_]+)\s*\(([\s\S]*?)\n\);",
               migrations,
               re.I,
           ):
               columns.setdefault(table, set())
               for part in split_sql_columns(body):
-                  match = re.match(r"\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s+", part)
+                  match = re.match(r"\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+", part)
                   if match:
                       columns[table].add(match.group(1))
           for table, names in altered.items():
