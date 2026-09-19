@@ -97,21 +97,36 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
             self.message("ثبت اطلاعات", "باز کردن فرم این زیرپنل با خطا روبه‌رو شد. اطلاعات سامانه محفوظ است.")
 
     def open_table(self, table, refresh_subbar=True):
-        # Dedicated workflows use real screens while the generic CRUD engine remains intact.
-        app = App.get_running_app()
-        if table == "meeting_requests" and app is not None and hasattr(app, "ensure_meetings"):
-            screen = app.ensure_meetings()
-            if screen is not None:
-                self.manager.current = "meetings"
-                return screen
-        if table == "smart_class_preview" and app is not None and hasattr(app, "ensure_smart_class_preview"):
-            screen = app.ensure_smart_class_preview()
-            if screen is not None:
-                self.manager.current = "smart_class_preview"
-                return screen
-        if table in ("teacher_exams", "online_classes", "messages", "payment_offers"):
-            return super().open_table(table, refresh_subbar=False)
-        return ModuleWorkspaceScreen.open_table(self, table, refresh_subbar=False)
+        # Module taps are a hard navigation boundary: never let a missing table,
+        # optional workflow, or UI construction error terminate the Android process.
+        try:
+            table = str(table or "").strip()
+            if not table:
+                self.message("ورود به زیرپنل", "شناسه این زیرپنل معتبر نیست.")
+                return None
+            app = App.get_running_app()
+            if table == "meeting_requests" and app is not None and hasattr(app, "ensure_meetings"):
+                screen = app.ensure_meetings()
+                if screen is not None and self.manager is not None:
+                    self.manager.current = "meetings"
+                    return screen
+            if table == "smart_class_preview" and app is not None and hasattr(app, "ensure_smart_class_preview"):
+                screen = app.ensure_smart_class_preview()
+                if screen is not None and self.manager is not None:
+                    self.manager.current = "smart_class_preview"
+                    return screen
+            if table in ("teacher_exams", "online_classes", "messages", "payment_offers"):
+                return super().open_table(table, refresh_subbar=False)
+            return ModuleWorkspaceScreen.open_table(self, table, refresh_subbar=False)
+        except Exception as exc:
+            print("MODULE OPEN ERROR:", repr(exc))
+            try:
+                self.status.text = rtl_text("خطا در باز کردن زیرپنل: " + str(exc))
+                self.status.color = (0.85, 0.15, 0.15, 1)
+                self.message("باز کردن زیرپنل", "این بخش فعلاً قابل نمایش نیست. برنامه بسته نمی‌شود.")
+            except Exception:
+                pass
+            return None
 
     def _start_session(self, class_id):
         if not class_id:
