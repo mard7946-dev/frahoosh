@@ -93,11 +93,17 @@ class LoginScreen(Screen):
         # The supplied portrait artwork is the full-screen background.
         background = Image(
             source=BACKGROUND_PATH,
-            allow_stretch=True,
-            keep_ratio=False,
             size_hint=(1, 1),
             pos_hint={"x": 0, "y": 0},
         )
+        # Preserve the artwork ratio on every phone. "cover" fills the mobile
+        # screen without the distortion seen with keep_ratio=False.
+        try:
+            background.fit_mode = "cover"
+        except Exception:
+            # Compatibility with older Kivy builds.
+            background.allow_stretch = True
+            background.keep_ratio = True
         root.add_widget(background)
 
         # The artwork already contains the glowing card frame. We place real
