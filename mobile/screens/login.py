@@ -2,7 +2,7 @@ from threading import Thread
 
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.graphics import Color, RoundedRectangle, Line
+from kivy.graphics import Color, RoundedRectangle, Line, Rectangle
 from kivy.metrics import dp
 from kivy.resources import resource_find
 from kivy.uix.boxlayout import BoxLayout
@@ -98,19 +98,43 @@ class LoginScreen(Screen):
         # Resolve the asset through Kivy's packaged-resource system first.
         # On Android the filesystem path used during the build is not always the
         # same path used by the packaged application.
-        background_source = resource_find(str(BACKGROUND_PATH)) or str(BACKGROUND_PATH)
-        background = Image(
-            source=background_source,
-            size_hint=(1, 1),
-            pos_hint={"x": 0, "y": 0},
-            allow_stretch=True,
-            keep_ratio=False,
-            opacity=1,
+        # Android packaging can relocate the application root. Try the
+        # packaged-relative asset first, then the configured path. Keep a dark
+        # fallback canvas underneath so the login screen is never blank.
+        background_candidates = [
+            "mobile/assets/frahoosh_login_mobile.jpg",
+            "assets/frahoosh_login_mobile.jpg",
+            str(BACKGROUND_PATH),
+        ]
+        background_source = next(
+            (candidate for candidate in background_candidates if resource_find(candidate)),
+            None,
         )
-        background.bind(
-            on_texture=lambda *_: print("LOGIN BACKGROUND LOADED:", background_source),
-        )
-        root.add_widget(background)
+        with root.canvas.before:
+            Color(0.015, 0.035, 0.09, 1)
+            root._fallback_bg = Rectangle(pos=root.pos, size=root.size)
+
+        def sync_root_bg(*_):
+            root._fallback_bg.pos = root.pos
+            root._fallback_bg.size = root.size
+        root.bind(pos=sync_root_bg, size=sync_root_bg)
+
+        if background_source:
+            background_source = resource_find(background_source) or background_source
+            background = Image(
+                source=background_source,
+                size_hint=(1, 1),
+                pos_hint={"x": 0, "y": 0},
+                allow_stretch=True,
+                keep_ratio=False,
+                opacity=1,
+            )
+            background.bind(
+                on_texture=lambda *_: print("LOGIN BACKGROUND LOADED:", background_source),
+            )
+            root.add_widget(background)
+        else:
+            print("LOGIN BACKGROUND NOT FOUND:", background_candidates)
 
         # Keep the school name in code as requested.  It is positioned over
         # the same title area in the artwork, using the configured school name.
@@ -126,6 +150,12 @@ class LoginScreen(Screen):
         school_overlay.pos_hint = {"center_x": 0.50, "top": 0.635}
         root.add_widget(school_overlay)
         self.school_overlay = school_overlay
+
+        title_overlay = self.label(APP_NAME, "20sp", WHITE, True, "center")
+        title_overlay.size_hint = (0.85, None)
+        title_overlay.height = dp(42)
+        title_overlay.pos_hint = {"center_x": 0.50, "top": 0.92}
+        root.add_widget(title_overlay)
 
         # Transparent input overlays: the artwork supplies the field frames,
         # icons and visual styling; these widgets provide the real interaction.
@@ -143,7 +173,7 @@ class LoginScreen(Screen):
                 padding=[dp(10), dp(7)],
                 background_normal="",
                 background_active="",
-                background_color=(0, 0, 0, 0),
+                background_color=(0.02, 0.10, 0.24, 0.82),
                 foreground_color=WHITE,
                 hint_text_color=MUTED,
                 cursor_color=CYAN,
@@ -204,8 +234,8 @@ class LoginScreen(Screen):
             bold=True,
             background_normal="",
             background_down="",
-            background_color=(0, 0, 0, 0),
-            color=(0, 0, 0, 0),
+            background_color=CYAN,
+            color=(0, 0, 0, 1),
             size_hint=(0.58, None),
             height=dp(58),
             pos_hint={"center_x": 0.50, "center_y": 0.305},
