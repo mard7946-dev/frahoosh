@@ -74,7 +74,7 @@ COLUMNS = {
     "max_score":"حداکثر نمره", "status":"وضعیت", "amount":"مبلغ", "title":"عنوان", "description":"توضیحات",
     "created_at":"تاریخ ثبت", "attendance_date":"تاریخ حضور", "exam_date":"تاریخ آزمون", "event_date":"تاریخ رویداد",
     "start_time_shamsi":"شروع", "end_time_shamsi":"پایان", "role":"نقش", "email":"ایمیل", "username":"نام کاربری",
-    "term":"نوبت", "academic_year":"سال تحصیلی", "active":"فعال", "teacher_id":"شناسه دبیر", "student_id":"شناسه دانش‌آموز",
+    "term":"نوبت", "academic_year":"سال تحصیلی", "active":"فعال", "teacher_id":"شناسه دبیر", "student_id":"شناسه دانش‌آموز", "student_code":"شماره دانش‌آموزی", "birth_date":"تاریخ تولد", "parent_phone":"شماره تماس ولی", "employee_code":"کد پرسنلی", "employment_status":"وضعیت استخدام", "work_experience":"سابقه کار", "teaching_hours":"ساعات تدریس", "grades":"پایه‌های تدریس", "settings":"تنظیمات", "invoice_no":"شماره فاکتور", "invoice_number":"شماره فاکتور", "reference":"شماره مرجع", "authority":"شماره پیگیری", "transaction_date":"تاریخ تراکنش", "donor_name":"نام پرداخت‌کننده", "payment_type":"نوع پرداخت", "payment_date":"تاریخ پرداخت",
     "content":"محتوا", "question":"سؤال", "question_type":"نوع سؤال", "published":"منتشرشده", "duration":"مدت",
     "share_code":"کد اشتراک", "target_class_name":"کلاس مقصد", "start_at":"شروع", "end_at":"پایان",
 }
@@ -356,7 +356,7 @@ class ModuleWorkspaceScreen(Screen):
             content.bind(minimum_height=content.setter('height'))
             header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(78),spacing=dp(3),padding=[dp(4),dp(4)])
             for k in keys:
-                cell=self.label(COLUMNS.get(k,k),"18sp",WHITE,True,"center")
+                cell=self.label(COLUMNS.get(k,"اطلاعات"),"18sp",WHITE,True,"center")
                 cell.size_hint_x=None
                 cell.width=col_w
                 header.add_widget(cell)
@@ -394,7 +394,10 @@ class ModuleWorkspaceScreen(Screen):
     def row(self,r,index,keys,totalw):
         b=BoxLayout(size_hint=(None,None),width=totalw,height=dp(100),spacing=dp(3),padding=[dp(5),dp(5)])
         for k in keys:
-            s=str(r.get(k,''))
+            raw = r.get(k, "")
+            s = str(raw).strip()
+            if not s or all(ch in "□�▯" for ch in s):
+                s = "ثبت نشده"
             cell=self.label(s,"17sp",SECONDARY,False,'center')
             cell.size_hint_x=None
             cell.width=dp(230)
