@@ -1,0 +1,31 @@
+name: Validate Web
+
+on:
+  push:
+    paths:
+      - "web/**"
+      - "shared/**"
+      - ".github/workflows/validate-web.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - "shared/**"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate shared JSON
+        run: |
+          python -m json.tool shared/module_catalog.json >/dev/null
+          python -m json.tool shared/frahoosh_contract.json >/dev/null
+      - name: Validate Web JavaScript
+        run: node --check web/app.js
+      - name: Validate required Web files
+        run: |
+          test -f web/index.html
+          test -f web/styles.css
+          test -f web/runtime-config.js
+          test -f web/manifest.json
+          test -f web/sw.js
