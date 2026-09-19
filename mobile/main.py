@@ -138,6 +138,9 @@ class FrahooshApp(App):
             # state even though the real workspace itself is valid.
             from mobile.screens.module import FinalModuleScreen
             screen = FinalModuleScreen(name="panel", app_state=self.app_state)
+            # Dashboard uses the historical set_route contract; the canonical
+            # workspace exposes the same operation as set_module.
+            screen.set_route = screen.set_module
             self.sm.add_widget(screen)
             return screen
         except Exception as exc:
