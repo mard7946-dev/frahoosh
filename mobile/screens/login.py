@@ -4,6 +4,7 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.graphics import Color, RoundedRectangle, Line
 from kivy.metrics import dp
+from kivy.resources import resource_find
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
@@ -94,13 +95,20 @@ class LoginScreen(Screen):
         # The supplied portrait artwork is the actual login design.
         # Native controls are transparent overlays placed on the artwork,
         # so the visual card/buttons/icons remain exactly as designed.
+        # Resolve the asset through Kivy's packaged-resource system first.
+        # On Android the filesystem path used during the build is not always the
+        # same path used by the packaged application.
+        background_source = resource_find(str(BACKGROUND_PATH)) or str(BACKGROUND_PATH)
         background = Image(
-            source=str(BACKGROUND_PATH),
+            source=background_source,
             size_hint=(1, 1),
             pos_hint={"x": 0, "y": 0},
             allow_stretch=True,
             keep_ratio=False,
             opacity=1,
+        )
+        background.bind(
+            on_texture=lambda *_: print("LOGIN BACKGROUND LOADED:", background_source),
         )
         root.add_widget(background)
 
