@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 APP_NAME = "فراهوش"
-APP_VERSION = "1.5.6"
+APP_VERSION = "1.6.0"
 APP_SLOGAN = "یادگیری هوشمند- مدرسه ای یکپارچه- دانش آموز خلاق"
 LOGIN_USERNAME_HINT = "نام کاربری"
 LOGIN_PASSWORD_HINT = "رمز عبور"
