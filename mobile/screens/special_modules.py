@@ -473,34 +473,142 @@ class SpecialModuleScreen(Screen):
         self._async(self._report_data, self._report_loaded)
 
     def _report_data(self):
-        profile=self.app_state.profile
-        sid=(self.app_state.session.get("selected_student_id") if isinstance(self.app_state.session, dict) else None) or profile.get("linked_student_id") or profile.get("student_id")
+        profile = self.app_state.profile
+        sid = (
+            self.app_state.session.get("selected_student_id")
+            if isinstance(self.app_state.session, dict) else None
+        ) or profile.get("linked_student_id") or profile.get("student_id")
         if not sid:
-            rows=self._api().table_select("students", {"national_code":"eq."+str(self.app_state.national_code),"limit":"1"})
-            sid=(rows or [{}])[0].get("id")
-        api=self._api()
-        detailed=api.table_select("student_grades", {"student_id":"eq."+str(sid),"order":"grade_date.desc","limit":"100"}) or []
-        legacy=api.table_select("grades", {"student_id":"eq."+str(sid),"order":"grade_date.desc","limit":"100"}) or []
-        cards=api.table_select("report_cards", {"student_id":"eq."+str(sid),"order":"id.desc","limit":"1"}) or []
-        student=api.table_select("students", {"id":"eq."+str(sid),"limit":"1"})
-        # Prefer the current student_grades records; if none exist, use the ZIP grades table.
-        grades=detailed or legacy
+            rows = self._api().table_select(
+                "students",
+                {"national_code": "eq." + str(self.app_state.national_code), "limit": "1"},
+            )
+            sid = (rows or [{}])[0].get("id")
+
+        api = self._api()
+        role = str(getattr(self.app_state, "role", "") or "").strip().lower()
+        detailed = api.table_select(
+            "student_grades",
+            {"student_id": "eq." + str(sid), "order": "grade_date.desc", "limit": "100"},
+        ) or []
+        # The ZIP grade workflow exposes a manager_released flag. Students and
+        # parents must only see released detailed grades.
+        if role in ("student", "دانش‌آموز", "parent", "parents", "ولی", "اولیا"):
+            detailed = [g for g in detailed if bool(g.get("manager_released"))]
+        legacy = api.table_select(
+            "grades",
+            {"student_id": "eq." + str(sid), "order": "grade_date.desc", "limit": "100"},
+        ) or []
+        cards = api.table_select(
+            "report_cards",
+            {"student_id": "eq." + str(sid), "order": "id.desc", "limit": "1"},
+        ) or []
+        student = api.table_select("students", {"id": "eq." + str(sid), "limit": "1"})
+        grades = detailed or legacy
         return (student[0] if student else {}, grades, cards[0] if cards else {})
+
+    def _report_editor(self, row=None):
+        sid = (
+            self.app_state.session.get("selected_student_id")
+            if isinstance(self.app_state.session, dict) else None
+        ) or self.app_state.profile.get("linked_student_id") or self.app_state.profile.get("student_id")
+        if not sid:
+            self._set_status("ابتدا دانش‌آموز را برای کارنامه انتخاب کنید.", ERROR)
+            return
+
+        fields = [
+            ("term", "نوبت"),
+            ("average", "معدل"),
+            ("grade_level", "پایه"),
+            ("academic_year", "سال تحصیلی"),
+            ("report_date", "تاریخ کارنامه"),
+            ("description", "توضیحات"),
+        ]
+        root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(6))
+        scroll = ScrollView(do_scroll_x=False)
+        form = GridLayout(cols=1, spacing=dp(5), size_hint_y=None)
+        form.bind(minimum_height=form.setter("height"))
+        inputs = {}
+        for key, hint in fields:
+            form.add_widget(self.label(hint, "9sp", PRIMARY, True, False, 26))
+            ti = PersianTextInput(
+                text="" if row is None else str(row.get(key) or ""),
+                hint_text=rtl_text(hint),
+                font_size="12sp",
+                size_hint_y=None,
+                height=dp(44 if key != "description" else 76),
+                multiline=key == "description",
+            )
+            inputs[key] = ti
+            form.add_widget(ti)
+        scroll.add_widget(form)
+        root.add_widget(scroll)
+        actions = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(5))
+        popup = Popup(
+            title=rtl_text(("ویرایش" if row else "ثبت جدید") + " • کارنامه"),
+            content=root,
+            size_hint=(.95, .88),
+            auto_dismiss=False,
+        )
+        actions.add_widget(self.btn("انصراف", lambda *_: popup.dismiss(), SECONDARY, 40))
+        actions.add_widget(self.btn("ذخیره", lambda *_: self._save_report(sid, row, inputs, popup), SUCCESS, 40))
+        root.add_widget(actions)
+        popup.open()
+
+    def _save_report(self, sid, row, inputs, popup):
+        payload = {k: v.text.strip() for k, v in inputs.items() if v.text.strip()}
+        payload["student_id"] = sid
+        if not payload.get("term"):
+            self._set_status("نوبت کارنامه الزامی است.", ERROR)
+            return
+        popup.dismiss()
+        def work():
+            api = self._api()
+            if row and row.get("id"):
+                return api.table_update("report_cards", {"id": "eq." + str(row["id"])}, payload)
+            return api.table_insert("report_cards", payload)
+        self._async(
+            work,
+            lambda _, e: self._report_write_done(
+                "کارنامه با موفقیت " + ("ویرایش شد." if row else "ثبت شد."), e
+            ),
+        )
+
+    def _report_write_done(self, msg, error):
+        self._set_status(("خطا: " + error) if error else msg, ERROR if error else SUCCESS)
+        if not error:
+            self._async(self._report_data, self._report_loaded)
+
+    def _delete_report(self, *_):
+        row = getattr(self, "report_official", None)
+        if not row or not row.get("id"):
+            self._set_status("ابتدا یک کارنامه را برای حذف انتخاب کنید.", ERROR)
+            return
+        def work():
+            return self._api().table_delete("report_cards", {"id": "eq." + str(row["id"])})
+        self._async(work, lambda _, e: self._report_write_done("کارنامه حذف شد.", e))
 
     def _report_loaded(self, data, error):
         if error:
             self._set_status("کارنامه دریافت نشد: " + error, ERROR)
             return
         student, grades, official = data
+        self.report_official = dict(official or {})
         self.body.clear_widgets()
 
-        # A report card is deliberately rendered as a report document, not a
-        # generic database table: school header, student identity, average,
-        # term information and one subject card per assessment.
+        actions = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(5))
+        actions.add_widget(self.btn("ثبت جدید", lambda *_: self._report_editor(None), SUCCESS, 40))
+        actions.add_widget(self.btn("ویرایش", lambda *_: self._report_editor(self.report_official) if self.report_official else self._set_status("کارنامه‌ای برای ویرایش ثبت نشده است.", ERROR), PRIMARY, 40))
+        actions.add_widget(self.btn("حذف", self._delete_report, ERROR, 40))
+        self.body.add_widget(actions)
+
         report = _Card(fill=(0.98, 0.99, 1.0, 1))
         report.add_widget(self.label("کارنامه تحصیلی", "22sp", PRIMARY, True, True, 46))
         report.add_widget(self.label(SCHOOL_NAME, "12sp", SECONDARY, True, True, 30))
-        report.add_widget(self.label("سال تحصیلی " + str(official.get("academic_year") or SCHOOL_YEAR), "10sp", SECONDARY, False, True, 27))
+        report.add_widget(self.label(
+            "سال تحصیلی " + str(official.get("academic_year") or SCHOOL_YEAR),
+            "10sp", SECONDARY, False, True, 27,
+        ))
 
         name = f"{student.get('first_name','')} {student.get('last_name','')}".strip() or "ثبت نشده"
         report.add_widget(self.label("نام دانش‌آموز: " + name, "12sp", PRIMARY, True, False, 32))
@@ -508,22 +616,32 @@ class SpecialModuleScreen(Screen):
             "پایه: " + str(student.get("grade") or "-") +
             "    کلاس: " + str(student.get("class_name") or "-") +
             "    کد ملی: " + str(student.get("national_code") or "-"),
-            "10sp", SECONDARY, False, False, 30
+            "10sp", SECONDARY, False, False, 30,
         ))
 
+        weighted_sum = 0.0
+        weight_total = 0.0
         scores = []
         for g in grades or []:
             try:
-                scores.append(float(g.get("score")))
+                score = float(g.get("score"))
+                coefficient = float(g.get("coefficient") or 1)
+                scores.append(score)
+                weighted_sum += score * coefficient
+                weight_total += coefficient
             except (TypeError, ValueError):
                 pass
-        avg = str(official.get("average")) if official.get("average") is not None else (f"{sum(scores) / len(scores):.2f}" if scores else "-")
+        calculated = (weighted_sum / weight_total) if weight_total else ((sum(scores) / len(scores)) if scores else None)
+        avg = str(official.get("average")) if official.get("average") is not None else (f"{calculated:.2f}" if calculated is not None else "-")
         avg_card = _Card(fill=(0.90, 0.96, 1.0, 1), size_hint_y=None, height=dp(58))
-        avg_card.add_widget(self.label("معدل کارنامه: " + avg, "16sp", SUCCESS, True, True, 50))
+        avg_card.add_widget(self.label("معدل کارنامه: " + avg + " از 20", "16sp", SUCCESS, True, True, 50))
         report.add_widget(avg_card)
 
         if not grades:
-            report.add_widget(self.label("برای این دانش‌آموز هنوز نمره‌ای برای کارنامه ثبت نشده است.", "11sp", ERROR, True, True, 70))
+            report.add_widget(self.label(
+                "برای این دانش‌آموز هنوز نمره قابل نمایش برای کارنامه ثبت نشده است.",
+                "11sp", ERROR, True, True, 70,
+            ))
         else:
             report.add_widget(self.label("ریز نمرات", "13sp", PRIMARY, True, True, 34))
             subject_grid = GridLayout(cols=2, spacing=dp(6), size_hint_y=None, padding=[dp(2), dp(2)])
@@ -534,19 +652,30 @@ class SpecialModuleScreen(Screen):
                 kind = str(g.get("assessment_type") or g.get("grade_type") or "مستمر")
                 term = str(g.get("term") or "-")
                 title = str(g.get("assessment_title") or g.get("title") or "")
-                item = _Card(fill=(1, 1, 1, 1), size_hint_y=None, height=dp(105), padding=dp(8))
+                teacher = str(g.get("teacher_name") or g.get("teacher_id") or "-")
+                released = bool(g.get("manager_released")) if "manager_released" in g else True
+                item = _Card(fill=(1, 1, 1, 1), size_hint_y=None, height=dp(118), padding=dp(8))
                 item.add_widget(self.label(subject, "13sp", PRIMARY, True, True, 30))
-                item.add_widget(self.label("نمره: " + score + "    •    " + kind, "11sp", SECONDARY, True, True, 27))
-                item.add_widget(self.label("نوبت: " + term + (("    " + title) if title else ""), "9sp", SECONDARY, False, True, 25))
+                item.add_widget(self.label(
+                    "نمره: " + score + " • " + kind + " • نوبت: " + term,
+                    "10sp", SECONDARY, True, True, 27,
+                ))
+                item.add_widget(self.label(
+                    ("عنوان: " + title + " • " if title else "") + "دبیر: " + teacher,
+                    "9sp", SECONDARY, False, True, 25,
+                ))
+                item.add_widget(self.label(
+                    "وضعیت نمایش: " + ("قابل مشاهده" if released else "منتظر تأیید مدیریت"),
+                    "8sp", SUCCESS if released else SECONDARY, True, True, 22,
+                ))
                 subject_grid.add_widget(item)
             report.add_widget(subject_grid)
 
         report.add_widget(self.label("مهر و تأیید مدرسه / مدیریت", "9sp", SECONDARY, False, True, 38))
-
         scroll = ScrollView(do_scroll_x=False)
         scroll.add_widget(report)
         self.body.add_widget(scroll)
-        self._set_status("کارنامه به شکل پرونده کارنامه‌ای نمایش داده شد.", SUCCESS)
+        self._set_status("کارنامه واقعی از نمرات و رکورد کارنامه سامانه نمایش داده شد.", SUCCESS)
 
     def _finance(self):
         self.title.text = rtl_text("حسابداری و امور مالی")
