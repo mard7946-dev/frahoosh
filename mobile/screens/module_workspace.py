@@ -707,11 +707,104 @@ class ModuleWorkspaceScreen(Screen):
         p.dismiss(); self.status.text=rtl_text('در حال ذخیره اطلاعات واقعی…')
         def work():
             try:
-                if row is None: self.app_state.api.table_insert(table,payload); msg='رکورد جدید با موفقیت ثبت شد.'
+                api = self.app_state.api
+                if table == "grades":
+                    # A teacher grade is one business record, but it feeds three
+                    # canonical views: grades, student_grades and grade_items.
+                    # Keep the source id so later edits do not create duplicates.
+                    if row is None:
+                        created = api.table_insert("grades", payload) or []
+                        if not isinstance(created, list) or not created or not created[0].get("id"):
+                            raise RuntimeError("شناسه نمره پس از ثبت دریافت نشد.")
+                        source_id = created[0]["id"]
+                        api.table_update(
+                            "grades", {"id":"eq."+str(source_id)},
+                            {"source_grade_id": source_id},
+                        )
+                        source_row = dict(payload)
+                        source_row["source_grade_id"] = source_id
+                        student_payload = {
+                            "source_grade_id": source_id,
+                            "student_id": payload.get("student_id"),
+                            "teacher_id": payload.get("teacher_id"),
+                            "subject": payload.get("subject"),
+                            "class_name": payload.get("class_name"),
+                            "assessment_type": payload.get("grade_type"),
+                            "assessment_title": payload.get("title") or payload.get("exam_name"),
+                            "score": payload.get("score"),
+                            "coefficient": 1,
+                            "grade_date": payload.get("grade_date"),
+                            "description": payload.get("description"),
+                            "term": payload.get("term"),
+                            "manager_released": False,
+                        }
+                        api.table_insert("student_grades", student_payload)
+                        api.table_insert("grade_items", {
+                            "source_grade_id": source_id,
+                            "student_id": payload.get("student_id"),
+                            "teacher_id": payload.get("teacher_id"),
+                            "subject": payload.get("subject"),
+                            "grade_type": payload.get("grade_type"),
+                            "term": payload.get("term"),
+                            "score": payload.get("score"),
+                            "grade_date": payload.get("grade_date"),
+                            "description": payload.get("description"),
+                        })
+                        msg='نمره ثبت شد و به کارنامه/ارزیابی دانش‌آموز متصل شد.'
+                    else:
+                        rid=row.get("id")
+                        if rid is None:
+                            raise RuntimeError('شناسه رکورد برای ویرایش پیدا نشد.')
+                        api.table_update("grades", {"id":"eq."+str(rid)}, payload)
+                        source_id = row.get("source_grade_id") or rid
+                        # Update the linked student record; if an older record
+                        # predates the link, create the mirror exactly once.
+                        mirrors = api.table_select(
+                            "student_grades", {"source_grade_id":"eq."+str(source_id), "limit":"1"}
+                        ) or []
+                        student_payload = {
+                            "source_grade_id": source_id,
+                            "student_id": payload.get("student_id", row.get("student_id")),
+                            "teacher_id": payload.get("teacher_id", row.get("teacher_id")),
+                            "subject": payload.get("subject", row.get("subject")),
+                            "class_name": payload.get("class_name", row.get("class_name")),
+                            "assessment_type": payload.get("grade_type", row.get("grade_type")),
+                            "assessment_title": payload.get("title", row.get("title")) or payload.get("exam_name", row.get("exam_name")),
+                            "score": payload.get("score", row.get("score")),
+                            "coefficient": 1,
+                            "grade_date": payload.get("grade_date", row.get("grade_date")),
+                            "description": payload.get("description", row.get("description")),
+                            "term": payload.get("term", row.get("term")),
+                        }
+                        if mirrors and mirrors[0].get("id"):
+                            api.table_update("student_grades", {"id":"eq."+str(mirrors[0]["id"])}, student_payload)
+                        else:
+                            api.table_insert("student_grades", {**student_payload, "manager_released": False})
+                        items = api.table_select(
+                            "grade_items", {"source_grade_id":"eq."+str(source_id), "limit":"1"}
+                        ) or []
+                        item_payload = {
+                            "source_grade_id": source_id,
+                            "student_id": payload.get("student_id", row.get("student_id")),
+                            "teacher_id": payload.get("teacher_id", row.get("teacher_id")),
+                            "subject": payload.get("subject", row.get("subject")),
+                            "grade_type": payload.get("grade_type", row.get("grade_type")),
+                            "term": payload.get("term", row.get("term")),
+                            "score": payload.get("score", row.get("score")),
+                            "grade_date": payload.get("grade_date", row.get("grade_date")),
+                            "description": payload.get("description", row.get("description")),
+                        }
+                        if items and items[0].get("id"):
+                            api.table_update("grade_items", {"id":"eq."+str(items[0]["id"])}, item_payload)
+                        else:
+                            api.table_insert("grade_items", item_payload)
+                        msg='نمره و نسخه‌های مرتبط با موفقیت ویرایش شد.'
+                elif row is None:
+                    api.table_insert(table,payload); msg='رکورد جدید با موفقیت ثبت شد.'
                 else:
                     rid=row.get('id')
                     if rid is None: raise RuntimeError('شناسه رکورد برای ویرایش پیدا نشد.')
-                    self.app_state.api.table_update(table,{'id':'eq.'+str(rid)},payload); msg='رکورد با موفقیت ویرایش شد.'
+                    api.table_update(table,{'id':'eq.'+str(rid)},payload); msg='رکورد با موفقیت ویرایش شد.'
                 Clock.schedule_once(lambda *_:self.after_write(msg),0)
             except Exception as exc: Clock.schedule_once(lambda *_:self.write_error(str(exc)),0)
         Thread(target=work,daemon=True).start()
