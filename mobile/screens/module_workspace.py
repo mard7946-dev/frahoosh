@@ -220,6 +220,81 @@ TABLE_FIELDS = {
 }
 
 # The shared JSON contract above is the authoritative module/table/field map.
+# Keep the Android table columns exactly aligned with the canonical Web/ZIP
+# contract. The legacy TABLE_FIELDS block remains only as a fallback for old
+# APKs; when the shared catalog is present it is always authoritative.
+if _shared_modules:
+    for _table_name, _definition in _shared_modules.items():
+        _catalog_fields = list((_definition or {}).get("fields") or [])
+        if _catalog_fields:
+            TABLE_FIELDS[_table_name] = _catalog_fields
+
+# Human-readable labels for every field used by the canonical module contract.
+# Unknown fields are still given a useful Persian label instead of exposing
+# raw/internal placeholders or missing-glyph boxes.
+_CATALOG_FIELD_LABELS = {
+    "activity_key":"کلید فعالیت","activity_date":"تاریخ فعالیت","activity_kind":"نوع فعالیت",
+    "activity_id":"شناسه فعالیت","active":"فعال","amount":"مبلغ","answer":"پاسخ",
+    "answer_date_shamsi":"تاریخ پاسخ شمسی","aptitude":"استعداد","archived":"بایگانی‌شده",
+    "assessment_type":"نوع ارزیابی","assessment_title":"عنوان ارزیابی","audience":"مخاطبان",
+    "backup_path":"مسیر پشتیبان","backup_type":"نوع پشتیبان","balance":"مانده حساب",
+    "board_date":"تاریخ تخته","body":"متن","category":"دسته‌بندی","capacity":"ظرفیت",
+    "ceremony_date":"تاریخ مراسم","class_id":"شناسه کلاس","class_name":"کلاس",
+    "class_names":"کلاس‌ها","classroom_seat":"صندلی کلاسی","coefficient":"ضریب",
+    "competition_type":"نوع مسابقه","content":"محتوا","content_date_shamsi":"تاریخ شمسی محتوا",
+    "correct_answer":"پاسخ صحیح","correct_option":"گزینه صحیح","counterparty":"طرف حساب",
+    "created_by":"ثبت‌کننده","date":"تاریخ","date_shamsi":"تاریخ شمسی","decision":"تصمیم",
+    "deduction":"کسر نمره","description":"توضیحات","difficulty":"سطح دشواری",
+    "display_name":"نام نمایشی","donor_name":"نام پرداخت‌کننده","duration":"مدت (دقیقه)",
+    "educational_approval":"تأیید آموزشی","election_year":"سال انتخابات","email":"ایمیل",
+    "employee_code":"کد پرسنلی","end_at":"پایان","end_date":"تاریخ پایان","end_time":"ساعت پایان",
+    "end_time_shamsi":"پایان (شمسی)","exam_date":"تاریخ امتحان","exam_date_shamsi":"تاریخ امتحان شمسی",
+    "exam_id":"شناسه امتحان","exam_name":"نام امتحان","exam_start_time":"ساعت شروع امتحان",
+    "exam_end_time":"ساعت پایان امتحان","exam_seat":"صندلی امتحان","father_name":"نام پدر",
+    "fee":"هزینه","file_path":"مسیر فایل","file_type":"نوع فایل","file_url":"فایل",
+    "first_name":"نام","fixed_amount":"مبلغ ثابت","followup_date":"تاریخ پیگیری",
+    "followup_item":"مورد پیگیری","followup_items":"موارد پیگیری","grade":"پایه",
+    "grade_level":"پایه تحصیلی","grade_type":"نوع نمره","gateway":"درگاه","gateway_enabled":"درگاه فعال",
+    "generated_date_shamsi":"تاریخ تولید شمسی","hours":"ساعت هفتگی","image_url":"تصویر",
+    "interest":"علاقه","invoice_number":"شماره فاکتور","item_id":"شناسه مورد",
+    "last_name":"نام خانوادگی","leave_time":"زمان خروج","lesson":"مبحث / جلسه",
+    "lesson_title":"عنوان درس","location":"محل","manager_approval":"تأیید مدیریت",
+    "manager_released":"تأیید مدیریت","max_attempts":"حداکثر دفعات شرکت","max_score":"حداکثر نمره",
+    "media_path":"مسیر رسانه","media_type":"نوع رسانه","meeting_at":"زمان جلسه",
+    "message_id":"شناسه پیام","month_name":"ماه","national_code":"کد ملی","nationality":"ملیت",
+    "negative_score":"نمره منفی","note":"یادداشت","option1":"گزینه ۱","option2":"گزینه ۲",
+    "option3":"گزینه ۳","option4":"گزینه ۴","option_a":"گزینه الف","option_b":"گزینه ب",
+    "option_c":"گزینه ج","option_d":"گزینه د","options":"گزینه‌ها","options_json":"گزینه‌ها (JSON)",
+    "origin":"مبدأ","parent_id":"شناسه ولی","parent_name":"نام ولی","parent_phone":"تلفن ولی",
+    "parent_username":"نام کاربری ولی","participation_type":"نوع مشارکت","passing_score":"نمره قبولی",
+    "payment_date":"تاریخ پرداخت","payment_status":"وضعیت پرداخت","payment_type":"نوع پرداخت",
+    "period":"دوره","permissions":"مجوزها","phone":"تلفن","points":"بارم",
+    "program":"برنامه","program_key":"کلید برنامه","published":"منتشرشده","qari":"قاری",
+    "qari_name":"نام قاری","question":"سؤال","question_type":"نوع سؤال","quantity":"تعداد",
+    "reason":"علت","recommendation":"پیشنهاد","record_date":"تاریخ ثبت","reference":"شماره مرجع",
+    "referral_date":"تاریخ ارجاع","referral_to":"ارجاع به","registration_date":"تاریخ ثبت‌نام",
+    "registration_start_shamsi":"شروع ثبت‌نام","registration_end_shamsi":"پایان ثبت‌نام",
+    "report":"گزارش","report_date":"تاریخ گزارش","report_date_shamsi":"تاریخ گزارش شمسی",
+    "report_type":"نوع گزارش","required":"الزامی","response_id":"شناسه پاسخ",
+    "risk_level":"سطح ریسک","role":"نقش","school_year":"سال تحصیلی","score":"نمره",
+    "secure_mode":"حالت امن","sender_name":"نام فرستنده","sender_role":"نقش فرستنده",
+    "sender_id":"شناسه فرستنده","sent_at_shamsi":"زمان ارسال شمسی","share_code":"کد اشتراک",
+    "share_enabled":"اشتراک فعال","snapshot_data":"اطلاعات نسخه","sort_order":"ترتیب",
+    "sport_type":"رشته ورزشی","start_at":"شروع","start_date":"تاریخ شروع","start_time_shamsi":"شروع (شمسی)",
+    "status":"وضعیت","student_code":"شماره دانش‌آموزی","student_id":"دانش‌آموز",
+    "student_name":"نام دانش‌آموز","subject":"درس","submitted_at":"زمان ارسال تکلیف",
+    "submitted_at_shamsi":"زمان ارسال شمسی","target_id":"شناسه هدف","target_name":"نام مخاطب",
+    "target_role":"نقش مخاطب","target_type":"نوع مخاطب","teacher":"دبیر","teacher_id":"دبیر",
+    "teacher_name":"نام دبیر","team_members":"اعضای گروه","term":"نوبت","text":"متن پیام",
+    "title":"عنوان","tool_type":"نوع ابزار","transaction_date":"تاریخ تراکنش",
+    "transaction_type":"نوع تراکنش","transport_type":"نوع سرویس","updated_at":"آخرین ویرایش",
+    "username":"نام کاربری","vehicle_type":"نوع وسیله","week_index":"شماره هفته",
+    "weekday":"روز هفته","weekdays":"روزهای هفته","weight":"ضریب","work_experience":"سابقه کار",
+};
+for (const [key, value] of Object.entries(_CATALOG_FIELD_LABELS)) {
+    if (!COLUMNS[key]) COLUMNS[key] = value;
+}
+
 
 # Explicit write policy. Reads remain available through the existing API for all visible tables.
 EDITABLE = {
