@@ -67,13 +67,14 @@ def _load_shared_catalog():
                 data = json.loads(path.read_text(encoding="utf-8"))
                 panels = data.get("panels") or {}
                 friendly = data.get("friendly") or {}
+                modules = data.get("modules") or {}
                 if panels:
-                    return panels, friendly
+                    return panels, friendly, modules
         except Exception as exc:
             print("SHARED MODULE CATALOG ERROR:", repr(exc))
-    return None, None
+    return None, None, {}
 
-_shared_panels, _shared_friendly = _load_shared_catalog()
+_shared_panels, _shared_friendly, _shared_modules = _load_shared_catalog()
 if _shared_panels:
     SUBMENUS = {k: [tuple(item) for item in v] for k, v in _shared_panels.items()}
 
@@ -124,6 +125,14 @@ TABLE_FIELDS = {
 "discipline_records":["student_id","teacher_id","title","description","priority","status","item_id","deduction","actor_username","actor_role","note"],"educational_followups":["student_id","followup_date","followup_items","decision","status"],"academic_followups":["student_id","followup_date","followup_items","decision","status"],"certificates":["student_id","title","code"],"parent_meetings":["student_id","teacher_id","parent_phone","reason","meeting_date","status"],
 "meeting_requests":["requester_username","requester_role","requester_name","student_id","student_name","parent_username","parent_name","target_role","target_user_id","target_username","target_name","requested_date","requested_time","reason","description","status","manager_status","manager_note","educational_status","educational_note","final_date","final_time","final_note"],"student_registrations":["student_id","activity_id","activity_title","activity_kind","fee","payment_status","payment_url","payment_reference","registration_code","registration_date","status"],"cultural_activity_registrations":["activity_id","activity_title","activity_kind","student_id","student_name","fee","payment_status","registration_code","registration_date","status"],"student_referrals":["student_id","teacher_id","referral_to","reason","referral_date","status"],"teacher_activities":["teacher_id","student_id","title","activity_type","subject","score","description","activity_date"],"teacher_attendance":["student_id","teacher_id","class_name","subject","attendance_date","status","description"],"teacher_parent_meetings":["teacher_id","student_id","parent_id","requested_date","status","manager_status","reason"],"activity_offers":["title","category","event_date","active","amount","settings"],"activity_registrations":["activity_id","student_id","participation_type","team_members","competition_type","payment_status","status"],"khwarizmi_registrations":["title","category","grade","class_name","student_id","status"],"class_seats":["student_id","class_name","seat_no"],"exam_seats":["student_id","exam_name","seat_no"],"monthly_report_cards":["student_id","month_name","active"],"competitions":["title","category","start_date","end_date","status","description"],"executive_requests":["title","requester","status","description","role"],"executive_operations":["operation_type","title","student_id","class_name","description","status","operation_date","created_by"],"executive_reports":["title","report_type","student_id","class_name","payload","report_date","created_by"],"assets":["title","category","quantity","location","archived"],"archive_items":["title","student_id","location","description"],"backup_records":["file_path","backup_type","size_bytes","status","created_by"],"surveys":["title","description","status","audience","start_at","end_at","created_by"],"survey_questions":["survey_id","question","question_type","options","required","sort_order"],"survey_responses":["survey_id","respondent_username","respondent_role","student_id"],"program_activations":["program_key","title","active","activated_by"],"student_council":["student_id","student_name","election_year","status"],"basij_registration":["student_id","student_name","registration_date","status"],"school_ally":["student_id","student_name","role","status"],"school_mayor":["student_id","student_name","status"],"cultural_competitions":["title","category","start_date","end_date","status","description"],"art_competitions":["title","category","start_date","end_date","status","description"],"sport_competitions":["title","category","start_date","end_date","status","description"],"morning_leaders":["student_id","student_name","status"],"qari_registration":["student_id","student_name","status"],"morning_ceremony":["title","program_key","active","description"],"parent_activities":["title","description","activity_date","status"],"student_class_info":["student_id","grade","class_name","academic_year"],"message_reads":["message_id","username","read_at"],"certificate_requests":["student_id","student_name","destination","request_date","status","executive_note"],"parent_meeting_requests":["student_id","teacher_id","parent_phone","reason","meeting_date","status"],"survey_answers":["response_id","question_id","answer"]
 }
+
+# The shared JSON contract is authoritative for module fields.
+# The in-file TABLE_FIELDS map remains only as a compatibility fallback.
+if _shared_modules:
+    for _table_name, _spec in _shared_modules.items():
+        _fields = list((_spec or {}).get("fields") or [])
+        if _fields:
+            TABLE_FIELDS[_table_name] = _fields
 
 # Explicit write policy. Reads remain available through the existing API for all visible tables.
 EDITABLE = {
