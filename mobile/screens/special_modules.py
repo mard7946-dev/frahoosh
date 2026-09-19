@@ -743,37 +743,103 @@ class SpecialModuleScreen(Screen):
 
     def _finance_editor(self,row=None):
         self.body.clear_widgets()
-        self.title.text=rtl_text("ویرایش سند مالی" if row else "ثبت سند مالی")
-        fields=[("شماره فاکتور","invoice_number"),("عنوان سند","title"),("نوع سند (بستانکار/بدهکار)","transaction_type"),("مبلغ فاکتور","amount"),("دسته‌بندی","category"),("طرف حساب","counterparty"),("شرح","description")]
-        self.finance_inputs={}
-        self.finance_editing=row
-        for hint,key in fields:
-            ti=PersianTextInput(text="" if row is None else str(row.get(key) or ""),hint_text=rtl_text(hint),font_size="12sp",size_hint_y=None,height=dp(48),padding=[dp(10),dp(7)])
-            self.finance_inputs[key]=ti; self.body.add_widget(ti)
-        self.body.add_widget(self.btn("ذخیره سند مالی",self._save_finance,SUCCESS,46))
-        self.body.add_widget(self.btn("بازگشت به دفتر حسابداری",lambda *_:self.load(),SECONDARY,42))
+        self.title.text = rtl_text("ویرایش سند مالی" if row else "ثبت سند مالی")
+        fields = [
+            ("شماره فاکتور", "invoice_number"),
+            ("عنوان سند", "title"),
+            ("طرف حساب", "counterparty"),
+            ("مبلغ فاکتور", "amount"),
+            ("بدهکار", "debit"),
+            ("بستانکار", "credit"),
+            ("دسته‌بندی", "category"),
+            ("تاریخ سند", "transaction_date"),
+            ("شرح", "description"),
+        ]
+        self.finance_inputs = {}
+        self.finance_editing = row
+        for hint, key in fields:
+            ti = PersianTextInput(
+                text="" if row is None else str(row.get(key) or ""),
+                hint_text=rtl_text(hint),
+                font_size="12sp",
+                size_hint_y=None,
+                height=dp(48 if key != "description" else 78),
+                multiline=key == "description",
+            )
+            self.finance_inputs[key] = ti
+            self.body.add_widget(self.label(hint, "9sp", PRIMARY, True, False, 24))
+            self.body.add_widget(ti)
+
+        type_box = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(5))
+        self.finance_type = Spinner(
+            text=rtl_text(str((row or {}).get("transaction_type") or "بدهکار")),
+            values=(rtl_text("بدهکار"), rtl_text("بستانکار")),
+            font_name=font_name(),
+            size_hint_y=None,
+            height=dp(42),
+        )
+        type_box.add_widget(self.label("نوع سند", "10sp", PRIMARY, True, False, 38))
+        type_box.add_widget(self.finance_type)
+        self.body.add_widget(type_box)
+
+        actions = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(5))
+        actions.add_widget(self.btn("ذخیره سند", self._save_finance, SUCCESS, 42))
+        actions.add_widget(self.btn("بازگشت", lambda *_: self.load(), SECONDARY, 42))
+        self.body.add_widget(actions)
 
     def _save_finance(self,*_):
-        vals={k:v.text.strip() for k,v in self.finance_inputs.items()}
-        if not vals["amount"] or not vals["title"]:
-            self._set_status("عنوان و مبلغ الزامی است.",ERROR); return
-        kind = vals["transaction_type"] or "بدهکار"
-        amount = vals["amount"]
-        payload={"transaction_type":kind,"title":vals["title"],"amount":amount,
-                 "invoice_number":vals["invoice_number"],
-                 "debit":amount if kind in ("بدهکار","debit","expense") else 0,
-                 "credit":amount if kind in ("بستانکار","credit","income") else 0,
-                 "category":vals["category"],"counterparty":vals["counterparty"],
-                 "description":vals["description"],
-                 "transaction_date":__import__("datetime").date.today().isoformat()}
-        row=getattr(self,"finance_editing",None)
+        vals = {k: v.text.strip() for k, v in self.finance_inputs.items()}
+        if not vals.get("amount") or not vals.get("title"):
+            self._set_status("عنوان و مبلغ فاکتور الزامی است.", ERROR)
+            return
+        try:
+            amount = float(vals.get("amount") or 0)
+            debit = float(vals.get("debit") or 0)
+            credit = float(vals.get("credit") or 0)
+        except ValueError:
+            self._set_status("مبلغ، بدهکار و بستانکار باید عددی باشند.", ERROR)
+            return
+
+        kind = str(self.finance_type.text or "بدهکار")
+        if debit == 0 and credit == 0:
+            if kind == "بستانکار":
+                credit = amount
+            else:
+                debit = amount
+        if debit > 0 and credit > 0:
+            self._set_status("یک سند همزمان نباید بدهکار و بستانکار باشد.", ERROR)
+            return
+
+        payload = {
+            "transaction_type": kind,
+            "title": vals["title"],
+            "amount": amount,
+            "invoice_number": vals.get("invoice_number") or "",
+            "debit": debit,
+            "credit": credit,
+            "counterparty": vals.get("counterparty") or "",
+            "category": vals.get("category") or "",
+            "description": vals.get("description") or "",
+            "transaction_date": vals.get("transaction_date") or __import__("datetime").date.today().isoformat(),
+        }
+        row = getattr(self, "finance_editing", None)
         if row and row.get("id"):
-            work=lambda:self._api().table_update("finance_transactions",{"id":"eq."+str(row.get("id"))},payload)
-            msg="سند مالی ویرایش شد."
+            work = lambda: self._api().table_update(
+                "finance_transactions", {"id": "eq." + str(row["id"])}, payload
+            )
+            msg = "سند مالی ویرایش شد."
         else:
-            work=lambda:self._api().table_insert("finance_transactions",payload)
-            msg="سند مالی ثبت شد."
-        self._async(work,lambda r,e:self._set_status((msg if not e else "ذخیره سند ناموفق بود: "+e),SUCCESS if not e else ERROR))
+            work = lambda: self._api().table_insert("finance_transactions", payload)
+            msg = "سند مالی ثبت شد."
+
+        self._set_status("در حال ذخیره سند واقعی…", SECONDARY)
+        self._async(work, lambda _, e: self._finance_write_done(msg, e))
+
+    def _finance_write_done(self,msg,error):
+        self._set_status((msg if not error else "ذخیره سند ناموفق بود: " + error),
+                         SUCCESS if not error else ERROR)
+        if not error:
+            self._finance()
 
     def _parent_children(self):
         self.title.text=rtl_text("اطلاعات فرزندان")
