@@ -236,8 +236,33 @@ class FrahooshApp(App):
                 self.sm.current = "special_identity_gate"
                 Clock.schedule_once(lambda *_: gate.load(), 0.05)
                 return True
-            self.sm.current = "dashboard"
-            Clock.schedule_once(self._refresh_dashboard_safe, 0.05)
+            role_routes = {
+                "manager": "management",
+                "admin": "management",
+                "administrator": "management",
+                "مدیر": "management",
+                "مدیریت": "management",
+                "educational": "educational",
+                "معاون آموزشی": "educational",
+                "executive": "executive",
+                "معاون اجرایی": "executive",
+                "cultural": "cultural",
+                "معاون پرورشی": "cultural",
+                "advisor": "advisor",
+                "مشاور": "advisor",
+                "teacher": "teachers",
+                "دبیر": "teachers",
+                "student": "students",
+                "دانش‌آموز": "students",
+                "parent": "parents",
+                "ولی": "parents",
+                "اولیا": "parents",
+            }
+            raw_role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
+            target_route = role_routes.get(raw_role, "management")
+            panel = self.sm.get_screen("panel")
+            panel.set_route(target_route)
+            self.sm.current = "panel"
             return True
         except Exception as exc:
             print("DASHBOARD NAVIGATION ERROR:", repr(exc))
