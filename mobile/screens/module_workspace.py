@@ -278,8 +278,7 @@ class ModuleWorkspaceScreen(Screen):
         if refresh_subbar:
             self.render(); return
         self.body.clear_widgets(); self.title.text=rtl_text(FRIENDLY.get(table,table))
-        hero=Surface(height=dp(76)); line=BoxLayout(size_hint_y=None,height=dp(34),spacing=dp(5)); line.add_widget(self.btn("زیرپنل‌ها",lambda *_:self._back_to_submenus(),PRIMARY,dp(34),dp(82))); line.add_widget(self.label(FRIENDLY.get(table,table),"16sp",PRIMARY,True,"center")); line.add_widget(self.btn("تازه‌سازی",lambda *_:self.load_table(),PRIMARY,dp(34),dp(45))); hero.add_widget(line)
-        self.search=PersianTextInput(hint_text=rtl_text("جستجو در همین زیرپنل"),font_name=font_name(),font_size="10sp",halign="right",multiline=False,size_hint_y=None,height=dp(32),padding=[dp(8),dp(5)]); hero.add_widget(self.search); self.body.add_widget(hero)
+        hero=Surface(height=dp(58)); line=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5)); line.add_widget(self.btn("زیرپنل‌ها",lambda *_:self._back_to_submenus(),PRIMARY,dp(40),dp(82))); line.add_widget(self.label(FRIENDLY.get(table,table),"16sp",PRIMARY,True,"center")); hero.add_widget(line); self.body.add_widget(hero)
         if self.can_write(table):
             # The module has exactly three data operations.
             bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
@@ -304,9 +303,6 @@ class ModuleWorkspaceScreen(Screen):
         self.confirm_delete(self.table,row)
 
     def _back_to_submenus(self): self.table=None; self.render()
-    def clear_search(self): pass
-    def filtered(self):
-        q=str(getattr(self,'search',None).text if hasattr(self,'search') else '').strip().lower(); return self.rows if not q else [r for r in self.rows if q in ' '.join(str(v) for v in r.values()).lower()]
 
     def load_table(self):
         # Android: start backend work after the navigation callback has returned.
