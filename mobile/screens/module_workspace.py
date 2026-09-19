@@ -255,9 +255,7 @@ class ModuleWorkspaceScreen(Screen):
 
     def load_table(self):
         table = self.table
-        self.status.text = rtl_text("در حال دریافت اطلاعات واقعی…")
-        self.status.color = SECONDARY
-
+        # Android safety: never build a giant widget tree from the first module tap.\n        # The Web keeps the full dataset; mobile renders a bounded first page.\n        self.status.text = rtl_text("در حال دریافت اطلاعات واقعی… (حداکثر ۲۵ رکورد)")\n        self.status.color = SECONDARY\n
         # API failures must stay inside the workspace.  In particular, an Android
         # module tap must never turn a backend/table error into an application exit.
         def work():
@@ -265,9 +263,9 @@ class ModuleWorkspaceScreen(Screen):
                 api = getattr(self.app_state, "api", None)
                 if api is None:
                     raise RuntimeError("اتصال سرویس داده آماده نیست.")
-                rows = api.table_select(table, {"limit": "150"}) or []
+                rows = api.table_select(table, {"limit": "25"}) or []
                 rows = rows if isinstance(rows, list) else []
-                Clock.schedule_once(lambda *_: self.loaded(rows, None), 0)
+                Clock.schedule_once(lambda *_: self.loaded(rows[:25], None), 0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self.loaded([], str(exc)), 0)
 
