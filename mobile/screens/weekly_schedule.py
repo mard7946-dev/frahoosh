@@ -153,10 +153,8 @@ class WeeklyScheduleScreen(Screen):
         self.area.clear_widgets()
         source = self.generated or self.rows
         if not source:
-            self.area.add_widget(
-                self.label("هنوز هیچ برنامه هفتگی ثبت نشده است.", "15sp", PRIMARY, True, True, 100)
-            )
-            return
+            self.status.text = rtl_text("ساختار برنامه هفتگی آماده است؛ هنوز رکوردی برای نمایش ثبت نشده.")
+            self.status.color = SECONDARY
 
         scroll = ScrollView(do_scroll_x=True, do_scroll_y=True)
         grid = GridLayout(
@@ -194,7 +192,8 @@ class WeeklyScheduleScreen(Screen):
 
         self.area.add_widget(
             self.label(
-                "برای ویرایش یا حذف، یک تعریف برنامه را از فهرست پایین انتخاب کنید.",
+                ("برای ویرایش یا حذف، یک تعریف برنامه را از فهرست پایین انتخاب کنید."
+                 if self.rows else "برای ساخت اولین برنامه، «ثبت جدید» را بزنید؛ جدول روز × زنگ همین حالا آماده است."),
                 "9sp", SECONDARY, False, True, 30,
             )
         )
