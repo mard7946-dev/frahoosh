@@ -291,9 +291,9 @@ _CATALOG_FIELD_LABELS = {
     "username":"نام کاربری","vehicle_type":"نوع وسیله","week_index":"شماره هفته",
     "weekday":"روز هفته","weekdays":"روزهای هفته","weight":"ضریب","work_experience":"سابقه کار",
 };
-for (const [key, value] of Object.entries(_CATALOG_FIELD_LABELS)) {
-    if (!COLUMNS[key]) COLUMNS[key] = value;
-}
+for _key, _value in _CATALOG_FIELD_LABELS.items():
+    if not COLUMNS.get(_key):
+        COLUMNS[_key] = _value
 
 
 # Explicit write policy. Reads remain available through the existing API for all visible tables.
