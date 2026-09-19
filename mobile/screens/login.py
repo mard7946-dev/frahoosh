@@ -128,8 +128,8 @@ class LoginScreen(Screen):
         school_overlay = self.label(SCHOOL_NAME, "13sp", WHITE, True, "center")
         school_overlay.size_hint = (0.88, None)
         school_overlay.height = dp(34)
-        school_overlay.pos_hint = {"center_x": 0.5, "top": 0.645}
-        school_overlay.opacity = 1 if artwork_loaded else 0
+        school_overlay.pos_hint = {"center_x": 0.5, "top": 0.94}
+        school_overlay.opacity = 1
         root.add_widget(school_overlay)
         self.school_overlay = school_overlay
 
@@ -178,7 +178,7 @@ class LoginScreen(Screen):
         self.identifier = self._field(LOGIN_USERNAME_HINT or "نام کاربری")
         card.add_widget(self.identifier)
 
-        self.password = self._field(LOGIN_PASSWORD_HINT or "رمز عبور", password=True)
+        self.password = self._field("", password=True)
         card.add_widget(self.password)
 
         options = BoxLayout(
