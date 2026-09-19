@@ -130,7 +130,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Frahoosh-APK-v1.5.6
+          name: Frahoosh-APK-v1.6.0
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
