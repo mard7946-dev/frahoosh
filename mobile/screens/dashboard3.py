@@ -138,7 +138,13 @@ class DashboardScreen(Screen):
         self.role_text.text = rtl_text(f"پنل {ROLE_TITLES.get(role, 'کاربر')} | دسترسی فعال")
         self.panel_box.clear_widgets()
 
-        for i, (title, route) in enumerate(PANELS, 1):
+        visible_panels = list(PANELS)
+        if role == "student":
+            visible_panels = [("دانش‌آموزان", "students")]
+        elif role == "parent":
+            visible_panels = [("اولیا", "parents")]
+
+        for i, (title, route) in enumerate(visible_panels, 1):
             btn = Button(
                 text=rtl_text(f"{i:02d}  {title}"),
                 font_name=font_name(),
@@ -153,7 +159,7 @@ class DashboardScreen(Screen):
             btn.bind(on_release=lambda *_args, r=route: self.open(r))
             self.panel_box.add_widget(btn)
 
-        self.status.text = rtl_text(f"{len(PANELS)} پنل عملیاتی • برای ورود، پنل موردنظر را لمس کنید.")
+        self.status.text = rtl_text(f"{len(visible_panels)} پنل عملیاتی • برای ورود، پنل موردنظر را لمس کنید.")
         return True
 
     def open(self, route):
