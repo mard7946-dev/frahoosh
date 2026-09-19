@@ -1,6 +1,5 @@
 from threading import Thread
 
-from threading import Thread
 
 from kivy.clock import Clock
 from kivy.graphics import Color, RoundedRectangle, Line
