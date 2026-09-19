@@ -1,5 +1,5 @@
 {
-  "version": "3.4.0",
+  "version": "3.5.0",
   "source": "Frahoosh_v16_12_LOGIN_BACKGROUND_FINAL_02.zip",
   "backend": "supabase",
   "clients": [
@@ -994,7 +994,8 @@
         "create",
         "update",
         "delete"
-      ]
+      ],
+      "special": "parent_children"
     },
     "attendance": {
       "table": "attendance",
@@ -1012,7 +1013,8 @@
         "create",
         "update",
         "delete"
-      ]
+      ],
+      "special": "attendance"
     },
     "grades": {
       "table": "grades",
@@ -1111,7 +1113,8 @@
         "create",
         "update",
         "delete"
-      ]
+      ],
+      "special": "weekly_schedule"
     },
     "generated_weekly_schedule": {
       "table": "generated_weekly_schedule",
@@ -1287,7 +1290,8 @@
         "create",
         "update",
         "delete"
-      ]
+      ],
+      "special": "finance"
     },
     "finance_transactions": {
       "table": "finance_transactions",
@@ -1307,7 +1311,8 @@
         "create",
         "update",
         "delete"
-      ]
+      ],
+      "special": "finance"
     },
     "payment_offers": {
       "table": "payment_offers",
@@ -1373,7 +1378,8 @@
         "create",
         "update",
         "delete"
-      ]
+      ],
+      "special": "report_cards"
     },
     "report_card_snapshots": {
       "table": "report_card_snapshots",
@@ -1975,7 +1981,8 @@
         "create",
         "update",
         "delete"
-      ]
+      ],
+      "special": "discipline"
     },
     "teacher_meetings": {
       "table": "teacher_meetings",
@@ -2268,7 +2275,8 @@
         "create",
         "update",
         "delete"
-      ]
+      ],
+      "special": "report_cards"
     },
     "class_seat_assignments": {
       "table": "class_seat_assignments",
@@ -2807,5 +2815,20 @@
     ".",
     "This catalog is the single Android/Web module contract. Do not add an Android-only module without adding it to the ZIP-backed catalog first."
   ],
-  "source_sha256": "canonical-zip"
+  "source_sha256": "canonical-zip",
+  "source_of_truth": {
+    "kind": "uploaded_zip",
+    "rule": "Module names, panel membership, table names and canonical fields come from the uploaded ZIP; Android special workspaces only change presentation/interaction, never the underlying module contract."
+  },
+  "special_workspaces": {
+    "attendance": "attendance",
+    "discipline_records": "discipline",
+    "report_cards": "report_cards",
+    "monthly_report_cards": "report_cards",
+    "finance_accounts": "finance",
+    "finance_transactions": "finance",
+    "parent_children": "parent_children",
+    "weekly_schedule": "weekly_schedule",
+    "smart_class_preview": "smart_class"
+  }
 }
