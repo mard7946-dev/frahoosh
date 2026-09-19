@@ -112,8 +112,8 @@ class LoginScreen(Screen):
             orientation="vertical",
             padding=[dp(22), dp(16), dp(22), dp(16)],
             spacing=dp(7),
-            size_hint=(0.82, 0.39),
-            pos_hint={"center_x": 0.5, "y": 0.16},
+            size_hint=(0.78, 0.47),
+            pos_hint={"center_x": 0.5, "y": 0.10},
         )
         # The background artwork already contains the visual login card.
         # Keep the real controls on top without painting a second opaque card.
@@ -125,27 +125,10 @@ class LoginScreen(Screen):
             size=lambda o, v: setattr(panel, "size", v),
         )
 
-        # No "به فراهوش خوش آمدید" here: the artwork is intentionally clean.
-        school_label = self.label("نام دبیرستان", "10sp", MUTED, True, "center")
-        school_label.size_hint_y = None
-        school_label.height = dp(20)
-        card.add_widget(school_label)
-
-        school_value = self.label(
-            SCHOOL_NAME or "دبیرستان سردار شهید حاجی‌زاده ۲",
-            "13sp", WHITE, True, "center"
-        )
-        school_value.size_hint_y = None
-        school_value.height = dp(29)
-        card.add_widget(school_value)
-
-        slogan = self.label(
-            "سامانه مدیریت هوشمند یکپارچه مدرسه\nیادگیری هوشمند- مدرسه ای یکپارچه- دانش آموز خلاق",
-            "9sp", MUTED, True, "center"
-        )
-        slogan.size_hint_y = None
-        slogan.height = dp(34)
-        card.add_widget(slogan)
+        # The artwork contains the school name, logo and visual frame.
+        # Only the real interactive controls are placed over those visual fields.
+        spacer = Widget(size_hint_y=None, height=dp(38))
+        card.add_widget(spacer)
 
         self.identifier = self._field(LOGIN_USERNAME_HINT or "نام کاربری")
         card.add_widget(self.identifier)
