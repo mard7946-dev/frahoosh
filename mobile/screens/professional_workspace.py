@@ -301,7 +301,7 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
 
     def _start_session(self, class_id):
         if not class_id: return
-        self._write_async("online_class_sessions", {"class_id": class_id, "started_at": "now()"}, "جلسه آنلاین ثبت شد.")
+        self._write_async("online_class_sessions", {"class_id": class_id, "started_at": __import__("datetime").datetime.now().isoformat()}, "جلسه آنلاین ثبت شد.")
 
     def _message_content(self, content):
         content.add_widget(self.btn("＋ ارسال پیام جدید", lambda *_: self._message_editor(), SUCCESS, dp(42)))
@@ -312,16 +312,52 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
         self._popup_form("ارسال پیام مدرسه", [
             ("target_role", "نقش مخاطب: مدیر / معاون / دبیر / دانش‌آموز / ولی"),
             ("target_name", "نام فرد یا عنوان گروه مخاطب"), ("target_class_name", "کلاس مقصد (در صورت گروهی بودن)"),
-            ("title", "عنوان پیام"), ("description", "متن پیام"),
+            ("title", "عنوان پیام"), ("body", "متن پیام"),
         ], self._save_message, (.96, .9))
 
     def _save_message(self, inputs, popup):
-        payload = {k: v.text.strip() for k, v in inputs.items() if v.text.strip()}
-        if not payload.get("target_role") or not (payload.get("target_name") or payload.get("target_class_name")):
+        values = {k: v.text.strip() for k, v in inputs.items() if v.text.strip()}
+        if not values.get("target_role") or not (values.get("target_name") or values.get("target_class_name")):
             self.message("ارسال پیام", "ابتدا نقش و فرد/گروه یا کلاس مقصد را مشخص کنید."); return
-        if not payload.get("title") or not payload.get("description"):
+        if not values.get("title") or not values.get("body"):
             self.message("ارسال پیام", "عنوان و متن پیام الزامی است."); return
-        popup.dismiss(); self._write_async("messages", payload, "پیام ثبت شد و مخاطب آن مشخص است.")
+
+        profile = getattr(self.app_state, "profile", {}) or {}
+        sender = profile.get("username") or profile.get("email") or getattr(self.app_state, "national_code", "")
+        sender_name = profile.get("display_name") or getattr(self.app_state, "display_name", "") or sender
+        role = str(getattr(self.app_state, "role", "") or "").strip()
+        target_type = "class" if values.get("target_class_name") else ("user" if values.get("target_name") else "role")
+        payload = {
+            "sender": sender,
+            "sender_name": sender_name,
+            "sender_user_id": (getattr(self.app_state, "user", {}) or {}).get("id"),
+            "title": values["title"],
+            "body": values["body"],
+            "text": values["body"],
+            "audience_type": target_type,
+            "audience_value": values.get("target_name") or values.get("target_class_name") or values.get("target_role"),
+            "target_role": values.get("target_role"),
+            "target_name": values.get("target_name"),
+            "target_class_name": values.get("target_class_name"),
+        }
+
+        popup.dismiss()
+        self.status.text = rtl_text("در حال ارسال پیام واقعی…")
+        def work():
+            try:
+                result = self.app_state.api.table_insert("messages", payload) or []
+                message_id = result[0].get("id") if isinstance(result, list) and result else None
+                if message_id:
+                    self.app_state.api.table_insert("message_targets", {
+                        "message_id": message_id,
+                        "target_role": values.get("target_role"),
+                        "target_name": values.get("target_name"),
+                        "target_class_name": values.get("target_class_name"),
+                    })
+                Clock.schedule_once(lambda *_: self._write_done("پیام در صندوق مدرسه ثبت و به مخاطب متصل شد."), 0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_: self._write_failed(str(exc)), 0)
+        Thread(target=work, daemon=True).start()
 
     def _payment_content(self, content, table):
         if table == "payment_offers":
