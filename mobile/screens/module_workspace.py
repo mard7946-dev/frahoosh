@@ -254,11 +254,24 @@ class ModuleWorkspaceScreen(Screen):
         q=str(getattr(self,'search',None).text if hasattr(self,'search') else '').strip().lower(); return self.rows if not q else [r for r in self.rows if q in ' '.join(str(v) for v in r.values()).lower()]
 
     def load_table(self):
-        table=self.table; self.status.text=rtl_text("در حال دریافت اطلاعات واقعی…"); self.status.color=SECONDARY
+        table = self.table
+        self.status.text = rtl_text("در حال دریافت اطلاعات واقعی…")
+        self.status.color = SECONDARY
+
+        # API failures must stay inside the workspace.  In particular, an Android
+        # module tap must never turn a backend/table error into an application exit.
         def work():
-            try: rows=self.app_state.api.table_select(table,{"limit":"150"}) or []; rows=rows if isinstance(rows,list) else []; Clock.schedule_once(lambda *_:self.loaded(rows,None),0)
-            except Exception as exc: Clock.schedule_once(lambda *_:self.loaded([],str(exc)),0)
-        Thread(target=work,daemon=True).start()
+            try:
+                api = getattr(self.app_state, "api", None)
+                if api is None:
+                    raise RuntimeError("اتصال سرویس داده آماده نیست.")
+                rows = api.table_select(table, {"limit": "150"}) or []
+                rows = rows if isinstance(rows, list) else []
+                Clock.schedule_once(lambda *_: self.loaded(rows, None), 0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_: self.loaded([], str(exc)), 0)
+
+        Thread(target=work, daemon=True).start()
 
     def loaded(self,rows,error):
         self.rows=rows
