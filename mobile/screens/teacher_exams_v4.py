@@ -119,7 +119,7 @@ class TeacherExamsV4Screen(Screen):
         # the question editor, so scientific notation does not depend on a
         # separate keyboard or chat assistant.
         toolbar=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(4))
-        for symbol in ("√", "²", "³", "÷", "×", "±", "π", "∞"):
+        for symbol in ("√", "²", "³", "ⁿ", "÷", "×", "±", "π", "∞", "≠", "≤", "≥", "∑"):
             b=Button(text=symbol,font_name=font_name(),font_size="15sp",
                      background_normal="",background_color=PRIMARY,color=WHITE,
                      size_hint_x=None,width=dp(42))
@@ -202,32 +202,38 @@ class TeacherExamsV4Screen(Screen):
 
     def _schedule(self,eid,dur):
         self._clear(); self._label("زمان‌بندی آزمون","22sp",PRIMARY,52,True)
-        self._label("یک آزمون مشترک را می‌توانید برای کلاس‌های مختلف در ساعت‌های متفاوت برگزار کنید یا یک زمان هماهنگ برای همه بگذارید.",height=72)
-        cls=self._field("کلاس‌ها؛ چند کلاس را با ، یا , جدا کنید")
-        date=self._field("تاریخ شمسی؛ مثال 1405/07/01")
-        start=self._field("ساعت شروع؛ مثال 10:00")
-        end=self._field("ساعت پایان؛ اگر خالی باشد از مدت آزمون محاسبه می‌شود")
-        self._label("برای چند کلاس با زمان یکسان، نام کلاس‌ها را با «،» جدا کنید. برای زمان‌های متفاوت، همین آزمون را دوباره با زمان جدید ثبت کنید.", "10sp", SECONDARY, 62)
-        self._button("ثبت نوبت کلاس/کلاس‌ها",lambda *_:self._save_slot(eid,dur,cls,date,start,end),SUCCESS)
-        self._button("＋ ساخت لینک اشتراک مدرسه دیگر",lambda *_:self._share_form(eid,dur),PRIMARY)
+        self._label("یک آزمون را برای چند کلاس با زمان مشترک یا برای هر کلاس با زمان متفاوت منتشر کنید.",height=65)
+        cls=self._field("کلاس‌ها با زمان مشترک: هفتم-الف، هفتم-ب، هفتم-ج")
+        per=self._field("زمان متفاوت اختیاری: هفتم-الف=10:00؛ هفتم-ب=11:00؛ هفتم-ج=10:00",78,True)
+        date=self._field("تاریخ شمسی؛ مثال 1405/07/01"); start=self._field("ساعت شروع مشترک؛ مثال 10:00"); end=self._field("ساعت پایان مشترک؛ اگر خالی باشد از مدت محاسبه می‌شود")
+        self._label("کلاس‌های بدون زمان اختصاصی از زمان مشترک استفاده می‌کنند. کلاس‌های دارای «=» زمان خودشان را می‌گیرند.","10sp",SECONDARY,55)
+        self._button("ثبت زمان‌بندی کلاس‌ها",lambda *_:self._save_slot(eid,dur,cls,per,date,start,end),SUCCESS)
+        self._button("＋ ساخت لینک انتشار برای مدرسه دیگر",lambda *_:self._share_form(eid,dur),PRIMARY)
         self._button("بازگشت به آزمون‌های من",lambda *_:self._load_exams())
-
-    def _save_slot(self,eid,dur,cls,date,start,end):
-        if not cls.text.strip() or not date.text.strip() or not start.text.strip():self._error("کلاس، تاریخ و ساعت شروع لازم است.");return
+    def _save_slot(self,eid,dur,cls,per,date,start,end):
+        if not date.text.strip():self._error("تاریخ آزمون لازم است.");return
+        common=start.text.strip(); common_end=end.text.strip()
         try:
-            h,m=[int(x) for x in start.text.strip().split(":")[:2]]
-            total=h*60+m+dur
-            et=end.text.strip() or f"{(total//60)%24:02d}:{total%60:02d}"
-            classes=[x.strip() for x in cls.text.replace("،",",").split(",") if x.strip()]
-            if not classes: raise RuntimeError("حداقل یک کلاس لازم است.")
-            for class_name in classes:
-                self.app_state.api.table_insert(
-                    "teacher_exam_slots",
-                    {"quiz_id":eid,"class_name":class_name,"exam_date_shamsi":date.text.strip(),
-                     "start_time_shamsi":start.text.strip(),"end_time_shamsi":et,"duration":dur,
-                     "coordinated":1 if len(classes)>1 else 0,"secure_mode":1,"active":True}
-                )
-            self._ok(f"زمان آزمون برای {len(classes)} کلاس ثبت شد. برای زمان متفاوت، یک نوبت دیگر ثبت کنید.")
+            if common and not common_end:
+                h,m=[int(x) for x in common.split(":")[:2]]; t=h*60+m+dur; common_end=f"{(t//60)%24:02d}:{t%60:02d}"
+            mapping={}
+            for part in (per.text or "").replace("،",",").replace("؛",";").split(";"):
+                part=part.strip()
+                if not part or "=" not in part:continue
+                name,window=part.split("=",1); bits=window.strip().split("-",1); mapping[name.strip()]=(bits[0].strip(),bits[1].strip() if len(bits)>1 else "")
+            classes=[x.strip() for x in (cls.text or "").replace("،",",").split(",") if x.strip()]
+            classes += [x for x in mapping if x not in classes]
+            if not classes:classes=list(mapping)
+            if not classes:raise RuntimeError("حداقل یک کلاس لازم است.")
+            starts={}
+            for name in classes:
+                st,en=mapping.get(name,(common,common_end));
+                if not st:raise RuntimeError(f"زمان شروع کلاس «{name}» مشخص نیست.")
+                if not en:
+                    h,m=[int(x) for x in st.split(":")[:2]]; t=h*60+m+dur; en=f"{(t//60)%24:02d}:{t%60:02d}"
+                starts[name]=st
+                self.app_state.api.table_insert("teacher_exam_slots",{"quiz_id":eid,"class_name":name,"exam_date_shamsi":date.text.strip(),"start_time_shamsi":st,"end_time_shamsi":en,"duration":dur,"coordinated":1 if len(set(starts.values()))==1 and len(starts)==len(classes) else 0,"secure_mode":1,"active":True})
+            self._ok(f"زمان‌بندی {len(classes)} کلاس ثبت شد؛ زمان مشترک یا متفاوت قابل استفاده است.")
         except Exception as exc:self._error("ثبت زمان‌بندی انجام نشد: "+str(exc))
 
     def _share_form(self,eid,dur):

@@ -89,33 +89,20 @@ class _Base(Screen):
         Thread(target=work, daemon=True).start()
 
     def _notify(self, title, body, student):
-        # Notifications are best-effort: the operational record is never rolled
-        # back just because a recipient has no linked messaging row.
+        """Persist the required notification chain: educational deputy, then parent."""
         try:
-            api = self.app_state.api
-            student_id = student.get("id")
-            parent_phone = student.get("parent_phone")
-            payload = {
-                "title": title,
-                "body": body,
-                "audience_type": "parent",
-                "audience_value": str(student_id or parent_phone or ""),
-                "sender_name": "فراهوش",
-            }
+            api=self.app_state.api; sid=student.get("id"); parent_phone=student.get("parent_phone")
             try:
-                api.table_insert("messages", payload)
-            except Exception:
-                pass
+                api.table_insert("messages",{"title":title,"body":body,"audience_type":"role","audience_value":"educational","sender_name":"فراهوش"})
+            except Exception as exc: print("EDUCATIONAL NOTIFICATION ERROR:",repr(exc))
             try:
-                api.table_insert("school_events", {
-                    "event_type": title,
-                    "title": title,
-                    "actor_username": str(getattr(self.app_state, "national_code", "") or ""),
-                })
-            except Exception:
-                pass
-        except Exception:
-            pass
+                api.table_insert("messages",{"title":title,"body":body,"audience_type":"parent","audience_value":str(sid or parent_phone or ""),"sender_name":"فراهوش"})
+            except Exception as exc: print("PARENT NOTIFICATION ERROR:",repr(exc))
+            try:
+                api.table_insert("school_events",{"event_type":title,"title":title,"actor_username":str(getattr(self.app_state,"national_code","") or "")})
+            except Exception: pass
+        except Exception as exc: print("NOTIFICATION CHAIN ERROR:",repr(exc))
+
 
 
 class TeacherAttendanceScreen(_Base):
@@ -245,84 +232,57 @@ class DisciplineScreen(_Base):
 
 
 class OnlineAttendanceScreen(_Base):
-    """Three checkpoint online attendance with delayed verification stages."""
-
+    """Three checkpoints. Stage 2/3 cannot be submitted until their configured delay."""
     def _build(self):
         self._root("حضور و غیاب سه‌مرحله‌ای کلاس آنلاین")
-        self.class_spinner = Spinner(text=rtl_text("انتخاب کلاس"), values=(), size_hint_y=None,
-                                     height=dp(45), font_name=font_name(), font_size="12sp")
-        self.body.add_widget(self.class_spinner)
-        self.body.add_widget(self.label(
-            "مرحله ۱ ابتدای زنگ ثبت می‌شود. مراحل ۲ و ۳ در زمان‌های متفاوت برای راستی‌آزمایی فعال می‌شوند؛ رد هر مرحله، کلاس دانش‌آموز را متوقف و گزارش را برای ولی ارسال می‌کند.",
-            "10sp", SECONDARY, 78
-        ))
-        self.stage_label = self.label("مرحله ۱ از ۳", "17sp", PRIMARY, 45, True)
-        self.body.add_widget(self.stage_label)
-        self.list_box = BoxLayout(orientation="vertical", spacing=dp(4), size_hint_y=None)
-        self.list_box.bind(minimum_height=self.list_box.setter("height"))
-        self.body.add_widget(self.list_box)
-        self.next_btn = self.button("ثبت مرحله ۱ و فعال‌سازی راستی‌آزمایی", self.save_stage, SUCCESS, 48)
-        self.body.add_widget(self.next_btn)
-        self.stage = 1
-        self.values = {}
-        self._load_students(self.loaded)
-
-    def loaded(self, rows, error):
-        if error:
-            self.status.text = rtl_text("دریافت دانش‌آموزان انجام نشد: " + error); self.status.color = ERROR; return
-        self.students = rows
-        classes = sorted({str(s.get("class_name") or "").strip() for s in rows if str(s.get("class_name") or "").strip()})
-        self.class_spinner.values = tuple(rtl_text(x) for x in classes) or (rtl_text("همه کلاس‌ها"),)
-        if classes: self.class_spinner.text = rtl_text(classes[0])
+        self.class_spinner=Spinner(text=rtl_text("انتخاب کلاس"),values=(),size_hint_y=None,height=dp(45),font_name=font_name(),font_size="12sp"); self.body.add_widget(self.class_spinner)
+        self.delay2=Spinner(text=rtl_text("مرحله ۲: پنج دقیقه بعد"),values=tuple(rtl_text(x) for x in ("۱ دقیقه بعد","۵ دقیقه بعد","۱۰ دقیقه بعد","۱۵ دقیقه بعد")),size_hint_y=None,height=dp(45),font_name=font_name(),font_size="12sp"); self.body.add_widget(self.delay2)
+        self.delay3=Spinner(text=rtl_text("مرحله ۳: ده دقیقه بعد"),values=tuple(rtl_text(x) for x in ("۲ دقیقه بعد","۱۰ دقیقه بعد","۲۰ دقیقه بعد","۳۰ دقیقه بعد")),size_hint_y=None,height=dp(45),font_name=font_name(),font_size="12sp"); self.body.add_widget(self.delay3)
+        self.body.add_widget(self.label("مرحله ۱ ابتدای زنگ است؛ مرحله‌های ۲ و ۳ در زمان‌های متفاوت فعال می‌شوند. عدم تأیید هر مرحله، ادامه کلاس دانش‌آموز را می‌بندد و گزارش برای ولی ثبت می‌شود.","10sp",SECONDARY,72))
+        self.stage_label=self.label("مرحله ۱ از ۳","17sp",PRIMARY,45,True); self.body.add_widget(self.stage_label)
+        self.list_box=BoxLayout(orientation="vertical",spacing=dp(4),size_hint_y=None); self.list_box.bind(minimum_height=self.list_box.setter("height")); self.body.add_widget(self.list_box)
+        self.next_btn=self.button("ثبت مرحله ۱ و فعال‌سازی راستی‌آزمایی",self.save_stage,SUCCESS,48); self.body.add_widget(self.next_btn)
+        self.stage=1; self.values={}; self.stage_ready=True; self._stage_event=None; self._load_students(self.loaded)
+    @staticmethod
+    def _minutes(text,fallback):
+        digits={"۱":"1","۲":"2","۳":"3","۴":"4","۵":"5","۶":"6","۷":"7","۸":"8","۹":"9","۰":"0"}; s="".join(digits.get(ch,ch) for ch in str(text or ""))
+        for n in (1,2,5,10,15,20,30):
+            if str(n) in s:return n
+        return fallback
+    def loaded(self,rows,error):
+        if error:self.status.text=rtl_text("دریافت دانش‌آموزان انجام نشد: "+error); self.status.color=ERROR; return
+        self.students=rows; classes=sorted({str(s.get("class_name") or "").strip() for s in rows if str(s.get("class_name") or "").strip()}); self.class_spinner.values=tuple(rtl_text(x) for x in classes) or (rtl_text("همه کلاس‌ها"),)
+        if classes:self.class_spinner.text=rtl_text(classes[0])
         self.render()
-
     def render(self):
-        self.list_box.clear_widgets()
-        selected = str(self.class_spinner.text or "").strip()
-        rows = [s for s in self.students if selected in ("انتخاب کلاس", "همه کلاس‌ها") or str(s.get("class_name") or "").strip() == selected]
+        self.list_box.clear_widgets(); selected=str(self.class_spinner.text or "").strip(); rows=[s for s in self.students if selected in ("انتخاب کلاس","همه کلاس‌ها") or str(s.get("class_name") or "").strip()==selected]
         for s in rows:
-            sid = str(s.get("id"))
-            self.values.setdefault(sid, "present")
-            line = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(4))
-            line.add_widget(self.label(f"{s.get('first_name','')} {s.get('last_name','')}", "11sp", PRIMARY, 46, True))
-            line.add_widget(self.button("تأیید حضور", lambda *_ ,i=sid:self.set_value(i,"present"), SUCCESS, 40))
-            line.add_widget(self.button("عدم تأیید", lambda *_ ,i=sid:self.set_value(i,"failed"), (0.72,.16,.18,1), 40))
-            self.list_box.add_widget(line)
-
-    def set_value(self, sid, value):
-        self.values[sid] = value
-        self.status.text = rtl_text("انتخاب‌ها ثبت نشده‌اند؛ دکمه مرحله را بزنید.")
-        self.status.color = SUCCESS
-
-    def save_stage(self, *_):
-        selected = str(self.class_spinner.text or "").strip()
-        rows = [s for s in self.students if selected in ("انتخاب کلاس", "همه کلاس‌ها") or str(s.get("class_name") or "").strip() == selected]
-        stage = self.stage
+            sid=str(s.get("id")); self.values.setdefault(sid,"present"); line=BoxLayout(size_hint_y=None,height=dp(46),spacing=dp(4)); line.add_widget(self.label(f"{s.get('first_name','')} {s.get('last_name','')}","11sp",PRIMARY,46,True)); line.add_widget(self.button("تأیید حضور",lambda *_ ,i=sid:self.set_value(i,"present"),SUCCESS,40)); line.add_widget(self.button("عدم تأیید",lambda *_ ,i=sid:self.set_value(i,"failed"),(0.72,.16,.18,1),40)); self.list_box.add_widget(line)
+    def set_value(self,sid,value):
+        if not self.stage_ready:return
+        self.values[sid]=value; self.status.text=rtl_text("انتخاب‌ها ثبت نشده‌اند؛ دکمه مرحله را بزنید."); self.status.color=SUCCESS
+    def _lock_until_next_stage(self,minutes):
+        self.stage_ready=False; self.next_btn.disabled=True; self.status.text=rtl_text(f"مرحله بعدی پس از {minutes} دقیقه فعال می‌شود."); self.status.color=SECONDARY
+        if self._stage_event:self._stage_event.cancel()
+        self._stage_event=Clock.schedule_once(lambda *_:self._unlock_stage(),minutes*60)
+    def _unlock_stage(self):
+        self.stage_ready=True; self.next_btn.disabled=False; self.status.text=rtl_text(f"مرحله {self.stage} از ۳ اکنون فعال است."); self.status.color=SUCCESS
+    def save_stage(self,*_):
+        if not self.stage_ready:return
+        selected=str(self.class_spinner.text or "").strip(); rows=[s for s in self.students if selected in ("انتخاب کلاس","همه کلاس‌ها") or str(s.get("class_name") or "").strip()==selected]; stage=self.stage; now=datetime.now().isoformat()
         def work():
             for s in rows:
-                sid = s.get("id"); value = self.values.get(str(sid), "present")
+                sid=s.get("id"); value=self.values.get(str(sid),"present")
                 try:
-                    self.app_state.api.table_insert("online_attendance", {
-                        "class_id": selected, "student_id": sid,
-                        "join_time": datetime.now().isoformat(), "status": f"check{stage}_{value}",
-                        "last_activity": datetime.now().isoformat(),
-                    })
-                    if value == "failed":
-                        self._notify("کلاس آنلاین", f"راستی‌آزمایی مرحله {stage} تأیید نشد؛ ادامه کلاس برای این دانش‌آموز بسته شد.", s)
-                except Exception:
-                    pass
-            Clock.schedule_once(lambda *_: self.after_stage(stage), 0)
-        Thread(target=work, daemon=True).start()
-
-    def after_stage(self, stage):
-        if stage >= 3:
-            self.status.text = rtl_text("هر سه مرحله ثبت شد؛ دانش‌آموزان تأییدشده می‌توانند ادامه کلاس را داشته باشند.")
-            self.status.color = SUCCESS; return
-        self.stage += 1
-        self.stage_label.text = rtl_text(f"مرحله {self.stage} از ۳ • راستی‌آزمایی جدید")
-        self.next_btn.text = rtl_text(f"ثبت مرحله {self.stage}")
-        self.status.text = rtl_text(f"مرحله {stage} ثبت شد؛ مرحله بعدی در زمان متفاوت فعال می‌شود.")
-        self.status.color = SUCCESS
+                    self.app_state.api.table_insert("online_attendance",{"class_id":selected,"student_id":sid,"join_time":now,"status":f"check{stage}_{value}","last_activity":now})
+                    if value=="failed":self._notify("کلاس آنلاین",f"راستی‌آزمایی مرحله {stage} تأیید نشد؛ ادامه کلاس برای این دانش‌آموز بسته شد.",s)
+                except Exception as exc:print("ONLINE ATTENDANCE SAVE ERROR:",repr(exc))
+            Clock.schedule_once(lambda *_:self.after_stage(stage),0)
+        Thread(target=work,daemon=True).start()
+    def after_stage(self,stage):
+        if stage>=3:
+            self.stage_ready=False; self.next_btn.disabled=True; self.status.text=rtl_text("هر سه مرحله ثبت شد؛ دانش‌آموزان تأییدشده می‌توانند ادامه کلاس را داشته باشند."); self.status.color=SUCCESS; return
+        self.stage+=1; self.stage_ready=False; self.stage_label.text=rtl_text(f"مرحله {self.stage} از ۳ • راستی‌آزمایی جدید"); self.next_btn.text=rtl_text(f"ثبت مرحله {self.stage}"); delay=self._minutes(self.delay2.text,5) if self.stage==2 else self._minutes(self.delay3.text,10); self._lock_until_next_stage(delay)
 
 
 class SchoolActionsScreen(Screen):

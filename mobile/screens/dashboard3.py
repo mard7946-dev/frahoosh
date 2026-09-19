@@ -176,29 +176,24 @@ class DashboardScreen(Screen):
         if route not in ACTIVE_ROUTES or not self.manager:
             return
         try:
-            # Students and parents must first review and explicitly confirm the
-            # student record. A discrepancy goes only through the school inbox.
-            role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
-            needs_identity = role in ("student", "دانش‌آموز", "parent", "parents", "ولی", "اولیا")
-            confirmed = bool((getattr(self.app_state, "session", {}) or {}).get("identity_confirmed"))
+            role=str(getattr(self.app_state,"role","student") or "student").strip().lower()
+            needs_identity=role in ("student","دانش‌آموز","parent","parents","ولی","اولیا")
+            confirmed=bool((getattr(self.app_state,"session",{}) or {}).get("identity_confirmed"))
             if needs_identity and not confirmed:
-                gate = self.manager.get_screen("special_identity_gate")
-                gate.pending_route = route
-                self.manager.current = "special_identity_gate"
-                return
-
-            app = App.get_running_app()
-            if app is None or not hasattr(app, "ensure_panel"):
-                raise RuntimeError("سرویس پنل آماده نیست.")
-            screen = app.ensure_panel()
-            if screen is None:
-                raise RuntimeError("پنل عملیاتی هنوز آماده نشده است.")
-            screen.set_route(route)
-            self.manager.current = "panel"
+                gate=self.manager.get_screen("special_identity_gate"); gate.pending_route=route; self.manager.current="special_identity_gate"; return
+            app=App.get_running_app()
+            if app is None: raise RuntimeError("برنامه فراهوش آماده نیست.")
+            if route=="teacher_exams" and hasattr(app,"ensure_exam"):
+                screen=app.ensure_exam()
+                if screen is None: raise RuntimeError("مرکز آزمون آماده نشد.")
+                self.manager.current="teacher_exams"; return
+            if not hasattr(app,"ensure_panel"): raise RuntimeError("سرویس پنل آماده نیست.")
+            screen=app.ensure_panel()
+            if screen is None: raise RuntimeError("پنل عملیاتی آماده نشد.")
+            screen.set_route(route); self.manager.current="panel"
         except Exception as exc:
-            self.status.text = rtl_text("خطای داخلی پنل: " + str(exc))
-            self.status.color = (0.85, 0.15, 0.15, 1)
-            print("DASHBOARD PANEL OPEN ERROR:", repr(exc))
+            self.status.text=rtl_text("خطای داخلی پنل: "+str(exc)); self.status.color=(0.85,0.15,0.15,1)
+            print("DASHBOARD PANEL OPEN ERROR:",repr(exc))
     def logout(self, *_):
         try:
             if self.app_state:
