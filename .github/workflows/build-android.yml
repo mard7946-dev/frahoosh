@@ -157,6 +157,78 @@ jobs:
               assert spec.get("table") == table, f"Table mismatch: {table}"
               assert set(spec.get("operations") or []) >= {"create", "update", "delete"}, f"CRUD contract missing: {table}"
           print(f"Canonical ZIP module contract validated: {len(panels)} panels / {len(modules)} modules")
+
+          # Verify that every canonical module has a real Supabase backing table
+          # and that every declared business field is present in the migration
+          # contract. This prevents Android/Web from exposing decorative tables.
+          import re
+          migrations = ""
+          for path in Path("supabase/migrations").glob("*.sql"):
+              migrations += "\\n" + path.read_text(encoding="utf-8")
+
+          created = set(re.findall(
+              r"create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.([a-zA-Z0-9_]+)",
+              migrations,
+              re.I,
+          ))
+          altered = {}
+          for table, body in re.findall(
+              r"alter\\s+table\\s+(?:if\\s+exists\\s+)?public\\.([a-zA-Z0-9_]+)\\s+([\\s\\S]*?);",
+              migrations,
+              re.I,
+          ):
+              altered.setdefault(table, set()).update(
+                  re.findall(r"add\\s+column\\s+(?:if\\s+not\\s+exists\\s+)?([a-zA-Z0-9_]+)", body, re.I)
+              )
+
+          def split_sql_columns(body):
+              parts, current, depth, quote = [], [], 0, False
+              for ch in body:
+                  if ch == "'" and (not current or current[-1] != "\\\\"):
+                      quote = not quote
+                  if not quote:
+                      if ch == "(":
+                          depth += 1
+                      elif ch == ")":
+                          depth -= 1
+                      elif ch == "," and depth == 0:
+                          parts.append("".join(current))
+                          current = []
+                          continue
+                  current.append(ch)
+              if current:
+                  parts.append("".join(current))
+              return parts
+
+          columns = {}
+          for table, body in re.findall(
+              r"create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.([a-zA-Z0-9_]+)\\s*\\(([\\s\\S]*?)\\n\\);",
+              migrations,
+              re.I,
+          ):
+              columns.setdefault(table, set())
+              for part in split_sql_columns(body):
+                  match = re.match(r"\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s+", part)
+                  if match:
+                      columns[table].add(match.group(1))
+          for table, names in altered.items():
+              columns.setdefault(table, set()).update(names)
+
+          missing_tables = [table for table, spec in modules.items() if spec.get("table", table) not in created]
+          missing_fields = {}
+          for module, spec in modules.items():
+              table = spec.get("table", module)
+              have = columns.get(table, set())
+              missing = [
+                  field for field in (spec.get("fields") or [])
+                  if field not in have and field not in {"id", "created_at", "updated_at", "deleted_at"}
+              ]
+              if missing:
+                  missing_fields[table] = missing
+
+          assert not missing_tables, f"Canonical modules without real DB tables: {missing_tables}"
+          assert not missing_fields, f"Canonical module fields missing from migrations: {missing_fields}"
+          print("Canonical module-to-database contract validated.")
           PY
           grep -Fq "version = 1.6.0" buildozer.spec
           grep -Fq "android.numeric_version = 160" buildozer.spec
