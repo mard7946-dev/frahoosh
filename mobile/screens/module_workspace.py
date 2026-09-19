@@ -251,9 +251,17 @@ class ModuleWorkspaceScreen(Screen):
                         if k not in HIDDEN and k not in keys: keys.append(k)
         keys=keys[:8]; totalw=max(dp(680),dp(190)*max(2,len(keys))+dp(175 if self.can_write(self.table) else 0))
         scroll=ScrollView(do_scroll_x=True); content=BoxLayout(orientation='vertical',size_hint=(None,None),width=totalw,spacing=dp(3),padding=dp(2)); content.bind(minimum_height=content.setter('height'))
-        header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(72),spacing=dp(3),padding=[dp(3),dp(3)]);
-        for k in keys: header.add_widget(self.label(COLUMNS.get(k,k),"17sp",WHITE,True,"center"))
-        if self.can_write(self.table): header.add_widget(self.label("عملیات","15sp",WHITE,True,"center"))
+        header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(78),spacing=dp(3),padding=[dp(4),dp(4)])
+        for k in keys:
+            cell=self.label(COLUMNS.get(k,k),"18sp",WHITE,True,"center")
+            cell.size_hint_x=None
+            cell.width=col_w
+            header.add_widget(cell)
+        if self.can_write(self.table):
+            op=self.label("عملیات","16sp",WHITE,True,"center")
+            op.size_hint_x=None
+            op.width=action_w
+            header.add_widget(op)
         self._header(header); content.add_widget(header)
         for i,r in enumerate(rows,1): content.add_widget(self.row(r,i,keys,totalw))
         scroll.add_widget(content); self.area.add_widget(scroll)
@@ -263,11 +271,15 @@ class ModuleWorkspaceScreen(Screen):
         w.bind(pos=lambda o,v:setattr(bg,'pos',v),size=lambda o,v:setattr(bg,'size',v))
 
     def row(self,r,index,keys,totalw):
-        b=BoxLayout(size_hint=(None,None),width=totalw,height=dp(84),spacing=dp(3),padding=[dp(5),dp(5)])
+        b=BoxLayout(size_hint=(None,None),width=totalw,height=dp(100),spacing=dp(3),padding=[dp(5),dp(5)])
         for k in keys:
-            s=str(r.get(k,'')); b.add_widget(self.label(s[:48]+'…' if len(s)>49 else s,"16sp",SECONDARY,False,'center'))
+            s=str(r.get(k,''))
+            cell=self.label(s,"17sp",SECONDARY,False,'center')
+            cell.size_hint_x=None
+            cell.width=dp(230)
+            b.add_widget(cell)
         if self.can_write(self.table):
-            a=BoxLayout(size_hint_x=None,width=dp(150),spacing=dp(4)); a.add_widget(self.btn('ویرایش',lambda *_a,x=dict(r):self.editor(self.table,x),PRIMARY,dp(50))); a.add_widget(self.btn('حذف',lambda *_a,x=dict(r):self.confirm_delete(self.table,x),(0.72,.16,.18,1),dp(50))); b.add_widget(a)
+            a=BoxLayout(size_hint_x=None,width=dp(175),spacing=dp(4)); a.add_widget(self.btn('ویرایش',lambda *_a,x=dict(r):self.editor(self.table,x),PRIMARY,dp(50))); a.add_widget(self.btn('حذف',lambda *_a,x=dict(r):self.confirm_delete(self.table,x),(0.72,.16,.18,1),dp(50))); b.add_widget(a)
         if index%2==0:
             with b.canvas.before: Color(.94,.97,.985,1); bg=RoundedRectangle(radius=[dp(6)])
             b.bind(pos=lambda o,v:setattr(bg,'pos',v),size=lambda o,v:setattr(bg,'size',v))
