@@ -4,6 +4,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
+from kivy.app import App
 
 from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, PRIMARY, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text
@@ -183,7 +184,12 @@ class DashboardScreen(Screen):
                 self.manager.current = "special_identity_gate"
                 return
 
-            screen = self.manager.get_screen("panel")
+            app = App.get_running_app()
+            if app is None or not hasattr(app, "ensure_panel"):
+                raise RuntimeError("سرویس پنل آماده نیست.")
+            screen = app.ensure_panel()
+            if screen is None:
+                raise RuntimeError("پنل عملیاتی هنوز آماده نشده است.")
             screen.set_route(route)
             self.manager.current = "panel"
         except Exception as exc:
