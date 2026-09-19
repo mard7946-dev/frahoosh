@@ -470,6 +470,33 @@ class ModuleWorkspaceScreen(Screen):
         w.bind(pos=lambda o,v:setattr(bg,"pos",v),size=lambda o,v:setattr(bg,"size",v))
 
     def open_table(self,table,refresh_subbar=True):
+        # Special school workflows use student-bound operational screens instead
+        # of the generic CRUD renderer.
+        if table in ("attendance", "discipline_records", "online_attendance"):
+            try:
+                from kivy.app import App
+                app = App.get_running_app()
+                mode = None
+                if table == "attendance" and self.role() == "teacher":
+                    mode = "attendance"
+                elif table == "discipline_records":
+                    mode = "discipline"
+                elif table == "online_attendance":
+                    mode = "online_attendance"
+                if mode and app is not None:
+                    screen = app.ensure_school_action(mode)
+                    if screen is None:
+                        raise RuntimeError("محیط عملیاتی این بخش آماده نشد.")
+                    screen.return_to = "panel"
+                    if self.manager:
+                        self.manager.current = screen.name
+                    return
+            except Exception as exc:
+                print("SPECIAL SCHOOL ACTION ERROR:", repr(exc))
+                self.status.text = rtl_text("محیط عملیاتی باز نشد: " + str(exc))
+                self.status.color = (.8, .15, .15, 1)
+                return
+
         # "نمونه کلاس هوشمند" is an interactive classroom, not a Supabase table.
         # Route it directly to the real classroom screen so the generic table
         # loader does not query a non-table key and show "خطا در نمایش اطلاعات".
