@@ -124,7 +124,7 @@ class FrahooshApp(App):
             print("SCREEN SECURITY POLICY ERROR:", repr(exc))
 
     def ensure_panel(self):
-        """Lazy-load the operational panel only after the login/dashboard boundary."""
+        """Lazy-load the real operational workspace after authentication."""
         if self.sm is None:
             return None
         try:
@@ -132,15 +132,16 @@ class FrahooshApp(App):
         except Exception:
             pass
         try:
-            # Use the canonical operational workspace directly. The older
-            # panel_screen wrapper imported the whole module stack too early
-            # and could leave the dashboard with a false "panel not ready"
-            # state even though the real workspace itself is valid.
-            from mobile.screens.module import FinalModuleScreen
-            screen = FinalModuleScreen(name="panel", app_state=self.app_state)
-            # Dashboard uses the historical set_route contract; the canonical
-            # workspace exposes the same operation as set_module.
-            screen.set_route = screen.set_module
+            # Use the proven table workspace directly.  A tiny adapter keeps
+            # the historical dashboard.set_route() contract without relying
+            # on dynamic attribute assignment to a Kivy EventDispatcher.
+            from mobile.screens.module_workspace import ModuleWorkspaceScreen, SUBMENUS
+
+            class OperationalPanelScreen(ModuleWorkspaceScreen):
+                def set_route(self, route):
+                    self.set_module(route, return_to="dashboard")
+
+            screen = OperationalPanelScreen(name="panel", app_state=self.app_state)
             self.sm.add_widget(screen)
             return screen
         except Exception as exc:
