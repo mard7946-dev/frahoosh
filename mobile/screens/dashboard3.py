@@ -4,6 +4,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.gridlayout import GridLayout
 from kivy.app import App
 
 from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, PRIMARY, SECONDARY, SUCCESS, WHITE
@@ -139,33 +140,35 @@ class DashboardScreen(Screen):
         self.role_text.text = rtl_text(f"پنل {ROLE_TITLES.get(role, 'کاربر')} | دسترسی فعال")
         self.panel_box.clear_widgets()
 
-        role_routes = {
-            "manager": ("مدیریت", "management"),
-            "educational": ("معاون آموزشی", "educational"),
-            "executive": ("معاون اجرایی", "executive"),
-            "cultural": ("معاون پرورشی", "cultural"),
-            "advisor": ("مشاوره", "advisor"),
-            "teacher": ("دبیران", "teachers"),
-            "student": ("دانش‌آموزان", "students"),
-            "parent": ("اولیا", "parents"),
-        }
-        visible_panels = [role_routes[role]] if role in role_routes else [("مدیریت", "management")]
+        # Keep the canonical 19-panel dashboard visible. Access control is
+        # enforced inside each operational route; the dashboard itself remains
+        # the stable mother navigation surface and is not reduced to one card.
+        visible_panels = list(PANELS)
+
+        grid = GridLayout(
+            cols=2,
+            spacing=dp(8),
+            padding=[dp(2), dp(4)],
+            size_hint_y=None,
+        )
+        grid.bind(minimum_height=grid.setter("height"))
 
         for i, (title, route) in enumerate(visible_panels, 1):
             btn = Button(
                 text=rtl_text(f"{i:02d}  {title}"),
                 font_name=font_name(),
-                font_size="14sp",
+                font_size="12sp",
                 background_normal="",
                 background_down="",
                 background_color=PRIMARY,
                 color=WHITE,
                 size_hint_y=None,
-                height=dp(52),
+                height=dp(58),
             )
             btn.bind(on_release=lambda *_args, r=route: self.open(r))
-            self.panel_box.add_widget(btn)
+            grid.add_widget(btn)
 
+        self.panel_box.add_widget(grid)
         self.status.text = rtl_text(f"{len(visible_panels)} پنل عملیاتی • برای ورود، پنل موردنظر را لمس کنید.")
         return True
 
