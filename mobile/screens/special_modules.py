@@ -434,8 +434,21 @@ class SpecialModuleScreen(Screen):
             sid = self.app_state.session.get("selected_student_id") or sid
         if sid:
             self._async(self._report_data, self._report_loaded)
+        elif role in ("parent","parents","ولی","اولیا"):
+            username = self.app_state.profile.get("username") or self.app_state.profile.get("email") or self.app_state.national_code
+            self._async(lambda: self._parent_report_children(username), self._report_students_loaded)
         else:
             self._async(lambda: self._api().table_select("students", {"order":"last_name.asc","limit":"100"}), self._report_students_loaded)
+
+    def _parent_report_children(self, username):
+        api = self._api()
+        links = api.table_select("parent_children", {"parent_username":"eq."+str(username), "limit":"20"}) or []
+        result = []
+        for link in links:
+            sid = link.get("student_id")
+            rows = api.table_select("students", {"id":"eq."+str(sid), "limit":"1"}) or []
+            result.extend(rows)
+        return result
 
     def _report_students_loaded(self, rows, error):
         if error:
