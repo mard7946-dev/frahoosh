@@ -47,7 +47,6 @@ class WeeklyScheduleScreen(Screen):
         top=BoxLayout(size_hint_y=None,height=dp(46),spacing=dp(5))
         top.add_widget(self.btn("بازگشت", self.back, PRIMARY, 40))
         top.add_widget(self.label("برنامه هفتگی مدرسه", "18sp", PRIMARY, True, True, 42))
-        top.add_widget(self.btn("تازه‌سازی", self.load, PRIMARY, 40))
         root.add_widget(top)
         root.add_widget(self.label(f"{SCHOOL_NAME} • جدول واقعی روز × زنگ × کلاس × درس × دبیر", "9sp", SECONDARY, False, True, 26))
         self.status=self.label("در حال دریافت برنامه…","9sp",SUCCESS,True,True,26)
