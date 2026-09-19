@@ -394,8 +394,16 @@ class SpecialModuleScreen(Screen):
         vals={k:v.text.strip() for k,v in self.finance_inputs.items()}
         if not vals["amount"] or not vals["title"]:
             self._set_status("عنوان و مبلغ الزامی است.",ERROR); return
-        payload={"transaction_type":vals["transaction_type"] or "بدهکار","title":vals["title"],"amount":vals["amount"],"category":vals["category"],"description":vals["description"],"transaction_date":__import__("datetime").date.today().isoformat()}
-        self._async(lambda:self._api().table_insert("finance_transactions",payload),lambda r,e:self._set_status(("سند مالی ثبت شد." if not e else "ثبت سند ناموفق بود: "+e),SUCCESS if not e else ERROR))
+        kind = vals["transaction_type"] or "بدهکار"
+        amount = vals["amount"]
+        payload={"transaction_type":kind,"title":vals["title"],"amount":amount,
+                 "invoice_number":vals["invoice_no"],
+                 "debit":amount if kind in ("بدهکار","debit","expense") else 0,
+                 "credit":amount if kind in ("بستانکار","credit","income") else 0,
+                 "category":vals["category"],"description":vals["description"],
+                 "transaction_date":__import__("datetime").date.today().isoformat()}
+        self._async(lambda:self._api().table_insert("finance_transactions",payload),
+                    lambda r,e:self._set_status(("سند مالی ثبت شد." if not e else "ثبت سند ناموفق بود: "+e),SUCCESS if not e else ERROR))
 
     def _parent_children(self):
         self.title.text=rtl_text("اطلاعات فرزندان")
@@ -498,7 +506,24 @@ class SpecialModuleScreen(Screen):
             try:
                 from mobile.services.session import save_session
                 save_session(self.app_state.session)
-            except Exception: pass
+            except Exception:
+                pass
+        data = self.gate_data if isinstance(self.gate_data, list) else [self.gate_data]
+        username = self.app_state.profile.get("username") or self.app_state.profile.get("email") or self.app_state.national_code
+        role = str(getattr(self.app_state, "role", "student") or "student")
+        try:
+            for student in data:
+                if student and student.get("id"):
+                    payload = {
+                        "auth_user_id": (self.app_state.user or {}).get("id"),
+                        "username": username,
+                        "role": role,
+                        "student_id": student.get("id"),
+                        "confirmation_status": "confirmed",
+                    }
+                    self._api().table_insert("identity_confirmations", payload)
+        except Exception as exc:
+            print("IDENTITY CONFIRMATION PERSIST ERROR:", repr(exc))
         if self.manager:
             target = getattr(self, "pending_route", "panel") or "panel"
             self.manager.current = target if target in ("panel", "dashboard") else "panel"
