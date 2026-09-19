@@ -450,8 +450,10 @@ class ModuleWorkspaceScreen(Screen):
             # Keep the Web-defined business columns that actually exist in the
             # live response. Android uses horizontal touch scrolling for wide tables.
             col_w=dp(230)
-            action_w=dp(175 if self.can_write(self.table) else 0)
-            totalw=max(dp(720),col_w*max(2,len(keys))+action_w)
+            # The module header exposes data columns only. CRUD is deliberately
+            # provided by the three module-level buttons above (ثبت جدید / ویرایش / حذف).
+            action_w=0
+            totalw=max(dp(720),col_w*max(2,len(keys)))
             scroll=ScrollView(do_scroll_x=True,do_scroll_y=True)
             content=BoxLayout(orientation='vertical',size_hint=(None,None),width=totalw,spacing=dp(3),padding=dp(2))
             content.bind(minimum_height=content.setter('height'))
@@ -461,11 +463,8 @@ class ModuleWorkspaceScreen(Screen):
                 cell.size_hint_x=None
                 cell.width=col_w
                 header.add_widget(cell)
-            if self.can_write(self.table):
-                op=self.label("عملیات","16sp",WHITE,True,"center")
-                op.size_hint_x=None
-                op.width=action_w
-                header.add_widget(op)
+            # No per-row CRUD controls: select a row, then use the three
+            # module-level operations at the top.
             self._header(header)
             content.add_widget(header)
             for i,r in enumerate(rows,1):
@@ -509,7 +508,10 @@ class ModuleWorkspaceScreen(Screen):
         return b
 
     def editor(self,table,row):
-        fields=[k for k in (FORMS.get(table) or self._infer(row)) if k not in HIDDEN]
+        # The shared ZIP/Web contract is authoritative for forms too. This prevents
+        # a module from silently falling back to decorative fields.
+        canonical = list(TABLE_FIELDS.get(table) or [])
+        fields=[k for k in (canonical or FORMS.get(table) or self._infer(row)) if k not in HIDDEN]
         root=BoxLayout(orientation='vertical',padding=dp(10),spacing=dp(6)); sc=ScrollView(do_scroll_x=False); form=GridLayout(cols=1,spacing=dp(5),size_hint_y=None); form.bind(minimum_height=form.setter('height')); inputs={}
         for f in fields:
             form.add_widget(self.label(COLUMNS.get(f,f),"9sp",PRIMARY,True)); ti=PersianTextInput(text='' if row is None else str(row.get(f,'')),font_name=font_name(),font_size='12sp',halign='right',multiline=False,size_hint_y=None,height=dp(44),padding=[dp(8),dp(6)]); inputs[f]=ti; form.add_widget(ti)
