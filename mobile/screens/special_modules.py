@@ -306,21 +306,52 @@ class SpecialModuleScreen(Screen):
         )
 
     def _save_discipline(self, *_):
-        selected = [(sid, sp.text) for sid,sp in getattr(self,"discipline_widgets",{}).items() if sp.text and "انتخاب" not in sp.text]
+        selected = [
+            (sid, sp.text)
+            for sid, sp in getattr(self, "discipline_widgets", {}).items()
+            if sp.text and "انتخاب" not in sp.text
+        ]
         if not selected:
-            self._set_status("برای ثبت، نوع مشکل انضباطی را از کشو انتخاب کنید.", ERROR); return
+            self._set_status("برای ثبت، نوع مشکل انضباطی را از کشو انتخاب کنید.", ERROR)
+            return
         teacher_id = self.app_state.profile.get("linked_teacher_id") or self.app_state.profile.get("teacher_id")
         actor = self.app_state.profile.get("username") or self.app_state.display_name
+        record_date = __import__("datetime").date.today().isoformat()
+
         def work():
-            n=0
+            api = self._api()
+            saved = 0
+            failures = []
             for sid, kind in selected:
-                payload={"student_id":sid,"teacher_id":teacher_id,"title":kind,"discipline_type":kind,"description":kind,"status":"ثبت‌شده","actor_username":actor,"actor_role":"teacher"}
-                try: self._api().table_insert("discipline_records",payload)
-                except Exception: pass
-                n+=1
-            return n
+                # These are the real columns of the canonical ZIP/Supabase
+                # discipline_records table. Do not send decorative fields.
+                payload = {
+                    "student_id": sid,
+                    "teacher_id": teacher_id,
+                    "discipline_type": kind,
+                    "record_date": record_date,
+                    "decision_type": "ثبت اولیه",
+                    "deduct_score": 0,
+                    "referral_to": "مشاور",
+                    "description": kind,
+                }
+                try:
+                    api.table_insert("discipline_records", payload)
+                    saved += 1
+                except Exception as exc:
+                    failures.append(str(exc))
+            if failures:
+                raise RuntimeError(f"{saved} مورد ثبت شد؛ {len(failures)} مورد ثبت نشد. " + failures[0])
+            return saved
+
         self._set_status("در حال ثبت موارد انضباطی…", SECONDARY)
-        self._async(work, lambda n,e:self._set_status((f"{n} مورد انضباطی ثبت شد." if not e else "ثبت انضباطی ناموفق بود: "+e), SUCCESS if not e else ERROR))
+        self._async(
+            work,
+            lambda n, e: self._set_status(
+                (f"{n} مورد انضباطی ثبت شد." if not e else "ثبت انضباطی ناموفق بود: " + e),
+                SUCCESS if not e else ERROR,
+            ),
+        )
 
     def _report_cards(self):
         self.title.text = rtl_text("کارنامه دانش‌آموز")
@@ -431,7 +462,7 @@ class SpecialModuleScreen(Screen):
         self.finance_area.clear_widgets()
         for row in inv[:20]:
             c=_Card(size_hint_y=None,height=dp(94))
-            c.add_widget(self.label("شماره فاکتور: "+str(row.get("reference") or row.get("authority") or row.get("id") or "-"),"11sp",PRIMARY,True,False,30))
+            c.add_widget(self.label("شماره فاکتور: "+str(row.get("invoice_number") or row.get("reference") or row.get("authority") or row.get("id") or "-"),"11sp",PRIMARY,True,False,30))
             c.add_widget(self.label("مبلغ فاکتور: "+str(row.get("amount") or 0)+" • وضعیت: "+str(row.get("status") or "-"),"10sp",SECONDARY,False,False,27))
             c.add_widget(self.label("عنوان: "+str(row.get("title") or "-"),"9sp",SECONDARY,False,False,25))
             self.finance_area.add_widget(c)
