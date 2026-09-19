@@ -562,7 +562,18 @@ class SpecialModuleScreen(Screen):
             print("IDENTITY CONFIRMATION PERSIST ERROR:", repr(exc))
         if self.manager:
             target = getattr(self, "pending_route", "panel") or "panel"
-            self.manager.current = target if target in ("panel", "dashboard") else "panel"
+            if target == "role_panel":
+                role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
+                route = "parents" if role in ("parent", "parents", "ولی", "اولیا") else "students"
+                try:
+                    panel = self.manager.get_screen("panel")
+                    panel.set_route(route)
+                    self.manager.current = "panel"
+                except Exception as exc:
+                    print("ROLE PANEL OPEN AFTER IDENTITY ERROR:", repr(exc))
+                    self.manager.current = "panel"
+            else:
+                self.manager.current = target if target in ("panel", "dashboard") else "panel"
 
     def _report_discrepancy(self,*_):
         root=BoxLayout(orientation="vertical",padding=dp(10),spacing=dp(7))
