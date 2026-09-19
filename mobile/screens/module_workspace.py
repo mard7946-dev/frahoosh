@@ -254,22 +254,40 @@ class ModuleWorkspaceScreen(Screen):
         q=str(getattr(self,'search',None).text if hasattr(self,'search') else '').strip().lower(); return self.rows if not q else [r for r in self.rows if q in ' '.join(str(v) for v in r.values()).lower()]
 
     def load_table(self):
-        table = self.table
-        # Android safety: never build a giant widget tree from the first module tap.\n        # The Web keeps the full dataset; mobile renders a bounded first page.\n        self.status.text = rtl_text("در حال دریافت اطلاعات واقعی… (حداکثر ۲۵ رکورد)")\n        self.status.color = SECONDARY\n
-        # API failures must stay inside the workspace.  In particular, an Android
-        # module tap must never turn a backend/table error into an application exit.
+        # Android: start backend work after the navigation callback has returned.
+        table = str(self.table or "").strip()
+        if not table:
+            self.status.text = rtl_text("شناسه زیرپنل معتبر نیست.")
+            self.status.color = (.8, .15, .15, 1)
+            return
+        self.status.text = rtl_text("در حال دریافت اطلاعات واقعی… (حداکثر ۲۵ رکورد)")
+        self.status.color = SECONDARY
         def work():
             try:
                 api = getattr(self.app_state, "api", None)
                 if api is None:
                     raise RuntimeError("اتصال سرویس داده آماده نیست.")
                 rows = api.table_select(table, {"limit": "25"}) or []
-                rows = rows if isinstance(rows, list) else []
-                Clock.schedule_once(lambda *_: self.loaded(rows[:25], None), 0)
+                if not isinstance(rows, list):
+                    rows = []
+                Clock.schedule_once(lambda *_: self._safe_loaded(rows[:25], None), 0)
             except Exception as exc:
-                Clock.schedule_once(lambda *_: self.loaded([], str(exc)), 0)
+                message = str(exc) or exc.__class__.__name__
+                Clock.schedule_once(lambda *_: self._safe_loaded([], message), 0)
+        Clock.schedule_once(lambda *_: Thread(target=work, daemon=True).start(), 0.05)
 
-        Thread(target=work, daemon=True).start()
+    def _safe_loaded(self, rows, error):
+        try:
+            if self.manager is None:
+                return
+            self.loaded(rows, error)
+        except Exception as exc:
+            print("MODULE TABLE RENDER ERROR:", repr(exc))
+            try:
+                self.status.text = rtl_text("خطا در نمایش اطلاعات: " + str(exc))
+                self.status.color = (.8, .15, .15, 1)
+            except Exception:
+                pass
 
     def loaded(self,rows,error):
         self.rows=rows
