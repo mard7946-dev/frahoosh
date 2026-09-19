@@ -152,6 +152,16 @@ class PersianTextInput(TextInput):
             "right"
         )
 
+        # Keep Persian input in logical order while Kivy renders it RTL.
+        kwargs.setdefault(
+            "base_direction",
+            "rtl"
+        )
+        kwargs.setdefault(
+            "text_language",
+            "fa"
+        )
+
         kwargs.setdefault(
             "multiline",
             False
