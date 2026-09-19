@@ -384,6 +384,10 @@
         "online_classes"
       ],
       [
+        "محیط کلاس هوشمند",
+        "smart_class_preview"
+      ],
+      [
         "جلسات",
         "online_class_sessions"
       ],
@@ -647,7 +651,8 @@
     "ai_educational_analysis": "تحلیل آموزشی",
     "ai_questions": "پرسش و پاسخ",
     "generated_weekly_schedule": "برنامه تولیدشده",
-    "student_class_info": "پایه و کلاس"
+    "student_class_info": "پایه و کلاس",
+    "smart_class_preview": "محیط کلاس هوشمند"
   },
   "modules": {
     "users": {
@@ -2109,6 +2114,16 @@
         "update",
         "delete"
       ]
+    },
+    "smart_class_preview": {
+      "table": "smart_class_preview",
+      "fields": [],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "special": "smart_class"
     }
   },
   "special": {
