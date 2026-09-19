@@ -29,6 +29,25 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
         root.add_widget(self.label(SCHOOL_NAME + "  •  سال تحصیلی " + (SCHOOL_YEAR or "۱۴۰۵-۱۴۰۶"), "9sp", SECONDARY, False, "center"))
         self.status = self.label("محیط عملیاتی آماده است", "9sp", SUCCESS, True, "center")
         root.add_widget(self.status)
+
+        # The professional landing UI replaces ModuleWorkspaceScreen._build().
+        # Keep the table-workspace widgets that ModuleWorkspaceScreen.open_table()
+        # expects, otherwise the first real module tap reaches an incomplete
+        # screen and Android can terminate while Kivy is processing the callback.
+        self.subscroll = ScrollView(
+            do_scroll_x=True,
+            do_scroll_y=False,
+            size_hint_y=None,
+            height=dp(49),
+        )
+        self.subbar = BoxLayout(
+            orientation="horizontal",
+            spacing=dp(5),
+            size_hint_x=None,
+        )
+        self.subbar.bind(minimum_width=self.subbar.setter("width"))
+        self.subscroll.add_widget(self.subbar)
+
         self.body = BoxLayout(orientation="vertical", spacing=dp(7))
         root.add_widget(self.body)
         self.add_widget(root)
