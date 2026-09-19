@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#061b43"><link rel="manifest" href="manifest.json">
+<title>فراهوش | سامانه مدیریت هوشمند یکپارچه مدرسه</title><link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+<section id="login" class="screen"><div class="login-card">
+<div class="school-label">نام دبیرستان</div><h1 id="schoolName">دبیرستان سردار شهید حاجی زاده ۲</h1>
+<p class="slogan">سامانه مدیریت هوشمند یکپارچه مدرسه<br>یادگیری هوشمند- مدرسه ای یکپارچه- دانش آموز خلاق</p>
+<input id="identifier" inputmode="numeric" autocomplete="username" placeholder="نام کاربری یا کد ملی">
+<input id="password" type="password" autocomplete="current-password" placeholder="رمز عبور">
+<div class="login-options"><label><input id="remember" type="checkbox"> مرا بخاطر بسپار</label><button id="forgot" class="link">فراموشی رمز</button></div>
+<button id="loginBtn" class="primary big">ورود →</button><div id="loginStatus" class="status"></div>
+</div></section>
+<section id="dashboard" class="screen hidden"><header class="top"><div><div class="brand">فراهوش</div><div id="schoolTitle"></div></div><div class="userbox"><b id="welcome"></b><span id="role"></span><button id="logout" class="danger">خروج</button></div></header>
+<main><div class="section-title">پنل سامانه</div><div id="panels" class="panel-grid"></div><div id="status" class="status"></div></main></section>
+<section id="workspace" class="screen hidden"><header class="workspace-head"><button id="back" class="secondary">← بازگشت</button><div><h2 id="workspaceTitle"></h2><small id="workspaceMeta"></small></div><button id="refresh" class="secondary">تازه‌سازی</button></header>
+<div id="modules" class="module-grid"></div><div id="tableArea"></div></section>
+</div>
+<script src="runtime-config.js"></script><script src="app.js"></script>
+</body></html>
