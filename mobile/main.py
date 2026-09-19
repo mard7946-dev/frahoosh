@@ -1,7 +1,7 @@
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
-from kivy.uix.screenmanager import Screen, ScreenManager, FadeTransition
+from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
@@ -65,32 +65,38 @@ class FrahooshApp(App):
         except Exception:
             pass
 
-        self.sm = ScreenManager(transition=FadeTransition(duration=.15))
+        # Android startup must contain no project-service initialization.
+        # First render a login-capable screen; only then initialize AppState.
+        # This isolates the first frame from Supabase/network/storage/native
+        # dependencies and from every non-login module.
+        self.sm = ScreenManager()
 
-        try:
-            from mobile.services.app_state import AppState
-            self.app_state = AppState()
-        except Exception as exc:
-            print("APP STATE STARTUP ERROR:", repr(exc))
-            self.app_state = None
-
-        # CRITICAL STARTUP RULE:
-        # Login must be the first and only application screen constructed at
-        # process start. Import it lazily so a failure anywhere in login.py,
-        # ui.py, optional RTL packages, or an asset lookup cannot terminate the
-        # Android process before the user sees a screen.
         global LoginScreen
         try:
             from mobile.screens.login import LoginScreen as _LoginScreen
             LoginScreen = _LoginScreen
-            self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
-            self.sm.current = "login"
+            self.sm.add_widget(LoginScreen(name="login", app_state=None))
         except Exception as exc:
             print("LOGIN CONSTRUCTION ERROR:", repr(exc))
-            self.sm.add_widget(EmergencyLoginScreen(name="login", app_state=self.app_state, import_error=exc))
-            self.sm.current = "login"
+            self.sm.add_widget(
+                EmergencyLoginScreen(name="login", app_state=None, import_error=exc)
+            )
+        self.sm.current = "login"
+
+        # AppState is intentionally initialized after the first frame.
+        Clock.schedule_once(self._load_app_state, 0.10)
         Clock.schedule_once(self._startup_check, 0)
         return self.sm
+
+    def _load_app_state(self, *_):
+        try:
+            from mobile.services.app_state import AppState
+            self.app_state = AppState()
+            screen = self.sm.get_screen("login")
+            screen.app_state = self.app_state
+            print("APP STATE READY")
+        except Exception as exc:
+            print("APP STATE LAZY STARTUP ERROR:", repr(exc))
 
     def _startup_check(self, *_):
         try:
