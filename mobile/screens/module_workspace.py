@@ -97,6 +97,20 @@ COLUMNS = {
 }
 
 COLUMNS.update({
+    "quantity":"تعداد", "location":"محل نگهداری", "archived":"بایگانی‌شده", "card_type":"نوع کارت",
+    "code":"کد", "audience":"مخاطبان", "start_at":"شروع", "end_at":"پایان", "created_by":"ثبت‌کننده",
+    "followup_item":"مورد پیگیری", "date_shamsi":"تاریخ شمسی", "registration_start_shamsi":"شروع ثبت‌نام",
+    "registration_end_shamsi":"پایان ثبت‌نام", "sport_type":"رشته ورزشی", "fixed_amount":"مبلغ ثابت",
+    "role":"نقش", "weekly_sessions":"جلسات هفتگی", "session_no":"شماره جلسه", "teaching_amount":"میزان تدریس",
+    "teaching_date":"تاریخ تدریس", "teaching_title":"عنوان تدریس", "activity_type":"نوع فعالیت",
+    "school_year":"سال تحصیلی", "classroom_seat":"صندلی کلاسی", "exam_seat":"صندلی امتحانی",
+    "parent_id":"شناسه ولی", "parent_name":"نام ولی", "target_role":"نقش مخاطب", "target_name":"نام مخاطب",
+    "requested_date_shamsi":"تاریخ درخواست شمسی", "requested_time":"ساعت درخواست", "educational_approval":"تأیید معاون آموزشی",
+    "manager_approval":"تأیید مدیریت", "registration_date":"تاریخ ثبت", "certificate_type":"نوع گواهی",
+    "reason":"علت", "report":"گزارش", "meeting_at":"زمان جلسه"
+})
+
+COLUMNS.update({
     "content_date_shamsi":"تاریخ شمسی محتوا","board_date":"تاریخ تخته","file_path":"مسیر فایل","file_type":"نوع فایل",
     "media_path":"مسیر رسانه","media_type":"نوع رسانه","activity_text":"شرح فعالیت","quiz_date_shamsi":"تاریخ آزمونک",
     "correct_option":"گزینه صحیح","tool_type":"نوع ابزار","configuration":"تنظیمات ابزار","request_date_shamsi":"تاریخ درخواست",
@@ -114,6 +128,23 @@ COLUMNS.update({
     "seat_number":"شماره صندلی","academic_year":"سال تحصیلی","exam_id":"شناسه امتحان","assignment_id":"شناسه تکلیف",
     "answer_text":"پاسخ تکلیف","file_url":"فایل پیوست","status":"وضعیت","active":"فعال","settings":"تنظیمات"
 })
+
+# Replace the legacy hard-coded table map with the ZIP canonical contract.
+# The JSON catalog is the single source for Web + Android module fields.
+if _shared_modules:
+    for _module_id, _spec in _shared_modules.items():
+        if not isinstance(_spec, dict):
+            continue
+        _table = str(_spec.get("table") or _module_id).strip()
+        _fields = _spec.get("fields") or []
+        if _table and isinstance(_fields, list):
+            TABLE_FIELDS[_table] = [str(f) for f in _fields if f and str(f) not in {"id", "created_at", "updated_at", "deleted_at"}]
+
+CANONICAL_OPERATIONS = {
+    str(_spec.get("table") or _module_id): tuple(_spec.get("operations") or ("create", "update", "delete"))
+    for _module_id, _spec in (_shared_modules or {}).items()
+    if isinstance(_spec, dict)
+}
 
 HIDDEN = {"id", "created_at", "updated_at", "deleted_at"}
 
