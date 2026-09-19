@@ -115,8 +115,10 @@ class LoginScreen(Screen):
             size_hint=(0.82, 0.39),
             pos_hint={"center_x": 0.5, "y": 0.16},
         )
+        # The background artwork already contains the visual login card.
+        # Keep the real controls on top without painting a second opaque card.
         with card.canvas.before:
-            Color(*GLASS)
+            Color(0, 0, 0, 0)
             panel = RoundedRectangle(radius=[dp(24)])
         card.bind(
             pos=lambda o, v: setattr(panel, "pos", v),
