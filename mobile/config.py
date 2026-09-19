@@ -45,15 +45,10 @@ WHITE = (1, 1, 1, 1)
 CARD = (0.97, 0.98, 1.0, 1)
 BORDER = (0.80, 0.84, 0.90, 1)
 # Always resolve the bundled portrait artwork from the APK itself. Runtime/local paths can point to a desktop file that does not exist on Android.
-_BACKGROUND_CANDIDATES = [
-    ASSETS_DIR / "frahoosh_login_mobile.jpg",
-    ASSETS_DIR / "frahoosh_background_final.jpg",
-    ASSETS_DIR / "frahoosh_background_final_small.jpg",
-    ASSETS_DIR / "frahoosh_bg_270.jpg",
-    ASSETS_DIR / "frahoosh_background.jpg",
-    ASSETS_DIR / "frahoosh_login_background.jpg",
-]
-BACKGROUND_PATH = str(next((p for p in _BACKGROUND_CANDIDATES if p.is_file()), ASSETS_DIR / "frahoosh_background.jpg"))
+# The portrait artwork is a required bundled APK asset. Do not select a
+# nonexistent desktop fallback: that produced a blank login screen on Android.
+# Kivy/Buildozer packages jpg files because buildozer.spec includes jpg/jpeg.
+BACKGROUND_PATH = str(ASSETS_DIR / "frahoosh_login_mobile.jpg")
 API_TIMEOUT = 15
 SUPABASE_URL = str(os.environ.get("FRAHOOSH_SUPABASE_URL") or _RUNTIME.get("supabase_url") or _RUNTIME.get("FRAHOOSH_SUPABASE_URL") or "").strip()
 SUPABASE_ANON_KEY = str(os.environ.get("FRAHOOSH_SUPABASE_ANON_KEY") or _RUNTIME.get("supabase_anon_key") or _RUNTIME.get("FRAHOOSH_SUPABASE_ANON_KEY") or "").strip()
