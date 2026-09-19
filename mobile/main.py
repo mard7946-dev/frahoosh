@@ -1,9 +1,54 @@
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
-from kivy.uix.screenmanager import ScreenManager, FadeTransition
+from kivy.uix.screenmanager import Screen, ScreenManager, FadeTransition
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
 
-from mobile.screens.login import LoginScreen
+# IMPORTANT: LoginScreen is intentionally NOT imported at module import time.
+# A failure in login.py (or one of its optional dependencies) must never kill
+# the Android process before the first frame is displayed.
+LoginScreen = None
+
+
+class EmergencyLoginScreen(Screen):
+    """Minimal startup-safe screen used only if the normal login module fails."""
+    def __init__(self, app_state=None, import_error=None, **kwargs):
+        super().__init__(**kwargs)
+        self.app_state = app_state
+        self.import_error = import_error
+        root = BoxLayout(orientation="vertical", padding=32, spacing=16)
+        root.add_widget(Label(text="فراهوش", font_size="28sp"))
+        root.add_widget(Label(text="ورود", font_size="22sp"))
+        self.username = TextInput(hint_text="نام کاربری / کد ملی", multiline=False)
+        self.password = TextInput(hint_text="رمز عبور", password=True, multiline=False)
+        root.add_widget(self.username)
+        root.add_widget(self.password)
+        self.status = Label(text="در حال آماده‌سازی صفحه ورود...", font_size="14sp")
+        root.add_widget(self.status)
+        button = Button(text="ورود", size_hint_y=None, height=52)
+        button.bind(on_release=self.retry_login)
+        root.add_widget(button)
+        self.add_widget(root)
+        if import_error:
+            print("LOGIN MODULE STARTUP ERROR:", repr(import_error))
+
+    def retry_login(self, *_):
+        global LoginScreen
+        try:
+            if LoginScreen is None:
+                from mobile.screens.login import LoginScreen as _LoginScreen
+                LoginScreen = _LoginScreen
+            app = App.get_running_app()
+            real = LoginScreen(name="login", app_state=getattr(app, "app_state", None))
+            self.manager.add_widget(real)
+            self.manager.current = "login"
+        except Exception as exc:
+            print("LOGIN RETRY ERROR:", repr(exc))
+            self.status.text = "صفحه ورود اصلی بارگذاری نشد. خطای داخلی ثبت شد."
+
 
 
 class FrahooshApp(App):
@@ -30,12 +75,20 @@ class FrahooshApp(App):
             self.app_state = None
 
         # CRITICAL STARTUP RULE:
-        # Login must be the first and only heavy UI constructed at process start.
-        # The previous build eagerly imported/constructed every panel and special
-        # workspace before the login screen could render. On some Android devices
-        # that made a runtime import/render failure terminate the process at startup.
-        self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
-        self.sm.current = "login"
+        # Login must be the first and only application screen constructed at
+        # process start. Import it lazily so a failure anywhere in login.py,
+        # ui.py, optional RTL packages, or an asset lookup cannot terminate the
+        # Android process before the user sees a screen.
+        global LoginScreen
+        try:
+            from mobile.screens.login import LoginScreen as _LoginScreen
+            LoginScreen = _LoginScreen
+            self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
+            self.sm.current = "login"
+        except Exception as exc:
+            print("LOGIN CONSTRUCTION ERROR:", repr(exc))
+            self.sm.add_widget(EmergencyLoginScreen(name="login", app_state=self.app_state, import_error=exc))
+            self.sm.current = "login"
         Clock.schedule_once(self._startup_check, 0)
         return self.sm
 
