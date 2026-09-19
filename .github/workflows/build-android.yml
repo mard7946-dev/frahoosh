@@ -6,61 +6,80 @@ on:
     branches:
       - main
 
+concurrency:
+  group: frahoosh-android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build Frahoosh APK
     runs-on: ubuntu-22.04
+    timeout-minutes: 45
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
+          cache: gradle
+
       - name: Install system dependencies
         shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y git zip unzip wget curl autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev build-essential
-      - name: Install Build tools
+          sudo apt-get install -y \
+            git zip unzip wget curl \
+            autoconf automake libtool pkg-config \
+            zlib1g-dev libffi-dev libssl-dev \
+            build-essential ccache
+
+      - name: Install Buildozer toolchain
         shell: bash
         run: |
-          set -euxo pipefail
-          python -m pip install --upgrade pip
-          pip install "cython==0.29.36" "buildozer==1.5.0"
+          set -euo pipefail
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install "cython==0.29.36" "buildozer==1.5.0"
+          buildozer --version
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
+
       - name: Install Android SDK packages
         shell: bash
         run: |
-          set -euxo pipefail
-          SDK="$ANDROID_SDK_ROOT"
-          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses || true
-          "$SDKMANAGER" platform-tools
-          "$SDKMANAGER" "platforms;android-35"
-          "$SDKMANAGER" "build-tools;35.0.0"
-          "$SDKMANAGER" "ndk;28.2.13676358"
-          mkdir -p "$SDK/tools/bin"
-          ln -sf "$SDK/cmdline-tools/latest/bin/sdkmanager" "$SDK/tools/bin/sdkmanager"
+          set -euo pipefail
+          SDKMANAGER="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          test -x "${SDKMANAGER}"
+          yes | "${SDKMANAGER}" --licenses >/dev/null || true
+          "${SDKMANAGER}" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358"
+          test -d "${ANDROID_SDK_ROOT}/ndk/28.2.13676358"
+          test -d "${ANDROID_SDK_ROOT}/platforms/android-35"
+          test -d "${ANDROID_SDK_ROOT}/build-tools/35.0.0"
+
       - name: Configure Android environment
         shell: bash
         run: |
-          set -euxo pipefail
-          NDK="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          test -d "$NDK"
-          test -x "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
-          echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          set -euo pipefail
+          NDK="${ANDROID_SDK_ROOT}/ndk/28.2.13676358"
+          echo "ANDROID_HOME=${ANDROID_SDK_ROOT}" >> "${GITHUB_ENV}"
+          echo "ANDROID_NDK_HOME=${NDK}" >> "${GITHUB_ENV}"
+          echo "ANDROID_NDK_ROOT=${NDK}" >> "${GITHUB_ENV}"
+          echo "PATH=${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${PATH}" >> "${GITHUB_ENV}"
+          yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+
       - name: Create runtime config
         shell: bash
         env:
@@ -73,165 +92,115 @@ jobs:
           FRAHOOSH_WEB_URL: ${{ secrets.FRAHOOSH_WEB_URL }}
         run: |
           set -euo pipefail
-          test -n "$FRAHOOSH_SUPABASE_URL"
-          test -n "$FRAHOOSH_SUPABASE_ANON_KEY"
+          test -n "${FRAHOOSH_SUPABASE_URL}" || { echo "Missing FRAHOOSH_SUPABASE_URL"; exit 1; }
+          test -n "${FRAHOOSH_SUPABASE_ANON_KEY}" || { echo "Missing FRAHOOSH_SUPABASE_ANON_KEY"; exit 1; }
           python - <<'PY'
-          import json, os
+          import json
+          import os
           from pathlib import Path
-          config={
-              "supabase_url":os.environ["FRAHOOSH_SUPABASE_URL"],
-              "supabase_anon_key":os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
-              "school_id":os.environ.get("FRAHOOSH_SCHOOL_ID",""),
-              "school_name":os.environ.get("FRAHOOSH_SCHOOL_NAME","") or "دبیرستان سردارشهیدحاجی زاده ۲",
-              "school_year":os.environ.get("FRAHOOSH_SCHOOL_YEAR","") or "۱۴۰۵-۱۴۰۶",
-              "payment_gateway_url":os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL",""),
-              "web_url":os.environ.get("FRAHOOSH_WEB_URL","") or "https://frahoosh.ir"}
-          Path("mobile/runtime_config.json").write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding="utf-8")
+
+          config = {
+              "supabase_url": os.environ["FRAHOOSH_SUPABASE_URL"],
+              "supabase_anon_key": os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
+              "school_id": os.environ.get("FRAHOOSH_SCHOOL_ID", ""),
+              "school_name": os.environ.get("FRAHOOSH_SCHOOL_NAME", "") or "دبیرستان سردارشهیدحاجی زاده ۲",
+              "school_year": os.environ.get("FRAHOOSH_SCHOOL_YEAR", "") or "۱۴۰۵-۱۴۰۶",
+              "payment_gateway_url": os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL", ""),
+              "web_url": os.environ.get("FRAHOOSH_WEB_URL", "") or "https://frahoosh.ir",
+          }
+
+          path = Path("mobile/runtime_config.json")
+          path.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+          print("Runtime configuration created:", path)
           PY
           test -s mobile/runtime_config.json
-      - name: Validate mobile Python sources
+
+      - name: Validate repository before Android build
         shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
+          test -f main.py
+          test -f mobile/main.py
+          test -f buildozer.spec
+          test -f shared/frahoosh_contract.json
+          test -f shared/module_catalog.json
           python -m compileall -q mobile main.py
-      - name: Validate Android identity
+          python -m json.tool shared/frahoosh_contract.json >/dev/null
+          python -m json.tool shared/module_catalog.json >/dev/null
+          grep -Fq "version = 1.6.0" buildozer.spec
+          grep -Fq "android.numeric_version = 160" buildozer.spec
+          grep -Fq "package.name = frahooshmobile" buildozer.spec
+          grep -Fq "package.domain = ir.frahoosh" buildozer.spec
+          grep -Fq "source.dir = ." buildozer.spec
+          grep -Fq "python-bidi==0.4.2" buildozer.spec
+          echo "Repository validation passed."
+
+      - name: Clean stale Buildozer state
         shell: bash
         run: |
-          set -euxo pipefail
-          grep -q '^package.name = frahooshmobile$' buildozer.spec
-          grep -q '^package.domain = ir.frahoosh$' buildozer.spec
-          grep -q '^android.numeric_version = 160
-          grep -q '^version = 1.6.0
-      - name: Validate Android dependency versions
+          set -euo pipefail
+          rm -rf .buildozer bin
+          rm -f mobile/runtime_config.json
+          echo "Clean state prepared."
+
+      - name: Recreate runtime config after clean
         shell: bash
+        env:
+          FRAHOOSH_SUPABASE_URL: ${{ secrets.FRAHOOSH_SUPABASE_URL }}
+          FRAHOOSH_SUPABASE_ANON_KEY: ${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}
+          FRAHOOSH_SCHOOL_ID: ${{ secrets.FRAHOOSH_SCHOOL_ID }}
+          FRAHOOSH_SCHOOL_NAME: ${{ secrets.FRAHOOSH_SCHOOL_NAME }}
+          FRAHOOSH_SCHOOL_YEAR: ${{ secrets.FRAHOOSH_SCHOOL_YEAR }}
+          FRAHOOSH_PAYMENT_GATEWAY_URL: ${{ secrets.FRAHOOSH_PAYMENT_GATEWAY_URL }}
+          FRAHOOSH_WEB_URL: ${{ secrets.FRAHOOSH_WEB_URL }}
         run: |
-          set -euxo pipefail
-          grep -q 'python-bidi==0.4.2' buildozer.spec
-          if grep -q 'python-bidi==0.6.6' buildozer.spec; then
-            echo 'ERROR: python-bidi 0.6.6 is not available in the Android build environment.' >&2
-            exit 1
-          fi
-          echo 'Android dependency check: python-bidi==0.4.2'
-      - name: Verify debug build configuration
-        shell: bash
-        run: |
-          set -euxo pipefail
-          grep -q '^version = 1.5.6$' buildozer.spec
-          grep -q '^android.numeric_version = 156$' buildozer.spec
-          echo "Frahoosh APK build mode: debug • shared Web/Android module contract v2.0"
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          config = {
+              "supabase_url": os.environ["FRAHOOSH_SUPABASE_URL"],
+              "supabase_anon_key": os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
+              "school_id": os.environ.get("FRAHOOSH_SCHOOL_ID", ""),
+              "school_name": os.environ.get("FRAHOOSH_SCHOOL_NAME", "") or "دبیرستان سردارشهیدحاجی زاده ۲",
+              "school_year": os.environ.get("FRAHOOSH_SCHOOL_YEAR", "") or "۱۴۰۵-۱۴۰۶",
+              "payment_gateway_url": os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL", ""),
+              "web_url": os.environ.get("FRAHOOSH_WEB_URL", "") or "https://frahoosh.ir",
+          }
+          Path("mobile/runtime_config.json").write_text(
+              json.dumps(config, ensure_ascii=False, indent=2),
+              encoding="utf-8",
+          )
+          PY
+          test -s mobile/runtime_config.json
+
       - name: Build APK
         shell: bash
+        env:
+          P4A_BUILD_ARGS: "--color=always"
         run: |
-          set -euxo pipefail
-          export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+          set -euo pipefail
+          export ANDROID_NDK_HOME="${ANDROID_SDK_ROOT}/ndk/28.2.13676358"
+          export ANDROID_NDK_ROOT="${ANDROID_SDK_ROOT}/ndk/28.2.13676358"
           buildozer -v android debug
+
+      - name: Verify APK output
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          apks=(bin/*.apk)
+          test "${#apks[@]}" -gt 0
+          echo "APK produced:"
+          printf '%s\n' "${apks[@]}"
+
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Frahoosh-APK-v1.6.0
-          path: bin/*.apk
-          if-no-files-found: error
-          retention-days: 14
- buildozer.spec
-          grep -q '^version = 1.5.6$' buildozer.spec
-      - name: Validate Android dependency versions
-        shell: bash
-        run: |
-          set -euxo pipefail
-          grep -q 'python-bidi==0.4.2' buildozer.spec
-          if grep -q 'python-bidi==0.6.6' buildozer.spec; then
-            echo 'ERROR: python-bidi 0.6.6 is not available in the Android build environment.' >&2
-            exit 1
-          fi
-          echo 'Android dependency check: python-bidi==0.4.2'
-      - name: Verify debug build configuration
-        shell: bash
-        run: |
-          set -euxo pipefail
-          grep -q '^version = 1.5.6$' buildozer.spec
-          grep -q '^android.numeric_version = 156$' buildozer.spec
-          echo "Frahoosh APK build mode: debug (delete old app, then install new APK)"
-      - name: Build APK
-        shell: bash
-        run: |
-          set -euxo pipefail
-          export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          buildozer -v android debug
-      - name: Upload APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Frahoosh-APK-v1.5.6
-          path: bin/*.apk
-          if-no-files-found: error
-          retention-days: 14
- buildozer.spec
-      - name: Validate Android dependency versions
-        shell: bash
-        run: |
-          set -euxo pipefail
-          grep -q 'python-bidi==0.4.2' buildozer.spec
-          if grep -q 'python-bidi==0.6.6' buildozer.spec; then
-            echo 'ERROR: python-bidi 0.6.6 is not available in the Android build environment.' >&2
-            exit 1
-          fi
-          echo 'Android dependency check: python-bidi==0.4.2'
-      - name: Verify debug build configuration
-        shell: bash
-        run: |
-          set -euxo pipefail
-          grep -q '^version = 1.5.6$' buildozer.spec
-          grep -q '^android.numeric_version = 156$' buildozer.spec
-          echo "Frahoosh APK build mode: debug (delete old app, then install new APK)"
-      - name: Build APK
-        shell: bash
-        run: |
-          set -euxo pipefail
-          export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          buildozer -v android debug
-      - name: Upload APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Frahoosh-APK-v1.5.6
-          path: bin/*.apk
-          if-no-files-found: error
-          retention-days: 14
- buildozer.spec
-          grep -q '^version = 1.5.6$' buildozer.spec
-      - name: Validate Android dependency versions
-        shell: bash
-        run: |
-          set -euxo pipefail
-          grep -q 'python-bidi==0.4.2' buildozer.spec
-          if grep -q 'python-bidi==0.6.6' buildozer.spec; then
-            echo 'ERROR: python-bidi 0.6.6 is not available in the Android build environment.' >&2
-            exit 1
-          fi
-          echo 'Android dependency check: python-bidi==0.4.2'
-      - name: Verify debug build configuration
-        shell: bash
-        run: |
-          set -euxo pipefail
-          grep -q '^version = 1.5.6$' buildozer.spec
-          grep -q '^android.numeric_version = 156$' buildozer.spec
-          echo "Frahoosh APK build mode: debug (delete old app, then install new APK)"
-      - name: Build APK
-        shell: bash
-        run: |
-          set -euxo pipefail
-          export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          buildozer -v android debug
-      - name: Upload APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Frahoosh-APK-v1.5.6
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
