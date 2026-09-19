@@ -51,6 +51,34 @@ class EmergencyLoginScreen(Screen):
 
 
 
+
+
+class OperationalPanelScreen(Screen):
+    """Stable module-level wrapper around the real operational workspace.
+
+    Kivy Screen/EventDispatcher subclasses must not be created dynamically inside
+    ensure_panel(). Keeping this class at module scope also makes the failure
+    boundary deterministic on Android.
+    """
+    def __init__(self, app_state=None, **kwargs):
+        super().__init__(**kwargs)
+        self.app_state = app_state
+        self.workspace = None
+        self.workspace_error = None
+        try:
+            from mobile.screens.module_workspace import ModuleWorkspaceScreen
+            self.workspace = ModuleWorkspaceScreen(app_state=app_state, name="workspace")
+            self.add_widget(self.workspace)
+        except Exception as exc:
+            self.workspace_error = exc
+            print("OPERATIONAL WORKSPACE BUILD ERROR:", repr(exc))
+            raise
+
+    def set_route(self, route):
+        if self.workspace is None:
+            raise RuntimeError("محیط عملیاتی پنل آماده نیست.")
+        self.workspace.set_module(route, return_to="dashboard")
+
 class FrahooshApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
