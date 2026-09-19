@@ -134,6 +134,30 @@ jobs:
           python -m compileall -q mobile main.py
           python -m json.tool shared/frahoosh_contract.json >/dev/null
           python -m json.tool shared/module_catalog.json >/dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          catalog = json.loads(Path("shared/module_catalog.json").read_text(encoding="utf-8"))
+          panels = catalog.get("panels") or {}
+          modules = catalog.get("modules") or {}
+          required = {
+              "weekly_schedule": "weekly_schedule",
+              "report_cards": "report_cards",
+              "attendance": "attendance",
+              "discipline_records": "discipline",
+              "finance_transactions": "finance",
+              "parent_children": "parent_children",
+              "smart_class_preview": "smart_class",
+          }
+          assert panels and modules, "Canonical module catalog is empty"
+          assert len(modules) >= 100, f"Unexpected canonical module count: {len(modules)}"
+          assert all(key in modules for key in required), "Special module missing from catalog"
+          assert all(v == ("ثبت جدید" if k == "create" else "ویرایش" if k == "update" else "حذف") for k, v in catalog.get("operations", {}).items()), "CRUD labels drifted"
+          for table, spec in modules.items():
+              assert spec.get("table") == table, f"Table mismatch: {table}"
+              assert set(spec.get("operations") or []) >= {"create", "update", "delete"}, f"CRUD contract missing: {table}"
+          print(f"Canonical ZIP module contract validated: {len(panels)} panels / {len(modules)} modules")
+          PY
           grep -Fq "version = 1.6.0" buildozer.spec
           grep -Fq "android.numeric_version = 160" buildozer.spec
           grep -Fq "package.name = frahooshmobile" buildozer.spec
