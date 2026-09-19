@@ -56,7 +56,7 @@ class LoginScreen(Screen):
             hint_text=rtl_text(hint),
             password=password,
             password_mask="*",
-            font_name=font_name(),
+            font_name="Roboto",
             font_size="14sp",
             multiline=False,
             size_hint_y=None,

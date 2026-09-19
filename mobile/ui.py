@@ -151,6 +151,7 @@ class PersianTextInput(TextInput):
             "halign",
             "right"
         )
+        kwargs.setdefault("base_direction", "rtl")
 
         kwargs.setdefault(
             "multiline",

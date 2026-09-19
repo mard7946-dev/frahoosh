@@ -11,7 +11,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.scrollview import ScrollView
 
 from mobile.config import APP_NAME, SCHOOL_ID, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
-from mobile.ui import font_name, rtl_text
+from mobile.ui import font_name, rtl_text, PersianTextInput
 
 PAYMENT_MANAGERS={"manager","educational","cultural"}
 CLASS_MANAGERS={"manager","educational","executive"}
@@ -167,7 +167,7 @@ class OperationsScreen(Screen):
         try:self.app_state.api.rpc("send_school_message",{"p_receiver":receiver.text.strip(),"p_title":title.text.strip(),"p_body":text.text.strip(),"p_audience_type":"user","p_audience_value":None}); self._success("پیام با موفقیت ثبت و ارسال شد.")
         except Exception as exc:self._error("ارسال پیام انجام نشد: "+str(exc))
     def _field(self,hint,height=50,multiline=False):
-        f=TextInput(hint_text=rtl_text(hint),font_name=font_name(),font_size="14sp",multiline=multiline,size_hint_y=None,height=dp(height)); self.body.add_widget(f); return f
+        f=PersianTextInput(hint_text=rtl_text(hint),font_name=font_name(),font_size="14sp",multiline=multiline,size_hint_y=None,height=dp(height)); self.body.add_widget(f); return f
     def _open_url(self,url):
         try:webbrowser.open(url)
         except Exception:self._error("باز کردن لینک انجام نشد.")

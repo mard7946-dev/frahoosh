@@ -13,7 +13,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 
 from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, WHITE
-from mobile.ui import font_name, rtl_text
+from mobile.ui import font_name, rtl_text, PersianTextInput
 
 # One shared operational vocabulary for Android and the future web client.
 # Both clients must bind these keys to the same Supabase tables and field names.
@@ -215,7 +215,7 @@ class ModuleWorkspaceScreen(Screen):
             self.render(); return
         self.body.clear_widgets(); self.title.text=rtl_text(FRIENDLY.get(table,table))
         hero=Surface(height=dp(76)); line=BoxLayout(size_hint_y=None,height=dp(34),spacing=dp(5)); line.add_widget(self.btn("زیرپنل‌ها",lambda *_:self._back_to_submenus(),PRIMARY,dp(34),dp(82))); line.add_widget(self.label(FRIENDLY.get(table,table),"16sp",PRIMARY,True,"center")); line.add_widget(self.btn("تازه‌سازی",lambda *_:self.load_table(),PRIMARY,dp(34),dp(45))); hero.add_widget(line)
-        self.search=TextInput(hint_text=rtl_text("جستجو در همین زیرپنل"),font_name=font_name(),font_size="10sp",halign="right",multiline=False,size_hint_y=None,height=dp(32),padding=[dp(8),dp(5)]); hero.add_widget(self.search); self.body.add_widget(hero)
+        self.search=PersianTextInput(hint_text=rtl_text("جستجو در همین زیرپنل"),font_name=font_name(),font_size="10sp",halign="right",multiline=False,size_hint_y=None,height=dp(32),padding=[dp(8),dp(5)]); hero.add_widget(self.search); self.body.add_widget(hero)
         bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5));
         if self.can_write(table): bar.add_widget(self.btn("ثبت جدید",lambda *_:self.editor(table,None),SUCCESS,dp(38)))
         bar.add_widget(self.btn("جستجو",lambda *_:self.render_rows(self.filtered()),PRIMARY,dp(38))); bar.add_widget(self.btn("پاک کردن",lambda *_:self.clear_search(),SECONDARY,dp(38))); self.body.add_widget(bar)
@@ -250,10 +250,10 @@ class ModuleWorkspaceScreen(Screen):
                 if isinstance(r,dict):
                     for k in r:
                         if k not in HIDDEN and k not in keys: keys.append(k)
-        keys=keys[:8]; totalw=max(dp(520),dp(165)*max(2,len(keys))+dp(160 if self.can_write(self.table) else 0))
+        keys=keys[:10]; totalw=max(dp(760),dp(175)*max(2,len(keys))+dp(165 if self.can_write(self.table) else 0))
         scroll=ScrollView(do_scroll_x=True); content=BoxLayout(orientation='vertical',size_hint=(None,None),width=totalw,spacing=dp(3),padding=dp(2)); content.bind(minimum_height=content.setter('height'))
-        header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(62),spacing=dp(2),padding=[dp(2),dp(2)]);
-        for k in keys: header.add_widget(self.label(COLUMNS.get(k,k),"15sp",WHITE,True,"center"))
+        header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(68),spacing=dp(2),padding=[dp(2),dp(2)]);
+        for k in keys: header.add_widget(self.label(COLUMNS.get(k,k),"16sp",WHITE,True,"center"))
         if self.can_write(self.table): header.add_widget(self.label("عملیات","15sp",WHITE,True,"center"))
         self._header(header); content.add_widget(header)
         for i,r in enumerate(rows,1): content.add_widget(self.row(r,i,keys,totalw))
@@ -264,9 +264,9 @@ class ModuleWorkspaceScreen(Screen):
         w.bind(pos=lambda o,v:setattr(bg,'pos',v),size=lambda o,v:setattr(bg,'size',v))
 
     def row(self,r,index,keys,totalw):
-        b=BoxLayout(size_hint=(None,None),width=totalw,height=dp(74),spacing=dp(2),padding=[dp(4),dp(4)])
+        b=BoxLayout(size_hint=(None,None),width=totalw,height=dp(82),spacing=dp(2),padding=[dp(5),dp(5)])
         for k in keys:
-            s=str(r.get(k,'')); b.add_widget(self.label(s[:42]+'…' if len(s)>43 else s,"14sp",SECONDARY,False,'center'))
+            s=str(r.get(k,'')); b.add_widget(self.label(s[:42]+'…' if len(s)>43 else s,"15sp",SECONDARY,False,'center'))
         if self.can_write(self.table):
             a=BoxLayout(size_hint_x=None,width=dp(150),spacing=dp(4)); a.add_widget(self.btn('ویرایش',lambda *_a,x=dict(r):self.editor(self.table,x),PRIMARY,dp(50))); a.add_widget(self.btn('حذف',lambda *_a,x=dict(r):self.confirm_delete(self.table,x),(0.72,.16,.18,1),dp(50))); b.add_widget(a)
         if index%2==0:
@@ -278,7 +278,7 @@ class ModuleWorkspaceScreen(Screen):
         fields=[k for k in (FORMS.get(table) or self._infer(row)) if k not in HIDDEN]
         root=BoxLayout(orientation='vertical',padding=dp(10),spacing=dp(6)); sc=ScrollView(do_scroll_x=False); form=GridLayout(cols=1,spacing=dp(5),size_hint_y=None); form.bind(minimum_height=form.setter('height')); inputs={}
         for f in fields:
-            form.add_widget(self.label(COLUMNS.get(f,f),"9sp",PRIMARY,True)); ti=TextInput(text='' if row is None else str(row.get(f,'')),font_name=font_name(),font_size='10sp',halign='right',multiline=False,size_hint_y=None,height=dp(40),padding=[dp(8),dp(6)]); inputs[f]=ti; form.add_widget(ti)
+            form.add_widget(self.label(COLUMNS.get(f,f),"9sp",PRIMARY,True)); ti=PersianTextInput(text='' if row is None else str(row.get(f,'')),font_name=font_name(),font_size='13sp',halign='right',multiline=False,size_hint_y=None,height=dp(40),padding=[dp(8),dp(6)]); inputs[f]=ti; form.add_widget(ti)
         sc.add_widget(form); root.add_widget(sc); actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5)); p=Popup(title=rtl_text(('ویرایش' if row else 'ثبت جدید')+' • '+FRIENDLY.get(table,table)),content=root,size_hint=(.94,.88),auto_dismiss=False); actions.add_widget(self.btn('انصراف',lambda *_:p.dismiss(),SECONDARY,dp(40))); actions.add_widget(self.btn('ذخیره',lambda *_:self.save(table,row,inputs,p),SUCCESS,dp(40))); root.add_widget(actions); p.open()
 
     def _infer(self,row): return [k for k in (row or {}).keys() if k not in HIDDEN] or ['title','description','status']
