@@ -1,5 +1,5 @@
 {
-  "version": "3.3.0",
+  "version": "3.3.1",
   "source": "Frahoosh_v16_12_LOGIN_BACKGROUND_FINAL_02.zip",
   "backend": "supabase",
   "clients": [
@@ -2542,16 +2542,19 @@
       ]
     },
     "lesson_plans": {
-      "table": "lesson_plan_entries",
+      "table": "lesson_plans",
       "fields": [
         "teacher_id",
+        "teacher_name",
         "subject",
-        "weekly_sessions",
-        "session_no",
-        "teaching_amount",
-        "teaching_date",
-        "teaching_title",
-        "activity_type"
+        "grade",
+        "class_name",
+        "title",
+        "content",
+        "session_date",
+        "lesson_title",
+        "description",
+        "plan_date"
       ],
       "operations": [
         "create",
