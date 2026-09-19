@@ -33,6 +33,7 @@ class SmartClassPreviewScreen(Screen):
         super().__init__(**kwargs)
         self.app_state = app_state
         self.class_id = None
+        self.session_id = None
         self.class_title = "کلاس هوشمند فراهوش"
         self.return_to = "dashboard"
 
@@ -149,9 +150,10 @@ class SmartClassPreviewScreen(Screen):
                 teachers = api.table_select("online_class_teachers", {"class_id":"eq."+str(self.class_id),"limit":"10"}) or []
                 attendance = api.table_select("online_attendance", {"class_id":"eq."+str(self.class_id),"limit":"100"}) or []
                 files = api.table_select("smart_board_files", {"class_id":"eq."+str(self.class_id),"limit":"20"}) or []
+                sessions = api.table_select("online_class_sessions", {"class_id":"eq."+str(self.class_id),"order":"id.desc","limit":"1"}) or []
                 title = str(row.get("title") or "کلاس هوشمند فراهوش")
                 info = " | ".join(str(row.get(k)) for k in ("subject","grade","class_name") if row.get(k))
-                bundle={"title":title,"info":info,"students":students,"teachers":teachers,"attendance":attendance,"files":files}
+                bundle={"title":title,"info":info,"students":students,"teachers":teachers,"attendance":attendance,"files":files,"session":sessions[0] if sessions else {}}
                 Clock.schedule_once(lambda *_: self.apply_live(bundle), 0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self.set_status("محیط کلاس آماده است؛ اتصال زنده کامل نشد.", SECONDARY), 0)
@@ -160,6 +162,7 @@ class SmartClassPreviewScreen(Screen):
 
     def apply_live(self, bundle):
         self.class_title = bundle.get("title") or "کلاس هوشمند فراهوش"
+        self.session_id = (bundle.get("session") or {}).get("id")
         students = bundle.get("students") or []
         teachers = bundle.get("teachers") or []
         attendance = bundle.get("attendance") or []
@@ -193,14 +196,14 @@ class SmartClassPreviewScreen(Screen):
 
     def chat(self, *_):
         api=getattr(self.app_state,"api",None)
-        if api is None:
-            self.set_status("اتصال API آماده نیست.",ERROR); return
+        if api is None or not self.class_id:
+            self.set_status("کلاس فعال برای چت مشخص نیست.",ERROR); return
         def work():
             try:
-                rows=api.table_select("messages",{"order":"id.desc","limit":"10"}) or []
-                Clock.schedule_once(lambda *_: self.set_status(f"صندوق پیام کلاس: {len(rows)} پیام اخیر.",SUCCESS),0)
+                rows=api.table_select("online_class_chat",{"class_id":"eq."+str(self.class_id),"order":"id.desc","limit":"20"}) or []
+                Clock.schedule_once(lambda *_: self.set_status(f"چت کلاس فعال است • {len(rows)} پیام اخیر",SUCCESS),0)
             except Exception as exc:
-                Clock.schedule_once(lambda *_: self.set_status("پیام‌های کلاس دریافت نشد.",ERROR),0)
+                Clock.schedule_once(lambda *_: self.set_status("چت کلاس دریافت نشد.",ERROR),0)
         Thread(target=work,daemon=True).start()
 
     def attendance(self, *_):
@@ -233,15 +236,29 @@ class SmartClassPreviewScreen(Screen):
         def work():
             try:
                 import datetime
-                api.table_insert("online_class_sessions",{"class_id":self.class_id,"ended_at":datetime.datetime.now().isoformat()})
+                if self.session_id:
+                    api.table_update("online_class_sessions",{"id":"eq."+str(self.session_id)},{"ended_at":datetime.datetime.now().isoformat()})
+                else:
+                    api.table_insert("online_class_sessions",{"class_id":self.class_id,"ended_at":datetime.datetime.now().isoformat()})
                 Clock.schedule_once(lambda *_: self.set_status("زمان پایان جلسه در سامانه ثبت شد.",SUCCESS),0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self.set_status("ثبت پایان جلسه ناموفق بود: "+str(exc),ERROR),0)
         Thread(target=work,daemon=True).start()
 
     def refresh_live(self, *_):
-        self.set_status("در حال به‌روزرسانی کلاس…", SECONDARY)
-        Clock.schedule_once(self.load_live_async, 0.05)
+        api=getattr(self.app_state,"api",None)
+        if api is None or not self.class_id:
+            self.set_status("ابتدا کلاس را بارگذاری کنید.",ERROR); return
+        def work():
+            try:
+                import datetime
+                teacher_id=(self.app_state.profile or {}).get("linked_teacher_id") if self.app_state else None
+                row=api.table_insert("online_class_sessions",{"class_id":self.class_id,"started_at":datetime.datetime.now().isoformat()})
+                self.session_id=(row[0].get("id") if isinstance(row,list) and row else None)
+                Clock.schedule_once(lambda *_: self.set_status("جلسه آنلاین به‌صورت واقعی شروع و در سامانه ثبت شد.",SUCCESS),0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_: self.set_status("شروع جلسه ناموفق بود: "+str(exc),ERROR),0)
+        Thread(target=work,daemon=True).start()
 
     def back(self, *_):
         if self.manager:
