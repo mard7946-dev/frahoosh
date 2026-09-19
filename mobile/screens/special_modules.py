@@ -422,11 +422,40 @@ class SpecialModuleScreen(Screen):
     def _report_cards(self):
         self.title.text = rtl_text("کارنامه دانش‌آموز")
         self._set_status("نمایش کارنامه به شکل کارنامه واقعی، نه جدول.")
+        role = str(getattr(self.app_state, "role", "") or "").strip().lower()
+        sid = self.app_state.profile.get("linked_student_id") or self.app_state.profile.get("student_id")
+        if role in ("parent","parents","ولی","اولیا") and isinstance(self.app_state.session, dict):
+            sid = self.app_state.session.get("selected_student_id") or sid
+        if sid:
+            self._async(self._report_data, self._report_loaded)
+        else:
+            self._async(lambda: self._api().table_select("students", {"order":"last_name.asc","limit":"100"}), self._report_students_loaded)
+
+    def _report_students_loaded(self, rows, error):
+        if error:
+            self._set_status("فهرست دانش‌آموزان برای کارنامه دریافت نشد: " + error, ERROR)
+            return
+        self.body.clear_widgets()
+        self.body.add_widget(self.label("ابتدا دانش‌آموز موردنظر را برای مشاهده کارنامه انتخاب کنید.", "12sp", PRIMARY, True, True, 40))
+        scroll = ScrollView(do_scroll_x=False)
+        grid = GridLayout(cols=1, spacing=dp(5), size_hint_y=None)
+        grid.bind(minimum_height=grid.setter("height"))
+        for row in rows or []:
+            name = f"{row.get('first_name','')} {row.get('last_name','')}".strip() or "دانش‌آموز"
+            grid.add_widget(self.btn(name + " • " + str(row.get("grade") or "-") + " / " + str(row.get("class_name") or "-"),
+                                      lambda *_a, sid=row.get("id"): self._show_report_for_student(sid), PRIMARY, 42))
+        scroll.add_widget(grid)
+        self.body.add_widget(scroll)
+
+    def _show_report_for_student(self, sid):
+        if not sid:
+            return
+        self.app_state.profile["linked_student_id"] = sid
         self._async(self._report_data, self._report_loaded)
 
     def _report_data(self):
         profile=self.app_state.profile
-        sid=profile.get("linked_student_id") or profile.get("student_id")
+        sid=(self.app_state.session.get("selected_student_id") if isinstance(self.app_state.session, dict) else None) or profile.get("linked_student_id") or profile.get("student_id")
         if not sid:
             rows=self._api().table_select("students", {"national_code":"eq."+str(self.app_state.national_code),"limit":"1"})
             sid=(rows or [{}])[0].get("id")
@@ -629,6 +658,13 @@ class SpecialModuleScreen(Screen):
             self.body.add_widget(self.label("فرزندی برای این حساب متصل نشده است.","12sp",ERROR,True,True,60))
 
     def _child_profile(self,sid):
+        if isinstance(self.app_state.session, dict) and sid:
+            self.app_state.session["selected_student_id"] = sid
+            try:
+                from mobile.services.session import save_session
+                save_session(self.app_state.session)
+            except Exception:
+                pass
         self._async(lambda:self._api().table_select("students",{"id":"eq."+str(sid),"limit":"1"}),self._show_child)
 
     def _show_child(self,row,error):
@@ -744,10 +780,15 @@ class SpecialModuleScreen(Screen):
         if not text:
             return
         popup.dismiss()
-        payload={"sender":self.app_state.profile.get("username") or self.app_state.national_code,
-                 "sender_name":self.app_state.display_name,"title":"مغایرت اطلاعات دانش‌آموز",
-                 "body":text,"audience_type":"role","audience_value":"manager","target_role":"manager"}
-        self._async(lambda:self._api().table_insert("messages",payload),lambda r,e:self._set_status(("مغایرت از طریق صندوق پیام به مدرسه ارسال شد." if not e else "ارسال پیام ناموفق بود: "+e),SUCCESS if not e else ERROR))
+        sender=self.app_state.profile.get("username") or self.app_state.national_code
+        payload={"sender":sender,"receiver":"manager","text":"مغایرت اطلاعات دانش‌آموز: "+text}
+        def work():
+            api=self._api()
+            row=api.table_insert("messages",payload)
+            if isinstance(row,list) and row and row[0].get("id"):
+                api.table_insert("message_targets",{"message_id":row[0]["id"],"target_type":"role","target_value":"manager"})
+            return True
+        self._async(work,lambda r,e:self._set_status(("مغایرت از طریق صندوق پیام به مدرسه ارسال شد." if not e else "ارسال پیام ناموفق بود: "+e),SUCCESS if not e else ERROR))
 
     def _smart_class_hint(self):
         self.title.text=rtl_text("کلاس هوشمند")
