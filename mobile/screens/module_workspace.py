@@ -147,7 +147,7 @@ CANONICAL_OPERATIONS = {
     if isinstance(_spec, dict)
 }
 
-HIDDEN = {"id", "created_at", "updated_at", "deleted_at"}
+HIDDEN = {"created_at", "updated_at", "deleted_at"}
 
 COLUMNS.update({
     "permissions":"سطح دسترسی","linked_student_id":"دانش‌آموز مرتبط","linked_teacher_id":"دبیر مرتبط","linked_staff_id":"کارمند مرتبط",
