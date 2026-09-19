@@ -219,11 +219,12 @@ class SpecialModuleScreen(Screen):
             api = self._api()
             for sid, status in state.items():
                 payload = {"student_id": sid, "teacher_id": teacher_id, "class_name": class_name,
-                           "subject": subject, "attendance_date": date, "status": status}
-                try:
-                    api.table_insert("teacher_attendance", payload)
-                except Exception:
-                    api.table_insert("attendance", payload)
+                           "subject": subject, "attendance_date": date, "status": status,
+                           "date": date, "description": ""}
+                # teacher_attendance is the ZIP teacher-workspace record;
+                # attendance is the shared student/parent record.
+                api.table_insert("teacher_attendance", payload)
+                api.table_insert("attendance", payload)
             return len(state)
         self._set_status("در حال ثبت حضور و غیاب واقعی…", SECONDARY)
         self._async(work, lambda n,e: self._set_status((f"{n} وضعیت با موفقیت ثبت شد." if not e else "ثبت حضور و غیاب ناموفق بود: " + e), SUCCESS if not e else ERROR))
