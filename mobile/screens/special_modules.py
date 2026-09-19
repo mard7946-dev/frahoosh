@@ -405,6 +405,7 @@ class SpecialModuleScreen(Screen):
                     "deduction": 0,
                     "actor_username": actor,
                     "actor_role": str(getattr(self.app_state, "role", "teacher") or "teacher"),
+                    "record_date": record_date,
                     "note": "ثبت از محیط انضباط دبیر در تاریخ " + record_date,
                 }
                 try:
