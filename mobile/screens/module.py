@@ -163,7 +163,18 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 if screen is not None and self.manager is not None:
                     self.manager.current = screen.name
                     return screen
-            if table in ("teacher_exams", "online_classes", "messages", "payment_offers"):
+            if table == "teacher_exams":
+                # The ZIP defines a full exam workflow (questions, slots,
+                # secure sharing and student attempts), so do not downgrade it
+                # to a generic CRUD table.
+                if app is not None and hasattr(app, "ensure_exam"):
+                    screen = app.ensure_exam()
+                    if screen is not None and self.manager is not None:
+                        self.manager.current = "teacher_exams"
+                        return screen
+                return super().open_table(table, refresh_subbar=False)
+
+            if table in ("online_classes", "messages", "payment_offers"):
                 return super().open_table(table, refresh_subbar=False)
             return ModuleWorkspaceScreen.open_table(self, table, refresh_subbar=False)
         except Exception as exc:
