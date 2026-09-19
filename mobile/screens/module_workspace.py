@@ -232,23 +232,27 @@ EDITABLE = {
     "manager": {table for items in SUBMENUS.values() for _, table in items},
     "educational": {
         "attendance","student_referrals","meeting_requests","ai_smart_reports","online_classes",
-        "messages","message_targets","exam_schedule","quiz_questions","teacher_classes","students"
+        "messages","message_targets","exam_schedule","quiz_questions","teacher_classes","students",
+        "educational_followups","academic_followups","khwarizmi_registrations"
     },
     "executive": {
         "students","executive_classes","staff","archive_items","executive_operations","executive_reports",
         "report_cards","online_classes","messages","weekly_schedule","discipline_records",
-        "certificate_requests","school_class_config","parent_children"
+        "certificate_requests","school_class_config","parent_children","assets","student_cards","class_cards",
+        "certificates","executive_requests","surveys"
     },
     "cultural": {
         "morning_ceremony","cultural_competitions","activity_programs","competitions",
         "educational_activities","cultural_reports","cultural_activity_registrations",
         "messages","message_targets","activity_offers","activity_registrations",
-        "student_council","basij_registration","school_ally","school_mayor","qari_registration"
+        "student_council","basij_registration","school_ally","school_mayor","qari_registration",
+        "art_competitions","sport_competitions","morning_leaders"
     },
     "advisor": {
         "counselor_board","counseling_records","counseling_followups","student_referrals",
         "parent_meetings","counseling_classes","parent_activities","counseling_guidance",
-        "ai_smart_reports","discipline_records","messages","message_targets"
+        "ai_smart_reports","discipline_records","messages","message_targets","educational_followups",
+        "academic_followups","parent_meeting_requests"
     },
     "teacher": {
         "teacher_classes","attendance","grades","assignments","teacher_exams","online_classes",
