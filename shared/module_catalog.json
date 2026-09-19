@@ -6,7 +6,7 @@
     "web",
     "android"
   ],
-  "principle": "The ZIP is the canonical module source for Web and Android; Android renders special workflows with dedicated environments but uses the same table and field contract.",
+  "principle": "The uploaded ZIP is the canonical source for the complete Web/Android module and supporting-table contract; Android uses dedicated operational environments for special workflows and generic CRUD only where the ZIP defines a table workspace.",
   "panels": {
     "management": [
       [
@@ -873,7 +873,35 @@
     "art_competitions": "مسابقات هنری",
     "sport_competitions": "مسابقات ورزشی",
     "morning_leaders": "مکبر",
-    "parent_meeting_requests": "درخواست ملاقات اولیا"
+    "parent_meeting_requests": "درخواست ملاقات اولیا",
+    "audience_presets": "مخاطبان آماده",
+    "class_seats": "صندلی‌های کلاسی",
+    "discipline_items": "تعریف موارد انضباطی",
+    "discipline_settings": "تنظیمات انضباطی",
+    "event_audiences": "مخاطبان رویداد",
+    "exam_cards": "کارت‌های امتحانی",
+    "exam_seats": "صندلی‌های امتحانی",
+    "finance_donations": "کمک‌های مالی",
+    "finance_extra": "امور مالی تکمیلی",
+    "grade_visibility": "وضعیت انتشار نمرات",
+    "message_delivery": "تحویل پیام‌ها",
+    "online_class_activity": "فعالیت کلاس آنلاین",
+    "online_class_ai_reports": "گزارش هوشمند کلاس آنلاین",
+    "online_class_board_events": "رویدادهای تخته کلاس",
+    "online_class_chat": "گفت‌وگوی کلاس آنلاین",
+    "online_class_notifications": "اعلان‌های کلاس آنلاین",
+    "online_class_settings": "تنظیمات کلاس آنلاین",
+    "online_presence_checks": "بررسی حضور آنلاین",
+    "online_quizzes": "آزمونک‌های کلاس آنلاین",
+    "parent_dashboard_events": "رویدادهای پنل اولیا",
+    "payment_transactions": "تراکنش‌های پرداخت",
+    "permissions": "مجوزهای سامانه",
+    "seating": "صندلی‌ها",
+    "student_dashboard_events": "رویدادهای پنل دانش‌آموز",
+    "student_files": "پرونده تکمیلی دانش‌آموز",
+    "student_registrations": "ثبت‌نام فعالیت‌ها",
+    "survey_answers": "پاسخ‌های نظرسنجی",
+    "survey_questions": "سؤالات نظرسنجی"
   },
   "modules": {
     "users": {
@@ -2603,6 +2631,437 @@
         "status",
         "educational_approval",
         "manager_approval"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "audience_presets": {
+      "table": "audience_presets",
+      "fields": [
+        "name",
+        "targets_json"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "class_seats": {
+      "table": "class_seats",
+      "fields": [
+        "student_id",
+        "class_name",
+        "seat_no"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "discipline_items": {
+      "table": "discipline_items",
+      "fields": [
+        "title",
+        "description",
+        "deduction",
+        "active"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "discipline_settings": {
+      "table": "discipline_settings",
+      "fields": [
+        "base_score"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "event_audiences": {
+      "table": "event_audiences",
+      "fields": [
+        "event_id",
+        "target_type",
+        "target_value"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "exam_cards": {
+      "table": "exam_cards",
+      "fields": [
+        "student_id",
+        "exam_name",
+        "code"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "exam_seats": {
+      "table": "exam_seats",
+      "fields": [
+        "student_id",
+        "exam_name",
+        "seat_no"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "finance_donations": {
+      "table": "finance_donations",
+      "fields": [
+        "donor_name",
+        "amount",
+        "description",
+        "donation_date"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "finance_extra": {
+      "table": "finance_extra",
+      "fields": [
+        "title",
+        "student_name",
+        "amount",
+        "description",
+        "payment_date"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "grade_visibility": {
+      "table": "grade_visibility",
+      "fields": [
+        "grade_id",
+        "released_by",
+        "released_at_shamsi",
+        "released"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "message_delivery": {
+      "table": "message_delivery",
+      "fields": [
+        "message_id",
+        "username",
+        "received_at",
+        "seen_at"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_class_activity": {
+      "table": "online_class_activity",
+      "fields": [
+        "class_id",
+        "session_id",
+        "student_id",
+        "event_type",
+        "event_time",
+        "metadata"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_class_ai_reports": {
+      "table": "online_class_ai_reports",
+      "fields": [
+        "class_id",
+        "student_id",
+        "session_id",
+        "report",
+        "risk_level"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_class_board_events": {
+      "table": "online_class_board_events",
+      "fields": [
+        "class_id",
+        "actor_id",
+        "actor_role",
+        "event_type",
+        "payload",
+        "event_date_shamsi"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_class_chat": {
+      "table": "online_class_chat",
+      "fields": [
+        "class_id",
+        "sender_id",
+        "sender_role",
+        "sender_name",
+        "recipient_student_id",
+        "is_private",
+        "message",
+        "sent_at_shamsi"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_class_notifications": {
+      "table": "online_class_notifications",
+      "fields": [
+        "class_id",
+        "student_id",
+        "recipient",
+        "recipient_role",
+        "title",
+        "message",
+        "read_at"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_class_settings": {
+      "table": "online_class_settings",
+      "fields": [
+        "class_id",
+        "public_chat_enabled",
+        "private_chat_enabled",
+        "board_enabled",
+        "file_share_enabled",
+        "media_enabled",
+        "quiz_enabled",
+        "camera_enabled",
+        "microphone_enabled",
+        "screen_share_enabled",
+        "updated_at_shamsi"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_presence_checks": {
+      "table": "online_presence_checks",
+      "fields": [
+        "class_id",
+        "session_id",
+        "student_id",
+        "checkpoint_no",
+        "scheduled_at",
+        "shown_at",
+        "responded_at",
+        "response"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "online_quizzes": {
+      "table": "online_quizzes",
+      "fields": [
+        "class_id",
+        "title",
+        "subject",
+        "duration",
+        "teacher"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "parent_dashboard_events": {
+      "table": "parent_dashboard_events",
+      "fields": [
+        "parent_username",
+        "student_id",
+        "event_type",
+        "source_table",
+        "source_id",
+        "title",
+        "payload",
+        "seen_at"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "payment_transactions": {
+      "table": "payment_transactions",
+      "fields": [
+        "student_id",
+        "registration_id",
+        "amount",
+        "gateway",
+        "authority",
+        "reference",
+        "status",
+        "paid_at",
+        "parent_username",
+        "payment_date"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "permissions": {
+      "table": "permissions",
+      "fields": [
+        "role",
+        "module",
+        "allowed"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "seating": {
+      "table": "seating",
+      "fields": [
+        "student_id",
+        "seat_no",
+        "exam"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "student_dashboard_events": {
+      "table": "student_dashboard_events",
+      "fields": [
+        "username",
+        "student_id",
+        "event_type",
+        "source_table",
+        "source_id",
+        "title",
+        "payload",
+        "seen_at"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "student_files": {
+      "table": "student_files",
+      "fields": [
+        "student_id",
+        "medical_notes",
+        "educational_notes",
+        "disciplinary_notes",
+        "family_notes",
+        "attachments"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "student_registrations": {
+      "table": "student_registrations",
+      "fields": [
+        "student_id",
+        "activity_id",
+        "activity_title",
+        "activity_kind",
+        "fee",
+        "payment_status",
+        "payment_url",
+        "payment_reference",
+        "registration_code",
+        "registered_at",
+        "registration_date",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "survey_answers": {
+      "table": "survey_answers",
+      "fields": [
+        "response_id",
+        "question_id",
+        "answer"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "survey_questions": {
+      "table": "survey_questions",
+      "fields": [
+        "survey_id",
+        "question",
+        "question_type",
+        "options",
+        "required",
+        "sort_order"
       ],
       "operations": [
         "create",
