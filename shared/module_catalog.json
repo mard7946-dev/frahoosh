@@ -1,5 +1,5 @@
 {
-  "version": "3.1.0",
+  "version": "3.2.0",
   "source": "Frahoosh_v16_12_LOGIN_BACKGROUND_FINAL_02.zip",
   "backend": "supabase",
   "clients": [
@@ -14,20 +14,96 @@
         "users"
       ],
       [
-        "کلاس آنلاین",
-        "online_classes"
+        "دانش‌آموزان",
+        "students"
       ],
       [
-        "برنامه هفتگی و برنامه امتحانات",
+        "دبیران",
+        "teachers"
+      ],
+      [
+        "کادر و کارکنان",
+        "staff"
+      ],
+      [
+        "ساختار کلاس‌ها",
+        "school_class_config"
+      ],
+      [
+        "بایگانی",
+        "archive_items"
+      ],
+      [
+        "اموال",
+        "assets"
+      ],
+      [
+        "گواهی‌ها",
+        "certificates"
+      ],
+      [
+        "کارت‌های دانش‌آموزی",
+        "student_cards"
+      ],
+      [
+        "کارت‌های کلاسی",
+        "class_cards"
+      ],
+      [
+        "صندلی‌های کلاسی",
+        "class_seat_assignments"
+      ],
+      [
+        "صندلی‌های امتحانی",
+        "exam_seat_assignments"
+      ],
+      [
+        "کارنامه‌ها",
+        "report_cards"
+      ],
+      [
+        "برنامه هفتگی",
         "weekly_schedule"
       ],
       [
-        "گزارش‌ها و آمار",
-        "report_cards"
+        "برنامه امتحانات",
+        "exam_schedule"
+      ],
+      [
+        "کلاس‌های آنلاین",
+        "online_classes"
+      ],
+      [
+        "اطلاع‌رسانی",
+        "school_events"
+      ],
+      [
+        "صندوق پیام",
+        "messages"
+      ],
+      [
+        "درخواست ملاقات",
+        "meeting_requests"
+      ],
+      [
+        "موارد انضباطی",
+        "discipline_records"
+      ],
+      [
+        "گزارش‌های مدیریتی",
+        "ai_smart_reports"
+      ],
+      [
+        "نظرسنجی",
+        "surveys"
       ],
       [
         "تنظیمات مدرسه",
         "school_profile"
+      ],
+      [
+        "حساب‌های سامانه",
+        "users"
       ]
     ],
     "educational": [
@@ -70,6 +146,26 @@
       [
         "ارسال پیام",
         "message_targets"
+      ],
+      [
+        "جداول آموزشی کامل",
+        "grade_items"
+      ],
+      [
+        "پیگیری آموزشی",
+        "educational_followups"
+      ],
+      [
+        "پیگیری درسی",
+        "academic_followups"
+      ],
+      [
+        "موارد انضباطی",
+        "discipline_records"
+      ],
+      [
+        "جشنواره خوارزمی",
+        "khwarizmi_registrations"
       ]
     ],
     "executive": [
@@ -94,12 +190,36 @@
         "executive_operations"
       ],
       [
-        "گزارش‌ها",
+        "گزارش‌های اجرایی",
         "executive_reports"
+      ],
+      [
+        "کارت‌ها",
+        "student_cards"
+      ],
+      [
+        "کارت کلاسی",
+        "class_cards"
+      ],
+      [
+        "گواهی‌ها",
+        "certificates"
       ],
       [
         "کارنامه‌ها",
         "report_cards"
+      ],
+      [
+        "صندلی‌های کلاسی",
+        "class_seat_assignments"
+      ],
+      [
+        "صندلی‌های امتحانی",
+        "exam_seat_assignments"
+      ],
+      [
+        "برنامه هفتگی",
+        "weekly_schedule"
       ],
       [
         "کلاس آنلاین",
@@ -108,6 +228,10 @@
       [
         "صندوق پیام",
         "messages"
+      ],
+      [
+        "درخواست‌ها",
+        "executive_requests"
       ]
     ],
     "cultural": [
@@ -116,19 +240,23 @@
         "morning_ceremony"
       ],
       [
-        "مسابقات",
+        "مسابقات فرهنگی",
         "cultural_competitions"
       ],
       [
-        "اردوها",
+        "مسابقات هنری",
+        "art_competitions"
+      ],
+      [
+        "مسابقات ورزشی",
+        "sport_competitions"
+      ],
+      [
+        "اردوها و فعالیت‌ها",
         "activity_programs"
       ],
       [
-        "جشنواره‌ها",
-        "competitions"
-      ],
-      [
-        "استعداد",
+        "استعداد و فعالیت‌های آموزشی",
         "educational_activities"
       ],
       [
@@ -142,6 +270,30 @@
       [
         "ثبت‌نام فعالیت‌ها",
         "cultural_activity_registrations"
+      ],
+      [
+        "انتخابات شورای دانش‌آموزی",
+        "student_council"
+      ],
+      [
+        "بسیج دانش‌آموزی",
+        "basij_registration"
+      ],
+      [
+        "شهردار مدرسه",
+        "school_mayor"
+      ],
+      [
+        "مکبر",
+        "morning_leaders"
+      ],
+      [
+        "قاری",
+        "qari_registration"
+      ],
+      [
+        "موارد انضباطی",
+        "discipline_records"
       ],
       [
         "پیام‌های دریافتی",
@@ -244,6 +396,18 @@
         "grade_items"
       ],
       [
+        "بانک سؤال",
+        "quiz_questions"
+      ],
+      [
+        "ارجاع دانش‌آموز",
+        "student_referrals"
+      ],
+      [
+        "موارد انضباطی",
+        "discipline_records"
+      ],
+      [
         "پیام‌های دریافتی",
         "messages"
       ],
@@ -256,6 +420,10 @@
       [
         "پروفایل",
         "students"
+      ],
+      [
+        "پایه و کلاس",
+        "student_class_info"
       ],
       [
         "حضور و غیاب",
@@ -278,16 +446,44 @@
         "activity_registrations"
       ],
       [
+        "انتخابات شورای دانش‌آموزی",
+        "student_council"
+      ],
+      [
+        "بسیج دانش‌آموزی",
+        "basij_registration"
+      ],
+      [
+        "همیار مدرسه",
+        "school_ally"
+      ],
+      [
+        "شهردار مدرسه",
+        "school_mayor"
+      ],
+      [
+        "ارسال تکالیف",
+        "assignment_submissions"
+      ],
+      [
         "برنامه هفتگی",
         "weekly_schedule"
       ],
       [
-        "امتحانات",
+        "برنامه امتحانی",
         "exam_schedule"
       ],
       [
-        "گزارش عملکرد",
-        "ai_smart_reports"
+        "شماره صندلی کلاسی",
+        "class_seat_assignments"
+      ],
+      [
+        "شماره صندلی امتحانی",
+        "exam_seat_assignments"
+      ],
+      [
+        "درخواست گواهی",
+        "certificate_requests"
       ],
       [
         "کلاس آنلاین",
@@ -300,7 +496,7 @@
     ],
     "parents": [
       [
-        "انتخاب دانش‌آموز",
+        "انتخاب یک یا چند دانش‌آموز",
         "parent_children"
       ],
       [
@@ -308,8 +504,20 @@
         "students"
       ],
       [
-        "کارنامه و نمرات",
+        "نمرات کلاسی و امتحانی",
         "student_grades"
+      ],
+      [
+        "حضور و غیاب",
+        "attendance"
+      ],
+      [
+        "کارنامه ماهیانه",
+        "monthly_report_cards"
+      ],
+      [
+        "کارنامه مستمر و پایان ترم",
+        "report_cards"
       ],
       [
         "وضعیت انضباطی",
@@ -352,8 +560,8 @@
         "transport_requests"
       ],
       [
-        "همه اطلاعات مدرسه",
-        "grades"
+        "فعالیت‌های اولیا",
+        "parent_activities"
       ]
     ],
     "finance": [
@@ -2161,5 +2369,6 @@
       "parent_children",
       "identity_gate"
     ]
-  }
+  },
+  "canonical_rule": "Every visible Android/Web module is sourced from the ZIP contract; special modules keep the same canonical table/field semantics."
 }
