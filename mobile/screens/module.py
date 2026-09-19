@@ -113,12 +113,24 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 if screen is not None and self.manager is not None:
                     self.manager.current = "meetings"
                     return screen
-            if table == "smart_class_preview" and app is not None and hasattr(app, "ensure_smart_class_preview"):
-                screen = app.ensure_smart_class_preview()
-                if screen is not None and self.manager is not None:
-                    screen.return_to = "panel"
+            if table == "smart_class_preview":
+                # Smart classroom is a dedicated operational screen, never a
+                # Supabase CRUD table. Resolve the already-preloaded screen
+                # directly from the active ScreenManager first.
+                screen = None
+                if self.manager is not None:
+                    try:
+                        screen = self.manager.get_screen("smart_class_preview")
+                    except Exception:
+                        screen = None
+                if screen is None and app is not None and hasattr(app, "ensure_smart_class_preview"):
+                    screen = app.ensure_smart_class_preview()
+                if screen is None:
+                    raise RuntimeError("محیط کلاس هوشمند در برنامه بارگذاری نشده است.")
+                screen.return_to = "panel"
+                if self.manager is not None:
                     self.manager.current = "smart_class_preview"
-                    return screen
+                return screen
 
             # These workflows are not generic CRUD tables. They have dedicated UX.
             special_modes = {
