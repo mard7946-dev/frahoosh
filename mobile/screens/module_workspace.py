@@ -332,6 +332,9 @@ EDITABLE = {
         "lesson_plans","teacher_meetings","teacher_activities","grade_items","discipline_records",
         "messages","message_targets","student_referrals"
     },
+    "finance": {
+        "finance_accounts","finance_transactions","finance_donations","payment_offers","payment_attempts","payment_records"
+    },
 }
 FORMS = {
     "students":["first_name","last_name","father_name","mother_name","national_code","birth_certificate_place","birth_place","religion","sect","nationality","student_phone","father_phone","mother_phone","grade","class_name"],
@@ -406,7 +409,11 @@ class ModuleWorkspaceScreen(Screen):
         raw=str(getattr(self.app_state,"role","student") or "student").strip().lower()
         return {"admin":"manager","administrator":"manager","مدیر":"manager","مدیریت":"manager","معاون آموزشی":"educational","معاون اجرایی":"executive","معاون پرورشی":"cultural","مشاور":"advisor","دبیر":"teacher","معلم":"teacher","دانش‌آموز":"student","ولی":"parent","اولیا":"parent"}.get(raw,raw)
 
-    def can_write(self,table): return table in EDITABLE.get(self.role(),set())
+    def can_write(self,table):
+        # The smart classroom is a live environment, not a CRUD table.
+        if str(table) == "smart_class_preview":
+            return False
+        return table in EDITABLE.get(self.role(),set())
 
     def set_module(self,route,return_to="dashboard"):
         self.route=route if route in SUBMENUS else "management"; self.return_to=return_to or "dashboard"; self.table=None; self.selected_row=None; self.render()
