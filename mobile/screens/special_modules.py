@@ -329,12 +329,15 @@ class SpecialModuleScreen(Screen):
                 payload = {
                     "student_id": sid,
                     "teacher_id": teacher_id,
-                    "discipline_type": kind,
-                    "record_date": record_date,
-                    "decision_type": "ثبت اولیه",
-                    "deduct_score": 0,
-                    "referral_to": "مشاور",
-                    "description": kind,
+                    "title": kind,
+                    "description": "ثبت مورد انضباطی: " + kind,
+                    "priority": "normal",
+                    "status": "pending",
+                    "item_id": None,
+                    "deduction": 0,
+                    "actor_username": actor,
+                    "actor_role": str(getattr(self.app_state, "role", "teacher") or "teacher"),
+                    "note": "ثبت از محیط انضباط دبیر در تاریخ " + record_date,
                 }
                 try:
                     api.table_insert("discipline_records", payload)
