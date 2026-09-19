@@ -96,6 +96,25 @@ COLUMNS = {
     "share_code":"کد اشتراک", "target_class_name":"کلاس مقصد", "start_at":"شروع", "end_at":"پایان",
 }
 
+COLUMNS.update({
+    "content_date_shamsi":"تاریخ شمسی محتوا","board_date":"تاریخ تخته","file_path":"مسیر فایل","file_type":"نوع فایل",
+    "media_path":"مسیر رسانه","media_type":"نوع رسانه","activity_text":"شرح فعالیت","quiz_date_shamsi":"تاریخ آزمونک",
+    "correct_option":"گزینه صحیح","tool_type":"نوع ابزار","configuration":"تنظیمات ابزار","request_date_shamsi":"تاریخ درخواست",
+    "analysis_date_shamsi":"تاریخ تحلیل","risk_level":"سطح ریسک","report_type":"نوع گزارش","target_id":"شناسه هدف",
+    "grade_type":"نوع نمره","grade_date":"تاریخ نمره","activity_date":"تاریخ فعالیت","operation_type":"نوع عملیات",
+    "report_date":"تاریخ گزارش","created_by":"ثبت‌کننده","fee":"هزینه","registration_date":"تاریخ ثبت‌نام",
+    "start_date":"تاریخ شروع","end_date":"تاریخ پایان","weight":"ضریب","bell_pattern":"الگوی زنگ","class_names":"کلاس‌ها",
+    "capacity":"ظرفیت","weekdays":"روزهای هفته","program_key":"کلید برنامه","activity_key":"کلید فعالیت",
+    "student_name":"نام دانش‌آموز","parent_username":"نام کاربری ولی","vehicle_type":"نوع وسیله","origin":"مبدأ","destination":"مقصد",
+    "counterparty":"طرف حساب","debit":"بدهکار","credit":"بستانکار","invoice_number":"شماره فاکتور","transaction_date":"تاریخ تراکنش",
+    "payment_type":"نوع پرداخت","gateway":"درگاه","reference":"شماره مرجع","authority":"شماره پیگیری",
+    "requested_date":"تاریخ درخواست","requested_time":"ساعت درخواست","target_person":"شخص مورد ملاقات","target_type":"نوع مخاطب",
+    "attempt_id":"شناسه تلاش آزمون","question_id":"شناسه سؤال","answer":"پاسخ","auto_correct":"تصحیح خودکار","teacher_score":"نمره دبیر",
+    "started_at":"شروع","submitted_at":"ارسال","student_username":"نام کاربری دانش‌آموز","max_score":"حداکثر نمره",
+    "seat_number":"شماره صندلی","academic_year":"سال تحصیلی","exam_id":"شناسه امتحان","assignment_id":"شناسه تکلیف",
+    "answer_text":"پاسخ تکلیف","file_url":"فایل پیوست","status":"وضعیت","active":"فعال","settings":"تنظیمات"
+})
+
 HIDDEN = {"id", "created_at", "updated_at", "deleted_at"}
 
 COLUMNS.update({
@@ -282,7 +301,7 @@ class ModuleWorkspaceScreen(Screen):
     def can_write(self,table): return table in EDITABLE.get(self.role(),set())
 
     def set_module(self,route,return_to="dashboard"):
-        self.route=route if route in SUBMENUS else "management"; self.return_to=return_to or "dashboard"; self.table=None; self.render()
+        self.route=route if route in SUBMENUS else "management"; self.return_to=return_to or "dashboard"; self.table=None; self.selected_row=None; self.render()
 
     load_module=set_module
 
@@ -346,6 +365,9 @@ class ModuleWorkspaceScreen(Screen):
                 return
 
         self.table=table
+        # A selection belongs only to the currently open table. Never carry a row
+        # from another module into Edit/Delete.
+        self.selected_row=None
         if refresh_subbar:
             self.render(); return
         self.body.clear_widgets(); self.title.text=rtl_text(FRIENDLY.get(table,table))
@@ -419,6 +441,7 @@ class ModuleWorkspaceScreen(Screen):
         rows = rows if isinstance(rows, list) else []
         rows = [dict(r) for r in rows if isinstance(r, dict)]
         self.rows=rows
+        self.selected_row=None
         if error:
             self.status.text=rtl_text("خطا در دریافت اطلاعات: "+str(error))
             self.status.color=(.8,.15,.15,1)
@@ -512,6 +535,8 @@ class ModuleWorkspaceScreen(Screen):
         # a module from silently falling back to decorative fields.
         canonical = list(TABLE_FIELDS.get(table) or [])
         fields=[k for k in (canonical or FORMS.get(table) or self._infer(row)) if k not in HIDDEN]
+        # Never expose internal metadata or an unknown placeholder as a form field.
+        fields=[k for k in fields if k and k not in {"password","school_id"}]
         root=BoxLayout(orientation='vertical',padding=dp(10),spacing=dp(6)); sc=ScrollView(do_scroll_x=False); form=GridLayout(cols=1,spacing=dp(5),size_hint_y=None); form.bind(minimum_height=form.setter('height')); inputs={}
         for f in fields:
             form.add_widget(self.label(COLUMNS.get(f,f),"9sp",PRIMARY,True)); ti=PersianTextInput(text='' if row is None else str(row.get(f,'')),font_name=font_name(),font_size='12sp',halign='right',multiline=False,size_hint_y=None,height=dp(44),padding=[dp(8),dp(6)]); inputs[f]=ti; form.add_widget(ti)
@@ -534,7 +559,7 @@ class ModuleWorkspaceScreen(Screen):
             except Exception as exc: Clock.schedule_once(lambda *_:self.write_error(str(exc)),0)
         Thread(target=work,daemon=True).start()
 
-    def after_write(self,msg): self.status.text=rtl_text(msg); self.status.color=SUCCESS; self.load_table()
+    def after_write(self,msg): self.selected_row=None; self.status.text=rtl_text(msg); self.status.color=SUCCESS; self.load_table()
     def write_error(self,msg): self.status.text=rtl_text('ذخیره انجام نشد: '+msg); self.status.color=(.8,.15,.15,1)
 
     def confirm_delete(self,table,row):
