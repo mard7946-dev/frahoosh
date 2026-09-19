@@ -91,110 +91,74 @@ class LoginScreen(Screen):
 
         root = FloatLayout()
 
-        # Never leave the login screen white if Android fails to decode or
-        # locate the artwork. The visual fallback is deliberately dark/glass
-        # so the page remains branded and usable instead of looking empty.
-        with root.canvas.before:
-            Color(*NAVY)
-            root_bg = RoundedRectangle(pos=root.pos, size=root.size)
-        root.bind(
-            pos=lambda o, v: setattr(root_bg, "pos", v),
-            size=lambda o, v: setattr(root_bg, "size", v),
-        )
-
-        artwork_loaded = bool(BACKGROUND_PATH) and Path(BACKGROUND_PATH).is_file()
-        self.artwork_loaded = artwork_loaded
-
-        # The supplied portrait artwork is the full-screen background.
+        # The supplied portrait artwork is the actual login design.
+        # Native controls are transparent overlays placed on the artwork,
+        # so the visual card/buttons/icons remain exactly as designed.
         background = Image(
-            source=BACKGROUND_PATH if artwork_loaded else "",
+            source=str(BACKGROUND_PATH),
             size_hint=(1, 1),
             pos_hint={"x": 0, "y": 0},
+            allow_stretch=True,
+            keep_ratio=False,
+            opacity=1,
         )
-        # Preserve the artwork ratio on every phone. "cover" fills the mobile
-        # screen without the distortion seen with keep_ratio=False.
-        try:
-            background.fit_mode = "cover"
-        except Exception:
-            # Compatibility with older Kivy builds.
-            background.allow_stretch = True
-            background.keep_ratio = True
         root.add_widget(background)
 
-        # School name is intentionally rendered by Kivy, not baked into the
-        # background image. This keeps the school name editable from code and
-        # guarantees that the exact configured school name is shown on every
-        # Android device.
-        school_overlay = self.label(SCHOOL_NAME, "13sp", WHITE, True, "center")
-        school_overlay.size_hint = (0.88, None)
+        # Keep the school name in code as requested.  It is positioned over
+        # the same title area in the artwork, using the configured school name.
+        school_overlay = self.label(
+            SCHOOL_NAME,
+            "13sp",
+            WHITE,
+            True,
+            "center",
+        )
+        school_overlay.size_hint = (0.70, None)
         school_overlay.height = dp(34)
-        school_overlay.pos_hint = {"center_x": 0.5, "top": 0.94}
-        school_overlay.opacity = 1
+        school_overlay.pos_hint = {"center_x": 0.50, "top": 0.635}
         root.add_widget(school_overlay)
         self.school_overlay = school_overlay
 
-        # The artwork already contains the glowing card frame. We place real
-        # Kivy controls inside that frame instead of drawing a fake login UI.
-        card = BoxLayout(
-            orientation="vertical",
-            padding=[dp(22), dp(16), dp(22), dp(16)],
-            spacing=dp(7),
-            size_hint=(0.78, 0.47),
-            pos_hint={"center_x": 0.5, "y": 0.10},
-        )
-        # The artwork already contains the visual login card. If it is
-        # missing, paint a real glass card instead of showing plain controls
-        # on a white page.
-        with card.canvas.before:
-            Color(*(GLASS if not artwork_loaded else (0, 0, 0, 0)))
-            panel = RoundedRectangle(radius=[dp(24)])
-        card.bind(
-            pos=lambda o, v: setattr(panel, "pos", v),
-            size=lambda o, v: setattr(panel, "size", v),
-        )
+        # Transparent input overlays: the artwork supplies the field frames,
+        # icons and visual styling; these widgets provide the real interaction.
+        def overlay_field(hint, password=False, y=0.50):
+            field = PersianTextInput(
+                hint_text=rtl_text(hint),
+                password=password,
+                password_mask="*",
+                font_name=font_name(),
+                font_size="14sp",
+                multiline=False,
+                size_hint=(0.55, None),
+                height=dp(47),
+                halign="right",
+                padding=[dp(10), dp(7)],
+                background_normal="",
+                background_active="",
+                background_color=(0, 0, 0, 0),
+                foreground_color=WHITE,
+                hint_text_color=MUTED,
+                cursor_color=CYAN,
+                selection_color=(0.10, 0.50, 0.90, 0.45),
+                pos_hint={"center_x": 0.50, "center_y": y},
+            )
+            return field
 
-        # When the artwork is unavailable, recreate the essential branding
-        # with native widgets so the login page still has hierarchy and life.
-        if not artwork_loaded:
-            brand = self.label(APP_NAME, "26sp", CYAN, True, "center")
-            brand.size_hint_y = None
-            brand.height = dp(38)
-            card.add_widget(brand)
+        self.identifier = overlay_field(LOGIN_USERNAME_HINT or "نام کاربری", False, 0.525)
+        self.password = overlay_field("", True, 0.455)
+        root.add_widget(self.identifier)
+        root.add_widget(self.password)
 
-            school = self.label(SCHOOL_NAME, "11sp", WHITE, True, "center")
-            school.size_hint_y = None
-            school.height = dp(30)
-            card.add_widget(school)
-
-            subtitle = self.label("سامانه مدیریت هوشمند یکپارچه مدرسه", "9sp", MUTED, False, "center")
-            subtitle.size_hint_y = None
-            subtitle.height = dp(24)
-            card.add_widget(subtitle)
-        else:
-            # The artwork contains the school name, logo and visual frame.
-            spacer = Widget(size_hint_y=None, height=dp(38))
-            card.add_widget(spacer)
-
-        self.identifier = self._field(LOGIN_USERNAME_HINT or "نام کاربری")
-        card.add_widget(self.identifier)
-
-        self.password = self._field("", password=True)
-        card.add_widget(self.password)
-
-        options = BoxLayout(
-            orientation="horizontal",
-            size_hint_y=None,
-            height=dp(31),
-            spacing=dp(4),
-        )
-
+        # Remember checkbox and recovery link sit over the artwork controls.
         self.remember_checkbox = CheckBox(
             active=False,
             size_hint=(None, None),
-            size=(dp(28), dp(28)),
+            size=(dp(34), dp(34)),
             color=CYAN,
+            pos_hint={"center_x": 0.25, "center_y": 0.385},
         )
         self.remember_checkbox.bind(active=self._remember_changed)
+        root.add_widget(self.remember_checkbox)
 
         remember_label = Button(
             text=rtl_text("مرا بخاطر بسپار"),
@@ -203,12 +167,12 @@ class LoginScreen(Screen):
             color=WHITE,
             background_normal="",
             background_color=(0, 0, 0, 0),
-            size_hint=(None, 1),
-            width=dp(115),
-            halign="right",
-            valign="middle",
+            size_hint=(0.24, None),
+            height=dp(32),
+            pos_hint={"center_x": 0.43, "center_y": 0.385},
         )
         remember_label.bind(on_release=self._toggle_remember)
+        root.add_widget(remember_label)
 
         forgot = Button(
             text=rtl_text("فراموشی رمز"),
@@ -217,37 +181,36 @@ class LoginScreen(Screen):
             color=GOLD,
             background_normal="",
             background_color=(0, 0, 0, 0),
-            halign="left",
-            valign="middle",
+            size_hint=(0.22, None),
+            height=dp(32),
+            pos_hint={"center_x": 0.69, "center_y": 0.385},
         )
         forgot.bind(on_release=self.forgot_password)
+        root.add_widget(forgot)
 
-        options.add_widget(self.remember_checkbox)
-        options.add_widget(remember_label)
-        options.add_widget(Widget())
-        options.add_widget(forgot)
-        card.add_widget(options)
-
+        # Transparent button over the artwork's cyan login button.
         self.login_button = Button(
-            text=rtl_text("ورود  →"),
+            text=rtl_text("ورود"),
             font_name=font_name(),
-            font_size="15sp",
+            font_size="16sp",
             bold=True,
             background_normal="",
-            background_color=CYAN,
-            color=NAVY,
-            size_hint_y=None,
-            height=dp(46),
+            background_down="",
+            background_color=(0, 0, 0, 0),
+            color=(0, 0, 0, 0),
+            size_hint=(0.58, None),
+            height=dp(58),
+            pos_hint={"center_x": 0.50, "center_y": 0.305},
         )
         self.login_button.bind(on_release=self.login)
-        card.add_widget(self.login_button)
+        root.add_widget(self.login_button)
 
         self.status = self.label("", "9sp", MUTED, False, "center")
-        self.status.size_hint_y = None
-        self.status.height = dp(19)
-        card.add_widget(self.status)
+        self.status.size_hint = (0.72, None)
+        self.status.height = dp(24)
+        self.status.pos_hint = {"center_x": 0.50, "center_y": 0.235}
+        root.add_widget(self.status)
 
-        root.add_widget(card)
         self.add_widget(root)
 
     def _remember_changed(self, *_args):
