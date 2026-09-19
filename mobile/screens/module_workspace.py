@@ -270,7 +270,8 @@ class ModuleWorkspaceScreen(Screen):
                 rows = api.table_select(table, {"limit": "25"}) or []
                 if not isinstance(rows, list):
                     rows = []
-                Clock.schedule_once(lambda *_: self._safe_loaded(rows[:25], None), 0)
+                safe_rows = [dict(r) for r in rows if isinstance(r, dict)]
+                Clock.schedule_once(lambda *_: self._safe_loaded(safe_rows[:25], None), 0)
             except Exception as exc:
                 message = str(exc) or exc.__class__.__name__
                 Clock.schedule_once(lambda *_: self._safe_loaded([], message), 0)
@@ -290,40 +291,80 @@ class ModuleWorkspaceScreen(Screen):
                 pass
 
     def loaded(self,rows,error):
+        # Supabase is expected to return a list of dictionaries. Normalize the
+        # response before touching any Kivy widget so a malformed/empty response
+        # can never terminate the Android UI thread.
+        rows = rows if isinstance(rows, list) else []
+        rows = [dict(r) for r in rows if isinstance(r, dict)]
         self.rows=rows
-        if error: self.status.text=rtl_text("خطا: "+error); self.status.color=(.8,.15,.15,1)
-        else: self.status.text=rtl_text(f"{len(rows)} رکورد واقعی • {FRIENDLY.get(self.table,self.table)}"); self.status.color=SUCCESS
+        if error:
+            self.status.text=rtl_text("خطا در دریافت اطلاعات: "+str(error))
+            self.status.color=(.8,.15,.15,1)
+            self.render_rows([])
+            return
+        self.status.text=rtl_text(f"{len(rows)} رکورد واقعی • {FRIENDLY.get(self.table,self.table)}")
+        self.status.color=SUCCESS
         self.render_rows(rows)
 
     def render_rows(self,rows):
-        self.area.clear_widgets()
-        if not rows:
-            e=Surface(height=dp(130)); e.add_widget(self.label("رکوردی برای نمایش وجود ندارد","16sp",PRIMARY,True,"center")); e.add_widget(self.label("در صورت داشتن دسترسی، از «ثبت جدید» استفاده کنید.","9sp",SECONDARY,False,"center")); self.area.add_widget(e); return
-        preferred = TABLE_FIELDS.get(self.table, [])
-        keys = [k for k in preferred if any(isinstance(r,dict) and k in r for r in rows)]
-        if not keys:
-            for r in rows:
-                if isinstance(r,dict):
+        try:
+            self.area.clear_widgets()
+            rows = [dict(r) for r in (rows or []) if isinstance(r, dict)]
+            if not rows:
+                e=Surface(height=dp(130))
+                e.add_widget(self.label("رکوردی برای نمایش وجود ندارد","16sp",PRIMARY,True,"center"))
+                e.add_widget(self.label("در صورت داشتن دسترسی، از «ثبت جدید» استفاده کنید.","9sp",SECONDARY,False,"center"))
+                self.area.add_widget(e)
+                return
+            preferred = TABLE_FIELDS.get(self.table, [])
+            keys = [k for k in preferred if any(k in r for r in rows)]
+            if not keys:
+                for r in rows:
                     for k in r:
-                        if k not in HIDDEN and k not in keys: keys.append(k)
-        # Keep every Web-defined business column that exists in the live Supabase response.\n        # The Web tables are intentionally wide; Android uses horizontal touch scrolling\n        # instead of silently dropping columns.\n        col_w=dp(230)
-        action_w=dp(175 if self.can_write(self.table) else 0)
-        totalw=max(dp(720),col_w*max(2,len(keys))+action_w)
-        scroll=ScrollView(do_scroll_x=True); content=BoxLayout(orientation='vertical',size_hint=(None,None),width=totalw,spacing=dp(3),padding=dp(2)); content.bind(minimum_height=content.setter('height'))
-        header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(78),spacing=dp(3),padding=[dp(4),dp(4)])
-        for k in keys:
-            cell=self.label(COLUMNS.get(k,k),"18sp",WHITE,True,"center")
-            cell.size_hint_x=None
-            cell.width=col_w
-            header.add_widget(cell)
-        if self.can_write(self.table):
-            op=self.label("عملیات","16sp",WHITE,True,"center")
-            op.size_hint_x=None
-            op.width=action_w
-            header.add_widget(op)
-        self._header(header); content.add_widget(header)
-        for i,r in enumerate(rows,1): content.add_widget(self.row(r,i,keys,totalw))
-        scroll.add_widget(content); self.area.add_widget(scroll)
+                        if k not in HIDDEN and k not in keys:
+                            keys.append(k)
+            if not keys:
+                keys = ["title","description","status"]
+            # Keep the Web-defined business columns that actually exist in the
+            # live response. Android uses horizontal touch scrolling for wide tables.
+            col_w=dp(230)
+            action_w=dp(175 if self.can_write(self.table) else 0)
+            totalw=max(dp(720),col_w*max(2,len(keys))+action_w)
+            scroll=ScrollView(do_scroll_x=True,do_scroll_y=True)
+            content=BoxLayout(orientation='vertical',size_hint=(None,None),width=totalw,spacing=dp(3),padding=dp(2))
+            content.bind(minimum_height=content.setter('height'))
+            header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(78),spacing=dp(3),padding=[dp(4),dp(4)])
+            for k in keys:
+                cell=self.label(COLUMNS.get(k,k),"18sp",WHITE,True,"center")
+                cell.size_hint_x=None
+                cell.width=col_w
+                header.add_widget(cell)
+            if self.can_write(self.table):
+                op=self.label("عملیات","16sp",WHITE,True,"center")
+                op.size_hint_x=None
+                op.width=action_w
+                header.add_widget(op)
+            self._header(header)
+            content.add_widget(header)
+            for i,r in enumerate(rows,1):
+                try:
+                    content.add_widget(self.row(r,i,keys,totalw))
+                except Exception as row_exc:
+                    print("MODULE ROW RENDER ERROR:", repr(row_exc))
+            scroll.add_widget(content)
+            self.area.add_widget(scroll)
+        except Exception as exc:
+            print("MODULE TABLE RENDER ERROR:", repr(exc))
+            try:
+                self.status.text=rtl_text("خطا در نمایش جدول: "+str(exc))
+                self.status.color=(.8,.15,.15,1)
+                self.area.clear_widgets()
+                fallback=Surface(height=dp(150))
+                fallback.add_widget(self.label("نمایش جدول با خطا روبه‌رو شد","14sp",ERROR if 'ERROR' in globals() else (.8,.15,.15,1),True,"center"))
+                fallback.add_widget(self.label("داده‌ها حفظ شده‌اند؛ دوباره تازه‌سازی کنید.","9sp",SECONDARY,False,"center"))
+                self.area.add_widget(fallback)
+            except Exception:
+                pass
 
     def _header(self,w):
         with w.canvas.before: Color(*PRIMARY); bg=RoundedRectangle(radius=[dp(8)])
