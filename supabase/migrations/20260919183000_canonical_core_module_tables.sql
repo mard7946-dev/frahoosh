@@ -391,25 +391,6 @@ alter table if exists public.report_cards add column if not exists grade_level t
 alter table if exists public.report_cards add column if not exists academic_year text;
 alter table if exists public.report_cards add column if not exists report_date text;
 
--- New tables are deliberately usable by authenticated Web/Android clients.
--- Existing tables retain the application's existing RLS policies.
-do $$
-declare
-  t text;
-begin
-  foreach t in array array[
-    'account_settings','students','teachers','staff','users','parent_children',
-    'teacher_classes','attendance','grades','student_grades','assignments',
-    'weekly_schedule','generated_weekly_schedule','exam_schedule','online_attendance',
-    'messages','message_targets','message_reads','finance_accounts','finance_transactions',
-    'payment_offers','payment_attempts','payment_records','report_cards',
-    'report_card_snapshots','school_profile','parent_meetings','school_events',
-    'smart_class_preview'
-  ] loop
-    if to_regclass('public.' || t) is not null then
-      execute format('alter table public.%I enable row level security', t);
-      execute format('drop policy if exists frahoosh_core_authenticated on public.%I', t);
-      execute format('create policy frahoosh_core_authenticated on public.%I for all to authenticated using (true) with check (true)', t);
-    end if;
-  end loop;
-end $$;
+-- Existing installations keep their established RLS policies. New tables are
+-- created idempotently above; deployment-specific RLS can be layered on them
+-- without weakening the application's existing parent/student isolation.
