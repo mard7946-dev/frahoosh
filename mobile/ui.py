@@ -40,11 +40,11 @@ def register_fonts():
         LabelBase.register(
             name="Frahoosh",
             fn_regular=str(regular),
-            fn_bold=str(
-                bold
-                if bold.is_file()
-                else regular
-            ),
+            # Use the same known-complete Arabic/Persian glyph set for
+            # bold labels as regular text. A separate bold face was producing
+            # missing-glyph boxes (□) for Persian characters on some Android
+            # builds.
+            fn_bold=str(regular),
         )
 
         _FONT_REGISTERED = True
