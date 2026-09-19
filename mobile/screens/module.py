@@ -82,7 +82,7 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                     height=dp(76 if field in {"description", "content", "body", "question", "note", "decision"} else 44),
                     padding=[dp(9), dp(7)],
                 )
-                            inputs[field] = ti
+                inputs[field] = ti
                 form.add_widget(ti)
             sc.add_widget(form)
             root.add_widget(sc)
