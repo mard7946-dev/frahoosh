@@ -573,9 +573,62 @@ class ModuleWorkspaceScreen(Screen):
 
     def _infer(self,row): return [k for k in (row or {}).keys() if k not in HIDDEN] or ['title','description','status']
 
+    @staticmethod
+    def _payload_value(field, raw):
+        value = str(raw or "").strip()
+        if value == "":
+            return None
+
+        # Supabase/PostgREST accepts numeric and boolean values more reliably
+        # when Android sends the correct JSON scalar instead of a text-only
+        # representation.
+        numeric_fields = {
+            "amount","balance","debit","credit","coefficient","score","max_score",
+            "duration","max_attempts","passing_score","deduction","deduct_score",
+            "class_count","capacity","quantity","fee","weight","points","negative_score",
+            "seat_number","week_index","teaching_hours","fixed_amount",
+        }
+        boolean_fields = {
+            "active","published","secure_mode","share_enabled","standard_mode",
+            "record","smart_board","quiz","camera","microphone","manager_released",
+            "gateway_enabled","auto_grade","required","archived",
+        }
+        json_fields = {
+            "preferences","permissions","settings","program","options","options_json",
+            "snapshot_data","selections","team_members",
+        }
+
+        if field in boolean_fields:
+            low = value.lower()
+            if low in {"true","1","yes","بله","فعال","بله است"}:
+                return True
+            if low in {"false","0","no","خیر","غیرفعال","خیر است"}:
+                return False
+
+        if field in numeric_fields:
+            try:
+                return float(value) if any(ch in value for ch in ".") else int(value)
+            except ValueError:
+                return value
+
+        if field in json_fields:
+            import json
+            try:
+                return json.loads(value)
+            except Exception:
+                # A Persian text entry is still valid JSON content.
+                return value
+
+        return value
+
     def save(self,table,row,inputs,p):
-        payload={k:v.text.strip() for k,v in inputs.items() if v.text.strip()!=''}
-        if not payload: self.message('ثبت اطلاعات','حداقل یک فیلد را وارد کنید.'); return
+        payload={}
+        for k, widget in inputs.items():
+            raw = widget.text.strip()
+            if raw:
+                payload[k] = self._payload_value(k, raw)
+        if not payload:
+            self.message('ثبت اطلاعات','حداقل یک فیلد را وارد کنید.'); return
         p.dismiss(); self.status.text=rtl_text('در حال ذخیره اطلاعات واقعی…')
         def work():
             try:
