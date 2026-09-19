@@ -4,10 +4,10 @@ from pathlib import Path
 
 APP_NAME = "فراهوش"
 APP_VERSION = "1.5.6"
-APP_SLOGAN = "یادگیری هوشمند، مدرسه‌ای یکپارچه، دانش آموز خلاق"
+APP_SLOGAN = "یادگیری هوشمند- مدرسه ای یکپارچه- دانش آموز خلاق"
 LOGIN_USERNAME_HINT = "نام کاربری"
 LOGIN_PASSWORD_HINT = "رمز عبور"
-SYSTEM_TITLE = "سامانه هوشمند آموزشی یکپارچه مدرسه"
+SYSTEM_TITLE = "سامانه مدیریت هوشمند یکپارچه مدرسه"
 BASE_DIR = Path(__file__).resolve().parent
 ASSETS_DIR = BASE_DIR / "assets"
 FONT_REGULAR = ASSETS_DIR / "NotoSansArabic-Regular.ttf"
@@ -44,7 +44,7 @@ ERROR = (0.75, 0.12, 0.12, 1)
 WHITE = (1, 1, 1, 1)
 CARD = (0.97, 0.98, 1.0, 1)
 BORDER = (0.80, 0.84, 0.90, 1)
-BACKGROUND_PATH = str(os.environ.get("FRAHOOSH_BACKGROUND_PATH") or _RUNTIME.get("background_path") or (ASSETS_DIR / "frahoosh_background.jpg")).strip()
+BACKGROUND_PATH = str(os.environ.get("FRAHOOSH_BACKGROUND_PATH") or _RUNTIME.get("background_path") or (ASSETS_DIR / "frahoosh_background_final.jpg")).strip()
 API_TIMEOUT = 15
 SUPABASE_URL = str(os.environ.get("FRAHOOSH_SUPABASE_URL") or _RUNTIME.get("supabase_url") or _RUNTIME.get("FRAHOOSH_SUPABASE_URL") or "").strip()
 SUPABASE_ANON_KEY = str(os.environ.get("FRAHOOSH_SUPABASE_ANON_KEY") or _RUNTIME.get("supabase_anon_key") or _RUNTIME.get("FRAHOOSH_SUPABASE_ANON_KEY") or "").strip()
