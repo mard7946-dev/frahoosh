@@ -156,20 +156,7 @@ class DashboardScreen(Screen):
         self.status.text = rtl_text(f"{len(PANELS)} پنل عملیاتی • برای ورود، پنل موردنظر را لمس کنید.")
         return True
 
-    def open(self, route):
-        if route not in ACTIVE_ROUTES or not self.manager:
-            return
-        try:
-            # PanelScreen is created during app startup. Opening a panel is now
-            # a deterministic ScreenManager switch, not a dynamic import.
-            screen = self.manager.get_screen("panel")
-            screen.set_route(route)
-            self.manager.current = "panel"
-        except Exception as exc:
-            self.status.text = rtl_text("خطای داخلی پنل: " + str(exc))
-            self.status.color = (0.85, 0.15, 0.15, 1)
-            print("DASHBOARD PANEL OPEN ERROR:", repr(exc))
-
+    def open(self, route):\n        if route not in ACTIVE_ROUTES or not self.manager:\n            return\n        try:\n            # Students and parents must first review and explicitly confirm the\n            # student record. A discrepancy goes only through the school inbox.\n            role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()\n            needs_identity = role in ("student", "دانش‌آموز", "parent", "parents", "ولی", "اولیا")\n            confirmed = bool((getattr(self.app_state, "session", {}) or {}).get("identity_confirmed"))\n            if needs_identity and not confirmed:\n                gate = self.manager.get_screen("special_identity_gate")\n                gate.pending_route = route\n                self.manager.current = "special_identity_gate"\n                return\n\n            screen = self.manager.get_screen("panel")\n            screen.set_route(route)\n            self.manager.current = "panel"\n        except Exception as exc:\n            self.status.text = rtl_text("خطای داخلی پنل: " + str(exc))\n            self.status.color = (0.85, 0.15, 0.15, 1)\n            print("DASHBOARD PANEL OPEN ERROR:", repr(exc))
     def logout(self, *_):
         try:
             if self.app_state:
