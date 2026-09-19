@@ -267,22 +267,43 @@ class SpecialModuleScreen(Screen):
         return (getattr(self, "teacher_classes", []) or [None])[0]
 
     def _discipline_students_loaded(self, rows, error):
+        if error:
+            self._set_status("فهرست دانش‌آموزان دریافت نشد: " + error, ERROR)
+            return
         self.students = rows or []
         self.discipline_area.clear_widgets()
+        self.discipline_widgets = {}
+
+        # Same class roster layout as attendance: one student per row, with
+        # the disciplinary type selected from a dropdown and one final save.
+        head = GridLayout(cols=2, size_hint_y=None, height=dp(46), spacing=dp(4))
+        head.add_widget(self.label("دانش‌آموز", "12sp", WHITE, True, True, 42))
+        head.add_widget(self.label("نوع مشکل انضباطی", "12sp", WHITE, True, True, 42))
+        self.discipline_area.add_widget(head)
+
+        scroll = ScrollView(do_scroll_x=False)
+        grid = GridLayout(cols=2, spacing=dp(4), size_hint_y=None)
+        grid.bind(minimum_height=grid.setter("height"))
+        kinds = ("تأخیر", "بی‌انضباطی", "بی‌احترامی", "عدم انجام تکلیف",
+                 "ترک کلاس", "استفاده از تلفن همراه", "سایر")
         for row in self.students:
             sid = row.get("id")
             name = f"{row.get('first_name','')} {row.get('last_name','')}".strip() or "دانش‌آموز"
-            card = _Card(size_hint_y=None, height=dp(98))
-            card.add_widget(self.label(name, "12sp", PRIMARY, True, False, 32))
-            spinner = Spinner(text=rtl_text("نوع مشکل انضباطی را انتخاب کنید"),
-                              values=tuple(rtl_text(x) for x in ("تأخیر","بی‌انضباطی","بی‌احترامی","عدم انجام تکلیف","ترک کلاس","استفاده از تلفن همراه","سایر")),
-                              font_name=font_name(), size_hint_y=None, height=dp(42))
-            self.discipline_widgets[sid] = spinner if hasattr(self, "discipline_widgets") else spinner
-            if not hasattr(self, "discipline_widgets"): self.discipline_widgets = {}
+            grid.add_widget(self.label(name, "12sp", PRIMARY, True, False, 50))
+            spinner = Spinner(
+                text=rtl_text("نوع مشکل را انتخاب کنید"),
+                values=tuple(rtl_text(x) for x in kinds),
+                font_name=font_name(),
+                size_hint_y=None,
+                height=dp(46),
+            )
             self.discipline_widgets[sid] = spinner
-            card.add_widget(spinner)
-            self.discipline_area.add_widget(card)
-        self.discipline_area.add_widget(self.btn("ثبت موارد انتخاب‌شده", self._save_discipline, SUCCESS, 46))
+            grid.add_widget(spinner)
+        scroll.add_widget(grid)
+        self.discipline_area.add_widget(scroll)
+        self.discipline_area.add_widget(
+            self.btn("ثبت موارد انتخاب‌شده", self._save_discipline, SUCCESS, 46)
+        )
 
     def _save_discipline(self, *_):
         selected = [(sid, sp.text) for sid,sp in getattr(self,"discipline_widgets",{}).items() if sp.text and "انتخاب" not in sp.text]
