@@ -36,6 +36,7 @@ class SpecialModuleScreen(Screen):
         self.mode = mode
         self.students = []
         self.children = []
+        self.pending_route = "panel"
         self._build_shell()
 
     def label(self, text, size="11sp", color=SECONDARY, bold=False, center=False, height=None):
@@ -402,6 +403,8 @@ class SpecialModuleScreen(Screen):
         def work():
             api=self._api()
             rows=api.table_select("parent_student_links",{"parent_username":"eq."+str(username),"limit":"20"})
+            if not rows:
+                rows=api.table_select("parent_children",{"parent_username":"eq."+str(username),"limit":"20"})
             children=[]
             for r in rows or []:
                 sid=r.get("student_id")
@@ -496,7 +499,9 @@ class SpecialModuleScreen(Screen):
                 from mobile.services.session import save_session
                 save_session(self.app_state.session)
             except Exception: pass
-        if self.manager: self.manager.current="panel"
+        if self.manager:
+            target = getattr(self, "pending_route", "panel") or "panel"
+            self.manager.current = target if target in ("panel", "dashboard") else "panel"
 
     def _report_discrepancy(self,*_):
         root=BoxLayout(orientation="vertical",padding=dp(10),spacing=dp(7))
