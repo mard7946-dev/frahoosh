@@ -318,28 +318,64 @@ class SpecialModuleScreen(Screen):
 
     def _report_loaded(self, data, error):
         if error:
-            self._set_status("کارنامه دریافت نشد: "+error, ERROR); return
-        student, grades=data
+            self._set_status("کارنامه دریافت نشد: " + error, ERROR)
+            return
+        student, grades = data
         self.body.clear_widgets()
-        card=_Card(fill=(1,1,1,1))
-        card.add_widget(self.label("کارنامه تحصیلی", "20sp", PRIMARY, True, True, 44))
-        card.add_widget(self.label(SCHOOL_NAME, "12sp", SECONDARY, True, True, 30))
-        name=f"{student.get('first_name','')} {student.get('last_name','')}".strip()
-        card.add_widget(self.label("نام دانش‌آموز: "+(name or "ثبت نشده"), "11sp", PRIMARY, True, False, 30))
-        card.add_widget(self.label("پایه و کلاس: "+str(student.get("grade") or "-")+" • "+str(student.get("class_name") or "-"), "10sp", SECONDARY, False, False, 28))
-        grid=GridLayout(cols=3, size_hint_y=None, spacing=dp(2), height=dp(44))
-        for t in ("درس","نمره","نوع ارزیابی"):
-            grid.add_widget(self.label(t,"11sp",WHITE,True,True,42))
-        for g in grades:
-            grid.add_widget(self.label(str(g.get("subject") or "-"),"10sp",PRIMARY,False,False,40))
-            grid.add_widget(self.label(str(g.get("score") or "-"),"11sp",PRIMARY,True,True,40))
-            grid.add_widget(self.label(str(g.get("assessment_type") or g.get("grade_type") or "مستمر"),"9sp",SECONDARY,False,True,40))
-        card.add_widget(grid)
-        avg = "-"
-        nums=[float(g.get("score")) for g in grades if str(g.get("score","")).replace(".","",1).isdigit()]
-        if nums: avg=f"{sum(nums)/len(nums):.2f}"
-        card.add_widget(self.label("معدل محاسبه‌شده: "+avg,"13sp",SUCCESS,True,True,38))
-        self.body.add_widget(card)
+
+        # A report card is deliberately rendered as a report document, not a
+        # generic database table: school header, student identity, average,
+        # term information and one subject card per assessment.
+        report = _Card(fill=(0.98, 0.99, 1.0, 1))
+        report.add_widget(self.label("کارنامه تحصیلی", "22sp", PRIMARY, True, True, 46))
+        report.add_widget(self.label(SCHOOL_NAME, "12sp", SECONDARY, True, True, 30))
+        report.add_widget(self.label("سال تحصیلی " + SCHOOL_YEAR, "10sp", SECONDARY, False, True, 27))
+
+        name = f"{student.get('first_name','')} {student.get('last_name','')}".strip() or "ثبت نشده"
+        report.add_widget(self.label("نام دانش‌آموز: " + name, "12sp", PRIMARY, True, False, 32))
+        report.add_widget(self.label(
+            "پایه: " + str(student.get("grade") or "-") +
+            "    کلاس: " + str(student.get("class_name") or "-") +
+            "    کد ملی: " + str(student.get("national_code") or "-"),
+            "10sp", SECONDARY, False, False, 30
+        ))
+
+        scores = []
+        for g in grades or []:
+            try:
+                scores.append(float(g.get("score")))
+            except (TypeError, ValueError):
+                pass
+        avg = f"{sum(scores) / len(scores):.2f}" if scores else "-"
+        avg_card = _Card(fill=(0.90, 0.96, 1.0, 1), size_hint_y=None, height=dp(58))
+        avg_card.add_widget(self.label("معدل کارنامه: " + avg, "16sp", SUCCESS, True, True, 50))
+        report.add_widget(avg_card)
+
+        if not grades:
+            report.add_widget(self.label("برای این دانش‌آموز هنوز نمره‌ای برای کارنامه ثبت نشده است.", "11sp", ERROR, True, True, 70))
+        else:
+            report.add_widget(self.label("ریز نمرات", "13sp", PRIMARY, True, True, 34))
+            subject_grid = GridLayout(cols=2, spacing=dp(6), size_hint_y=None, padding=[dp(2), dp(2)])
+            subject_grid.bind(minimum_height=subject_grid.setter("height"))
+            for g in grades:
+                subject = str(g.get("subject") or "درس")
+                score = str(g.get("score") if g.get("score") is not None else "-")
+                kind = str(g.get("assessment_type") or g.get("grade_type") or "مستمر")
+                term = str(g.get("term") or "-")
+                title = str(g.get("assessment_title") or g.get("title") or "")
+                item = _Card(fill=(1, 1, 1, 1), size_hint_y=None, height=dp(105), padding=dp(8))
+                item.add_widget(self.label(subject, "13sp", PRIMARY, True, True, 30))
+                item.add_widget(self.label("نمره: " + score + "    •    " + kind, "11sp", SECONDARY, True, True, 27))
+                item.add_widget(self.label("نوبت: " + term + (("    " + title) if title else ""), "9sp", SECONDARY, False, True, 25))
+                subject_grid.add_widget(item)
+            report.add_widget(subject_grid)
+
+        report.add_widget(self.label("مهر و تأیید مدرسه / مدیریت", "9sp", SECONDARY, False, True, 38))
+
+        scroll = ScrollView(do_scroll_x=False)
+        scroll.add_widget(report)
+        self.body.add_widget(scroll)
+        self._set_status("کارنامه به شکل پرونده کارنامه‌ای نمایش داده شد.", SUCCESS)
 
     def _finance(self):
         self.title.text = rtl_text("حسابداری و امور مالی")
