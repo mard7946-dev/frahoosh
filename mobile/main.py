@@ -132,10 +132,19 @@ class FrahooshApp(App):
         except Exception:
             pass
         try:
+            # Do not subclass Kivy's Screen/EventDispatcher dynamically here.
+            # Keep a stable wrapper Screen and put the real ZIP-backed workspace
+            # inside it; this avoids the Android/Kivy runtime subclass failure
+            # that was still producing the old panel error.
             from mobile.screens.module_workspace import ModuleWorkspaceScreen
-            class OperationalPanelScreen(ModuleWorkspaceScreen):
+            class OperationalPanelScreen(Screen):
+                def __init__(self, app_state=None, **kwargs):
+                    super().__init__(**kwargs)
+                    self.app_state = app_state
+                    self.workspace = ModuleWorkspaceScreen(app_state=app_state, name="workspace")
+                    self.add_widget(self.workspace)
                 def set_route(self, route):
-                    self.set_module(route, return_to="dashboard")
+                    self.workspace.set_module(route, return_to="dashboard")
             screen = OperationalPanelScreen(name="panel", app_state=self.app_state)
             self.sm.add_widget(screen)
             return screen
