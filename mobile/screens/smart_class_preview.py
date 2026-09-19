@@ -34,6 +34,7 @@ class SmartClassPreviewScreen(Screen):
         self.app_state = app_state
         self.class_id = None
         self.class_title = "کلاس هوشمند فراهوش"
+        self.return_to = "dashboard"
 
     def label(self, text, size="10sp", color=SECONDARY, height=34, bold=False, center=False):
         w = Label(text=rtl_text(str(text)), font_name=font_name(), font_size=size,
@@ -190,4 +191,8 @@ class SmartClassPreviewScreen(Screen):
 
     def back(self, *_):
         if self.manager:
-            self.manager.current = "dashboard"
+            target = self.return_to or "dashboard"
+            try:
+                self.manager.current = target
+            except Exception:
+                self.manager.current = "dashboard"
