@@ -4,10 +4,10 @@ from pathlib import Path
 
 APP_NAME = "فراهوش"
 APP_VERSION = "1.5.6"
-APP_SLOGAN = "یادگیری هوشمند، مدرسه‌ای یکپارچه، دانش آموز خلاق"
+APP_SLOGAN = "یادگیری هوشمند- مدرسه ای یکپارچه- دانش آموز خلاق"
 LOGIN_USERNAME_HINT = "نام کاربری"
 LOGIN_PASSWORD_HINT = "رمز عبور"
-SYSTEM_TITLE = "سامانه هوشمند آموزشی یکپارچه مدرسه"
+SYSTEM_TITLE = "سامانه مدیریت هوشمند یکپارچه مدرسه"
 BASE_DIR = Path(__file__).resolve().parent
 ASSETS_DIR = BASE_DIR / "assets"
 FONT_REGULAR = ASSETS_DIR / "NotoSansArabic-Regular.ttf"
