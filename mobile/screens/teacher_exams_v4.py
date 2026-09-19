@@ -115,6 +115,17 @@ class TeacherExamsV4Screen(Screen):
         self._label(f"سؤال {n}","17sp",PRIMARY,38,True)
         typ=self._spinner("تستی چهارگزینه‌ای",[v for _,v in TYPES])
         q=self._field("متن سؤال؛ برای ریاضی: √49 + 2² = ؟",82,True)
+        # Formula toolbar for the teacher: symbols are inserted directly into
+        # the question editor, so scientific notation does not depend on a
+        # separate keyboard or chat assistant.
+        toolbar=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(4))
+        for symbol in ("√", "²", "³", "÷", "×", "±", "π", "∞"):
+            b=Button(text=symbol,font_name=font_name(),font_size="15sp",
+                     background_normal="",background_color=PRIMARY,color=WHITE,
+                     size_hint_x=None,width=dp(42))
+            b.bind(on_release=lambda *_a,s=symbol:self._insert_formula(q,s))
+            toolbar.add_widget(b)
+        self.body.add_widget(toolbar)
         difficulty=self._spinner("متوسط",["آسان","متوسط","سخت","چالشی"])
         cognitive=self._spinner("دانش",["دانش","درک","کاربرد","تحلیل","ارزیابی"])
         points=self._field("نمره سؤال"); points.text="1"
@@ -127,6 +138,17 @@ class TeacherExamsV4Screen(Screen):
         self._label("راهنما: برای تستی چهار گزینه را پر کنید؛ برای صحیح/غلط سیستم گزینه‌ها را تنظیم می‌کند؛ برای جای خالی و پاسخ کوتاه، پاسخ‌های پذیرفته‌شده را با | جدا کنید.","10sp",SECONDARY,54)
         self.body.add_widget(_SecurityNote("این سؤال بخشی از یک آزمون تشخیصی/ارزیابی است؛ لطفاً درباره پاسخ آن در هیچ چتی گفتگو نکنید."))
         typ.bind(text=lambda *_:self._body_refresh_question_visibility(self.questions[-1]))
+
+    @staticmethod
+    def _insert_formula(field, symbol):
+        try:
+            field.insert_text(symbol)
+            field.focus = True
+        except Exception:
+            try:
+                field.text = (field.text or "") + symbol
+            except Exception:
+                pass
 
     def _body_refresh_question_visibility(self,item):
         kind=LABEL_TO_TYPE.get(item["typ"].text, "multiple_choice")
@@ -181,20 +203,31 @@ class TeacherExamsV4Screen(Screen):
     def _schedule(self,eid,dur):
         self._clear(); self._label("زمان‌بندی آزمون","22sp",PRIMARY,52,True)
         self._label("یک آزمون مشترک را می‌توانید برای کلاس‌های مختلف در ساعت‌های متفاوت برگزار کنید یا یک زمان هماهنگ برای همه بگذارید.",height=72)
-        cls=self._field("نام کلاس یا همه کلاس‌ها")
+        cls=self._field("کلاس‌ها؛ چند کلاس را با ، یا , جدا کنید")
         date=self._field("تاریخ شمسی؛ مثال 1405/07/01")
         start=self._field("ساعت شروع؛ مثال 10:00")
         end=self._field("ساعت پایان؛ اگر خالی باشد از مدت آزمون محاسبه می‌شود")
-        self._button("ثبت نوبت این کلاس",lambda *_:self._save_slot(eid,dur,cls,date,start,end),SUCCESS)
+        self._label("برای چند کلاس با زمان یکسان، نام کلاس‌ها را با «،» جدا کنید. برای زمان‌های متفاوت، همین آزمون را دوباره با زمان جدید ثبت کنید.", "10sp", SECONDARY, 62)
+        self._button("ثبت نوبت کلاس/کلاس‌ها",lambda *_:self._save_slot(eid,dur,cls,date,start,end),SUCCESS)
         self._button("＋ ساخت لینک اشتراک مدرسه دیگر",lambda *_:self._share_form(eid,dur),PRIMARY)
         self._button("بازگشت به آزمون‌های من",lambda *_:self._load_exams())
 
     def _save_slot(self,eid,dur,cls,date,start,end):
         if not cls.text.strip() or not date.text.strip() or not start.text.strip():self._error("کلاس، تاریخ و ساعت شروع لازم است.");return
         try:
-            h,m=[int(x) for x in start.text.strip().split(":")[:2]]; total=h*60+m+dur; et=end.text.strip() or f"{(total//60)%24:02d}:{total%60:02d}"
-            self.app_state.api.table_insert("teacher_exam_slots",{"quiz_id":eid,"class_name":cls.text.strip(),"exam_date_shamsi":date.text.strip(),"start_time_shamsi":start.text.strip(),"end_time_shamsi":et,"duration":dur,"coordinated":0,"secure_mode":1,"active":True})
-            self._ok("نوبت آزمون ثبت شد؛ برای کلاس بعدی می‌توانید زمان دیگری ثبت کنید.")
+            h,m=[int(x) for x in start.text.strip().split(":")[:2]]
+            total=h*60+m+dur
+            et=end.text.strip() or f"{(total//60)%24:02d}:{total%60:02d}"
+            classes=[x.strip() for x in cls.text.replace("،",",").split(",") if x.strip()]
+            if not classes: raise RuntimeError("حداقل یک کلاس لازم است.")
+            for class_name in classes:
+                self.app_state.api.table_insert(
+                    "teacher_exam_slots",
+                    {"quiz_id":eid,"class_name":class_name,"exam_date_shamsi":date.text.strip(),
+                     "start_time_shamsi":start.text.strip(),"end_time_shamsi":et,"duration":dur,
+                     "coordinated":1 if len(classes)>1 else 0,"secure_mode":1,"active":True}
+                )
+            self._ok(f"زمان آزمون برای {len(classes)} کلاس ثبت شد. برای زمان متفاوت، یک نوبت دیگر ثبت کنید.")
         except Exception as exc:self._error("ثبت زمان‌بندی انجام نشد: "+str(exc))
 
     def _share_form(self,eid,dur):
@@ -264,9 +297,39 @@ class TeacherExamsV4Screen(Screen):
             except Exception:student_id=None
             username=str(p.get("username") or getattr(self.app_state,"national_code","") or "").strip()
             if not username:raise RuntimeError("شناسه کاربر برای شروع آزمون مشخص نیست.")
+            eligible, reason = self._check_exam_eligibility(student_id)
+            if not eligible:
+                raise RuntimeError(reason)
             attempt=self.app_state.api.rpc("start_shared_teacher_exam",{"p_share_code":code,"p_student_id":student_id,"p_student_username":username}); attempt=attempt[0] if isinstance(attempt,list) and attempt else attempt
             self._render_attempt(exam,attempt)
         except Exception as exc:self._error(str(exc))
+
+    def _check_exam_eligibility(self, student_id):
+        if not student_id:
+            return True, ""
+        try:
+            today=datetime.now().strftime("%Y-%m-%d")
+            attendance=self.app_state.api.table_select("attendance",{
+                "student_id":f"eq.{student_id}","date":f"eq.{today}","limit":"20"
+            }) or []
+            if any(str(r.get("status","")).lower() in ("absent","غایب","failed") for r in attendance):
+                return False, "به دلیل غیبت ثبت‌شده امروز، امکان شرکت در آزمون وجود ندارد."
+            online=self.app_state.api.table_select("online_attendance",{
+                "student_id":f"eq.{student_id}","limit":"100"
+            }) or []
+            failed=[r for r in online if "failed" in str(r.get("status","")).lower() or "عدم" in str(r.get("status",""))]
+            exits=sum(1 for r in online if r.get("leave_time"))
+            if failed:
+                return False, "به دلیل عدم تأیید حضور در کلاس آنلاین، امکان شرکت در آزمون وجود ندارد."
+            if exits > 2:
+                return False, "به دلیل خروج بیش از حد ثبت‌شده از کلاس‌های آنلاین، امکان شرکت در آزمون وجود ندارد."
+            return True, ""
+        except Exception as exc:
+            print("EXAM ELIGIBILITY CHECK ERROR:", repr(exc))
+            # Do not silently block a student when the attendance service is
+            # temporarily unavailable; the server-side exam RPC remains the
+            # authoritative security boundary.
+            return True, ""
 
     def _render_attempt(self,exam,attempt):
         self._clear(); self._attempt_id=int(attempt["attempt_id"]); self._answers={}
