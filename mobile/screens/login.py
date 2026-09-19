@@ -106,8 +106,8 @@ class LoginScreen(Screen):
             orientation="vertical",
             padding=[dp(22), dp(16), dp(22), dp(16)],
             spacing=dp(7),
-            size_hint=(0.78, 0.345),
-            pos_hint={"center_x": 0.5, "y": 0.185},
+            size_hint=(0.82, 0.39),
+            pos_hint={"center_x": 0.5, "y": 0.16},
         )
         with card.canvas.before:
             Color(*GLASS)
@@ -130,6 +130,14 @@ class LoginScreen(Screen):
         school_value.size_hint_y = None
         school_value.height = dp(29)
         card.add_widget(school_value)
+
+        slogan = self.label(
+            "سامانه مدیریت هوشمند یکپارچه مدرسه\nیادگیری هوشمند- مدرسه ای یکپارچه- دانش آموز خلاق",
+            "9sp", MUTED, True, "center"
+        )
+        slogan.size_hint_y = None
+        slogan.height = dp(34)
+        card.add_widget(slogan)
 
         self.identifier = self._field(LOGIN_USERNAME_HINT or "نام کاربری")
         card.add_widget(self.identifier)
