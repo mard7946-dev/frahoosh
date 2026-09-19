@@ -49,6 +49,11 @@ class FrahooshApp(App):
                 self.sm.add_widget(SpecialModuleScreen(name="special_" + _mode, app_state=self.app_state, mode=_mode))
         except Exception as exc:
             print("SPECIAL MODULE PRELOAD ERROR:", repr(exc))
+        try:
+            from mobile.screens.weekly_schedule import WeeklyScheduleScreen
+            self.sm.add_widget(WeeklyScheduleScreen(name="weekly_schedule_real", app_state=self.app_state))
+        except Exception as exc:
+            print("WEEKLY SCHEDULE PRELOAD ERROR:", repr(exc))
 
         self.sm.current = "login"
         Clock.schedule_once(self._startup_check, 0)
