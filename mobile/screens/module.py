@@ -110,7 +110,29 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 if screen is not None and self.manager is not None:
                     self.manager.current = "meetings"
                     return screen
-            if table == "smart_class_preview" and app is not None and hasattr(app, "ensure_smart_class_preview"):\n                screen = app.ensure_smart_class_preview()\n                if screen is not None and self.manager is not None:\n                    screen.return_to = "panel"\n                    self.manager.current = "smart_class_preview"\n                    return screen\n\n            # These workflows are not generic CRUD tables. They have dedicated UX.\n            special_modes = {\n                "attendance": "attendance",\n                "discipline_records": "discipline",\n                "report_cards": "report_cards",\n                "monthly_report_cards": "report_cards",\n                "parent_children": "parent_children",\n                "finance_accounts": "finance",\n                "finance_transactions": "finance",\n            }\n            if table in special_modes and app is not None and hasattr(app, "ensure_special_module"):\n                screen = app.ensure_special_module(special_modes[table])\n                if screen is not None and self.manager is not None:\n                    self.manager.current = screen.name\n                    return screen\n            if table in ("teacher_exams", "online_classes", "messages", "payment_offers"):
+            if table == "smart_class_preview" and app is not None and hasattr(app, "ensure_smart_class_preview"):
+                screen = app.ensure_smart_class_preview()
+                if screen is not None and self.manager is not None:
+                    screen.return_to = "panel"
+                    self.manager.current = "smart_class_preview"
+                    return screen
+
+            # These workflows are not generic CRUD tables. They have dedicated UX.
+            special_modes = {
+                "attendance": "attendance",
+                "discipline_records": "discipline",
+                "report_cards": "report_cards",
+                "monthly_report_cards": "report_cards",
+                "parent_children": "parent_children",
+                "finance_accounts": "finance",
+                "finance_transactions": "finance",
+            }
+            if table in special_modes and app is not None and hasattr(app, "ensure_special_module"):
+                screen = app.ensure_special_module(special_modes[table])
+                if screen is not None and self.manager is not None:
+                    self.manager.current = screen.name
+                    return screen
+            if table in ("teacher_exams", "online_classes", "messages", "payment_offers"):
                 return super().open_table(table, refresh_subbar=False)
             return ModuleWorkspaceScreen.open_table(self, table, refresh_subbar=False)
         except Exception as exc:
