@@ -146,7 +146,15 @@ class SpecialModuleScreen(Screen):
         sid = self.app_state.profile.get("linked_student_id") or self.app_state.profile.get("student_id")
         if not sid and isinstance(self.app_state.session, dict):
             sid = self.app_state.session.get("selected_student_id")
-        self._async(lambda: self._api().table_select("attendance", {"student_id":"eq."+str(sid), "order":"attendance_date.desc", "limit":"100"}) if sid else [], self._student_attendance_loaded)
+        self._async(lambda: self._student_attendance_bundle(sid), self._student_attendance_loaded)
+
+    def _student_attendance_bundle(self, sid):
+        if not sid:
+            return ({}, [])
+        api = self._api()
+        students = api.table_select("students", {"id":"eq."+str(sid), "limit":"1"}) or []
+        rows = api.table_select("attendance", {"student_id":"eq."+str(sid), "order":"attendance_date.desc", "limit":"100"}) or []
+        return (students[0] if students else {}, rows)
 
     def _parent_children_with_attendance(self, username):
         api = self._api()
@@ -172,10 +180,8 @@ class SpecialModuleScreen(Screen):
             for student, rows in data:
                 self._attendance_card(student, rows)
         else:
-            sid = self.app_state.profile.get("linked_student_id") or self.app_state.profile.get("student_id")
-            rows = data or []
-            student_rows = self._api().table_select("students", {"id":"eq."+str(sid), "limit":"1"}) if sid else []
-            self._attendance_card(student_rows[0] if student_rows else {}, rows)
+            student, rows = data if isinstance(data, tuple) else ({}, data or [])
+            self._attendance_card(student, rows)
         self._set_status("اطلاعات حضور و غیاب واقعی نمایش داده شد.", SUCCESS)
 
     def _attendance_card(self, student, rows):
