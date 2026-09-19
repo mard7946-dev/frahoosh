@@ -368,15 +368,20 @@ class SpecialModuleScreen(Screen):
         if not sid:
             rows=self._api().table_select("students", {"national_code":"eq."+str(self.app_state.national_code),"limit":"1"})
             sid=(rows or [{}])[0].get("id")
-        grades=self._api().table_select("student_grades", {"student_id":"eq."+str(sid),"order":"grade_date.desc","limit":"100"})
-        student=self._api().table_select("students", {"id":"eq."+str(sid),"limit":"1"})
-        return (student[0] if student else {}, grades or [])
+        api=self._api()
+        detailed=api.table_select("student_grades", {"student_id":"eq."+str(sid),"order":"grade_date.desc","limit":"100"}) or []
+        legacy=api.table_select("grades", {"student_id":"eq."+str(sid),"order":"grade_date.desc","limit":"100"}) or []
+        cards=api.table_select("report_cards", {"student_id":"eq."+str(sid),"order":"id.desc","limit":"1"}) or []
+        student=api.table_select("students", {"id":"eq."+str(sid),"limit":"1"})
+        # Prefer the current student_grades records; if none exist, use the ZIP grades table.
+        grades=detailed or legacy
+        return (student[0] if student else {}, grades, cards[0] if cards else {})
 
     def _report_loaded(self, data, error):
         if error:
             self._set_status("کارنامه دریافت نشد: " + error, ERROR)
             return
-        student, grades = data
+        student, grades, official = data
         self.body.clear_widgets()
 
         # A report card is deliberately rendered as a report document, not a
@@ -385,7 +390,7 @@ class SpecialModuleScreen(Screen):
         report = _Card(fill=(0.98, 0.99, 1.0, 1))
         report.add_widget(self.label("کارنامه تحصیلی", "22sp", PRIMARY, True, True, 46))
         report.add_widget(self.label(SCHOOL_NAME, "12sp", SECONDARY, True, True, 30))
-        report.add_widget(self.label("سال تحصیلی " + SCHOOL_YEAR, "10sp", SECONDARY, False, True, 27))
+        report.add_widget(self.label("سال تحصیلی " + str(official.get("academic_year") or SCHOOL_YEAR), "10sp", SECONDARY, False, True, 27))
 
         name = f"{student.get('first_name','')} {student.get('last_name','')}".strip() or "ثبت نشده"
         report.add_widget(self.label("نام دانش‌آموز: " + name, "12sp", PRIMARY, True, False, 32))
@@ -402,7 +407,7 @@ class SpecialModuleScreen(Screen):
                 scores.append(float(g.get("score")))
             except (TypeError, ValueError):
                 pass
-        avg = f"{sum(scores) / len(scores):.2f}" if scores else "-"
+        avg = str(official.get("average")) if official.get("average") is not None else (f"{sum(scores) / len(scores):.2f}" if scores else "-")
         avg_card = _Card(fill=(0.90, 0.96, 1.0, 1), size_hint_y=None, height=dp(58))
         avg_card.add_widget(self.label("معدل کارنامه: " + avg, "16sp", SUCCESS, True, True, 50))
         report.add_widget(avg_card)
