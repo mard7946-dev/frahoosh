@@ -230,7 +230,7 @@ if _shared_modules:
         if _catalog_fields:
             TABLE_FIELDS[_table_name] = [
                 str(f) for f in _catalog_fields
-                if f and str(f) not in HIDDEN
+                if f and str(f) not in {"id", "created_at", "updated_at", "deleted_at"}
             ]
 
 # Human-readable labels for every field used by the canonical module contract.
