@@ -30,31 +30,12 @@ class FrahooshApp(App):
             print("APP STATE STARTUP ERROR:", repr(exc))
             self.app_state = None
 
+        # CRITICAL STARTUP RULE:
+        # Login must be the first and only heavy UI constructed at process start.
+        # The previous build eagerly imported/constructed every panel and special
+        # workspace before the login screen could render. On some Android devices
+        # that made a runtime import/render failure terminate the process at startup.
         self.sm.add_widget(LoginScreen(name="login", app_state=self.app_state))
-
-        # Preload the real operational panel workspace. Dashboard navigation
-        # now switches to an already-created screen instead of dynamically
-        # importing/constructing a panel at touch time.
-        self.sm.add_widget(PanelScreen(name="panel", app_state=self.app_state))
-        # Preload specialty operational screens so touch navigation never depends on
-        # importing/building a screen inside the Android touch callback.
-        try:
-            from mobile.screens.smart_class_preview import SmartClassPreviewScreen
-            self.sm.add_widget(SmartClassPreviewScreen(name="smart_class_preview", app_state=self.app_state))
-        except Exception as exc:
-            print("SMART CLASS PRELOAD ERROR:", repr(exc))
-        try:
-            from mobile.screens.special_modules import SpecialModuleScreen
-            for _mode in ("attendance","discipline","report_cards","finance","parent_children","identity_gate"):
-                self.sm.add_widget(SpecialModuleScreen(name="special_" + _mode, app_state=self.app_state, mode=_mode))
-        except Exception as exc:
-            print("SPECIAL MODULE PRELOAD ERROR:", repr(exc))
-        try:
-            from mobile.screens.weekly_schedule import WeeklyScheduleScreen
-            self.sm.add_widget(WeeklyScheduleScreen(name="weekly_schedule_real", app_state=self.app_state))
-        except Exception as exc:
-            print("WEEKLY SCHEDULE PRELOAD ERROR:", repr(exc))
-
         self.sm.current = "login"
         Clock.schedule_once(self._startup_check, 0)
         return self.sm
@@ -83,6 +64,23 @@ class FrahooshApp(App):
                 activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         except Exception as exc:
             print("SCREEN SECURITY POLICY ERROR:", repr(exc))
+
+    def ensure_panel(self):
+        """Lazy-load the operational panel only after the login/dashboard boundary."""
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("panel")
+        except Exception:
+            pass
+        try:
+            from mobile.screens.panel_screen import PanelScreen
+            screen = PanelScreen(name="panel", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+        except Exception as exc:
+            print("PANEL BUILD ERROR:", repr(exc))
+            return None
 
     def ensure_dashboard(self):
         if self.sm is None:
@@ -215,6 +213,11 @@ class FrahooshApp(App):
         dashboard = self.ensure_dashboard()
         if dashboard is None:
             print("DASHBOARD OPEN ERROR: dashboard screen could not be created")
+            return False
+
+        panel = self.ensure_panel()
+        if panel is None:
+            print("DASHBOARD OPEN ERROR: operational panel could not be created")
             return False
 
         # Students and parents must verify the real student record before
