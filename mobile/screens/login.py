@@ -11,6 +11,7 @@ from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
+from pathlib import Path
 
 from mobile.config import (
     SCHOOL_NAME, BACKGROUND_PATH, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
@@ -90,9 +91,23 @@ class LoginScreen(Screen):
 
         root = FloatLayout()
 
+        # Never leave the login screen white if Android fails to decode or
+        # locate the artwork. The visual fallback is deliberately dark/glass
+        # so the page remains branded and usable instead of looking empty.
+        with root.canvas.before:
+            Color(*NAVY)
+            root_bg = RoundedRectangle(pos=root.pos, size=root.size)
+        root.bind(
+            pos=lambda o, v: setattr(root_bg, "pos", v),
+            size=lambda o, v: setattr(root_bg, "size", v),
+        )
+
+        artwork_loaded = bool(BACKGROUND_PATH) and Path(BACKGROUND_PATH).is_file()
+        self.artwork_loaded = artwork_loaded
+
         # The supplied portrait artwork is the full-screen background.
         background = Image(
-            source=BACKGROUND_PATH,
+            source=BACKGROUND_PATH if artwork_loaded else "",
             size_hint=(1, 1),
             pos_hint={"x": 0, "y": 0},
         )
@@ -115,20 +130,38 @@ class LoginScreen(Screen):
             size_hint=(0.78, 0.47),
             pos_hint={"center_x": 0.5, "y": 0.10},
         )
-        # The background artwork already contains the visual login card.
-        # Keep the real controls on top without painting a second opaque card.
+        # The artwork already contains the visual login card. If it is
+        # missing, paint a real glass card instead of showing plain controls
+        # on a white page.
         with card.canvas.before:
-            Color(0, 0, 0, 0)
+            Color(*(GLASS if not artwork_loaded else (0, 0, 0, 0)))
             panel = RoundedRectangle(radius=[dp(24)])
         card.bind(
             pos=lambda o, v: setattr(panel, "pos", v),
             size=lambda o, v: setattr(panel, "size", v),
         )
 
-        # The artwork contains the school name, logo and visual frame.
-        # Only the real interactive controls are placed over those visual fields.
-        spacer = Widget(size_hint_y=None, height=dp(38))
-        card.add_widget(spacer)
+        # When the artwork is unavailable, recreate the essential branding
+        # with native widgets so the login page still has hierarchy and life.
+        if not artwork_loaded:
+            brand = self.label(APP_NAME, "26sp", CYAN, True, "center")
+            brand.size_hint_y = None
+            brand.height = dp(38)
+            card.add_widget(brand)
+
+            school = self.label(SCHOOL_NAME, "11sp", WHITE, True, "center")
+            school.size_hint_y = None
+            school.height = dp(30)
+            card.add_widget(school)
+
+            subtitle = self.label("سامانه مدیریت هوشمند یکپارچه مدرسه", "9sp", MUTED, False, "center")
+            subtitle.size_hint_y = None
+            subtitle.height = dp(24)
+            card.add_widget(subtitle)
+        else:
+            # The artwork contains the school name, logo and visual frame.
+            spacer = Widget(size_hint_y=None, height=dp(38))
+            card.add_widget(spacer)
 
         self.identifier = self._field(LOGIN_USERNAME_HINT or "نام کاربری")
         card.add_widget(self.identifier)
