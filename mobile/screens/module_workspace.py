@@ -10,9 +10,25 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.behaviors import ButtonBehavior
 
 from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text, PersianTextInput
+
+class SelectableRow(ButtonBehavior, BoxLayout):
+    """Touch-friendly table row: selecting it enables the module-level Edit/Delete buttons."""
+    def __init__(self, owner=None, record=None, **kwargs):
+        super().__init__(**kwargs)
+        self.owner = owner
+        self.record = dict(record or {})
+    def on_release(self):
+        if self.owner is not None:
+            self.owner.selected_row = self.record
+            try:
+                self.owner.status.text = rtl_text("رکورد انتخاب شد؛ از ویرایش یا حذف استفاده کنید.")
+                self.owner.status.color = SUCCESS
+            except Exception:
+                pass
 
 # One shared operational vocabulary for Android and the future web client.
 # Both clients must bind these keys to the same Supabase tables and field names.
@@ -264,13 +280,31 @@ class ModuleWorkspaceScreen(Screen):
         self.body.clear_widgets(); self.title.text=rtl_text(FRIENDLY.get(table,table))
         hero=Surface(height=dp(76)); line=BoxLayout(size_hint_y=None,height=dp(34),spacing=dp(5)); line.add_widget(self.btn("زیرپنل‌ها",lambda *_:self._back_to_submenus(),PRIMARY,dp(34),dp(82))); line.add_widget(self.label(FRIENDLY.get(table,table),"16sp",PRIMARY,True,"center")); line.add_widget(self.btn("تازه‌سازی",lambda *_:self.load_table(),PRIMARY,dp(34),dp(45))); hero.add_widget(line)
         self.search=PersianTextInput(hint_text=rtl_text("جستجو در همین زیرپنل"),font_name=font_name(),font_size="10sp",halign="right",multiline=False,size_hint_y=None,height=dp(32),padding=[dp(8),dp(5)]); hero.add_widget(self.search); self.body.add_widget(hero)
-        bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5));
-        if self.can_write(table): bar.add_widget(self.btn("ثبت جدید",lambda *_:self.editor(table,None),SUCCESS,dp(38)))
-        bar.add_widget(self.btn("جستجو",lambda *_:self.render_rows(self.filtered()),PRIMARY,dp(38))); bar.add_widget(self.btn("پاک کردن",lambda *_:self.clear_search(),SECONDARY,dp(38))); self.body.add_widget(bar)
+        if self.can_write(table):
+            # The module has exactly three data operations.
+            bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
+            bar.add_widget(self.btn("ثبت جدید",lambda *_:self.editor(table,None),SUCCESS,dp(38)))
+            bar.add_widget(self.btn("ویرایش",lambda *_:self._edit_selected_row(),PRIMARY,dp(38)))
+            bar.add_widget(self.btn("حذف",lambda *_:self._delete_selected_row(),(0.72,.16,.18,1),dp(38)))
+            self.body.add_widget(bar)
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
 
+    def _edit_selected_row(self):
+        row=getattr(self,"selected_row",None)
+        if row is None:
+            self.message("ویرایش","ابتدا یک رکورد را از جدول انتخاب کنید.")
+            return
+        self.editor(self.table,row)
+
+    def _delete_selected_row(self):
+        row=getattr(self,"selected_row",None)
+        if row is None:
+            self.message("حذف","ابتدا یک رکورد را از جدول انتخاب کنید.")
+            return
+        self.confirm_delete(self.table,row)
+
     def _back_to_submenus(self): self.table=None; self.render()
-    def clear_search(self): self.search.text=""; self.render_rows(self.rows)
+    def clear_search(self): pass
     def filtered(self):
         q=str(getattr(self,'search',None).text if hasattr(self,'search') else '').strip().lower(); return self.rows if not q else [r for r in self.rows if q in ' '.join(str(v) for v in r.values()).lower()]
 
@@ -392,7 +426,7 @@ class ModuleWorkspaceScreen(Screen):
         w.bind(pos=lambda o,v:setattr(bg,'pos',v),size=lambda o,v:setattr(bg,'size',v))
 
     def row(self,r,index,keys,totalw):
-        b=BoxLayout(size_hint=(None,None),width=totalw,height=dp(100),spacing=dp(3),padding=[dp(5),dp(5)])
+        b=SelectableRow(owner=self,record=r,size_hint=(None,None),width=totalw,height=dp(100),spacing=dp(3),padding=[dp(5),dp(5)])
         for k in keys:
             raw = r.get(k, "")
             s = str(raw).strip()
@@ -402,8 +436,6 @@ class ModuleWorkspaceScreen(Screen):
             cell.size_hint_x=None
             cell.width=dp(230)
             b.add_widget(cell)
-        if self.can_write(self.table):
-            a=BoxLayout(size_hint_x=None,width=dp(175),spacing=dp(4)); a.add_widget(self.btn('ویرایش',lambda *_a,x=dict(r):self.editor(self.table,x),PRIMARY,dp(50))); a.add_widget(self.btn('حذف',lambda *_a,x=dict(r):self.confirm_delete(self.table,x),(0.72,.16,.18,1),dp(50))); b.add_widget(a)
         if index%2==0:
             with b.canvas.before: Color(.94,.97,.985,1); bg=RoundedRectangle(radius=[dp(6)])
             b.bind(pos=lambda o,v:setattr(bg,'pos',v),size=lambda o,v:setattr(bg,'size',v))
