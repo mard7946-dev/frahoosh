@@ -706,19 +706,44 @@ class SpecialModuleScreen(Screen):
 
     def _finance_loaded(self,data,error):
         if error:
-            self._set_status("اطلاعات مالی دریافت نشد: "+error, ERROR); return
-        accounts,tx,inv=data
-        self.fin_balance.text=rtl_text("موجودی: "+str(sum(float(a.get("balance") or 0) for a in accounts)))
-        self.fin_receivable.text=rtl_text("بستانکاری: "+str(sum(float(x.get("amount") or 0) for x in tx if str(x.get("transaction_type")) in ("بستانکار","credit","income"))))
-        self.fin_payable.text=rtl_text("بدهکاری: "+str(sum(float(x.get("amount") or 0) for x in tx if str(x.get("transaction_type")) in ("بدهکار","debit","expense"))))
-        self.fin_invoices.text=rtl_text("فاکتورها: "+str(len(inv)))
+            self._set_status("اطلاعات مالی دریافت نشد: " + error, ERROR)
+            return
+        accounts, tx, inv = data
+        balance = sum(float(a.get("balance") or 0) for a in accounts)
+        debit_total = sum(float(x.get("debit") or 0) for x in tx)
+        credit_total = sum(float(x.get("credit") or 0) for x in tx)
+        self.fin_balance.text = rtl_text("مانده حساب‌ها: " + f"{balance:,.0f}")
+        self.fin_receivable.text = rtl_text("بستانکار: " + f"{credit_total:,.0f}")
+        self.fin_payable.text = rtl_text("بدهکار: " + f"{debit_total:,.0f}")
+        self.fin_invoices.text = rtl_text("اسناد مالی: " + str(len(tx)))
         self.finance_area.clear_widgets()
         for row in tx[:20]:
-            c=_Card(size_hint_y=None,height=dp(112))
-            c.add_widget(self.label("شماره فاکتور: "+str(row.get("invoice_number") or row.get("id") or "-"),"11sp",PRIMARY,True,False,28))
-            c.add_widget(self.label("عنوان: "+str(row.get("title") or "-")+" • نوع: "+str(row.get("transaction_type") or "-"),"10sp",SECONDARY,False,False,27))
-            c.add_widget(self.label("بدهکار: "+str(row.get("debit") or 0)+" • بستانکار: "+str(row.get("credit") or 0)+" • مبلغ: "+str(row.get("amount") or 0),"9sp",SECONDARY,False,False,25))
-            c.add_widget(self.btn("انتخاب این سند",lambda *_a,x=row:self._finance_select(x),PRIMARY,30))
+            c = _Card(size_hint_y=None, height=dp(128))
+            c.add_widget(self.label(
+                "فاکتور: " + str(row.get("invoice_number") or row.get("id") or "-"),
+                "11sp", PRIMARY, True, False, 28,
+            ))
+            c.add_widget(self.label(
+                "عنوان: " + str(row.get("title") or "-") +
+                " • طرف حساب: " + str(row.get("counterparty") or "-"),
+                "10sp", SECONDARY, False, False, 27,
+            ))
+            c.add_widget(self.label(
+                "مبلغ فاکتور: " + str(row.get("amount") or 0) +
+                " • بدهکار: " + str(row.get("debit") or 0) +
+                " • بستانکار: " + str(row.get("credit") or 0),
+                "9sp", SECONDARY, False, False, 27,
+            ))
+            c.add_widget(self.label(
+                "تاریخ: " + str(row.get("transaction_date") or "-") +
+                " • دسته‌بندی: " + str(row.get("category") or "-"),
+                "8sp", SECONDARY, False, False, 22,
+            ))
+            c.add_widget(self.btn(
+                "انتخاب این سند",
+                lambda *_a, x=row: self._finance_select(x),
+                PRIMARY, 30,
+            ))
             self.finance_area.add_widget(c)
 
     def _finance_select(self,row):
