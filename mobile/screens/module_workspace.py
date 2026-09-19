@@ -560,67 +560,116 @@ class ModuleWorkspaceScreen(Screen):
         self.render_rows(rows)
 
     def render_rows(self,rows):
+        """Render the real canonical table even when it currently has zero rows.
+
+        The ZIP/shared catalog is the schema authority. Empty data must not turn
+        a real module into a decorative empty card: its actual columns remain
+        visible so the user can immediately understand what belongs in each
+        field and can use ثبت جدید when permitted.
+        """
         try:
             self.area.clear_widgets()
             rows = [dict(r) for r in (rows or []) if isinstance(r, dict)]
-            if not rows:
-                e=Surface(height=dp(130))
-                e.add_widget(self.label("رکوردی برای نمایش وجود ندارد","16sp",PRIMARY,True,"center"))
-                e.add_widget(self.label("در صورت داشتن دسترسی، از «ثبت جدید» استفاده کنید.","9sp",SECONDARY,False,"center"))
-                self.area.add_widget(e)
-                return
-            preferred = TABLE_FIELDS.get(self.table, [])
-            keys = [k for k in preferred if any(k in r for r in rows)]
+
+            preferred = list(TABLE_FIELDS.get(self.table) or [])
+            keys = [k for k in preferred if k not in HIDDEN]
             if not keys:
                 for r in rows:
                     for k in r:
                         if k not in HIDDEN and k not in keys:
                             keys.append(k)
+
             if not keys:
-                keys = ["title","description","status"]
-            # Keep the Web-defined business columns that actually exist in the
-            # live response. Android uses horizontal touch scrolling for wide tables.
-            col_w=dp(230)
-            # The module header exposes data columns only. CRUD is deliberately
-            # provided by the three module-level buttons above (ثبت جدید / ویرایش / حذف).
-            action_w=0
-            totalw=max(dp(720),col_w*max(2,len(keys)))
-            scroll=ScrollView(do_scroll_x=True,do_scroll_y=True)
-            content=BoxLayout(orientation='vertical',size_hint=(None,None),width=totalw,spacing=dp(3),padding=dp(2))
-            content.bind(minimum_height=content.setter('height'))
-            header=BoxLayout(size_hint=(None,None),width=totalw,height=dp(78),spacing=dp(3),padding=[dp(4),dp(4)])
+                empty = Surface(height=dp(150))
+                empty.add_widget(self.label(
+                    "ساختار جدول این زیرپنل هنوز در قرارداد مشترک تعریف نشده است.",
+                    "13sp", PRIMARY, True, "center"
+                ))
+                self.area.add_widget(empty)
+                return
+
+            col_w = dp(230)
+            totalw = max(dp(720), col_w * max(1, len(keys)))
+
+            scroll = ScrollView(do_scroll_x=True, do_scroll_y=True)
+            content = BoxLayout(
+                orientation="vertical",
+                size_hint=(None, None),
+                width=totalw,
+                spacing=dp(3),
+                padding=dp(2),
+            )
+            content.bind(minimum_height=content.setter("height"))
+
+            header = BoxLayout(
+                size_hint=(None, None),
+                width=totalw,
+                height=dp(78),
+                spacing=dp(3),
+                padding=[dp(4), dp(4)],
+            )
             for k in keys:
-                cell=self.label(COLUMNS.get(k,"اطلاعات"),"18sp",WHITE,True,"center")
-                cell.size_hint_x=None
-                cell.width=col_w
+                cell = self.label(
+                    COLUMNS.get(k, k),
+                    "18sp",
+                    WHITE,
+                    True,
+                    "center",
+                )
+                cell.size_hint_x = None
+                cell.width = col_w
                 header.add_widget(cell)
-            # No per-row CRUD controls: select a row, then use the three
-            # module-level operations at the top.
             self._header(header)
             content.add_widget(header)
-            for i,r in enumerate(rows,1):
-                try:
-                    content.add_widget(self.row(r,i,keys,totalw))
-                except Exception as row_exc:
-                    print("MODULE ROW RENDER ERROR:", repr(row_exc))
+
+            if rows:
+                for i, r in enumerate(rows, 1):
+                    try:
+                        content.add_widget(self.row(r, i, keys, totalw))
+                    except Exception as row_exc:
+                        print("MODULE ROW RENDER ERROR:", repr(row_exc))
+            else:
+                empty_row = BoxLayout(
+                    size_hint=(None, None),
+                    width=totalw,
+                    height=dp(96),
+                    padding=[dp(8), dp(8)],
+                )
+                empty_row.add_widget(self.label(
+                    "هنوز رکوردی در این جدول ثبت نشده است.",
+                    "14sp",
+                    PRIMARY,
+                    True,
+                    "center",
+                ))
+                content.add_widget(empty_row)
+
             scroll.add_widget(content)
             self.area.add_widget(scroll)
         except Exception as exc:
             print("MODULE TABLE RENDER ERROR:", repr(exc))
             try:
-                self.status.text=rtl_text("خطا در نمایش جدول: "+str(exc))
-                self.status.color=(.8,.15,.15,1)
+                self.status.text = rtl_text("خطا در نمایش جدول: " + str(exc))
+                self.status.color = (.8, .15, .15, 1)
                 self.area.clear_widgets()
-                fallback=Surface(height=dp(150))
-                fallback.add_widget(self.label("نمایش جدول با خطا روبه‌رو شد","14sp",ERROR if 'ERROR' in globals() else (.8,.15,.15,1),True,"center"))
-                fallback.add_widget(self.label("داده‌ها حفظ شده‌اند؛ دوباره تازه‌سازی کنید.","9sp",SECONDARY,False,"center"))
+                fallback = Surface(height=dp(150))
+                fallback.add_widget(self.label(
+                    "نمایش جدول با خطا روبه‌رو شد",
+                    "14sp",
+                    (.8, .15, .15, 1),
+                    True,
+                    "center",
+                ))
+                fallback.add_widget(self.label(
+                    "داده‌ها حفظ شده‌اند؛ دوباره وارد زیرپنل شوید.",
+                    "9sp",
+                    SECONDARY,
+                    False,
+                    "center",
+                ))
                 self.area.add_widget(fallback)
             except Exception:
                 pass
-
-    def _header(self,w):
-        with w.canvas.before: Color(*PRIMARY); bg=RoundedRectangle(radius=[dp(8)])
-        w.bind(pos=lambda o,v:setattr(bg,'pos',v),size=lambda o,v:setattr(bg,'size',v))
 
     def row(self,r,index,keys,totalw):
         b=SelectableRow(owner=self,record=r,size_hint=(None,None),width=totalw,height=dp(100),spacing=dp(3),padding=[dp(5),dp(5)])
