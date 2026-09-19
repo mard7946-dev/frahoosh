@@ -227,7 +227,7 @@ class FrahooshApp(App):
                 if gate is None:
                     print("IDENTITY GATE ERROR: screen could not be created")
                     return False
-                gate.pending_route = "dashboard"
+                gate.pending_route = "role_panel"
                 self.sm.current = "special_identity_gate"
                 Clock.schedule_once(lambda *_: gate.load(), 0.05)
                 return True
