@@ -1,5 +1,5 @@
 {
-  "version": "3.2.0",
+  "version": "3.3.0",
   "source": "Frahoosh_v16_12_LOGIN_BACKGROUND_FINAL_02.zip",
   "backend": "supabase",
   "clients": [
@@ -860,7 +860,20 @@
     "ai_questions": "پرسش و پاسخ",
     "generated_weekly_schedule": "برنامه تولیدشده",
     "student_class_info": "پایه و کلاس",
-    "smart_class_preview": "محیط کلاس هوشمند"
+    "smart_class_preview": "محیط کلاس هوشمند",
+    "assets": "اموال",
+    "certificates": "گواهی‌ها",
+    "student_cards": "کارت‌های دانش‌آموزی",
+    "class_cards": "کارت‌های کلاسی",
+    "surveys": "نظرسنجی",
+    "educational_followups": "پیگیری آموزشی",
+    "academic_followups": "پیگیری درسی",
+    "khwarizmi_registrations": "جشنواره خوارزمی",
+    "executive_requests": "درخواست‌های اجرایی",
+    "art_competitions": "مسابقات هنری",
+    "sport_competitions": "مسابقات ورزشی",
+    "morning_leaders": "مکبر",
+    "parent_meeting_requests": "درخواست ملاقات اولیا"
   },
   "modules": {
     "users": {
@@ -2339,6 +2352,252 @@
         "delete"
       ],
       "special": "smart_class"
+    },
+    "assets": {
+      "table": "assets",
+      "fields": [
+        "title",
+        "category",
+        "quantity",
+        "location",
+        "archived"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "certificates": {
+      "table": "certificates",
+      "fields": [
+        "student_id",
+        "title",
+        "code"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "student_cards": {
+      "table": "student_cards",
+      "fields": [
+        "student_id",
+        "card_type",
+        "code"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "class_cards": {
+      "table": "class_cards",
+      "fields": [
+        "student_id",
+        "class_name",
+        "code"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "surveys": {
+      "table": "surveys",
+      "fields": [
+        "title",
+        "description",
+        "status",
+        "audience",
+        "start_at",
+        "end_at",
+        "created_by"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "educational_followups": {
+      "table": "educational_followups",
+      "fields": [
+        "student_id",
+        "student_name",
+        "class_name",
+        "date_shamsi",
+        "followup_item",
+        "decision",
+        "note"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "academic_followups": {
+      "table": "academic_followups",
+      "fields": [
+        "student_id",
+        "student_name",
+        "class_name",
+        "subject",
+        "date_shamsi",
+        "followup_item",
+        "decision",
+        "note"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "khwarizmi_registrations": {
+      "table": "khwarizmi_registrations",
+      "fields": [
+        "title",
+        "category",
+        "grade",
+        "class_name",
+        "student_id",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "executive_requests": {
+      "table": "executive_requests",
+      "fields": [
+        "title",
+        "requester",
+        "status",
+        "description",
+        "role"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "art_competitions": {
+      "table": "art_competitions",
+      "fields": [
+        "title",
+        "category",
+        "description",
+        "registration_start_shamsi",
+        "registration_end_shamsi",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "sport_competitions": {
+      "table": "sport_competitions",
+      "fields": [
+        "title",
+        "sport_type",
+        "participation_type",
+        "description",
+        "registration_start_shamsi",
+        "registration_end_shamsi",
+        "fixed_amount",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "morning_leaders": {
+      "table": "morning_leaders",
+      "fields": [
+        "student_id",
+        "student_name",
+        "grade",
+        "class_name",
+        "role",
+        "date_shamsi",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "lesson_plans": {
+      "table": "lesson_plan_entries",
+      "fields": [
+        "teacher_id",
+        "subject",
+        "weekly_sessions",
+        "session_no",
+        "teaching_amount",
+        "teaching_date",
+        "teaching_title",
+        "activity_type"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "student_class_info": {
+      "table": "student_class_info",
+      "fields": [
+        "student_id",
+        "student_name",
+        "grade",
+        "class_name",
+        "school_year",
+        "classroom_seat",
+        "exam_seat",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "parent_meeting_requests": {
+      "table": "parent_meeting_requests",
+      "fields": [
+        "parent_id",
+        "parent_name",
+        "student_id",
+        "student_name",
+        "target_role",
+        "target_name",
+        "requested_date_shamsi",
+        "requested_time",
+        "reason",
+        "status",
+        "educational_approval",
+        "manager_approval"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
     }
   },
   "special": {
@@ -2370,5 +2629,6 @@
       "identity_gate"
     ]
   },
-  "canonical_rule": "Every visible Android/Web module is sourced from the ZIP contract; special modules keep the same canonical table/field semantics."
+  "canonical_rule": "Every visible Android/Web module is sourced from the ZIP contract; special modules keep the same canonical table/field semantics.",
+  "notes": "All panel-referenced modules are now backed by a canonical module/table/field contract. Special Android workspaces keep their dedicated UX while CRUD modules use the same contract."
 }
