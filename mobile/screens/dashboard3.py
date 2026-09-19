@@ -138,11 +138,17 @@ class DashboardScreen(Screen):
         self.role_text.text = rtl_text(f"پنل {ROLE_TITLES.get(role, 'کاربر')} | دسترسی فعال")
         self.panel_box.clear_widgets()
 
-        visible_panels = list(PANELS)
-        if role == "student":
-            visible_panels = [("دانش‌آموزان", "students")]
-        elif role == "parent":
-            visible_panels = [("اولیا", "parents")]
+        role_routes = {
+            "manager": ("مدیریت", "management"),
+            "educational": ("معاون آموزشی", "educational"),
+            "executive": ("معاون اجرایی", "executive"),
+            "cultural": ("معاون پرورشی", "cultural"),
+            "advisor": ("مشاوره", "advisor"),
+            "teacher": ("دبیران", "teachers"),
+            "student": ("دانش‌آموزان", "students"),
+            "parent": ("اولیا", "parents"),
+        }
+        visible_panels = [role_routes[role]] if role in role_routes else [("مدیریت", "management")]
 
         for i, (title, route) in enumerate(visible_panels, 1):
             btn = Button(
