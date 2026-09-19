@@ -14,7 +14,7 @@ from kivy.uix.widget import Widget
 from pathlib import Path
 
 from mobile.config import (
-    SCHOOL_NAME, BACKGROUND_PATH, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
+    APP_NAME, SCHOOL_NAME, BACKGROUND_PATH, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
     SUCCESS, WHITE, ERROR,
 )
 from mobile.ui import font_name, rtl_text, PersianTextInput
@@ -120,6 +120,18 @@ class LoginScreen(Screen):
             background.allow_stretch = True
             background.keep_ratio = True
         root.add_widget(background)
+
+        # School name is intentionally rendered by Kivy, not baked into the
+        # background image. This keeps the school name editable from code and
+        # guarantees that the exact configured school name is shown on every
+        # Android device.
+        school_overlay = self.label(SCHOOL_NAME, "13sp", WHITE, True, "center")
+        school_overlay.size_hint = (0.88, None)
+        school_overlay.height = dp(34)
+        school_overlay.pos_hint = {"center_x": 0.5, "top": 0.645}
+        school_overlay.opacity = 1 if artwork_loaded else 0
+        root.add_widget(school_overlay)
+        self.school_overlay = school_overlay
 
         # The artwork already contains the glowing card frame. We place real
         # Kivy controls inside that frame instead of drawing a fake login UI.
