@@ -132,8 +132,12 @@ class FrahooshApp(App):
         except Exception:
             pass
         try:
-            from mobile.screens.panel_screen import PanelScreen
-            screen = PanelScreen(name="panel", app_state=self.app_state)
+            # Use the canonical operational workspace directly. The older
+            # panel_screen wrapper imported the whole module stack too early
+            # and could leave the dashboard with a false "panel not ready"
+            # state even though the real workspace itself is valid.
+            from mobile.screens.module import FinalModuleScreen
+            screen = FinalModuleScreen(name="panel", app_state=self.app_state)
             self.sm.add_widget(screen)
             return screen
         except Exception as exc:
