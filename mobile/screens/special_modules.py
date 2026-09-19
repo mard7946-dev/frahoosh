@@ -448,8 +448,13 @@ class SpecialModuleScreen(Screen):
         self.fin_invoices=self.label("فاکتورها: …","12sp",SECONDARY,True,True,45)
         for w in (self.fin_balance,self.fin_receivable,self.fin_payable,self.fin_invoices): top.add_widget(w)
         self.body.add_widget(top)
-        self.body.add_widget(self.btn("ثبت سند مالی / فاکتور جدید", self._finance_editor, SUCCESS, 46))
+        actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5))
+        actions.add_widget(self.btn("ثبت جدید", self._finance_editor, SUCCESS, 40))
+        actions.add_widget(self.btn("ویرایش", self._finance_edit_selected, PRIMARY, 40))
+        actions.add_widget(self.btn("حذف", self._finance_delete_selected, ERROR, 40))
+        self.body.add_widget(actions)
         self.finance_area=BoxLayout(orientation="vertical")
+        self.finance_selected=None
         self.body.add_widget(self.finance_area)
         self._async(self._finance_data,self._finance_loaded)
 
@@ -469,14 +474,35 @@ class SpecialModuleScreen(Screen):
         self.fin_payable.text=rtl_text("بدهکاری: "+str(sum(float(x.get("amount") or 0) for x in tx if str(x.get("transaction_type")) in ("بدهکار","debit","expense"))))
         self.fin_invoices.text=rtl_text("فاکتورها: "+str(len(inv)))
         self.finance_area.clear_widgets()
-        for row in inv[:20]:
-            c=_Card(size_hint_y=None,height=dp(94))
-            c.add_widget(self.label("شماره فاکتور: "+str(row.get("invoice_number") or row.get("reference") or row.get("authority") or row.get("id") or "-"),"11sp",PRIMARY,True,False,30))
-            c.add_widget(self.label("مبلغ فاکتور: "+str(row.get("amount") or 0)+" • وضعیت: "+str(row.get("status") or "-"),"10sp",SECONDARY,False,False,27))
-            c.add_widget(self.label("عنوان: "+str(row.get("title") or "-"),"9sp",SECONDARY,False,False,25))
+        for row in tx[:20]:
+            c=_Card(size_hint_y=None,height=dp(112))
+            c.add_widget(self.label("شماره فاکتور: "+str(row.get("invoice_number") or row.get("id") or "-"),"11sp",PRIMARY,True,False,28))
+            c.add_widget(self.label("عنوان: "+str(row.get("title") or "-")+" • نوع: "+str(row.get("transaction_type") or "-"),"10sp",SECONDARY,False,False,27))
+            c.add_widget(self.label("بدهکار: "+str(row.get("debit") or 0)+" • بستانکار: "+str(row.get("credit") or 0)+" • مبلغ: "+str(row.get("amount") or 0),"9sp",SECONDARY,False,False,25))
+            c.add_widget(self.btn("انتخاب این سند",lambda *_a,x=row:self._finance_select(x),PRIMARY,30))
             self.finance_area.add_widget(c)
 
-    def _finance_editor(self,*_):
+    def _finance_select(self,row):
+        self.finance_selected=dict(row or {})
+        self._set_status("سند مالی انتخاب شد؛ برای ویرایش یا حذف اقدام کنید.", SUCCESS)
+
+    def _finance_edit_selected(self,*_):
+        row=getattr(self,"finance_selected",None)
+        if not row:
+            self._set_status("ابتدا یک سند مالی را انتخاب کنید.", ERROR)
+            return
+        self._finance_editor(row)
+
+    def _finance_delete_selected(self,*_):
+        row=getattr(self,"finance_selected",None)
+        if not row or not row.get("id"):
+            self._set_status("ابتدا یک سند مالی را انتخاب کنید.", ERROR)
+            return
+        rid=row.get("id")
+        self._async(lambda:self._api().table_delete("finance_transactions",{"id":"eq."+str(rid)}),
+                    lambda r,e:self._set_status(("سند مالی حذف شد." if not e else "حذف سند ناموفق بود: "+e),SUCCESS if not e else ERROR))
+
+    def _finance_editor(self,row=None):
         self.body.clear_widgets()
         self.title.text=rtl_text("ثبت سند مالی")
         fields=[("شماره فاکتور","invoice_no"),("عنوان سند","title"),("نوع سند (بستانکار/بدهکار)","transaction_type"),("مبلغ فاکتور","amount"),("دسته‌بندی","category"),("شرح","description")]
