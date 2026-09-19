@@ -36,6 +36,19 @@ class FrahooshApp(App):
         # now switches to an already-created screen instead of dynamically
         # importing/constructing a panel at touch time.
         self.sm.add_widget(PanelScreen(name="panel", app_state=self.app_state))
+        # Preload specialty operational screens so touch navigation never depends on
+        # importing/building a screen inside the Android touch callback.
+        try:
+            from mobile.screens.smart_class_preview import SmartClassPreviewScreen
+            self.sm.add_widget(SmartClassPreviewScreen(name="smart_class_preview", app_state=self.app_state))
+        except Exception as exc:
+            print("SMART CLASS PRELOAD ERROR:", repr(exc))
+        try:
+            from mobile.screens.special_modules import SpecialModuleScreen
+            for _mode in ("attendance","discipline","report_cards","finance","parent_children","identity_gate"):
+                self.sm.add_widget(SpecialModuleScreen(name="special_" + _mode, app_state=self.app_state, mode=_mode))
+        except Exception as exc:
+            print("SPECIAL MODULE PRELOAD ERROR:", repr(exc))
 
         self.sm.current = "login"
         Clock.schedule_once(self._startup_check, 0)
@@ -148,6 +161,16 @@ class FrahooshApp(App):
             return screen
         except Exception as exc:
             print("SMART CLASS PREVIEW BUILD ERROR:", repr(exc))
+            return None
+
+    def ensure_special_module(self, mode):
+        name = "special_" + str(mode)
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen(name)
+        except Exception as exc:
+            print("SPECIAL MODULE LOOKUP ERROR:", repr(exc))
             return None
 
     def ensure_update(self):
