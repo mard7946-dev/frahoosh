@@ -237,6 +237,9 @@ class SpecialModuleScreen(Screen):
             self._set_status("فهرست دانش‌آموزان دریافت نشد: " + error, ERROR)
             return
         self.students = rows or []
+        # A new class load starts a fresh attendance sheet. Do not carry
+        # selections from a previously opened class into the next roster.
+        self.attendance_state = {}
         self._render_attendance_rows()
         self._set_status(f"{len(self.students)} دانش‌آموز کلاس آماده ثبت حضور و غیاب است.", SUCCESS)
 
@@ -285,15 +288,61 @@ class SpecialModuleScreen(Screen):
         date = __import__("datetime").date.today().isoformat()
         def work():
             api = self._api()
+            saved = 0
             for sid, status in state.items():
-                payload = {"student_id": sid, "teacher_id": teacher_id, "class_name": class_name,
-                           "subject": subject, "attendance_date": date, "status": status,
-                           "date": date, "description": ""}
-                # teacher_attendance is the ZIP teacher-workspace record;
-                # attendance is the shared student/parent record.
-                api.table_insert("teacher_attendance", payload)
-                api.table_insert("attendance", payload)
-            return len(state)
+                student = next((r for r in self.students if r.get("id") == sid), {})
+                student_name = f"{student.get('first_name','')} {student.get('last_name','')}".strip()
+                payload = {
+                    "class_id": selected.get("id"),
+                    "student_id": sid,
+                    "student_name": student_name,
+                    "teacher_id": teacher_id,
+                    "class_name": class_name,
+                    "subject": subject,
+                    "attendance_date": date,
+                    "status": status,
+                    "date": date,
+                    "description": "",
+                }
+
+                # One student/date/class/subject is one attendance record.
+                # Re-saving the sheet updates the existing record instead of
+                # creating duplicate attendance rows.
+                filters = {
+                    "student_id": "eq." + str(sid),
+                    "attendance_date": "eq." + str(date),
+                    "class_name": "eq." + str(class_name),
+                }
+                if subject:
+                    filters["subject"] = "eq." + str(subject)
+
+                existing_teacher = api.table_select(
+                    "teacher_attendance",
+                    {**filters, "limit": "1"},
+                ) or []
+                if existing_teacher and existing_teacher[0].get("id"):
+                    api.table_update(
+                        "teacher_attendance",
+                        {"id": "eq." + str(existing_teacher[0]["id"])},
+                        payload,
+                    )
+                else:
+                    api.table_insert("teacher_attendance", payload)
+
+                existing_shared = api.table_select(
+                    "attendance",
+                    {**filters, "limit": "1"},
+                ) or []
+                if existing_shared and existing_shared[0].get("id"):
+                    api.table_update(
+                        "attendance",
+                        {"id": "eq." + str(existing_shared[0]["id"])},
+                        payload,
+                    )
+                else:
+                    api.table_insert("attendance", payload)
+                saved += 1
+            return saved
         self._set_status("در حال ثبت حضور و غیاب واقعی…", SECONDARY)
         self._async(work, lambda n,e: self._set_status((f"{n} وضعیت با موفقیت ثبت شد." if not e else "ثبت حضور و غیاب ناموفق بود: " + e), SUCCESS if not e else ERROR))
 
@@ -375,10 +424,11 @@ class SpecialModuleScreen(Screen):
         )
 
     def _save_discipline(self, *_):
+        placeholder = rtl_text("نوع مشکل را انتخاب کنید")
         selected = [
             (sid, sp.text)
             for sid, sp in getattr(self, "discipline_widgets", {}).items()
-            if sp.text and "انتخاب" not in sp.text
+            if sp.text and sp.text != placeholder
         ]
         if not selected:
             self._set_status("برای ثبت، نوع مشکل انضباطی را از کشو انتخاب کنید.", ERROR)
@@ -597,11 +647,19 @@ class SpecialModuleScreen(Screen):
         self.report_official = dict(official or {})
         self.body.clear_widgets()
 
-        actions = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(5))
-        actions.add_widget(self.btn("ثبت جدید", lambda *_: self._report_editor(None), SUCCESS, 40))
-        actions.add_widget(self.btn("ویرایش", lambda *_: self._report_editor(self.report_official) if self.report_official else self._set_status("کارنامه‌ای برای ویرایش ثبت نشده است.", ERROR), PRIMARY, 40))
-        actions.add_widget(self.btn("حذف", self._delete_report, ERROR, 40))
-        self.body.add_widget(actions)
+        role = str(getattr(self.app_state, "role", "") or "").strip().lower()
+        writable_roles = {"manager", "admin", "administrator", "مدیر", "مدیریت", "executive", "معاون اجرایی"}
+        if role in writable_roles:
+            actions = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(5))
+            actions.add_widget(self.btn("ثبت جدید", lambda *_: self._report_editor(None), SUCCESS, 40))
+            actions.add_widget(self.btn(
+                "ویرایش",
+                lambda *_: self._report_editor(self.report_official) if self.report_official
+                else self._set_status("کارنامه‌ای برای ویرایش ثبت نشده است.", ERROR),
+                PRIMARY, 40,
+            ))
+            actions.add_widget(self.btn("حذف", self._delete_report, ERROR, 40))
+            self.body.add_widget(actions)
 
         report = _Card(fill=(0.98, 0.99, 1.0, 1))
         report.add_widget(self.label("کارنامه تحصیلی", "22sp", PRIMARY, True, True, 46))
