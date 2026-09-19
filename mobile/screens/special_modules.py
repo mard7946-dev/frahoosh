@@ -504,13 +504,14 @@ class SpecialModuleScreen(Screen):
 
     def _finance_editor(self,row=None):
         self.body.clear_widgets()
-        self.title.text=rtl_text("ثبت سند مالی")
-        fields=[("شماره فاکتور","invoice_no"),("عنوان سند","title"),("نوع سند (بستانکار/بدهکار)","transaction_type"),("مبلغ فاکتور","amount"),("دسته‌بندی","category"),("شرح","description")]
+        self.title.text=rtl_text("ویرایش سند مالی" if row else "ثبت سند مالی")
+        fields=[("شماره فاکتور","invoice_number"),("عنوان سند","title"),("نوع سند (بستانکار/بدهکار)","transaction_type"),("مبلغ فاکتور","amount"),("دسته‌بندی","category"),("طرف حساب","counterparty"),("شرح","description")]
         self.finance_inputs={}
+        self.finance_editing=row
         for hint,key in fields:
-            ti=PersianTextInput(hint_text=rtl_text(hint),font_size="12sp",size_hint_y=None,height=dp(48),padding=[dp(10),dp(7)])
+            ti=PersianTextInput(text="" if row is None else str(row.get(key) or ""),hint_text=rtl_text(hint),font_size="12sp",size_hint_y=None,height=dp(48),padding=[dp(10),dp(7)])
             self.finance_inputs[key]=ti; self.body.add_widget(ti)
-        self.body.add_widget(self.btn("ثبت سند مالی",self._save_finance,SUCCESS,46))
+        self.body.add_widget(self.btn("ذخیره سند مالی",self._save_finance,SUCCESS,46))
         self.body.add_widget(self.btn("بازگشت به دفتر حسابداری",lambda *_:self.load(),SECONDARY,42))
 
     def _save_finance(self,*_):
@@ -520,13 +521,20 @@ class SpecialModuleScreen(Screen):
         kind = vals["transaction_type"] or "بدهکار"
         amount = vals["amount"]
         payload={"transaction_type":kind,"title":vals["title"],"amount":amount,
-                 "invoice_number":vals["invoice_no"],
+                 "invoice_number":vals["invoice_number"],
                  "debit":amount if kind in ("بدهکار","debit","expense") else 0,
                  "credit":amount if kind in ("بستانکار","credit","income") else 0,
-                 "category":vals["category"],"description":vals["description"],
+                 "category":vals["category"],"counterparty":vals["counterparty"],
+                 "description":vals["description"],
                  "transaction_date":__import__("datetime").date.today().isoformat()}
-        self._async(lambda:self._api().table_insert("finance_transactions",payload),
-                    lambda r,e:self._set_status(("سند مالی ثبت شد." if not e else "ثبت سند ناموفق بود: "+e),SUCCESS if not e else ERROR))
+        row=getattr(self,"finance_editing",None)
+        if row and row.get("id"):
+            work=lambda:self._api().table_update("finance_transactions",{"id":"eq."+str(row.get("id"))},payload)
+            msg="سند مالی ویرایش شد."
+        else:
+            work=lambda:self._api().table_insert("finance_transactions",payload)
+            msg="سند مالی ثبت شد."
+        self._async(work,lambda r,e:self._set_status((msg if not e else "ذخیره سند ناموفق بود: "+e),SUCCESS if not e else ERROR))
 
     def _parent_children(self):
         self.title.text=rtl_text("اطلاعات فرزندان")
