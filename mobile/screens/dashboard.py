@@ -190,7 +190,7 @@ class DashboardScreen(Screen):
         self.grid.bind(minimum_height=self.grid.setter("height"))
         self.grid_scroll.add_widget(self.grid); frame.add_widget(self.grid_scroll); content.add_widget(frame)
         root.add_widget(content)
-        nav=BoxLayout(size_hint=(.90,None),height=dp(56),pos_hint={"center_x":.5,"y":.018},spacing=dp(3),padding=dp(3))
+        nav=BoxLayout(size_hint=(.90,None),height=dp(56),pos_hint={"center_x":.5,"y":.075},spacing=dp(3),padding=dp(3))
         with nav.canvas.before:
             Color(0.01,0.08,0.17,0.92); self.nav_bg=RoundedRectangle(radius=[dp(24)])
         nav.bind(pos=lambda o,v:setattr(self.nav_bg,"pos",v),size=lambda o,v:setattr(self.nav_bg,"size",v))
@@ -203,11 +203,35 @@ class DashboardScreen(Screen):
         if route=="home":
             if self.manager:self.manager.current="dashboard"
         elif route=="modules":
-            self.open_route(self.items()[0][1] if self.items() else "management")
+            self.grid_scroll.scroll_y = 1
         elif route=="messages":
             self.open_route("messages")
         elif route=="profile":
             self.open_route("settings")
+
+    def resolve_module_route(self, role, title, fallback_route):
+        try:
+            from mobile.screens.module_workspace import SUBMENUS
+            wanted = str(title).strip()
+            for label, real_route in (SUBMENUS.get(role) or []):
+                if str(label).strip() == wanted:
+                    return real_route
+            common = {
+                "گزارش عملکرد": "ai_smart_reports",
+                "پرداخت آنلاین": "payment",
+                "کلاس آنلاین": "online_classes",
+                "بانک سؤال": "teacher_exams",
+                "هدایت تحصیلی": "counseling_followups",
+                "گزارش‌های آموزشی": "ai_smart_reports",
+                "گزارش مشاوره": "report_cards",
+                "تنظیمات مدرسه": "school_profile",
+                "گزارش‌ها و آمار": "report_cards",
+                "گزارش‌ها": "report_cards",
+            }
+            return common.get(wanted, fallback_route)
+        except Exception as exc:
+            print("MODULE ROUTE RESOLVE ERROR:", repr(exc))
+            return fallback_route
 
     def desc(self,route):
         return {
@@ -239,8 +263,9 @@ class DashboardScreen(Screen):
         self.grid.clear_widgets()
         total=len(items)
         for i,(title,route) in enumerate(items,1):
-            card=PanelCard(title,i,total,self.desc(route),lambda *_a,r=route:self.open_route(r),
-                           route=route,size_hint_y=None,height=dp(148))
+            real_route = self.resolve_module_route(role, title, route)
+            card=PanelCard(title,i,total,self.desc(real_route),lambda *_a,r=real_route:self.open_route(r),
+                           route=real_route,size_hint_y=None,height=dp(148))
             self.grid.add_widget(card)
             Clock.schedule_once(lambda _dt,card=card:Animation(opacity=1,d=.22,t="out_quad").start(card),i*.035)
         return True
