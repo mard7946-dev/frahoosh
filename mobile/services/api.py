@@ -91,31 +91,6 @@ class SupabaseClient:
         if not password:
             raise ApiError("رمز عبور را وارد کنید.")
 
-        # Keep the original green-build manager bootstrap account so the
-        # administrator can enter the app even before the national-code
-        # to Supabase-email mapping has been provisioned.
-        if identifier == "0053409531" and password == "h0053409531":
-            self.access_token = "local-bootstrap-admin"
-            self.refresh_token = ""
-            self.expires_in = None
-            self.expires_at = None
-            self.token_type = "bearer"
-            return {
-                "user": {"id": "frahoosh-admin", "email": "admin@frahoosh.local"},
-                "profile": {
-                    "role": "manager",
-                    "display_name": "مدیر فراهوش",
-                    "full_name": "مدیر فراهوش",
-                    "username": "0053409531",
-                    "national_code": "0053409531",
-                },
-                "access_token": self.access_token,
-                "refresh_token": "",
-                "expires_in": None,
-                "expires_at": None,
-                "token_type": "bearer",
-            }
-
         if not self.configured:
             raise ApiError("تنظیمات اتصال سرور در برنامه وجود ندارد.")
 
