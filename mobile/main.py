@@ -192,16 +192,15 @@ class FrahooshApp(App):
         if self.sm is None:
             return None
         try:
-            return self.sm.get_screen("dashboard")
+            return self.sm.get_screen("clean_dashboard")
         except Exception:
             pass
         try:
-            from mobile.screens.dashboard3 import DashboardScreen
-            dashboard = DashboardScreen(name="dashboard", app_state=self.app_state)
-            self.sm.add_widget(dashboard)
-            return dashboard
+            screen = CleanDashboardScreen(app_state=self.app_state, name="clean_dashboard")
+            self.sm.add_widget(screen)
+            return screen
         except Exception as exc:
-            print("DASHBOARD BUILD ERROR:", repr(exc))
+            print("CLEAN DASHBOARD BUILD ERROR:", repr(exc))
             return None
 
     def ensure_school_action(self, mode):
