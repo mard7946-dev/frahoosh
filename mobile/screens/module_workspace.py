@@ -14,6 +14,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.resources import resource_find
+from pathlib import Path
 
 from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text, PersianTextInput, PersianSpinner
@@ -673,8 +674,87 @@ class ModuleWorkspaceScreen(Screen):
             bar.add_widget(self.btn("ثبت جدید",lambda *_:self.editor(table,None),SUCCESS,dp(38)))
             bar.add_widget(self.btn("ویرایش",lambda *_:self._edit_selected_row(),PRIMARY,dp(38)))
             bar.add_widget(self.btn("حذف",lambda *_:self._delete_selected_row(),(0.72,.16,.18,1),dp(38)))
+            bar.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+            bar.add_widget(self.btn("ورودی Excel",lambda *_:self.import_excel(),(0.42,.30,.62,1),dp(38)))
             self.body.add_widget(bar)
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
+
+    def _excel_path(self):
+        table=str(self.table or "table")
+        try:
+            download=Path("/storage/emulated/0/Download")
+            download.mkdir(parents=True,exist_ok=True)
+            return download / ("frahoosh_"+table+".xlsx")
+        except Exception:
+            return Path(self.app_state.api.local.root if hasattr(getattr(self.app_state,"api",None),"local") else ".") / ("frahoosh_"+table+".xlsx")
+
+    def export_excel(self):
+        table=str(self.table or "").strip()
+        if not table:
+            return
+        self.status.text=rtl_text("در حال ساخت فایل Excel…")
+        def work():
+            try:
+                from openpyxl import Workbook
+                api=self.app_state.api
+                rows=api.table_select(table,{"limit":"1000"}) or []
+                rows=[dict(x) for x in rows if isinstance(x,dict)]
+                fields=[f for f in (TABLE_FIELDS.get(table) or []) if f not in HIDDEN]
+                if not fields and rows:
+                    fields=[k for k in rows[0] if k not in HIDDEN]
+                wb=Workbook(); ws=wb.active; ws.title="فراهوش"
+                ws.append([COLUMNS.get(f,f) for f in fields])
+                for row in rows:
+                    ws.append([row.get(f,"") for f in fields])
+                path=self._excel_path(); wb.save(str(path))
+                msg=f"خروجی Excel ذخیره شد: {path}"
+                Clock.schedule_once(lambda *_: self._excel_done(msg),0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_: self.write_error("خروجی Excel انجام نشد: "+str(exc)),0)
+        Thread(target=work,daemon=True).start()
+
+    def import_excel(self):
+        table=str(self.table or "").strip()
+        if not table:
+            return
+        path=self._excel_path()
+        if not path.is_file():
+            self.message("ورودی Excel",f"فایل مورد انتظار پیدا نشد.\nفایل {path.name} را در پوشه Download گوشی قرار دهید و دوباره بزنید.")
+            return
+        self.status.text=rtl_text("در حال خواندن فایل Excel…")
+        def work():
+            try:
+                from openpyxl import load_workbook
+                wb=load_workbook(str(path),read_only=True,data_only=True)
+                ws=wb.active
+                values=list(ws.iter_rows(values_only=True))
+                if not values:
+                    raise RuntimeError("فایل Excel خالی است.")
+                headers=[str(x or "").strip() for x in values[0]]
+                reverse={str(v):k for k,v in COLUMNS.items()}
+                fields=[reverse.get(h,h) for h in headers]
+                allowed=set(TABLE_FIELDS.get(table) or [])
+                fields=[f if f in allowed else None for f in fields]
+                inserted=0
+                for row in values[1:]:
+                    payload={}
+                    for i,value in enumerate(row):
+                        if i>=len(fields) or not fields[i] or value in (None,""):
+                            continue
+                        payload[fields[i]]=self._payload_value(fields[i],value)
+                    if payload:
+                        self.app_state.api.table_insert(table,payload,return_representation=False)
+                        inserted+=1
+                wb.close()
+                Clock.schedule_once(lambda *_: self._excel_done(f"{inserted} رکورد از Excel وارد شد."),0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_: self.write_error("ورودی Excel انجام نشد: "+str(exc)),0)
+        Thread(target=work,daemon=True).start()
+
+    def _excel_done(self,message):
+        self.status.text=rtl_text(message)
+        self.status.color=SUCCESS
+        self.load_table()
 
     def _edit_selected_row(self):
         row=getattr(self,"selected_row",None)
