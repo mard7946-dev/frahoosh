@@ -210,12 +210,10 @@ class PanelHubScreen(Screen):
     def _open(self,route):
         app=App.get_running_app()
         if app is None: return
-        if route=="teacher_exams":
-            screen=app.ensure_exam()
-            if screen: app.sm.current="teacher_exams"
-            return
         panel=app.ensure_panel()
         if panel:
+            # ModuleWorkspace resolves the ZIP module id to its canonical table
+            # or special operational screen. Do not bypass that contract here.
             panel.set_route(route)
             app.sm.current="panel"
 
