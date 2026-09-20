@@ -622,7 +622,7 @@ class ModuleWorkspaceScreen(Screen):
                 pos=lambda o, v, bg=card._bg: setattr(bg, "pos", v),
                 size=lambda o, v, bg=card._bg: setattr(bg, "size", v),
             )
-            card.opacity = 0
+            card.opacity = 1
 
             title_box = BoxLayout(size_hint_y=None, height=dp(34), spacing=dp(5))
             title_box.add_widget(ModuleIcon(table))
@@ -639,10 +639,6 @@ class ModuleWorkspaceScreen(Screen):
                 )
             )
             grid.add_widget(card)
-            Clock.schedule_once(
-                lambda _dt, widget=card: Animation(opacity=1, d=.18, t="out_quad").start(widget),
-                i * .025,
-            )
 
         scroll.add_widget(grid)
         panel.add_widget(scroll)
