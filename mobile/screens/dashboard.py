@@ -269,7 +269,8 @@ class DashboardScreen(Screen):
         head.add_widget(self.label(APP_NAME,"25sp",WHITE,True,True)); content.add_widget(head)
         self.welcome=self.label("خوش آمدید","14sp",WHITE,True,True); content.add_widget(self.welcome)
         self.role_text=self.label("","10sp",(0.88,0.96,1,1),False,True); content.add_widget(self.role_text)
-        self.parent_alert=self.label("","11sp",WHITE,True,True); content.add_widget(self.parent_alert)\n        self.parent_alert=self.label("","11sp",WHITE,True,True); content.add_widget(self.parent_alert)
+        self.parent_alert=self.label("","11sp",WHITE,True,True); content.add_widget(self.parent_alert)
+("","11sp",WHITE,True,True); content.add_widget(self.parent_alert)
         frame=BoxLayout(orientation="vertical",padding=dp(8))
         with frame.canvas.before:
             Color(0.02,0.08,0.18,0.64); self.frame_bg=RoundedRectangle(radius=[dp(22)])
