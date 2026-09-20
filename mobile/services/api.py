@@ -1,6 +1,7 @@
 import json
 from urllib.parse import urlencode
 import requests
+import certifi
 from requests import RequestException
 
 from mobile.config import SUPABASE_URL, SUPABASE_ANON_KEY, API_TIMEOUT
@@ -41,6 +42,7 @@ def _request(method, url, headers=None, payload=None, params=None, timeout=15):
             json=payload if payload is not None else None,
             params=params or None,
             timeout=timeout,
+            verify=certifi.where(),
         )
         return _Response(response.status_code, response.content)
     except RequestException as exc:
