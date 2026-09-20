@@ -32,6 +32,8 @@ class LiveSchoolData:
         "online_class_settings",
         "school_events",
         "event_audiences",
+        "parent_student_links",
+        "discipline_records",
     )
 
     def __init__(self, app_state):
@@ -146,6 +148,92 @@ class LiveSchoolData:
             "grades": by_student("grades"),
             "assignments": by_student("assignments"),
         }
+
+    def parent_student_ids(self):
+        """Resolve all children linked to the logged-in parent from the canonical link table."""
+        if str(getattr(self.app_state, "role", "")).lower() != "parent":
+            return []
+        p = self.profile
+        u = self.user
+        candidates = []
+        for key in ("parent_id", "id", "user_id"):
+            value = p.get(key) or u.get(key)
+            if value: candidates.append((key, str(value)))
+        if u.get("id"): candidates.append(("parent_user_id", str(u["id"])))
+        if p.get("email") or u.get("email"):
+            candidates.append(("email", str(p.get("email") or u.get("email"))))
+        seen=set(); result=[]
+        for field,value in candidates:
+            try:
+                _, rows=self._try_select(("parent_student_links",), {"select":"*", field:f"eq.{value}", "limit":"100"})
+                for row in rows:
+                    sid=self._first(row,"student_id","child_id","linked_student_id","student")
+                    if sid and str(sid) not in seen:
+                        seen.add(str(sid)); result.append(str(sid))
+            except Exception:
+                continue
+        linked=self._first(p,"linked_student_id","student_id")
+        if linked and str(linked) not in seen:
+            result.append(str(linked))
+        return result
+
+    def _child_events(self, table, student_ids, limit=50):
+        if not student_ids: return []
+        rows=[]
+        for sid in student_ids:
+            try:
+                _, data=self._try_select((table,), {"select":"*","student_id":f"eq.{sid}","order":"created_at.desc","limit":str(limit)})
+                rows.extend(data)
+            except Exception:
+                continue
+        return rows
+
+    def parent_realtime_feed(self, limit=50):
+        """Return the four parent-critical feeds from the same school tables."""
+        student_ids=self.parent_student_ids()
+        attendance=self._child_events("attendance",student_ids,limit)
+        discipline=self._child_events("discipline_records",student_ids,limit)
+        grades=self._child_events("grades",student_ids,limit)
+        assignments=self._child_events("assignments",student_ids,limit)
+        messages=[]
+        p=self.profile; u=self.user
+        for field,value in (("recipient_id",u.get("id")),("user_id",u.get("id")),("parent_id",p.get("id") or u.get("id")),("email",p.get("email") or u.get("email"))):
+            if not value: continue
+            try:
+                _, data=self._try_select(("messages",), {"select":"*",field:f"eq.{value}","order":"created_at.desc","limit":str(limit)})
+                messages.extend(data)
+            except Exception:
+                continue
+        # RLS-safe fallback: message_targets normally carries recipient routing.
+        for field,value in (("parent_id",p.get("id") or u.get("id")),("user_id",u.get("id")),("recipient_id",u.get("id"))):
+            if not value: continue
+            try:
+                _, targets=self._try_select(("message_targets",), {"select":"*",field:f"eq.{value}","order":"created_at.desc","limit":str(limit)})
+                ids=[self._first(x,"message_id","id") for x in targets]
+                for mid in ids:
+                    if mid:
+                        _, data=self._try_select(("messages",), {"select":"*","id":f"eq.{mid}","limit":"1"})
+                        messages.extend(data)
+            except Exception:
+                continue
+        def unique_sorted(items):
+            seen=set(); out=[]
+            for row in items:
+                key=str(self._first(row,"id","uuid","created_at"))+"|"+str(self._first(row,"title","subject","type"))
+                if key not in seen: seen.add(key); out.append(row)
+            return sorted(out,key=lambda x:str(x.get("created_at") or x.get("date") or ""),reverse=True)[:limit]
+        return {"student_ids":student_ids,"attendance":unique_sorted(attendance),"discipline":unique_sorted(discipline),"grades":unique_sorted(grades),"activities":unique_sorted(assignments),"messages":unique_sorted(messages)}
+
+    def parent_unread_notifications(self, seen_ids=None):
+        feed=self.parent_realtime_feed(limit=30)
+        seen=set(str(x) for x in (seen_ids or [])); events=[]
+        mapping=(("attendance","حضور و غیاب"),("discipline","گزارش انضباطی"),("grades","نمره جدید"),("activities","فعالیت آموزشی"),("messages","پیام جدید"))
+        for key,title in mapping:
+            for row in feed.get(key,[]):
+                rid=self._first(row,"id","uuid",default=self._first(row,"created_at","date"))
+                if str(rid) not in seen:
+                    events.append({"id":str(rid),"title":title,"row":row,"created_at":self._first(row,"created_at","date")})
+        return sorted(events,key=lambda x:str(x.get("created_at") or ""),reverse=True), feed
 
     def online_classes(self, limit=30):
         _, rows = self._try_select(
