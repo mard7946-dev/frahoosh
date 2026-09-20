@@ -8,17 +8,16 @@ from kivy.resources import resource_find
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
-from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 from pathlib import Path
 
 from mobile.config import (
-    APP_NAME, SCHOOL_NAME, LOGO_PATH, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
+    APP_NAME, SCHOOL_NAME, APP_SLOGAN, SYSTEM_TITLE, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
     SUCCESS, WHITE, ERROR,
 )
-from mobile.ui import font_name, rtl_text, PersianTextInput, bundled_login_background
+from mobile.ui import font_name, rtl_text, PersianTextInput
 
 
 NAVY = (0.015, 0.07, 0.18, 1)
@@ -103,18 +102,21 @@ class LoginScreen(Screen):
             self._glow2.pos=(-root.width*.28,root.height*.15); self._glow2.size=(root.width*.56,root.width*.56)
         root.bind(pos=sync,size=sync); Clock.schedule_once(sync,0)
 
-        logo=Image(source=LOGO_PATH,allow_stretch=True,keep_ratio=True,size_hint=(None,None),
-                   size=(dp(92),dp(92)),pos_hint={"center_x":.5,"top":.91})
-        root.add_widget(logo)
         title=Label(text=rtl_text(APP_NAME),font_name=font_name(),font_size="30sp",bold=True,color=WHITE,
-                    size_hint=(.9,None),height=dp(48),pos_hint={"center_x":.5,"center_y":.79},halign="center")
+                    size_hint=(.94,None),height=dp(48),pos_hint={"center_x":.5,"center_y":.86},halign="center")
         title.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(title)
-        subtitle=Label(text=rtl_text("سامانه مدیریت هوشمند مدرسه"),font_name=font_name(),font_size="11sp",
-                      color=MUTED,size_hint=(.9,None),height=dp(34),pos_hint={"center_x":.5,"center_y":.745},halign="center")
+        subtitle=Label(text=rtl_text(SYSTEM_TITLE),font_name=font_name(),font_size="12sp",bold=True,
+                      color=CYAN,size_hint=(.94,None),height=dp(34),pos_hint={"center_x":.5,"center_y":.815},halign="center")
         subtitle.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(subtitle)
+        slogan=Label(text=rtl_text(APP_SLOGAN),font_name=font_name(),font_size="10sp",
+                     color=MUTED,size_hint=(.94,None),height=dp(30),pos_hint={"center_x":.5,"center_y":.775},halign="center")
+        slogan.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(slogan)
+        school=Label(text=rtl_text(SCHOOL_NAME),font_name=font_name(),font_size="10sp",bold=True,
+                     color=GOLD,size_hint=(.94,None),height=dp(30),pos_hint={"center_x":.5,"center_y":.735},halign="center")
+        school.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(school)
 
-        card=BoxLayout(orientation="vertical",padding=[dp(22),dp(22)],spacing=dp(9),
-                       size_hint=(.88,.49),pos_hint={"center_x":.5,"center_y":.49})
+        card=BoxLayout(orientation="vertical",padding=[dp(22),dp(20)],spacing=dp(9),
+                       size_hint=(.88,.48),pos_hint={"center_x":.5,"center_y":.47})
         with card.canvas.before:
             Color(0.01,0.09,0.22,0.93); card._card=RoundedRectangle(radius=[dp(28)])
             Color(0.04,0.66,0.92,0.65); card._line=Line(rounded_rectangle=(0,0,0,0,dp(28)),width=1.2)
@@ -185,7 +187,9 @@ class LoginScreen(Screen):
             return "ارتباط با سرور زمان‌بر شد؛ دوباره تلاش کنید."
         if "urlopen error" in lower or "network" in lower:
             return "ارتباط با سرور برقرار نشد. اینترنت را بررسی کنید."
-        return message or "ورود انجام نشد."
+        # Never render raw exception payloads on the Persian login screen.
+        # They can contain URLs, ASCII diagnostics, or unsupported glyphs.
+        return "ارتباط با سرور برقرار نشد. دوباره تلاش کنید."
 
     def login(self, *_):
         if self._busy:
