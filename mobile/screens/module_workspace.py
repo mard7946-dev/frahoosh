@@ -120,7 +120,7 @@ _MOTHER_TABLE_ALIASES = {
 
 if _MOTHER_MODULES:
     SUBMENUS = _MOTHER_MODULES
-if _shared_panels:
+if _shared_panels and not _MOTHER_MODULES:
     SUBMENUS = {k: [tuple(item) for item in v] for k, v in _shared_panels.items()}
 
 FRIENDLY = {
