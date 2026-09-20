@@ -11,6 +11,8 @@ from kivy.uix.widget import Widget
 from kivy.graphics import Color, RoundedRectangle
 from kivy.animation import Animation
 from kivy.clock import Clock
+from pathlib import Path
+import json
 
 from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, BACKGROUND_PATH, PRIMARY, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text, bundled_login_background
@@ -27,23 +29,35 @@ ROLE_TITLES = {
     "advisor":"مشاوره","teacher":"دبیر","student":"دانش‌آموز","parent":"ولی"
 }
 
-MANAGER_MENU = [
-    ("مدیریت","management"),("معاون آموزشی","educational"),("معاون اجرایی","executive"),("معاون پرورشی","cultural"),
-    ("مشاوره","advisor"),("دبیران","teachers"),("دانش‌آموزان","students"),("اولیا","parents"),
-    ("مالی","finance"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),
-    ("تابلو هوشمند","smart_board"),("هوش مصنوعی","ai"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),
-    ("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")
-]
-
-ROLE_MENU = {
-    "executive":[("معاون اجرایی","executive"),("دانش‌آموزان","students"),("اولیا","parents"),("کلاس‌های آنلاین","online"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-    "educational":[("معاون آموزشی","educational"),("دانش‌آموزان","students"),("دبیران","teachers"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-    "cultural":[("معاون پرورشی","cultural"),("دانش‌آموزان","students"),("اولیا","parents"),("مشارکت و فعالیت‌ها","participation"),("پرداخت آنلاین","payment"),("تابلو هوشمند","smart_board"),("گزارش‌ها","reports"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-    "advisor":[("مشاوره","advisor"),("دانش‌آموزان","students"),("اولیا","parents"),("گزارش‌ها","reports"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-    "teacher":[("پنل دبیر","teachers"),("آزمون آنلاین","teacher_exams"),("دانش‌آموزان","students"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-    "student":[("پنل دانش‌آموز","students"),("آزمون‌های آنلاین","teacher_exams"),("برنامه هفتگی","schedule"),("وضعیت تحصیلی","student_info"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")],
-    "parent":[("پنل اولیا","parents"),("وضعیت تحصیلی فرزند","student_info"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")]
+MOTHER_PANEL_CATALOG = {
+    "manager": {"title":"مدیریت","items":[["مدیریت کاربران و کارکنان","users"],["کلاس آنلاین","online_classes"],["برنامه هفتگی و برنامه امتحانات","weekly_schedule"],["گزارش‌ها و آمار","reports"],["تنظیمات مدرسه","school_profile"]]},
+    "executive": {"title":"معاونت اجرایی","items":[["دانش‌آموزان","students"],["کلاس‌ها","school_class_config"],["کارکنان","staff"],["پرونده‌ها","students"],["امور اجرایی","discipline_records"],["گزارش‌ها","reports"]]},
+    "educational": {"title":"معاونت آموزشی","items":[["حضور و غیاب","attendance"],["ارجاعات آموزشی","educational_followups"],["جلسات","meeting_requests"],["اطلاع‌رسانی","messages"],["امتحانات","teacher_exams"],["بانک سؤال","teacher_exams"],["گزارش‌های آموزشی","ai_smart_reports"]]},
+    "cultural": {"title":"معاونت پرورشی","items":[["فعالیت‌های فرهنگی","educational_activities"],["مسابقات","cultural_competitions"],["برنامه‌های پرورشی","educational_activities"],["ثبت‌نام فعالیت‌ها","activity_registrations"],["گزارش‌های پرورشی","cultural_reports"]]},
+    "advisor": {"title":"مشاور","items":[["پرونده مشاوره","counseling_records"],["جلسات","meeting_requests"],["پیگیری دانش‌آموز","counseling_followups"],["ارجاعات","student_referrals"],["هدایت تحصیلی","counseling_guidance"],["گزارش مشاوره","ai_smart_reports"]]},
+    "teacher": {"title":"دبیران","items":[["کلاس‌های من","teacher_classes"],["نمرات و کارنامه","student_grades"],["تکالیف","assignments"],["حضور و غیاب","attendance"],["آزمون‌ها","teacher_exams"],["طرح درس","lesson_plans"],["جلسات","meeting_requests"],["گزارش‌ها","reports"]]},
+    "student": {"title":"دانش‌آموزان","items":[["انتخاب و اطلاعات من","students"],["کارنامه و نمرات","student_grades"],["تکالیف","assignments"],["پیام‌ها","messages"],["حضور و غیاب","attendance"],["مسابقات و فعالیت‌ها","activity_registrations"],["برنامه هفتگی","weekly_schedule"],["امتحانات","exam_schedule"],["گزارش عملکرد","ai_smart_reports"],["کلاس آنلاین","online_classes"],["پرداخت آنلاین","payment_offers"]]},
+    "parent": {"title":"اولیا","items":[["انتخاب دانش‌آموز","parent_children"],["اطلاعات دانش‌آموز","students"],["کارنامه و نمرات","student_grades"],["حضور و غیاب","attendance"],["تکالیف و فعالیت‌های آموزشی","assignments"],["پیام‌ها و اطلاعیه‌ها","messages"],["برنامه هفتگی و امتحانات","weekly_schedule"],["جلسات با دبیران","meeting_requests"],["پرداخت‌ها و امور مالی","payment_records"],["پرداخت آنلاین","payment"],["فعالیت‌های فرهنگی و پرورشی","cultural_activity_registrations"]]},
+    "finance": {"title":"مالی","items":[["پرداخت‌ها","payment_records"],["تراکنش‌ها","finance_transactions"],["حساب‌ها","finance_accounts"],["گزارش مالی","reports"],["تنظیمات پرداخت آنلاین","payment_offers"]]},
+    "smart_board": {"title":"تابلو هوشمند","items":[["تخته آموزشی","smart_board_whiteboards"],["فایل‌ها","smart_board_content"],["تصاویر و ویدئوها","smart_board_media"],["ابزارهای تعاملی","smart_board_activities"]]},
+    "ai": {"title":"هوش مصنوعی","items":[["دستیار هوشمند","ai_assistant_sessions"],["تحلیل آموزشی","ai_smart_reports"],["گزارش هوشمند","ai_smart_reports"],["پرسش و پاسخ","ai_questions"]]},
+    "settings": {"title":"تنظیمات","items":[["تنظیمات حساب","account_settings"],["تنظیمات مدرسه","school_profile"],["پشتیبان‌گیری","account_settings"]]}
 }
+
+def _load_mother_panel_catalog():
+    path = Path(__file__).resolve().parents[1] / "assets" / "mother_panel_catalog.json"
+    try:
+        if path.is_file():
+            data = json.loads(path.read_text(encoding="utf-8"))
+            panels = data.get("panels") or {}
+            if panels:
+                return panels
+    except Exception as exc:
+        print("MOTHER PANEL CATALOG ERROR:", repr(exc))
+    return MOTHER_PANEL_CATALOG
+
+MOTHER_PANEL_CATALOG = _load_mother_panel_catalog()
+
 
 class PanelIcon(Widget):
     """Vector icon: no font glyphs, so it can never become a square."""
@@ -112,11 +126,11 @@ class PanelCard(BoxLayout):
             self.bg = RoundedRectangle(radius=[dp(18)])
         self.bind(pos=self._sync, size=self._sync)
         self.add_widget(PanelIcon(route or "about"))
-        self.add_widget(Label(text=rtl_text(title),font_name=font_name(),font_size="23sp",color=WHITE,bold=True,
+        self.add_widget(Label(text=rtl_text(title),font_name=font_name(),font_size="17sp",color=WHITE,bold=True,
                               halign="center",valign="middle",size_hint_y=None,height=dp(52)))
         self.add_widget(Label(text=rtl_text(f"پنل {index} از {total}"),font_name=font_name(),font_size="10sp",color=(0.55,0.85,1,1),
                               halign="center",valign="middle",size_hint_y=None,height=dp(26)))
-        self.add_widget(Label(text=rtl_text(desc),font_name=font_name(),font_size="12sp",color=WHITE,
+        self.add_widget(Label(text=rtl_text(desc),font_name=font_name(),font_size="9sp",color=WHITE,
                               halign="center",valign="middle"))
         b=Button(text=rtl_text("ورود به پنل"),font_name=font_name(),font_size="14sp",background_normal="",
                  background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(50))
@@ -143,28 +157,12 @@ class DashboardScreen(Screen):
         return ROLE_ALIASES.get(raw,raw)
 
     def items(self):
-        # پنل‌های اصلی موبایل دقیقاً از ساختار پروژه مادر Noura گرفته شده‌اند:
-        # مدیریت مدرسه، کادر اجرایی، مشاوره، دبیران، دانش‌آموزان و اولیا.
-        # محتوای داخل هر پنل از ماژول‌های واقعی Supabase/shared catalog تغذیه می‌شود.
-        r=self.role()
-        mother_panels = [
-            ("مدیریت مدرسه", "management"),
-            ("کادر اجرایی", "executive"),
-            ("مشاوره", "advisor"),
-            ("دبیران", "teachers"),
-            ("دانش‌آموزان", "students"),
-            ("اولیا", "parents"),
-        ]
-        if r == "manager":
-            return mother_panels
-        role_panel = {
-            "executive": ("کادر اجرایی", "executive"),
-            "advisor": ("مشاوره", "advisor"),
-            "teacher": ("دبیران", "teachers"),
-            "student": ("دانش‌آموزان", "students"),
-            "parent": ("اولیا", "parents"),
-        }.get(r)
-        return [role_panel] if role_panel else mother_panels
+        # منبع قطعی پنل‌های موبایل: کاتالوگ استخراج‌شده از پروژه مادر.
+        # این فهرست دیگر از منوی موقت موبایل ساخته نمی‌شود.
+        role = self.role()
+        entry = MOTHER_PANEL_CATALOG.get(role) or MOTHER_PANEL_CATALOG.get("student")
+        return [tuple(item) for item in (entry.get("items") or [])]
+
 
     def _build(self):
         root=FloatLayout()
@@ -242,7 +240,7 @@ class DashboardScreen(Screen):
         total=len(items)
         for i,(title,route) in enumerate(items,1):
             card=PanelCard(title,i,total,self.desc(route),lambda *_a,r=route:self.open_route(r),
-                           route=route,size_hint_y=None,height=dp(154))
+                           route=route,size_hint_y=None,height=dp(148))
             self.grid.add_widget(card)
             Clock.schedule_once(lambda _dt,card=card:Animation(opacity=1,d=.22,t="out_quad").start(card),i*.035)
         return True
