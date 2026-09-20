@@ -105,7 +105,7 @@ _MOTHER_TABLE_ALIASES = {
     "users":"users","virtual":"online_classes","planning":"weekly_schedule","reports":"ai_smart_reports","settings":"school_profile",
     "class_management":"executive_classes","student_archive":"archive_items","executive_operations":"executive_operations",
     "referrals":"student_referrals","meetings":"meeting_requests","notifications":"school_events","exams":"teacher_exams","questions":"quiz_questions",
-    "cultural_activities":"educational_activities","competitions":"competitions","educational_programs":"cultural_items","activity_registrations":"cultural_activity_registrations","cultural_reports":"cultural_reports",
+    "cultural_activities":"educational_activities","competitions":"competitions","educational_programs":"school_events","activity_registrations":"cultural_activity_registrations","cultural_reports":"cultural_reports",
     "counseling_records":"counseling_records","student_followup":"counseling_followups","academic_guidance":"counseling_followups","counseling_reports":"ai_smart_reports",
     "classes":"teacher_classes","grades":"grades","assignments":"assignments","lesson":"lesson_plans","student_profile":"students","activities":"activity_registrations","performance_report":"ai_smart_reports","weekly_schedule":"weekly_schedule","online_payment":"payment_offers",
     "children":"parent_children","student_info":"students","educational_activities":"educational_activities","schedule_exams":"weekly_schedule","teacher_meetings":"teacher_meetings","payments_finance":"payment_records",
@@ -113,7 +113,7 @@ _MOTHER_TABLE_ALIASES = {
     "whiteboard":"smart_board_whiteboards","files":"smart_board_files","media":"smart_board_media","interactive_tools":"smart_board_interactive_tools",
     "assistant":"ai_assistant_sessions","educational_analysis":"ai_educational_analysis","smart_reports":"ai_smart_reports","qa":"ai_questions",
     "online_classes":"online_classes","online_class_sessions":"online_class_sessions","online_class_students":"online_class_students","online_class_teachers":"online_class_teachers","online_attendance":"online_attendance",
-    "teacher_exams":"teacher_exams","quiz_questions":"quiz_questions","quiz_schedules":"quiz_schedules","quiz_links":"quiz_links",
+    "teacher_exams":"teacher_exams","quiz_questions":"quiz_questions","quiz_schedules":"exam_schedule","quiz_links":"teacher_exams",
     "payment_offers":"payment_offers","payment_attempts":"payment_attempts","payment_records":"payment_records","payment_transactions":"payment_transactions",
     "messages":"messages","message_targets":"message_targets","message_reads":"message_reads","smart_board_whiteboards":"smart_board_whiteboards","smart_class_preview":"smart_class_preview"
 }
