@@ -5,7 +5,8 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.image import Image
-from kivy.uix.carousel import Carousel
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.widget import Widget
 from kivy.graphics import Color, RoundedRectangle
 from kivy.animation import Animation
@@ -143,57 +144,60 @@ class DashboardScreen(Screen):
 
     def items(self):
         r=self.role()
-        return MANAGER_MENU if r=="manager" else ROLE_MENU.get(r,[( "صندوق پیام‌ها","messages"),("درباره برنامه","about")])
+        if r=="manager":
+            return [("دانش‌آموزان","students"),("معاون آموزشی","educational"),
+                    ("دبیران","teachers"),("معاون اجرایی","executive"),
+                    ("کلاس‌های آنلاین","online"),("معاون پرورشی","cultural"),
+                    ("اطلاعیه‌ها","messages"),("مشاوره","advisor"),
+                    ("گزارش‌ها","reports"),("مالی","finance"),
+                    ("تنظیمات","settings"),("برنامه هفتگی","schedule"),
+                    ("هوش مصنوعی","ai")]
+        return ROLE_MENU.get(r,[("صندوق پیام‌ها","messages"),("درباره برنامه","about")])
 
     def _build(self):
         root=FloatLayout()
-
-        # The agreed portrait Frahoosh artwork is a real background, not a generated replacement.
         background_source = bundled_login_background()
-        bg=Image(source=background_source or "",size_hint=(1,1),pos_hint={"x":0,"y":0},
-                 allow_stretch=True,keep_ratio=False,fit_mode="fill",nocache=True,opacity=1)
+        bg=Image(source=background_source or "",size_hint=(1,1),allow_stretch=True,keep_ratio=False,fit_mode="fill",nocache=True)
         root.add_widget(bg)
         if background_source:
             Clock.schedule_once(lambda *_: bg.reload(), 0.20)
-        else:
-            print("DASHBOARD BACKGROUND NOT FOUND")
-
         overlay=FloatLayout(size_hint=(1,1))
         with overlay.canvas.before:
-            Color(0,0,0,0.30)
-            self.tint=RoundedRectangle()
+            Color(0,0,0,0.22); self.tint=RoundedRectangle()
         overlay.bind(pos=lambda o,v:setattr(self.tint,"pos",v),size=lambda o,v:setattr(self.tint,"size",v))
         root.add_widget(overlay)
-
-        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(10)],spacing=dp(6),size_hint=(1,1))
-        head=BoxLayout(size_hint_y=None,height=dp(70),spacing=dp(5))
-        head.add_widget(self.label(APP_NAME,"25sp",WHITE,True,True))
-        content.add_widget(head)
-
+        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(8),dp(14),dp(78)],spacing=dp(5))
+        head=BoxLayout(size_hint_y=None,height=dp(56))
+        head.add_widget(self.label(APP_NAME,"25sp",WHITE,True,True)); content.add_widget(head)
         self.welcome=self.label("خوش آمدید","14sp",WHITE,True,True); content.add_widget(self.welcome)
-        self.role_text=self.label("","10sp",(0.85,0.95,1,1),False,True); content.add_widget(self.role_text)
-
-        # This is intentionally about half the usable screen, so the agreed image remains visible.
-        frame=BoxLayout(orientation="vertical",padding=dp(7),size_hint_y=.56)
+        self.role_text=self.label("","10sp",(0.88,0.96,1,1),False,True); content.add_widget(self.role_text)
+        frame=BoxLayout(orientation="vertical",padding=dp(8))
         with frame.canvas.before:
-            Color(0.01,0.05,0.12,0.62)
-            self.frame_bg=RoundedRectangle(radius=[dp(20)])
+            Color(0.02,0.08,0.18,0.64); self.frame_bg=RoundedRectangle(radius=[dp(22)])
         frame.bind(pos=lambda o,v:setattr(self.frame_bg,"pos",v),size=lambda o,v:setattr(self.frame_bg,"size",v))
-        self.frame=frame
-        self.carousel=Carousel(direction="right",loop=True,anim_move_duration=.30,scroll_timeout=.25)
-        frame.add_widget(self.carousel)
-        content.add_widget(frame)
-
-        self.counter=self.label("","9sp",WHITE,True,True); content.add_widget(self.counter)
-        self.status=self.label("","8sp",(0.82,0.94,1,1),False,True); content.add_widget(self.status)
-
-        out=Button(text=rtl_text("خروج از حساب"),font_name=font_name(),font_size="10sp",background_normal="",
-                   background_color=(0.55,0.08,0.10,.88),color=WHITE,size_hint_y=None,height=dp(38))
-        out.bind(on_release=self.logout)
-        content.add_widget(out)
-
+        self.grid_scroll=ScrollView(do_scroll_x=False,do_scroll_y=True,bar_width=dp(3))
+        self.grid=GridLayout(cols=2,spacing=dp(7),padding=dp(3),size_hint_y=None)
+        self.grid.bind(minimum_height=self.grid.setter("height"))
+        self.grid_scroll.add_widget(self.grid); frame.add_widget(self.grid_scroll); content.add_widget(frame)
         root.add_widget(content)
-        self.add_widget(root)
+        nav=BoxLayout(size_hint=(.90,None),height=dp(56),pos_hint={"center_x":.5,"y":.018},spacing=dp(3),padding=dp(3))
+        with nav.canvas.before:
+            Color(0.01,0.08,0.17,0.92); self.nav_bg=RoundedRectangle(radius=[dp(24)])
+        nav.bind(pos=lambda o,v:setattr(self.nav_bg,"pos",v),size=lambda o,v:setattr(self.nav_bg,"size",v))
+        for title,route in (("خانه","home"),("ماژول‌ها","modules"),("پیام‌ها","messages"),("پروفایل","profile")):
+            b=Button(text=rtl_text(title),font_name=font_name(),font_size="10sp",background_normal="",background_color=(0,0,0,0),color=WHITE)
+            b.bind(on_release=lambda *_a,r=route:self._bottom_nav(r)); nav.add_widget(b)
+        root.add_widget(nav); self.add_widget(root)
+
+    def _bottom_nav(self,route):
+        if route=="home":
+            if self.manager:self.manager.current="dashboard"
+        elif route=="modules":
+            self.open_route(self.items()[0][1] if self.items() else "management")
+        elif route=="messages":
+            self.open_route("messages")
+        elif route=="profile":
+            self.open_route("settings")
 
     def desc(self,route):
         return {
@@ -220,20 +224,17 @@ class DashboardScreen(Screen):
         }.get(route,"محیط عملیاتی واقعی سامانه فراهوش.")
 
     def refresh(self):
-        if self.app_state is None or not getattr(self.app_state,"logged_in",False):
-            return False
+        if self.app_state is None or not getattr(self.app_state,"logged_in",False): return False
         role=self.role(); items=self.items()
-        name=str(getattr(self.app_state,"display_name","کاربر فراهوش") or "کاربر فراهوش")
-        self.welcome.text=rtl_text(f"خوش آمدید، {name}")
+        self.welcome.text=rtl_text(f"خوش آمدید، {getattr(self.app_state,'display_name','کاربر فراهوش')}")
         self.role_text.text=rtl_text(f"پنل {ROLE_TITLES.get(role,'کاربر')} • دسترسی فعال")
-        self.carousel.clear_widgets()
+        self.grid.clear_widgets()
         total=len(items)
         for i,(title,route) in enumerate(items,1):
             card=PanelCard(title,i,total,self.desc(route),lambda *_a,r=route:self.open_route(r),
-                           route=route,size_hint=(1,1))
-            self.carousel.add_widget(card)
-        self.counter.text=rtl_text(f"پنل 1 از {total}" if total else "پنلی وجود ندارد")
-        self.status.text=rtl_text("پنل‌ها با حرکت انگشت جابه‌جا می‌شوند • برای ورود، دکمه داخل پنل را بزنید.")
+                           route=route,size_hint_y=None,height=dp(122))
+            self.grid.add_widget(card)
+            Clock.schedule_once(lambda _dt,card=card:Animation(opacity=1,d=.22,t="out_quad").start(card),i*.035)
         return True
 
     def open_route(self,route):
