@@ -192,11 +192,12 @@ class FrahooshApp(App):
         if self.sm is None:
             return None
         try:
-            return self.sm.get_screen("clean_dashboard")
+            return self.sm.get_screen("dashboard")
         except Exception:
             pass
         try:
-            screen = CleanDashboardScreen(app_state=self.app_state, name="clean_dashboard")
+            from mobile.screens.dashboard import DashboardScreen
+            screen = DashboardScreen(app_state=self.app_state, name="dashboard")
             self.sm.add_widget(screen)
             return screen
         except Exception as exc:
@@ -322,7 +323,7 @@ class FrahooshApp(App):
 
     def _refresh_dashboard_safe(self, *_):
         try:
-            dashboard = self.sm.get_screen("clean_dashboard")
+            dashboard = self.sm.get_screen("dashboard")
             dashboard.refresh()
         except Exception as exc:
             print("DASHBOARD REFRESH ERROR:", repr(exc))
@@ -342,7 +343,7 @@ class FrahooshApp(App):
             self._set_screen_capture_policy()
             # Login success always lands on the dashboard. Identity checks and
             # role-specific panels are deliberately handled after this boundary.
-            self.sm.current = "clean_dashboard"
+            self.sm.current = "dashboard"
             Clock.schedule_once(self._refresh_dashboard_safe, 0)
             return True
         except Exception as exc:
