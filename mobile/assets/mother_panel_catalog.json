@@ -1,55 +1,367 @@
 {
-  "source": "Frahoosh_v16_12_LOGIN_BACKGROUND_FINAL_02.zip",
-  "source_component": "ui/panel_shell.py:PANEL_ITEMS",
-  "version": "mother-catalog-2026-09-20",
+  "source": "Frahoosh_v16_12_LOGIN_BACKGROUND_FINAL_02(2).zip",
+  "source_component": "inspect168/v167src/ui/panel_shell.py:PANEL_ITEMS",
+  "version": "exact-mother-panel-items-2026-09-20",
   "panels": {
     "manager": {
       "title": "مدیریت",
-      "items": [["مدیریت کاربران و کارکنان","users"],["کلاس آنلاین","online_classes"],["برنامه هفتگی و برنامه امتحانات","weekly_schedule"],["گزارش‌ها و آمار","reports"],["تنظیمات مدرسه","school_profile"]]
+      "items": [
+        [
+          "مدیریت کاربران و کارکنان",
+          "users"
+        ],
+        [
+          "کلاس آنلاین",
+          "virtual"
+        ],
+        [
+          "برنامه هفتگی و برنامه امتحانات",
+          "planning"
+        ],
+        [
+          "گزارش‌ها و آمار",
+          "reports"
+        ],
+        [
+          "تنظیمات مدرسه",
+          "settings"
+        ]
+      ]
     },
     "executive": {
       "title": "معاونت اجرایی",
-      "items": [["دانش‌آموزان","students"],["کلاس‌ها","school_class_config"],["کارکنان","staff"],["پرونده‌ها","students"],["امور اجرایی","discipline_records"],["گزارش‌ها","reports"]]
+      "items": [
+        [
+          "دانش‌آموزان",
+          "students"
+        ],
+        [
+          "کلاس‌ها",
+          "class_management"
+        ],
+        [
+          "کارکنان",
+          "staff"
+        ],
+        [
+          "پرونده‌ها",
+          "student_archive"
+        ],
+        [
+          "امور اجرایی",
+          "executive_operations"
+        ],
+        [
+          "گزارش‌ها",
+          "reports"
+        ]
+      ]
     },
     "educational": {
       "title": "معاونت آموزشی",
-      "items": [["حضور و غیاب","attendance"],["ارجاعات آموزشی","educational_followups"],["جلسات","meeting_requests"],["اطلاع‌رسانی","messages"],["امتحانات","teacher_exams"],["بانک سؤال","teacher_exams"],["گزارش‌های آموزشی","ai_smart_reports"]]
+      "items": [
+        [
+          "حضور و غیاب",
+          "attendance"
+        ],
+        [
+          "ارجاعات آموزشی",
+          "referrals"
+        ],
+        [
+          "جلسات",
+          "meetings"
+        ],
+        [
+          "اطلاع‌رسانی",
+          "notifications"
+        ],
+        [
+          "امتحانات",
+          "exams"
+        ],
+        [
+          "بانک سؤال",
+          "questions"
+        ],
+        [
+          "گزارش‌های آموزشی",
+          "reports"
+        ]
+      ]
     },
     "cultural": {
       "title": "معاونت پرورشی",
-      "items": [["فعالیت‌های فرهنگی","educational_activities"],["مسابقات","cultural_competitions"],["برنامه‌های پرورشی","educational_activities"],["ثبت‌نام فعالیت‌ها","activity_registrations"],["گزارش‌های پرورشی","cultural_reports"]]
+      "items": [
+        [
+          "فعالیت‌های فرهنگی",
+          "cultural_activities"
+        ],
+        [
+          "مسابقات",
+          "competitions"
+        ],
+        [
+          "برنامه‌های پرورشی",
+          "educational_programs"
+        ],
+        [
+          "ثبت‌نام فعالیت‌ها",
+          "activity_registrations"
+        ],
+        [
+          "گزارش‌های پرورشی",
+          "cultural_reports"
+        ]
+      ]
     },
     "advisor": {
       "title": "مشاور",
-      "items": [["پرونده مشاوره","counseling_records"],["جلسات","meeting_requests"],["پیگیری دانش‌آموز","counseling_followups"],["ارجاعات","student_referrals"],["هدایت تحصیلی","counseling_guidance"],["گزارش مشاوره","ai_smart_reports"]]
+      "items": [
+        [
+          "پرونده مشاوره",
+          "counseling_records"
+        ],
+        [
+          "جلسات",
+          "meetings"
+        ],
+        [
+          "پیگیری دانش‌آموز",
+          "student_followup"
+        ],
+        [
+          "ارجاعات",
+          "referrals"
+        ],
+        [
+          "هدایت تحصیلی",
+          "academic_guidance"
+        ],
+        [
+          "گزارش مشاوره",
+          "counseling_reports"
+        ]
+      ]
     },
     "teacher": {
       "title": "دبیران",
-      "items": [["کلاس‌های من","teacher_classes"],["نمرات و کارنامه","student_grades"],["تکالیف","assignments"],["حضور و غیاب","attendance"],["آزمون‌ها","teacher_exams"],["طرح درس","lesson_plans"],["جلسات","meeting_requests"],["گزارش‌ها","reports"]]
+      "items": [
+        [
+          "کلاس‌های من",
+          "classes"
+        ],
+        [
+          "نمرات و کارنامه",
+          "grades"
+        ],
+        [
+          "تکالیف",
+          "assignments"
+        ],
+        [
+          "حضور و غیاب",
+          "attendance"
+        ],
+        [
+          "آزمون‌ها",
+          "exams"
+        ],
+        [
+          "طرح درس",
+          "lesson"
+        ],
+        [
+          "جلسات",
+          "meetings"
+        ],
+        [
+          "گزارش‌ها",
+          "reports"
+        ]
+      ]
     },
     "student": {
       "title": "دانش‌آموزان",
-      "items": [["انتخاب و اطلاعات من","students"],["کارنامه و نمرات","student_grades"],["تکالیف","assignments"],["پیام‌ها","messages"],["حضور و غیاب","attendance"],["مسابقات و فعالیت‌ها","activity_registrations"],["برنامه هفتگی","weekly_schedule"],["امتحانات","exam_schedule"],["گزارش عملکرد","ai_smart_reports"],["کلاس آنلاین","online_classes"],["پرداخت آنلاین","payment"]]
+      "items": [
+        [
+          "انتخاب و اطلاعات من",
+          "student_profile"
+        ],
+        [
+          "کارنامه و نمرات",
+          "grades"
+        ],
+        [
+          "تکالیف",
+          "assignments"
+        ],
+        [
+          "پیام‌ها",
+          "messages"
+        ],
+        [
+          "حضور و غیاب",
+          "attendance"
+        ],
+        [
+          "مسابقات و فعالیت‌ها",
+          "activities"
+        ],
+        [
+          "برنامه هفتگی",
+          "weekly_schedule"
+        ],
+        [
+          "امتحانات",
+          "exams"
+        ],
+        [
+          "گزارش عملکرد",
+          "performance_report"
+        ],
+        [
+          "کلاس آنلاین",
+          "virtual"
+        ],
+        [
+          "پرداخت آنلاین",
+          "online_payment"
+        ]
+      ]
     },
     "parent": {
       "title": "اولیا",
-      "items": [["انتخاب دانش‌آموز","parent_children"],["اطلاعات دانش‌آموز","students"],["کارنامه و نمرات","student_grades"],["حضور و غیاب","attendance"],["تکالیف و فعالیت‌های آموزشی","assignments"],["پیام‌ها و اطلاعیه‌ها","messages"],["برنامه هفتگی و امتحانات","weekly_schedule"],["جلسات با دبیران","meeting_requests"],["پرداخت‌ها و امور مالی","payment_records"],["پرداخت آنلاین","payment"],["فعالیت‌های فرهنگی و پرورشی","cultural_activity_registrations"]]
+      "items": [
+        [
+          "انتخاب دانش‌آموز",
+          "children"
+        ],
+        [
+          "اطلاعات دانش‌آموز",
+          "student_info"
+        ],
+        [
+          "کارنامه و نمرات",
+          "grades"
+        ],
+        [
+          "حضور و غیاب",
+          "attendance"
+        ],
+        [
+          "تکالیف و فعالیت‌های آموزشی",
+          "educational_activities"
+        ],
+        [
+          "پیام‌ها و اطلاعیه‌ها",
+          "messages"
+        ],
+        [
+          "برنامه هفتگی و امتحانات",
+          "schedule_exams"
+        ],
+        [
+          "جلسات با دبیران",
+          "teacher_meetings"
+        ],
+        [
+          "پرداخت‌ها و امور مالی",
+          "payments_finance"
+        ],
+        [
+          "پرداخت آنلاین",
+          "online_payment"
+        ],
+        [
+          "فعالیت‌های فرهنگی و پرورشی",
+          "cultural_activities"
+        ]
+      ]
     },
     "finance": {
       "title": "مالی",
-      "items": [["پرداخت‌ها","payment_records"],["تراکنش‌ها","finance_transactions"],["حساب‌ها","finance_accounts"],["گزارش مالی","reports"],["تنظیمات پرداخت آنلاین","payment_offers"]]
+      "items": [
+        [
+          "پرداخت‌ها",
+          "payments"
+        ],
+        [
+          "تراکنش‌ها",
+          "transactions"
+        ],
+        [
+          "حساب‌ها",
+          "accounts"
+        ],
+        [
+          "گزارش مالی",
+          "financial_reports"
+        ],
+        [
+          "تنظیمات پرداخت آنلاین",
+          "payment_settings"
+        ]
+      ]
     },
     "smart_board": {
       "title": "تابلو هوشمند",
-      "items": [["تخته آموزشی","smart_board_whiteboards"],["فایل‌ها","smart_board_content"],["تصاویر و ویدئوها","smart_board_media"],["ابزارهای تعاملی","smart_board_activities"]]
+      "items": [
+        [
+          "تخته آموزشی",
+          "whiteboard"
+        ],
+        [
+          "فایل‌ها",
+          "files"
+        ],
+        [
+          "تصاویر و ویدئوها",
+          "media"
+        ],
+        [
+          "ابزارهای تعاملی",
+          "interactive_tools"
+        ]
+      ]
     },
     "ai": {
       "title": "هوش مصنوعی",
-      "items": [["دستیار هوشمند","ai_assistant_sessions"],["تحلیل آموزشی","ai_smart_reports"],["گزارش هوشمند","ai_smart_reports"],["پرسش و پاسخ","ai_questions"]]
+      "items": [
+        [
+          "دستیار هوشمند",
+          "assistant"
+        ],
+        [
+          "تحلیل آموزشی",
+          "educational_analysis"
+        ],
+        [
+          "گزارش هوشمند",
+          "smart_reports"
+        ],
+        [
+          "پرسش و پاسخ",
+          "qa"
+        ]
+      ]
     },
     "settings": {
       "title": "تنظیمات",
-      "items": [["تنظیمات حساب","account_settings"],["تنظیمات مدرسه","school_profile"],["پشتیبان‌گیری","account_settings"]]
+      "items": [
+        [
+          "تنظیمات حساب",
+          "account_settings"
+        ],
+        [
+          "تنظیمات مدرسه",
+          "school_settings"
+        ],
+        [
+          "پشتیبان‌گیری",
+          "backup"
+        ]
+      ]
     }
   }
 }
