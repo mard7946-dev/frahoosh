@@ -392,6 +392,19 @@ EDITABLE = {
         "finance_accounts","finance_transactions","finance_donations","payment_offers","payment_attempts","payment_records"
     },
 }
+# Normalize write permissions to the canonical backend table ids used by the
+# mother contract.  Without this step an alias such as "virtual" would render
+# correctly but lose the three CRUD actions after resolving to online_classes.
+for _role_key in tuple(EDITABLE):
+    _expanded = set(EDITABLE.get(_role_key) or set())
+    for _panel_items in _MOTHER_MODULES.values():
+        for _label, _module_id in _panel_items:
+            _table_id = _MOTHER_TABLE_ALIASES.get(_module_id, _module_id)
+            if _role_key == "manager" or _module_id in _expanded or _table_id in _expanded:
+                _expanded.add(_table_id)
+    EDITABLE[_role_key] = _expanded
+EDITABLE.setdefault("manager", set()).update(_MOTHER_TABLE_ALIASES.values())
+
 FORMS = {
     "students":["first_name","last_name","father_name","mother_name","national_code","birth_certificate_place","birth_place","religion","sect","nationality","student_phone","father_phone","mother_phone","grade","class_name"],
     "teachers":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","subject"],
