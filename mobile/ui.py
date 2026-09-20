@@ -66,10 +66,10 @@ def register_fonts():
 
 
 def font_name():
-    # Android Kivy builds were showing missing-glyph boxes with the bundled
-    # Noto face on the real device. Use Roboto as the runtime font; rtl_text()
-    # performs Persian shaping before labels are drawn.
-    return "Roboto"
+    # Use the bundled Arabic/Persian-capable face. Roboto in the Android
+    # Kivy package does not contain the required Persian glyphs.
+    registered = register_fonts()
+    return registered or "Roboto"
 
 
 
@@ -152,7 +152,6 @@ class PersianTextInput(TextInput):
         kwargs.setdefault("halign", "right")
         kwargs.setdefault("base_direction", "rtl")
         kwargs.setdefault("text_language", "fa")
-        kwargs.setdefault("font_script_name", "Arab")
         kwargs.setdefault("multiline", False)
         kwargs.setdefault("cursor_width", 2)
         super().__init__(**kwargs)
