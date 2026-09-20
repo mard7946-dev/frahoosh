@@ -102,16 +102,16 @@ class LoginScreen(Screen):
             self._glow2.pos=(-root.width*.28,root.height*.15); self._glow2.size=(root.width*.56,root.width*.56)
         root.bind(pos=sync,size=sync); Clock.schedule_once(sync,0)
 
-        title=Label(text=rtl_text(APP_NAME),font_name=font_name(),font_size="30sp",bold=True,color=WHITE,
+        title=Label(text=rtl_text("فراهوش"),font_name=font_name(),font_size="30sp",bold=True,color=WHITE,
                     size_hint=(.94,None),height=dp(48),pos_hint={"center_x":.5,"center_y":.86},halign="center")
         title.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(title)
-        subtitle=Label(text=rtl_text(SYSTEM_TITLE),font_name=font_name(),font_size="12sp",bold=True,
+        subtitle=Label(text=rtl_text("سامانه هوشمند آموزشی یکپارچه مدرسه"),font_name=font_name(),font_size="12sp",bold=True,
                       color=CYAN,size_hint=(.94,None),height=dp(34),pos_hint={"center_x":.5,"center_y":.815},halign="center")
         subtitle.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(subtitle)
-        slogan=Label(text=rtl_text(APP_SLOGAN),font_name=font_name(),font_size="10sp",
+        slogan=Label(text=rtl_text("یادگیری هوشمند، مدرسه یکپارچه، دانش آموز خلاق"),font_name=font_name(),font_size="10sp",
                      color=MUTED,size_hint=(.94,None),height=dp(30),pos_hint={"center_x":.5,"center_y":.775},halign="center")
         slogan.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(slogan)
-        school=Label(text=rtl_text(SCHOOL_NAME),font_name=font_name(),font_size="10sp",bold=True,
+        school=Label(text=rtl_text("دبیرستان سردار شهید حاجی زاده ۲"),font_name=font_name(),font_size="10sp",bold=True,
                      color=GOLD,size_hint=(.94,None),height=dp(30),pos_hint={"center_x":.5,"center_y":.735},halign="center")
         school.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(school)
 
