@@ -45,7 +45,7 @@ class _Base(Screen):
         self._build()
 
     def label(self, text, size="12sp", color=SECONDARY, height=42, bold=False):
-        w = Label(text=rtl_text(str(text)), font_name=font_name(), font_size=size,
+        w = Label(text=rtl_text(str(text)), font_name=font_name(), font_script_name="Arab", text_language="fa", font_size=size,
                   color=color, bold=bold, halign="right", valign="middle",
                   size_hint_y=None, height=dp(height))
         w.bind(size=lambda o, v: setattr(o, "text_size", v))
