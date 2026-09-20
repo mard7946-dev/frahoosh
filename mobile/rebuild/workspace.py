@@ -16,7 +16,7 @@ from kivy.uix.image import Image
 from kivy.resources import resource_find
 from mobile.ui import font_name, rtl_text
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
-from .catalog import ROLE_NAMES, ROLE_MODULES, TABLES, PANELS
+from .catalog import ROLE_NAMES, ROLE_MODULES, TABLES, PANELS, PANEL_ROLES
 
 HIDDEN={"id","created_at","updated_at","deleted_at"}
 EDIT_ROLES={"manager","educational","executive","cultural","advisor","teacher"}
@@ -153,7 +153,8 @@ class RebuildWorkspace(Screen):
         sc=ScrollView(do_scroll_x=False)
         grid=GridLayout(cols=2,spacing=dp(7),padding=dp(3),size_hint_y=None)
         grid.bind(minimum_height=grid.setter("height"))
-        for key,title,table in ROLE_MODULES.get(self._role(),ROLE_MODULES["student"]):
+        module_role=PANEL_ROLES.get(self.panel_key,self._role())
+        for key,title,table in ROLE_MODULES.get(module_role,ROLE_MODULES["student"]):
             b=self._button(title,lambda *_ ,k=key,t=table:self.open_module(k,t),PRIMARY,52)
             grid.add_widget(b)
         sc.add_widget(grid); root.add_widget(sc); self.add_widget(root)
