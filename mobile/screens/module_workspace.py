@@ -380,6 +380,97 @@ FORMS = {
     "monthly_report_cards":["student_id","month_name","active","created_at"],
 }
 
+MODULE_PURPOSES = {
+    "students":"پرونده و اطلاعات دانش‌آموزان",
+    "teachers":"پرونده و اطلاعات دبیران",
+    "staff":"اطلاعات کادر و کارکنان",
+    "attendance":"ثبت و پیگیری حضور و غیاب",
+    "online_attendance":"کنترل حضور آنلاین",
+    "grades":"ثبت و مشاهده نمرات",
+    "student_grades":"ارزیابی و کارنامه دانش‌آموز",
+    "assignments":"ثبت و پیگیری تکالیف",
+    "discipline_records":"ثبت مورد انضباطی و ارجاع",
+    "teacher_classes":"کلاس‌های تحت تدریس دبیر",
+    "lesson_plans":"طرح‌ریزی محتوای تدریس",
+    "online_classes":"ایجاد و مدیریت کلاس آنلاین",
+    "teacher_exams":"ساخت، زمان‌بندی و تصحیح آزمون",
+    "exam_schedule":"برنامه امتحانات مدرسه",
+    "weekly_schedule":"برنامه هفتگی کلاس‌ها",
+    "meeting_requests":"درخواست و مدیریت ملاقات",
+    "messages":"ارسال و دریافت پیام‌های مدرسه",
+    "smart_board_content":"محتوای آموزشی تابلو هوشمند",
+    "smart_board_activities":"فعالیت‌های آموزشی تابلو",
+    "smart_board_quizzes":"آزمونک‌های آموزشی",
+    "smart_board_whiteboards":"تخته تعاملی کلاس",
+    "smart_class_preview":"ورود به محیط کلاس هوشمند",
+    "ai_smart_reports":"گزارش تحلیلی و هوشمند",
+    "ai_questions":"پرسش و پاسخ آموزشی",
+    "report_cards":"صدور و مشاهده کارنامه",
+    "payment":"پرداخت و سوابق پرداخت",
+    "payment_offers":"تعریف گزینه‌های پرداخت",
+    "payment_records":"سوابق تراکنش‌های پرداخت",
+    "finance_accounts":"مدیریت حساب‌های مالی",
+    "finance_transactions":"ثبت و مشاهده تراکنش‌ها",
+    "school_profile":"مشخصات و تنظیمات مدرسه",
+    "school_class_config":"تعریف پایه‌ها و کلاس‌ها",
+    "users":"حساب‌های کاربری سامانه",
+    "parent_children":"اتصال ولی به فرزند",
+    "counseling_records":"پرونده‌های مشاوره",
+    "counseling_followups":"پیگیری جلسات مشاوره",
+    "counseling_guidance":"هدایت تحصیلی هوشمند",
+    "educational_followups":"پیگیری آموزشی دانش‌آموز",
+    "academic_followups":"پیگیری درسی دانش‌آموز",
+    "certificate_requests":"درخواست گواهی اشتغال به تحصیل",
+    "activity_offers":"تعریف فعالیت و مسابقه",
+    "activity_registrations":"ثبت‌نام دانش‌آموز در فعالیت",
+    "school_events":"رویدادها و مراسمات مدرسه",
+    "message_targets":"انتخاب مخاطبان پیام",
+    "message_reads":"پیگیری وضعیت خواندن پیام",
+    "account_settings":"تنظیمات حساب کاربری",
+}
+
+class ModuleIcon(Widget):
+    """Vector icon: module cards never depend on emoji/font glyphs."""
+    def __init__(self, route, **kwargs):
+        super().__init__(**kwargs)
+        self.route = str(route or "")
+        self.size_hint = (None, None)
+        self.size = (dp(36), dp(36))
+        from kivy.graphics import Ellipse, Line
+        with self.canvas:
+            Color(0.05, 0.62, 0.88, 1)
+            self.badge = Ellipse()
+            Color(1, 1, 1, 1)
+            self.shape = Line(width=1.8)
+        self.bind(pos=self._sync, size=self._sync)
+        self._sync()
+    def _sync(self, *_):
+        cx, cy = self.center
+        r = min(self.width, self.height) * .30
+        self.badge.pos = (cx-r, cy-r)
+        self.badge.size = (2*r, 2*r)
+        s = r * .82
+        rt = self.route
+        if rt in ("students","parent_children","parents"):
+            pts=[cx-s,cy-s*.2,cx,cy+s,cx+s,cy-s*.2,cx,cy-s*.75,cx-s,cy-s*.2]
+        elif rt in ("teachers","teacher_classes","staff"):
+            pts=[cx-s,cy-s,cx+s,cy-s,cx+s,cy+s,cx-s,cy+s,cx-s,cy-s,cx,cy,cx+s,cy-s]
+        elif rt in ("attendance","online_attendance"):
+            pts=[cx-s,cy,cx-s*.25,cy-s*.7,cx+s*.8,cy+s*.55]
+        elif rt in ("grades","student_grades","report_cards"):
+            pts=[cx-s,cy+s,cx-s,cy-s,cx+s,cy-s,cx+s,cy+s,cx-s,cy+s]
+        elif rt in ("online_classes","smart_class_preview","smart_board_content","smart_board_whiteboards"):
+            pts=[cx-s,cy-s*.55,cx+s,cy-s*.55,cx+s,cy+s*.35,cx-s,cy+s*.35,cx-s,cy-s*.55,cx-s*.2,cy-s,cx+s*.2,cy-s]
+        elif rt in ("teacher_exams","exam_schedule","quiz_questions"):
+            pts=[cx-s,cy+s,cx-s,cy-s*.65,cx+s,cy-s*.65,cx+s,cy+s,cx-s,cy+s,cx,cy-s*.65]
+        elif rt in ("messages","message_targets","message_reads"):
+            pts=[cx-s,cy+s*.5,cx+s,cy+s*.5,cx+s,cy-s*.45,cx+s*.15,cy-s*.45,cx-s*.25,cy-s,cx-s*.25,cy-s*.45,cx-s,cy+s*.5]
+        elif rt in ("discipline_records","counseling_records","counseling_followups","counseling_guidance"):
+            pts=[cx,cy+s,cx-s*.85,cy,cx,cy-s,cx+s*.85,cy,cx,cy+s]
+        else:
+            pts=[cx-s,cy,cx+s,cy,cx,cy-s,cx,cy+s]
+        self.shape.points=pts
+
 class Surface(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(orientation="vertical", padding=dp(11), spacing=dp(6), size_hint_y=None, **kwargs)
@@ -412,7 +503,12 @@ class ModuleWorkspaceScreen(Screen):
             Color(0.01,0.03,0.09,0.18)
             root._shade=RoundedRectangle(radius=[0])
             root._background=Rectangle()
-        bg_source = resource_find("mobile/assets/frahoosh_login_mobile.jpg") or resource_find("assets/frahoosh_login_mobile.jpg")
+        try:
+            from mobile.ui import bundled_login_background
+            bg_source = bundled_login_background()
+        except Exception as exc:
+            print("WORKSPACE BACKGROUND ERROR:", repr(exc))
+            bg_source = None
         if bg_source:
             root._background.source = bg_source
         def sync_bg(*_):
@@ -487,13 +583,15 @@ class ModuleWorkspaceScreen(Screen):
         grid.bind(minimum_height=grid.setter("height"))
 
         for i,(text,table) in enumerate(items,1):
-            c=Surface(height=dp(92),size_hint_y=None,padding=dp(7),spacing=dp(3))
+            c=Surface(height=dp(116),size_hint_y=None,padding=dp(7),spacing=dp(3))
             c.opacity=0
-            title_box=BoxLayout(size_hint_y=None,height=dp(34))
-            title_box.add_widget(self.label(text,"11sp",WHITE,True,"center"))
+            title_box=BoxLayout(size_hint_y=None,height=dp(34),spacing=dp(5))
+            title_box.add_widget(ModuleIcon(table))
+            title_box.add_widget(self.label(text,"10sp",WHITE,True,"center"))
             c.add_widget(title_box)
-            c.add_widget(self.label(FRIENDLY.get(table,table),"7sp",(0.78,0.86,0.95,1),False,"center"))
-            c.add_widget(self.btn("ورود",lambda *_a,t=table:self.open_table(t),
+            purpose = MODULE_PURPOSES.get(table, FRIENDLY.get(table,table))
+            c.add_widget(self.label(purpose,"7sp",(0.78,0.90,1,1),False,"center"))
+            c.add_widget(self.btn("ورود به بخش",lambda *_a,t=table:self.open_table(t),
                                   SUCCESS if self.can_write(table) else PRIMARY,dp(32)))
             grid.add_widget(c)
             Clock.schedule_once(
