@@ -11,8 +11,6 @@ from kivy.uix.checkbox import CheckBox
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
-from pathlib import Path
-
 from mobile.config import (
     APP_NAME, SCHOOL_NAME, APP_SLOGAN, SYSTEM_TITLE, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
     SUCCESS, WHITE, ERROR,
@@ -43,7 +41,6 @@ class LoginScreen(Screen):
         w = Label(
             text=rtl_text(str(value)),
             font_name=font_name(),
-            font_script_name="Arab",
             text_language="fa",
             font_size=size,
             color=color,
@@ -199,7 +196,7 @@ class LoginScreen(Screen):
         if self._busy:
             return
         identifier = self._normalize_digits(self.identifier.text).strip()
-        password = self.password.text or ""
+        password = self.password.get_logical_text() if hasattr(self.password, "get_logical_text") else (self.password.text or "")
         remember = bool(self.remember_checkbox.active)
 
         if identifier != self.identifier.text:
@@ -257,7 +254,7 @@ class LoginScreen(Screen):
     def _login_failed(self, message):
         self._busy = False
         self.login_button.disabled = False
-        self._set_status(message, ERROR)
+        self._set_status(message if message and len(str(message)) < 120 else "ارتباط با سرور برقرار نشد. دوباره تلاش کنید.", ERROR)
 
     def forgot_password(self, *_):
         if self._busy:
