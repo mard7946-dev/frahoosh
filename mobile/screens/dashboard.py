@@ -167,7 +167,7 @@ PANEL_MODULE_SOURCE = {
     "cultural":"cultural", "advisor":"advisor", "teachers":"teachers",
     "parents":"parents", "students":"students", "finance":"finance",
     "smart_board":"smart_board", "online":"online", "ai":"ai", "messages":"messages",
-    "teacher_exams":"teachers", "payment":"finance"
+    "teacher_exams":"teacher_exams", "payment":"payment"
 }
 
 class PanelHubScreen(Screen):
@@ -244,12 +244,23 @@ class DashboardScreen(Screen):
 
     def items(self):
         role=self.role()
+        # The dashboard is the 15-panel front door. The ZIP/mother module list
+        # is opened only after entering a panel; it must never replace the panel
+        # cards themselves with a handful of unrelated modules.
+        if role=="manager":
+            return [(title,"panelhub:"+key) for title,key in PANEL_HUBS]
         if role=="student":
             return [(title,"panelhub:"+key) for title,key in PANEL_HUBS if key in STUDENT_ALLOWED_PANELS]
         if role=="parent":
             return [(title,"panelhub:"+key) for title,key in PANEL_HUBS if key in PARENT_ALLOWED_PANELS]
-        entry=MOTHER_PANEL_CATALOG.get(role) or MOTHER_PANEL_CATALOG.get("student")
-        return [tuple(item) for item in (entry.get("items") or [])]
+        own = {"executive":"executive","educational":"educational","cultural":"cultural","advisor":"advisor","teacher":"teachers"}.get(role)
+        allowed = []
+        if own:
+            allowed.append(own)
+        for shared in ("online","teacher_exams","smart_board","ai","messages","payment"):
+            if shared not in allowed:
+                allowed.append(shared)
+        return [(title,"panelhub:"+key) for title,key in PANEL_HUBS if key in allowed]
 
 
     def _build(self):
