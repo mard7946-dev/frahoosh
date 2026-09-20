@@ -226,6 +226,9 @@ class DashboardScreen(Screen):
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
         self.app_state=app_state
+        self._parent_seen=set()
+        self._parent_poll_event=None
+        self._parent_poll_busy=False
         self._build()
 
     def label(self,text,size="11sp",color=WHITE,bold=False,center=True):
@@ -264,7 +267,7 @@ class DashboardScreen(Screen):
         head=BoxLayout(size_hint_y=None,height=dp(56))
         head.add_widget(self.label(APP_NAME,"25sp",WHITE,True,True)); content.add_widget(head)
         self.welcome=self.label("خوش آمدید","14sp",WHITE,True,True); content.add_widget(self.welcome)
-        self.role_text=self.label("","10sp",(0.88,0.96,1,1),False,True); content.add_widget(self.role_text)
+        self.role_text=self.label("","10sp",(0.88,0.96,1,1),False,True); content.add_widget(self.role_text)\n        self.parent_alert=self.label("","11sp",WHITE,True,True); content.add_widget(self.parent_alert)
         frame=BoxLayout(orientation="vertical",padding=dp(8))
         with frame.canvas.before:
             Color(0.02,0.08,0.18,0.64); self.frame_bg=RoundedRectangle(radius=[dp(22)])
@@ -398,6 +401,44 @@ class DashboardScreen(Screen):
                 Clock.schedule_once(lambda _dt:self._restore_role_status(),2.5)
             except Exception:
                 pass
+
+    def _start_parent_poll(self):
+        if self._parent_poll_event is None:
+            self._parent_poll_event = Clock.schedule_interval(self._poll_parent_notifications, 5.0)
+        Clock.schedule_once(self._poll_parent_notifications, 0)
+
+    def _poll_parent_notifications(self, *_):
+        if self._parent_poll_busy or self.app_state is None or self.role() != "parent":
+            return
+        self._parent_poll_busy=True
+        def worker():
+            try:
+                from mobile.services.live_data import LiveSchoolData
+                events, feed = LiveSchoolData(self.app_state).parent_unread_notifications(self._parent_seen)
+                ids=[e["id"] for e in events]
+                if ids:
+                    self._parent_seen.update(ids)
+                    latest=events[0]
+                    title=latest.get("title","اعلان جدید")
+                    count=len(events)
+                    msg=f"{title} • {count} مورد جدید"
+                else:
+                    total=sum(len(feed.get(k,[])) for k in ("attendance","discipline","grades","activities","messages"))
+                    msg=f"اعلان‌های لحظه‌ای فعال • {total} رویداد مدرسه"
+                Clock.schedule_once(lambda _dt,m=msg:self._set_parent_alert(m),0)
+            except Exception as exc:
+                print("PARENT LIVE FEED ERROR:",repr(exc))
+                Clock.schedule_once(lambda _dt:self._set_parent_alert("اتصال اعلان‌های مدرسه در حال بررسی است."),0)
+            finally:
+                self._parent_poll_busy=False
+        Thread(target=worker,daemon=True).start()
+
+    def _set_parent_alert(self,message):
+        try:
+            self.parent_alert.text=rtl_text(message)
+            self.parent_alert.color=(0.72,1,0.82,1)
+        except Exception:
+            pass
 
     def _restore_role_status(self,*_):
         try:
