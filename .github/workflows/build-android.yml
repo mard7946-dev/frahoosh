@@ -117,6 +117,19 @@ jobs:
           print("Runtime configuration created:", path)
           PY
           test -s mobile/runtime_config.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import urllib.request
+
+          cfg = json.loads(Path("mobile/runtime_config.json").read_text(encoding="utf-8"))
+          url = cfg["supabase_url"].rstrip("/") + "/auth/v1/settings"
+          req = urllib.request.Request(url, headers={"apikey": cfg["supabase_anon_key"]})
+          with urllib.request.urlopen(req, timeout=15) as response:
+              if response.status != 200:
+                  raise SystemExit(f"Supabase auth endpoint returned HTTP {response.status}")
+          print("Supabase auth endpoint connectivity check passed.")
+          PY
 
       - name: Validate repository before Android build
         shell: bash
