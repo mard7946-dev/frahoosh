@@ -12,9 +12,9 @@ as $$
   from auth.users as u
   join public.account_settings as a
     on lower(trim(a.email)) = lower(trim(u.email))
-  where regexp_replace(coalesce(a.national_code, ''), '[^0-9]', '', 'g')
-        = regexp_replace(coalesce(p_national_code, ''), '[^0-9]', '', 'g')
-    and regexp_replace(coalesce(p_national_code, ''), '[^0-9]', '', 'g') <> ''
+  where regexp_replace(translate(coalesce(a.national_code, ''), '۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩', '01234567890123456789'), '[^0-9]', '', 'g')
+        = regexp_replace(translate(coalesce(p_national_code, ''), '۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩', '01234567890123456789'), '[^0-9]', '', 'g')
+    and regexp_replace(translate(coalesce(p_national_code, ''), '۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩', '01234567890123456789'), '[^0-9]', '', 'g') <> ''
   limit 1;
 $$;
 
