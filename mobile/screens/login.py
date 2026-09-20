@@ -159,7 +159,6 @@ class LoginScreen(Screen):
                 password=password,
                 password_mask="*",
                 font_name=font_name(),
-                font_script_name="Arab",
                 text_language="fa",
                 font_size="14sp",
                 multiline=False,
