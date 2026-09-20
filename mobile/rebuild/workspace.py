@@ -1,4 +1,6 @@
 from threading import Thread
+import base64
+import os
 from kivy.clock import Clock
 from kivy.graphics import Color, RoundedRectangle
 from kivy.metrics import dp
@@ -84,9 +86,9 @@ class RebuildDashboard(Screen):
             self.bg=RoundedRectangle(pos=root.pos,size=root.size,radius=[dp(18)])
         root.bind(pos=lambda *_:self._sync_bg(root),size=lambda *_:self._sync_bg(root))
 
-        bg_path=resource_find("mobile/assets/frahoosh_dashboard_background.svg")
+        bg_path=self._ensure_background()
         if bg_path:
-            bg=Image(source=bg_path,allow_stretch=True,keep_ratio=False,opacity=0.78,size_hint=(1,1))
+            bg=Image(source=bg_path,allow_stretch=True,keep_ratio=False,opacity=0.82,size_hint=(1,1))
             root.add_widget(bg)
         content=BoxLayout(orientation="vertical",padding=[dp(8),dp(8)],spacing=dp(6))
         content.add_widget(self._label("فراهوش","25sp",WHITE,48,True,True))
@@ -102,6 +104,19 @@ class RebuildDashboard(Screen):
             b.bind(on_release=lambda *_ ,k=key:self.open_panel(k))
             grid.add_widget(b)
         sc.add_widget(grid); content.add_widget(sc); root.add_widget(content); self.add_widget(root)
+
+    def _ensure_background(self):
+        try:
+            from kivy.app import App
+            target=os.path.join(App.get_running_app().user_data_dir,"frahoosh_dashboard_background.jpg")
+            if not os.path.exists(target):
+                from .background_data import DASHBOARD_JPEG_B64
+                with open(target,"wb") as fh:
+                    fh.write(base64.b64decode(DASHBOARD_JPEG_B64))
+            return target
+        except Exception as exc:
+            print("DASHBOARD BACKGROUND ERROR:",repr(exc))
+            return None
 
     def _sync_bg(self,root):
         self.bg.pos=root.pos; self.bg.size=root.size
