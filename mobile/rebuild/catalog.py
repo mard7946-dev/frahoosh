@@ -68,6 +68,11 @@ TABLES = {
     "ai_questions": ["id","username","role","question","answer","answer_date_shamsi"],
     "ai_educational_analysis": ["id","student_id","teacher_id","subject","period","score","risk_level","analysis_date_shamsi"],
     "ai_smart_reports": ["id","title","report_type","target_type","target_id","created_by","report_date_shamsi"],
+    "parent_children": ["id","first_name","last_name","student_code","grade","class_name","parent_phone"],
+    "discipline_records": ["id","student_id","problem_type","description","status","reported_by","created_at"],
+    "online_classes": ["id","title","subject","lesson","teacher","grade","class_name","duration","start_time_shamsi","end_time_shamsi","status","join_url","meeting_url"],
+    "online_attendance": ["id","student_id","class_id","check_number","status","checked_at","leave_time"],
+    "quiz_questions": ["id","quiz_id","question_type","question","options_json","correct_answer","accepted_answers","points"],
 }
 
 ROLE_MODULES = {
@@ -80,6 +85,8 @@ ROLE_MODULES = {
         ("reports","گزارش‌ها","executive_reports"),
         ("schedule","برنامه هفتگی","weekly_schedule"),
         ("exam_schedule","برنامه امتحانات","exam_schedule"),
+        ("finance","امور مالی","payment_records"),
+        ("messages","صندوق پیام‌ها","school_events"),
     ],
     "educational": [
         ("attendance","حضور و غیاب","attendance"),
@@ -90,6 +97,8 @@ ROLE_MODULES = {
         ("exams","آزمون‌ها","teacher_exams"),
         ("question_bank","بانک سؤال","quiz_questions"),
         ("notifications","اطلاع‌رسانی","school_events"),
+        ("smart_board","تابلو هوشمند","smart_board_content"),
+        ("reports","گزارش‌ها","executive_reports"),
     ],
     "executive": [
         ("students","دانش‌آموزان","students"),
