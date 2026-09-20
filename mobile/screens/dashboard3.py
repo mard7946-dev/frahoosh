@@ -6,6 +6,11 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.app import App
+from kivy.animation import Animation
+from kivy.graphics import Color, RoundedRectangle
+from kivy.uix.image import Image
+from kivy.resources import resource_find
+from kivy.uix.floatlayout import FloatLayout
 
 from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, PRIMARY, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text
@@ -83,19 +88,69 @@ class DashboardScreen(Screen):
         return ALIASES.get(raw, raw)
 
     def _build(self):
-        root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(7))
+        root = FloatLayout()
 
-        header = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(112), spacing=dp(3))
-        header.add_widget(self.label(APP_NAME, "23sp", PRIMARY, True, True))
-        header.add_widget(self.label(SCHOOL, "13sp", PRIMARY, True, True))
-        header.add_widget(self.label("یادگیری هوشمند، مدرسه‌ای یکپارچه، آینده‌ای روشن", "9sp", SECONDARY, False, True))
-        self.welcome = self.label("خوش آمدید", "16sp", SUCCESS, True, True)
-        self.role_text = self.label("", "10sp", SECONDARY, False, True)
+        # The agreed portrait Frahoosh artwork is the dashboard background too.
+        bg_candidates = [
+            "mobile/assets/frahoosh_login_mobile.jpg",
+            "assets/frahoosh_login_mobile.jpg",
+        ]
+        bg_source = next((resource_find(x) for x in bg_candidates if resource_find(x)), None)
+        if bg_source:
+            background = Image(
+                source=bg_source,
+                size_hint=(1, 1),
+                pos_hint={"x": 0, "y": 0},
+                allow_stretch=True,
+                keep_ratio=False,
+                opacity=1,
+            )
+            root.add_widget(background)
+
+        # A dark translucent layer keeps the artwork visible while preserving
+        # readability of the dashboard controls.
+        with root.canvas.before:
+            Color(0.01, 0.03, 0.09, 0.28)
+            root._shade = RoundedRectangle(radius=[0])
+
+        def sync_shade(*_):
+            root._shade.pos = root.pos
+            root._shade.size = root.size
+        root.bind(pos=sync_shade, size=sync_shade)
+
+        content = BoxLayout(
+            orientation="vertical",
+            padding=[dp(10), dp(8), dp(10), dp(8)],
+            spacing=dp(6),
+            size_hint=(0.94, 0.96),
+            pos_hint={"center_x": 0.5, "center_y": 0.50},
+        )
+
+        header = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(112), spacing=dp(2))
+        header.add_widget(self.label(APP_NAME, "23sp", WHITE, True, True))
+        header.add_widget(self.label(SCHOOL, "12sp", WHITE, True, True))
+        header.add_widget(self.label("یادگیری هوشمند، مدرسه‌ای یکپارچه، آینده‌ای روشن", "8sp", WHITE, False, True))
+        self.welcome = self.label("خوش آمدید", "15sp", WHITE, True, True)
+        self.role_text = self.label("", "9sp", WHITE, False, True)
         header.add_widget(self.welcome)
         header.add_widget(self.role_text)
-        root.add_widget(header)
+        content.add_widget(header)
 
-        root.add_widget(self.label("پنل‌های سامانه", "15sp", PRIMARY, True, True))
+        content.add_widget(self.label("پنل‌های سامانه", "14sp", WHITE, True, True))
+
+        panel_frame = BoxLayout(
+            orientation="vertical",
+            padding=[dp(8), dp(8)],
+            spacing=dp(6),
+            size_hint_y=1,
+        )
+        with panel_frame.canvas.before:
+            Color(0.02, 0.08, 0.18, 0.48)
+            panel_frame._bg = RoundedRectangle(radius=[dp(18)])
+        panel_frame.bind(
+            pos=lambda o,v:setattr(panel_frame._bg, "pos", v),
+            size=lambda o,v:setattr(panel_frame._bg, "size", v),
+        )
 
         scroll = ScrollView(do_scroll_x=False, do_scroll_y=True)
         self.panel_box = BoxLayout(
@@ -106,24 +161,27 @@ class DashboardScreen(Screen):
         )
         self.panel_box.bind(minimum_height=self.panel_box.setter("height"))
         scroll.add_widget(self.panel_box)
-        root.add_widget(scroll)
+        panel_frame.add_widget(scroll)
+        content.add_widget(panel_frame)
 
-        self.status = self.label("", "9sp", SUCCESS, True, True)
-        root.add_widget(self.status)
+        self.status = self.label("", "8sp", WHITE, True, True)
+        content.add_widget(self.status)
 
         out = Button(
             text=rtl_text("خروج از حساب"),
             font_name=font_name(),
-            font_size="11sp",
+            font_script_name="Arab",
+            text_language="fa",
+            font_size="10sp",
             background_normal="",
-            background_color=(.65, .12, .14, 1),
+            background_color=(.65, .12, .14, .92),
             color=WHITE,
             size_hint_y=None,
-            height=dp(40),
+            height=dp(38),
         )
         out.bind(on_release=self.logout)
-        root.add_widget(out)
-
+        content.add_widget(out)
+        root.add_widget(content)
         self.add_widget(root)
 
     def on_pre_enter(self, *_):
@@ -162,6 +220,8 @@ class DashboardScreen(Screen):
                 background_down="",
                 background_color=PRIMARY,
                 color=WHITE,
+                font_script_name="Arab",
+                text_language="fa",
                 size_hint_y=None,
                 height=dp(58),
             )
