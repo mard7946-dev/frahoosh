@@ -36,6 +36,14 @@ ZIP_TABLE_FIELDS = {
     "ai_educational_analysis":["id","student_id","teacher_id","subject","period","score","risk_level","analysis_date_shamsi"],
     "ai_smart_reports":["id","title","report_type","target_type","target_id","created_by","report_date_shamsi"],
     "parent_children":["id","first_name","last_name","student_code","grade","class_name","parent_phone"],
+    "executive_classes":["id","name","grade","teacher","created_at"],
+    "cultural_reports":["id","title","report_type","activity_id","report_date"],
+    "teacher_meetings":["id","teacher_id","teacher_name","student_id","student_name","parent_name","meeting_at","subject","status","report"],
+    "smart_board_files":["id","title","file_path","file_type","class_id","teacher_id"],
+    "smart_board_media":["id","title","media_path","media_type","class_id","teacher_id"],
+    "smart_board_interactive_tools":["id","title","tool_type","content","class_id","teacher_id"],
+    "ai_educational_analysis":["id","student_id","teacher_id","subject","period","score","risk_level","analysis_date_shamsi"],
+    "payment_transactions":["id","student_id","registration_id","amount","gateway","authority","reference","status","paid_at","parent_username","payment_date"],
     "parent_meeting_requests":["id","student_id","teacher_id","parent_phone","reason","meeting_date","status"],
 }
 
