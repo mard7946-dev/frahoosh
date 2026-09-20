@@ -5,133 +5,207 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.image import Image
+from kivy.uix.carousel import Carousel
 from kivy.graphics import Color, RoundedRectangle
+from kivy.animation import Animation
 
-from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, LOGO_PATH, PRIMARY, SECONDARY, SUCCESS, WHITE
+from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, BACKGROUND_PATH, PRIMARY, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text
 
-ROLE_ALIASES = {"admin":"manager","administrator":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager","executive":"executive","معاون اجرایی":"executive","educational":"educational","training":"educational","معاون آموزشی":"educational","cultural":"cultural","پرورشی":"cultural","معاون پرورشی":"cultural","advisor":"advisor","counselor":"advisor","مشاور":"advisor","teacher":"teacher","teacher_staff":"teacher","دبیر":"teacher","معلم":"teacher","student":"student","دانش‌آموز":"student","دانش آموز":"student","parent":"parent","parent_guardian":"parent","guardian":"parent","ولی":"parent","اولیا":"parent"}
-ROLE_TITLES = {"manager":"مدیریت", "executive":"معاون اجرایی", "educational":"معاون آموزشی", "cultural":"معاون پرورشی", "advisor":"مشاوره", "teacher":"دبیر", "student":"دانش‌آموز", "parent":"ولی"}
-MANAGER_MENU = [("مدیریت","management"),("معاون آموزشی","educational"),("معاون اجرایی","executive"),("معاون پرورشی","cultural"),("مشاوره","advisor"),("دبیران","teachers"),("اولیا","parents"),("دانش‌آموزان","students"),("مالی","finance"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("دستیار هوش مصنوعی","ai"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")]
-ROLE_MENU = {
-"executive":[("معاون اجرایی","executive"),("دانش‌آموزان","students"),("اولیا","parents"),("کلاس‌های آنلاین","online"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-"educational":[("معاون آموزشی","educational"),("دانش‌آموزان","students"),("دبیران","teachers"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-"cultural":[("معاون پرورشی","cultural"),("دانش‌آموزان","students"),("اولیا","parents"),("مشارکت و فعالیت‌ها","participation"),("پرداخت آنلاین","payment"),("تابلو هوشمند","smart_board"),("گزارش‌ها","reports"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-"advisor":[("مشاوره","advisor"),("دانش‌آموزان","students"),("اولیا","parents"),("گزارش‌ها","reports"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-"teacher":[("پنل دبیر","teacher"),("آزمون آنلاین","teacher_exams"),("دانش‌آموزان","students"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
-"student":[("پنل دانش‌آموز","student"),("آزمون‌های آنلاین","teacher_exams"),("برنامه هفتگی","schedule"),("وضعیت تحصیلی","student_info"),("مشارکت و فعالیت‌ها","participation"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")],
-"parent":[("پنل اولیا","parent"),("وضعیت تحصیلی فرزند","student_info"),("مشارکت اولیا","participation"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")]
+ROLE_ALIASES = {
+    "admin":"manager","administrator":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager",
+    "executive":"executive","معاون اجرایی":"executive","educational":"educational","معاون آموزشی":"educational",
+    "cultural":"cultural","پرورشی":"cultural","معاون پرورشی":"cultural","advisor":"advisor","counselor":"advisor","مشاور":"advisor",
+    "teacher":"teacher","teacher_staff":"teacher","دبیر":"teacher","معلم":"teacher","student":"student","دانش‌آموز":"student","دانش آموز":"student",
+    "parent":"parent","parent_guardian":"parent","guardian":"parent","ولی":"parent","اولیا":"parent"
 }
-OPERATIONS_ROUTES = {"payment","online","messages"}
+ROLE_TITLES = {
+    "manager":"مدیریت","executive":"معاون اجرایی","educational":"معاون آموزشی","cultural":"معاون پرورشی",
+    "advisor":"مشاوره","teacher":"دبیر","student":"دانش‌آموز","parent":"ولی"
+}
 
-class Card(BoxLayout):
-    def __init__(self, **kwargs):
-        super().__init__(orientation="vertical", padding=dp(14), spacing=dp(6), **kwargs)
+MANAGER_MENU = [
+    ("مدیریت","management"),("معاون آموزشی","educational"),("معاون اجرایی","executive"),("معاون پرورشی","cultural"),
+    ("مشاوره","advisor"),("دبیران","teachers"),("دانش‌آموزان","students"),("اولیا","parents"),
+    ("مالی","finance"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),
+    ("تابلو هوشمند","smart_board"),("هوش مصنوعی","ai"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),
+    ("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")
+]
+
+ROLE_MENU = {
+    "executive":[("معاون اجرایی","executive"),("دانش‌آموزان","students"),("اولیا","parents"),("کلاس‌های آنلاین","online"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
+    "educational":[("معاون آموزشی","educational"),("دانش‌آموزان","students"),("دبیران","teachers"),("کلاس‌های آنلاین","online"),("آزمون آنلاین","teacher_exams"),("تابلو هوشمند","smart_board"),("گزارش‌ها","reports"),("برنامه هفتگی","schedule"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
+    "cultural":[("معاون پرورشی","cultural"),("دانش‌آموزان","students"),("اولیا","parents"),("مشارکت و فعالیت‌ها","participation"),("پرداخت آنلاین","payment"),("تابلو هوشمند","smart_board"),("گزارش‌ها","reports"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
+    "advisor":[("مشاوره","advisor"),("دانش‌آموزان","students"),("اولیا","parents"),("گزارش‌ها","reports"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
+    "teacher":[("پنل دبیر","teachers"),("آزمون آنلاین","teacher_exams"),("دانش‌آموزان","students"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("تنظیمات","settings"),("درباره برنامه","about")],
+    "student":[("پنل دانش‌آموز","students"),("آزمون‌های آنلاین","teacher_exams"),("برنامه هفتگی","schedule"),("وضعیت تحصیلی","student_info"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")],
+    "parent":[("پنل اولیا","parents"),("وضعیت تحصیلی فرزند","student_info"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")]
+}
+
+class PanelCard(BoxLayout):
+    def __init__(self, title, index, total, desc, enter, **kwargs):
+        super().__init__(orientation="vertical", padding=dp(14), spacing=dp(7), **kwargs)
         with self.canvas.before:
-            Color(1,1,1,.98); self.bg=RoundedRectangle(radius=[dp(18)])
-        self.bind(pos=self._sync,size=self._sync)
-    def _sync(self,*_): self.bg.pos=self.pos; self.bg.size=self.size
-
-class SwipeDeck(ScrollView):
-    """Panel container without PageLayout/swipe navigation.
-    Panels are opened from the hamburger drawer; this container only provides vertical scrolling.
-    """
-    def __init__(self, **kwargs):
-        super().__init__(do_scroll_x=False, do_scroll_y=True, bar_width=dp(4), **kwargs)
-        self.on_index_change=None
-        self._box=BoxLayout(orientation="vertical", spacing=dp(10), padding=dp(4), size_hint_y=None)
-        self._box.bind(minimum_height=self._box.setter("height"))
-        self.add_widget(self._box)
-    def set_pages(self,pages):
-        self._box.clear_widgets()
-        for page in pages or []:
-            page.size_hint_y=None
-            self._box.add_widget(page)
-        if callable(self.on_index_change):
-            self.on_index_change(0,len(pages or []))
+            Color(0.02, 0.10, 0.20, 0.90)
+            self.bg = RoundedRectangle(radius=[dp(18)])
+        self.bind(pos=self._sync, size=self._sync)
+        self.add_widget(Label(text=rtl_text(title),font_name=font_name(),font_size="23sp",color=WHITE,bold=True,
+                              halign="center",valign="middle",size_hint_y=None,height=dp(52)))
+        self.add_widget(Label(text=rtl_text(f"پنل {index} از {total}"),font_name=font_name(),font_size="10sp",color=(0.55,0.85,1,1),
+                              halign="center",valign="middle",size_hint_y=None,height=dp(26)))
+        self.add_widget(Label(text=rtl_text(desc),font_name=font_name(),font_size="12sp",color=WHITE,
+                              halign="center",valign="middle"))
+        b=Button(text=rtl_text("ورود به پنل"),font_name=font_name(),font_size="14sp",background_normal="",
+                 background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(50))
+        b.bind(on_release=enter)
+        self.add_widget(b)
+    def _sync(self,*_):
+        self.bg.pos=self.pos; self.bg.size=self.size
 
 class DashboardScreen(Screen):
-    def __init__(self,app_state=None,**kwargs):
-        super().__init__(**kwargs); self.app_state=app_state; self.drawer_open=False; self._build_ui()
-    def _label(self,text,size="13sp",color=SECONDARY,bold=False,center=False):
-        w=Label(text=rtl_text(text),font_name=font_name(),font_size=size,color=color,bold=bold,halign="center" if center else "right",valign="middle"); w.bind(size=lambda o,v:setattr(o,"text_size",v)); return w
-    def _build_ui(self):
-        root=FloatLayout()
-        with root.canvas.before:
-            Color(.94,.97,.985,1); self.bg=RoundedRectangle()
-        root.bind(pos=lambda o,v:setattr(self.bg,"pos",v),size=lambda o,v:setattr(self.bg,"size",v))
-        content=BoxLayout(orientation="vertical",padding=dp(11),spacing=dp(7))
-        header=BoxLayout(size_hint_y=None,height=dp(58),spacing=dp(8))
-        menu=Button(text="☰",font_size="26sp",background_normal="",background_color=PRIMARY,color=WHITE,size_hint_x=None,width=dp(52)); menu.bind(on_release=self.toggle_drawer); header.add_widget(menu)
-        logo=Image(source=LOGO_PATH,size_hint_x=None,width=dp(52),allow_stretch=True,keep_ratio=True); header.add_widget(logo)
-        titles=BoxLayout(orientation="vertical"); titles.add_widget(self._label(APP_NAME,"20sp",PRIMARY,True)); titles.add_widget(self._label("سامانه هوشمند آموزشی یکپارچه مدرسه","10sp")); header.add_widget(titles); content.add_widget(header)
-        welcome=Card(size_hint_y=None,height=dp(86),padding=dp(13)); self.welcome=self._label("خوش آمدید","19sp",PRIMARY,True); self.role_text=self._label("","11sp",SECONDARY,True); self.school_text=self._label(SCHOOL_NAME,"11sp",PRIMARY,True); welcome.add_widget(self.welcome); welcome.add_widget(self.role_text); welcome.add_widget(self.school_text); content.add_widget(welcome)
-        self.status=self._label("","10sp",SUCCESS,True,True); content.add_widget(self.status); content.add_widget(self._label("پنل‌های سامانه","15sp",PRIMARY,True))
-        self.frame=Card(size_hint_y=1,padding=dp(8),spacing=dp(4)); self.deck=SwipeDeck(size_hint_y=1); self.deck.on_index_change=self._deck_changed; self.frame.add_widget(self.deck); content.add_widget(self.frame)
-        self.counter=self._label("","10sp",SUCCESS,True,True); content.add_widget(self.counter)
-        content.add_widget(self._label(f"{SCHOOL_NAME} | سال تحصیلی {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}","9sp",SECONDARY,False,True))
-        out=Button(text=rtl_text("خروج از حساب"),font_name=font_name(),font_size="12sp",background_normal="",background_color=(.65,.12,.14,1),color=WHITE,size_hint_y=None,height=dp(38)); out.bind(on_release=self.logout); content.add_widget(out)
-        root.add_widget(content)
-        self.drawer_layer=FloatLayout(size_hint=(1,1),opacity=0,disabled=True); self.drawer_layer.add_widget(Button(background_normal="",background_color=(0,0,0,.28),size_hint=(1,1),on_release=self.close_drawer))
-        self.drawer=BoxLayout(orientation="vertical",padding=dp(11),spacing=dp(6),size_hint=(None,1),width=dp(285),pos_hint={"right":1}); self.drawer.add_widget(self._label(APP_NAME,"19sp",PRIMARY,True,True)); self.drawer.add_widget(self._label("منوی سامانه","10sp",SECONDARY,False,True))
-        from kivy.uix.scrollview import ScrollView
-        self.drawer_scroll=ScrollView(do_scroll_x=False); self.drawer_box=BoxLayout(orientation="vertical",spacing=dp(5),size_hint_y=None); self.drawer_box.bind(minimum_height=self.drawer_box.setter("height")); self.drawer_scroll.add_widget(self.drawer_box); self.drawer.add_widget(self.drawer_scroll)
-        close=Button(text=rtl_text("بستن منو"),font_name=font_name(),background_normal="",background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(40)); close.bind(on_release=self.close_drawer); self.drawer.add_widget(close); self.drawer_layer.add_widget(self.drawer); root.add_widget(self.drawer_layer); self.add_widget(root)
+    """Mobile dashboard: animated swipeable panels inside a half-screen frame over the agreed artwork."""
+    def __init__(self, app_state=None, **kwargs):
+        super().__init__(**kwargs)
+        self.app_state=app_state
+        self._build()
+
+    def label(self,text,size="11sp",color=WHITE,bold=False,center=True):
+        w=Label(text=rtl_text(str(text)),font_name=font_name(),font_size=size,color=color,bold=bold,
+                halign="center" if center else "right",valign="middle")
+        w.bind(size=lambda o,v:setattr(o,"text_size",v))
+        return w
+
     def role(self):
-        try: raw=self.app_state.role
-        except Exception: raw="student"
-        raw=str(raw or "student").strip().lower(); return ROLE_ALIASES.get(raw,raw)
+        raw=str(getattr(self.app_state,"role","student") or "student").strip().lower()
+        return ROLE_ALIASES.get(raw,raw)
+
     def items(self):
-        r=self.role(); return MANAGER_MENU if r=="manager" else ROLE_MENU.get(r,[("صندوق پیام‌ها","messages"),("درباره برنامه","about")])
-    def refresh(self):
-        if self.app_state is None or not self.app_state.logged_in:return False
-        role=self.role(); items=self.items(); name=str(getattr(self.app_state,"display_name","کاربر فراهوش") or "کاربر فراهوش")
-        self.welcome.text=rtl_text(f"خوش آمدید، {name}"); self.role_text.text=rtl_text(f"پنل {ROLE_TITLES.get(role,'کاربر')} | دسترسی فعال"); self.school_text.text=rtl_text(SCHOOL_NAME); self.status.text=rtl_text(f"{len(items)} پنل فعال — هر پنل را انتخاب کنید تا وارد محیط عملیاتی آن شوید.")
-        self.drawer_box.clear_widgets(); pages=[]
-        for index,(title,route) in enumerate(items,1):
-            page=Card(padding=dp(18),spacing=dp(9)); page.add_widget(self._label(title,"24sp",PRIMARY,True,True)); page.add_widget(self._label(f"پنل {index} از {len(items)}","10sp",SECONDARY,False,True)); page.add_widget(self._label(self.desc(route),"12sp",SECONDARY,False,True))
-            enter=Button(text=rtl_text("ورود به این پنل"),font_name=font_name(),font_size="14sp",background_normal="",background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(52)); enter.bind(on_release=lambda *_args,r=route:self.open(r)); page.add_widget(enter); pages.append(page)
-            db=Button(text=rtl_text(title),font_name=font_name(),font_size="13sp",background_normal="",background_color=(.08,.30,.48,1),color=WHITE,size_hint_y=None,height=dp(42)); db.bind(on_release=lambda *_args,r=route:self.open(r)); self.drawer_box.add_widget(db)
-        self.deck.set_pages(pages); return True
-    def _deck_changed(self,index,total): self.counter.text=rtl_text(f"پنل {index+1} از {total}") if total else rtl_text("پنلی وجود ندارد")
+        r=self.role()
+        return MANAGER_MENU if r=="manager" else ROLE_MENU.get(r,[( "صندوق پیام‌ها","messages"),("درباره برنامه","about")])
+
+    def _build(self):
+        root=FloatLayout()
+
+        # The agreed portrait Frahoosh artwork is a real background, not a generated replacement.
+        bg=Image(source=str(BACKGROUND_PATH),size_hint=(1,1),pos_hint={"x":0,"y":0},
+                 allow_stretch=True,keep_ratio=True,opacity=1)
+        root.add_widget(bg)
+
+        overlay=FloatLayout(size_hint=(1,1))
+        with overlay.canvas.before:
+            Color(0,0,0,0.30)
+            self.tint=RoundedRectangle()
+        overlay.bind(pos=lambda o,v:setattr(self.tint,"pos",v),size=lambda o,v:setattr(self.tint,"size",v))
+        root.add_widget(overlay)
+
+        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(10)],spacing=dp(6),size_hint=(1,1))
+        head=BoxLayout(size_hint_y=None,height=dp(70),spacing=dp(5))
+        head.add_widget(self.label(APP_NAME,"25sp",WHITE,True,True))
+        content.add_widget(head)
+
+        self.welcome=self.label("خوش آمدید","14sp",WHITE,True,True); content.add_widget(self.welcome)
+        self.role_text=self.label("","10sp",(0.85,0.95,1,1),False,True); content.add_widget(self.role_text)
+
+        # This is intentionally about half the usable screen, so the agreed image remains visible.
+        frame=BoxLayout(orientation="vertical",padding=dp(7),size_hint_y=.56)
+        with frame.canvas.before:
+            Color(0.01,0.05,0.12,0.62)
+            self.frame_bg=RoundedRectangle(radius=[dp(20)])
+        frame.bind(pos=lambda o,v:setattr(self.frame_bg,"pos",v),size=lambda o,v:setattr(self.frame_bg,"size",v))
+        self.frame=frame
+        self.carousel=Carousel(direction="right",loop=True,anim_move_duration=.30,scroll_timeout=.25)
+        frame.add_widget(self.carousel)
+        content.add_widget(frame)
+
+        self.counter=self.label("","9sp",WHITE,True,True); content.add_widget(self.counter)
+        self.status=self.label("","8sp",(0.82,0.94,1,1),False,True); content.add_widget(self.status)
+
+        out=Button(text=rtl_text("خروج از حساب"),font_name=font_name(),font_size="10sp",background_normal="",
+                   background_color=(0.55,0.08,0.10,.88),color=WHITE,size_hint_y=None,height=dp(38))
+        out.bind(on_release=self.logout)
+        content.add_widget(out)
+
+        root.add_widget(content)
+        self.add_widget(root)
+
     def desc(self,route):
-        return {"management":"مدیریت دانش‌آموزان، دبیران، کارکنان، کلاس‌ها و اطلاعات مدرسه.","educational":"کلاس‌ها، دروس، حضور و غیاب، نمرات، تکالیف و برنامه آموزشی.","executive":"پرونده دانش‌آموزان، اولیا، ثبت‌نام و امور اجرایی.","cultural":"فعالیت‌های فرهنگی و پرورشی و رویدادهای مدرسه.","advisor":"پرونده دانش‌آموز و پیگیری جلسات مشاوره.","teachers":"فهرست دبیران و کلاس‌های آنان.","students":"پرونده، نمرات و حضور و غیاب دانش‌آموزان.","parents":"اولیا و وضعیت تحصیلی فرزندان.","finance":"حساب‌ها، تراکنش‌ها و کمک‌های داوطلبانه.","payment":"گزینه‌های پرداخت و سوابق تراکنش.","online":"کلاس، جلسه، حضور و غیاب، گفت‌وگو و تخته کلاس.","teacher_exams":"آزمون آنلاین و مدیریت سؤال و نمره.","smart_board":"محتوای آموزشی و فعالیت‌های تابلو هوشمند.","ai":"دستیار هوشمند، پرسش و گزارش‌های تحلیلی.","reports":"گزارش‌های آموزشی، نمرات و حضور و غیاب.","schedule":"برنامه هفتگی و برنامه امتحانات.","messages":"صندوق پیام‌ها و مخاطبان مدرسه.","settings":"تنظیمات حساب و اطلاعات مدرسه.","about":"اطلاعات سامانه فراهوش و نسخه برنامه."}.get(route,"ورود به بخش عملیاتی سامانه.")
-    def toggle_drawer(self,*_): self.close_drawer() if self.drawer_open else self.open_drawer()
-    def open_drawer(self,*_): self.drawer_open=True; self.drawer_layer.opacity=1; self.drawer_layer.disabled=False
-    def close_drawer(self,*_): self.drawer_open=False; self.drawer_layer.opacity=0; self.drawer_layer.disabled=True
-    def open(self,route):
-        if self.app_state is None or not self.app_state.logged_in:
-            if self.manager:self.manager.current="login"
+        return {
+            "management":"مدیریت واقعی کاربران، دانش‌آموزان، دبیران، کلاس‌ها، پیام‌ها و اطلاعات مدرسه.",
+            "educational":"حضور و غیاب، انضباط، نمرات، کلاس و آزمون و پیگیری آموزشی.",
+            "executive":"پرونده دانش‌آموزان، کارکنان، برنامه‌ها، گواهی‌ها و امور اجرایی.",
+            "cultural":"فعالیت‌های پرورشی، مسابقات، مراسم، شورا و مشارکت دانش‌آموزان.",
+            "advisor":"پرونده مشاوره، جلسات، پیگیری و هدایت تحصیلی هوشمند.",
+            "teachers":"کلاس‌های دبیر، طرح درس، حضور، نمره، تکلیف، آزمون و کلاس آنلاین.",
+            "students":"اطلاعات شخصی، نمرات، حضور، تکالیف، برنامه و کلاس آنلاین.",
+            "parents":"فرزندان، کارنامه، حضور، ملاقات، پرداخت و پیام‌های مدرسه.",
+            "finance":"حساب‌ها، تراکنش‌ها، کمک‌ها و سوابق پرداخت.",
+            "payment":"گزینه‌های پرداخت، درخواست و سوابق تراکنش.",
+            "online":"کلاس‌های آنلاین، جلسات، دانش‌آموزان، دبیران و حضور سه‌مرحله‌ای.",
+            "teacher_exams":"ایجاد، زمان‌بندی، انتشار و تصحیح آزمون آنلاین.",
+            "smart_board":"محتوای آموزشی، تخته، فایل، فعالیت و آزمونک.",
+            "ai":"پرسش هوشمند، جلسات دستیار و گزارش‌های تحلیلی.",
+            "reports":"کارنامه، نمرات، حضور و گزارش‌های هوشمند.",
+            "schedule":"برنامه هفتگی، امتحانات و صندلی‌های آزمون.",
+            "messages":"صندوق ورودی، ارسال، مخاطبان و وضعیت خواندن پیام.",
+            "settings":"تنظیمات حساب، مدرسه و ساختار کلاس‌ها.",
+            "about":"اطلاعات سامانه فراهوش و نسخه برنامه.",
+            "participation":"فعالیت‌ها و مشارکت‌های ثبت‌شده."
+        }.get(route,"محیط عملیاتی واقعی سامانه فراهوش.")
+
+    def refresh(self):
+        if self.app_state is None or not getattr(self.app_state,"logged_in",False):
+            return False
+        role=self.role(); items=self.items()
+        name=str(getattr(self.app_state,"display_name","کاربر فراهوش") or "کاربر فراهوش")
+        self.welcome.text=rtl_text(f"خوش آمدید، {name}")
+        self.role_text.text=rtl_text(f"پنل {ROLE_TITLES.get(role,'کاربر')} • دسترسی فعال")
+        self.carousel.clear_widgets()
+        total=len(items)
+        for i,(title,route) in enumerate(items,1):
+            card=PanelCard(title,i,total,self.desc(route),lambda *_a,r=route:self.open_route(r),
+                           size_hint=(1,1))
+            self.carousel.add_widget(card)
+        self.counter.text=rtl_text(f"پنل 1 از {total}" if total else "پنلی وجود ندارد")
+        self.status.text=rtl_text("پنل‌ها با حرکت انگشت جابه‌جا می‌شوند • برای ورود، دکمه داخل پنل را بزنید.")
+        return True
+
+    def open_route(self,route):
+        app=App.get_running_app()
+        if app is None or app.sm is None:
             return
-        self.close_drawer()
-        if route=="about":
-            if not self.manager.has_screen("about"):
-                from mobile.screens.about import AboutScreen; self.manager.add_widget(AboutScreen(name="about",app_state=self.app_state))
-            self.manager.current="about"; return
-        if route=="participation":
-            if not self.manager.has_screen("participation"):
-                from mobile.screens.participation import ParticipationScreen; self.manager.add_widget(ParticipationScreen(name="participation",app_state=self.app_state))
-            self.manager.get_screen("participation").set_route(self.role()); self.manager.current="participation"; return
-        if route=="teacher_exams":
-            if not self.manager.has_screen("teacher_exams"):
-                from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen; self.manager.add_widget(TeacherExamsV4Screen(name="teacher_exams",app_state=self.app_state))
-            self.manager.current="teacher_exams"; return
-        if route in OPERATIONS_ROUTES:
-            if not self.manager.has_screen("operations"):
-                from mobile.screens.operations import OperationsScreen; self.manager.add_widget(OperationsScreen(name="operations",app_state=self.app_state))
-            self.manager.get_screen("operations").set_route(route); self.manager.current="operations"; return
-        if not self.manager.has_screen("module"):
-            from mobile.screens.module import ModuleScreen; self.manager.add_widget(ModuleScreen(name="module",app_state=self.app_state))
-        self.manager.get_screen("module").set_module(route,"dashboard"); self.manager.current="module"
-    def on_pre_enter(self,*_):
         try:
-            if self.app_state is None or not self.app_state.logged_in:
-                if self.manager:self.manager.current="login"
+            if route=="about":
+                from mobile.screens.about import AboutScreen
+                try: screen=app.sm.get_screen("about")
+                except Exception:
+                    screen=AboutScreen(name="about",app_state=self.app_state); app.sm.add_widget(screen)
+                app.sm.current="about"; return
+            if route=="participation":
+                from mobile.screens.participation import ParticipationScreen
+                try: screen=app.sm.get_screen("participation")
+                except Exception:
+                    screen=ParticipationScreen(name="participation",app_state=self.app_state); app.sm.add_widget(screen)
+                screen.set_route(self.role()); app.sm.current="participation"; return
+            if route=="teacher_exams":
+                screen=app.ensure_exam()
+                if screen: app.sm.current="teacher_exams"
                 return
-        except Exception:
+            panel=app.ensure_panel()
+            if panel is None:
+                raise RuntimeError("پنل عملیاتی آماده نشد.")
+            panel.set_route(route)
+            app.sm.current="panel"
+        except Exception as exc:
+            print("DASHBOARD ROUTE ERROR:",repr(exc))
+            self.status.text=rtl_text("ورود به پنل انجام نشد؛ گزارش فنی ثبت شد.")
+            self.status.color=(1,.35,.35,1)
+
+    def on_pre_enter(self,*_):
+        if self.app_state is None or not getattr(self.app_state,"logged_in",False):
             if self.manager:self.manager.current="login"
             return
         self.refresh()
+
     def logout(self,*_):
         try:
             if self.app_state:self.app_state.logout()
