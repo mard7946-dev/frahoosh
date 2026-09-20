@@ -4,10 +4,10 @@ from pathlib import Path
 
 APP_NAME = "فراهوش"
 APP_VERSION = "1.6.0"
-APP_SLOGAN = "یادگیری هوشمند- مدرسه ای یکپارچه- دانش آموز خلاق"
+APP_SLOGAN = "یادگیری هوشمند، مدرسه یکپارچه، دانش آموز خلاق"
 LOGIN_USERNAME_HINT = "نام کاربری"
 LOGIN_PASSWORD_HINT = "رمز عبور"
-SYSTEM_TITLE = "سامانه مدیریت هوشمند یکپارچه مدرسه"
+SYSTEM_TITLE = "سامانه هوشمند آموزشی یکپارچه مدرسه"
 BASE_DIR = Path(__file__).resolve().parent
 ASSETS_DIR = BASE_DIR / "assets"
 FONT_REGULAR = ASSETS_DIR / "BTitrBd.ttf"
@@ -32,7 +32,7 @@ def _load_runtime_config():
 _RUNTIME = _load_runtime_config()
 
 # Defaults keep the demo usable even when runtime_config.json is not generated.
-SCHOOL_NAME = str(os.environ.get("FRAHOOSH_SCHOOL_NAME") or _RUNTIME.get("school_name") or _RUNTIME.get("FRAHOOSH_SCHOOL_NAME") or "دبیرستان سردار شهید حاجی زاده ۲").strip()
+SCHOOL_NAME = "دبیرستان سردار شهید حاجی زاده ۲"
 SCHOOL_ID = str(os.environ.get("FRAHOOSH_SCHOOL_ID") or _RUNTIME.get("school_id") or _RUNTIME.get("FRAHOOSH_SCHOOL_ID") or "").strip()
 SCHOOL_YEAR = str(os.environ.get("FRAHOOSH_SCHOOL_YEAR") or _RUNTIME.get("school_year") or _RUNTIME.get("FRAHOOSH_SCHOOL_YEAR") or "۱۴۰۵-۱۴۰۶").strip()
 WEB_URL = str(os.environ.get("FRAHOOSH_WEB_URL") or _RUNTIME.get("web_url") or _RUNTIME.get("FRAHOOSH_WEB_URL") or "https://frahoosh.ir").strip().rstrip("/")
