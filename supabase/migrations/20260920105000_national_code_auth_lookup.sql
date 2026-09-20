@@ -10,7 +10,7 @@ stable
 as $$
   select a.email
   from public.account_settings a
-  where regexp_replace(coalesce(a.national_code, ''), '[^0-9]', '', 'g') = regexp_replace(coalesce(p_national_code, ''), '[^0-9]', '', 'g')
+  where regexp_replace(coalesce(a.national_code::text, ''), '[^0-9]', '', 'g') = regexp_replace(coalesce(p_national_code, ''), '[^0-9]', '', 'g')
   limit 1;
 $$;
 
