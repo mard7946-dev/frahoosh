@@ -225,8 +225,10 @@ class DashboardScreen(Screen):
                 size_hint_y=None,
                 height=dp(58),
             )
+            btn.opacity = 0
             btn.bind(on_release=lambda *_args, r=route: self.open(r))
             grid.add_widget(btn)
+            Clock.schedule_once(lambda _dt, w=btn: Animation(opacity=1, d=.18, t="out_quad").start(w), i * .025)
 
         self.panel_box.add_widget(grid)
         self.status.text = rtl_text(f"{len(visible_panels)} پنل عملیاتی • برای ورود، پنل موردنظر را لمس کنید.")
