@@ -321,16 +321,23 @@ class SupabaseClient:
 
     def _error(self, response, default="خطا در ارتباط با سرور"):
         data = response.json()
+        message = ""
         if isinstance(data, dict):
-            message = data.get("msg") or data.get("message") or data.get("error_description") or data.get("error")
-            if message:
-                text = str(message)
-                lower = text.lower()
-                if "invalid login credentials" in lower:
-                    return "کد ملی یا رمز عبور صحیح نیست."
-                if "email not confirmed" in lower:
-                    return "حساب کاربری هنوز تأیید نشده است."
-                return text
+            message = str(data.get("msg") or data.get("message") or data.get("error_description") or data.get("error") or "").strip()
+        lower = message.lower()
+        if "invalid login credentials" in lower:
+            return "کد ملی یا رمز عبور صحیح نیست."
+        if "email not confirmed" in lower:
+            return "حساب کاربری هنوز تأیید نشده است."
+        if response.status_code in (401, 403):
+            return "دسترسی ورود به سامانه مجاز نیست."
+        if response.status_code in (404, 406) and "rpc" in lower:
+            return "سرویس ورود با کد ملی روی سرور فعال نشده است."
+        if response.status_code in (400, 404, 406):
+            return "اطلاعات ورود در سامانه پیدا نشد."
+        if response.status_code >= 500:
+            return "سرور سامانه موقتاً پاسخ نمی‌دهد."
+        # Never send raw HTTP/ASCII diagnostics to the Persian UI.
         return default
 
     def sign_out(self):
