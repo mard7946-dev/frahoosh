@@ -710,7 +710,11 @@ class ModuleWorkspaceScreen(Screen):
         if refresh_subbar:
             self.render(); return
         self.body.clear_widgets(); self.title.text=rtl_text(FRIENDLY.get(table,table))
-        hero=Surface(height=dp(58)); line=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5)); line.add_widget(self.btn("زیرپنل‌ها",lambda *_:self._back_to_submenus(),PRIMARY,dp(40),dp(82))); line.add_widget(self.label(FRIENDLY.get(table,table),"16sp",PRIMARY,True,"center")); hero.add_widget(line); self.body.add_widget(hero)
+        hero=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(58),padding=dp(6),spacing=dp(4))
+        line=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5))
+        line.add_widget(self.btn("زیرپنل‌ها",lambda *_:self._back_to_submenus(),PRIMARY,dp(40),dp(82)))
+        line.add_widget(self.label(FRIENDLY.get(table,table),"16sp",PRIMARY,True,"center"))
+        hero.add_widget(line); self.body.add_widget(hero)
         if self.can_write(table):
             # The module has exactly three data operations.
             bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
