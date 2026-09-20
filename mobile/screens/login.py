@@ -18,7 +18,7 @@ from mobile.config import (
     APP_NAME, SCHOOL_NAME, BACKGROUND_PATH, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
     SUCCESS, WHITE, ERROR,
 )
-from mobile.ui import font_name, rtl_text, PersianTextInput
+from mobile.ui import font_name, rtl_text, PersianTextInput, bundled_login_background
 
 
 NAVY = (0.015, 0.07, 0.18, 1)
@@ -106,27 +106,9 @@ class LoginScreen(Screen):
         # Resolve the exact bundled portrait asset from the package source
         # tree first. resource_find() can miss a packaged Android asset even
         # though Buildozer has included it in the APK.
-        package_root = Path(__file__).resolve().parents[1]
-        background_candidates = [
-            str(package_root / "assets" / "frahoosh_login_mobile.jpg"),
-            "mobile/assets/frahoosh_login_mobile.jpg",
-            "assets/frahoosh_login_mobile.jpg",
-            str(BACKGROUND_PATH),
-        ]
-        background_source = next(
-            (candidate for candidate in background_candidates if Path(candidate).is_file()),
-            None,
-        )
+        background_source = bundled_login_background()
         if background_source is None:
-            for candidate in (
-                "mobile/assets/frahoosh_login_mobile.jpg",
-                "assets/frahoosh_login_mobile.jpg",
-                "frahoosh_login_mobile.jpg",
-            ):
-                found = resource_find(candidate)
-                if found:
-                    background_source = found
-                    break
+            print("LOGIN BACKGROUND NOT FOUND")
         with root.canvas.before:
             Color(0.015, 0.035, 0.09, 1)
             root._fallback_bg = Rectangle(pos=root.pos, size=root.size)
