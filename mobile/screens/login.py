@@ -15,7 +15,7 @@ from kivy.uix.widget import Widget
 from pathlib import Path
 
 from mobile.config import (
-    APP_NAME, SCHOOL_NAME, BACKGROUND_PATH, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
+    APP_NAME, SCHOOL_NAME, LOGO_PATH, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
     SUCCESS, WHITE, ERROR,
 )
 from mobile.ui import font_name, rtl_text, PersianTextInput, bundled_login_background
@@ -92,151 +92,64 @@ class LoginScreen(Screen):
     def _build(self):
         from kivy.uix.floatlayout import FloatLayout
 
-        root = FloatLayout()
-
-        # The supplied portrait artwork is the actual login design.
-        # Native controls are transparent overlays placed on the artwork,
-        # so the visual card/buttons/icons remain exactly as designed.
-        # Resolve the asset through Kivy's packaged-resource system first.
-        # On Android the filesystem path used during the build is not always the
-        # same path used by the packaged application.
-        # Android packaging can relocate the application root. Try the
-        # packaged-relative asset first, then the configured path. Keep a dark
-        # fallback canvas underneath so the login screen is never blank.
-        # Resolve the exact bundled portrait asset from the package source
-        # tree first. resource_find() can miss a packaged Android asset even
-        # though Buildozer has included it in the APK.
-        background_source = bundled_login_background()
-        if background_source is None:
-            print("LOGIN BACKGROUND NOT FOUND")
+        root=FloatLayout()
         with root.canvas.before:
-            Color(0.015, 0.035, 0.09, 1)
-            root._fallback_bg = Rectangle(pos=root.pos, size=root.size)
+            Color(0.015,0.06,0.16,1); self._bg=Rectangle(pos=root.pos,size=root.size)
+            Color(0.03,0.30,0.58,0.30); self._glow1=RoundedRectangle(radius=[dp(180)])
+            Color(0.00,0.78,0.94,0.16); self._glow2=RoundedRectangle(radius=[dp(150)])
+        def sync(*_):
+            self._bg.pos=root.pos; self._bg.size=root.size
+            self._glow1.pos=(root.width*.48,root.height*.67); self._glow1.size=(root.width*.62,root.width*.62)
+            self._glow2.pos=(-root.width*.28,root.height*.15); self._glow2.size=(root.width*.56,root.width*.56)
+        root.bind(pos=sync,size=sync); Clock.schedule_once(sync,0)
 
-        def sync_root_bg(*_):
-            root._fallback_bg.pos = root.pos
-            root._fallback_bg.size = root.size
-        root.bind(pos=sync_root_bg, size=sync_root_bg)
+        logo=Image(source=LOGO_PATH,allow_stretch=True,keep_ratio=True,size_hint=(None,None),
+                   size=(dp(92),dp(92)),pos_hint={"center_x":.5,"top":.91})
+        root.add_widget(logo)
+        title=Label(text=rtl_text(APP_NAME),font_name=font_name(),font_size="30sp",bold=True,color=WHITE,
+                    size_hint=(.9,None),height=dp(48),pos_hint={"center_x":.5,"center_y":.79},halign="center")
+        title.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(title)
+        subtitle=Label(text=rtl_text("سامانه مدیریت هوشمند مدرسه"),font_name=font_name(),font_size="11sp",
+                      color=MUTED,size_hint=(.9,None),height=dp(34),pos_hint={"center_x":.5,"center_y":.745},halign="center")
+        subtitle.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(subtitle)
 
-        if background_source:
-            background_source = resource_find(background_source) or background_source
-            print("LOGIN BACKGROUND SOURCE:", background_source)
-            background = Image(
-                source=background_source,
-                size_hint=(1, 1),
-                pos_hint={"x": 0, "y": 0},
-                allow_stretch=True,
-                keep_ratio=False,
-                fit_mode="fill",
-                nocache=True,
-                opacity=1,
-            )
-            background.bind(
-                on_texture=lambda *_: print("LOGIN BACKGROUND LOADED:", background_source),
-            )
-            root.add_widget(background)
-            Clock.schedule_once(lambda *_: background.reload(), 0.25)
-        else:
-            print("LOGIN BACKGROUND NOT FOUND:", background_candidates)
+        card=BoxLayout(orientation="vertical",padding=[dp(22),dp(22)],spacing=dp(9),
+                       size_hint=(.88,.49),pos_hint={"center_x":.5,"center_y":.49})
+        with card.canvas.before:
+            Color(0.01,0.09,0.22,0.93); card._card=RoundedRectangle(radius=[dp(28)])
+            Color(0.04,0.66,0.92,0.65); card._line=Line(rounded_rectangle=(0,0,0,0,dp(28)),width=1.2)
+        def card_sync(*_):
+            card._card.pos=card.pos; card._card.size=card.size
+            card._line.rounded_rectangle=(card.x,card.y,card.width,card.height,dp(28))
+        card.bind(pos=card_sync,size=card_sync)
 
-        # The agreed artwork already contains the Frahoosh logo, school name,
-        # card and button. Do not paint duplicate title layers over it.
-        # Transparent input overlays: the artwork supplies the field frames,
-        # icons and visual styling; these widgets provide the real interaction.
-        def overlay_field(hint, password=False, y=0.50):
-            field = PersianTextInput(
-                hint_text=rtl_text(hint),
-                password=password,
-                password_mask="*",
-                font_name=font_name(),
-                text_language="fa",
-                font_size="14sp",
-                multiline=False,
-                size_hint=(0.55, None),
-                height=dp(47),
-                halign="right",
-                padding=[dp(10), dp(7)],
-                background_normal="",
-                background_active="",
-                background_color=(0.02, 0.10, 0.24, 0.82),
-                foreground_color=WHITE,
-                hint_text_color=MUTED,
-                cursor_color=CYAN,
-                selection_color=(0.10, 0.50, 0.90, 0.45),
-                pos_hint={"center_x": 0.50, "center_y": y},
-            )
-            field.password_mask = "*"
-            return field
+        welcome=Label(text=rtl_text("ورود به حساب کاربری"),font_name=font_name(),font_size="18sp",
+                      color=WHITE,bold=True,size_hint_y=None,height=dp(38),halign="center")
+        welcome.bind(size=lambda o,v:setattr(o,"text_size",v)); card.add_widget(welcome)
+        self.identifier=self._field(LOGIN_USERNAME_HINT or "نام کاربری / کد ملی",False)
+        self.password=self._field(LOGIN_PASSWORD_HINT or "رمز عبور",True)
+        card.add_widget(self.identifier); card.add_widget(self.password)
 
-        self.identifier = overlay_field(LOGIN_USERNAME_HINT or "نام کاربری", False, 0.525)
-        self.password = overlay_field("", True, 0.455)
-        root.add_widget(self.identifier)
-        root.add_widget(self.password)
+        row=BoxLayout(size_hint_y=None,height=dp(36),spacing=dp(5))
+        self.remember_checkbox=CheckBox(active=False,size_hint=(None,None),size=(dp(30),dp(30)),color=CYAN)
+        self.remember_checkbox.bind(active=self._remember_changed); row.add_widget(self.remember_checkbox)
+        remember=Button(text=rtl_text("مرا به خاطر بسپار"),font_name=font_name(),font_size="10sp",color=WHITE,background_normal="",background_color=(0,0,0,0))
+        remember.bind(on_release=self._toggle_remember); row.add_widget(remember)
+        forgot=Button(text=rtl_text("فراموشی رمز"),font_name=font_name(),font_size="10sp",color=GOLD,background_normal="",background_color=(0,0,0,0))
+        forgot.bind(on_release=self.forgot_password); row.add_widget(forgot)
+        card.add_widget(row)
 
-        # Remember checkbox and recovery link sit over the artwork controls.
-        self.remember_checkbox = CheckBox(
-            active=False,
-            size_hint=(None, None),
-            size=(dp(34), dp(34)),
-            color=CYAN,
-            pos_hint={"center_x": 0.25, "center_y": 0.385},
-        )
-        self.remember_checkbox.bind(active=self._remember_changed)
-        root.add_widget(self.remember_checkbox)
+        self.login_button=Button(text=rtl_text("ورود به فراهوش"),font_name=font_name(),font_size="16sp",bold=True,
+                                 background_normal="",background_color=CYAN,color=(0.01,0.06,0.12,1),
+                                 size_hint_y=None,height=dp(52))
+        self.login_button.bind(on_release=self.login); card.add_widget(self.login_button)
+        self.status=self.label("", "9sp", MUTED, False, "center")
+        self.status.size_hint_y=None; self.status.height=dp(26); card.add_widget(self.status)
+        root.add_widget(card)
 
-        remember_label = Button(
-            text=rtl_text("مرا بخاطر بسپار"),
-            font_name=font_name(),
-            font_script_name="Arab",
-            text_language="fa",
-            font_size="10sp",
-            color=WHITE,
-            background_normal="",
-            background_color=(0, 0, 0, 0),
-            size_hint=(0.24, None),
-            height=dp(32),
-            pos_hint={"center_x": 0.43, "center_y": 0.385},
-        )
-        remember_label.bind(on_release=self._toggle_remember)
-        root.add_widget(remember_label)
-
-        forgot = Button(
-            text=rtl_text("فراموشی رمز"),
-            font_name=font_name(),
-            font_size="10sp",
-            color=GOLD,
-            background_normal="",
-            background_color=(0, 0, 0, 0),
-            size_hint=(0.22, None),
-            height=dp(32),
-            pos_hint={"center_x": 0.69, "center_y": 0.385},
-        )
-        forgot.bind(on_release=self.forgot_password)
-        root.add_widget(forgot)
-
-        # Transparent button over the artwork's cyan login button.
-        self.login_button = Button(
-            text=rtl_text("ورود"),
-            font_name=font_name(),
-            font_size="16sp",
-            bold=True,
-            background_normal="",
-            background_down="",
-            background_color=CYAN,
-            color=(0, 0, 0, 1),
-            size_hint=(0.58, None),
-            height=dp(58),
-            pos_hint={"center_x": 0.50, "center_y": 0.305},
-        )
-        self.login_button.bind(on_release=self.login)
-        root.add_widget(self.login_button)
-
-        self.status = self.label("", "9sp", MUTED, False, "center")
-        self.status.size_hint = (0.72, None)
-        self.status.height = dp(24)
-        self.status.pos_hint = {"center_x": 0.50, "center_y": 0.235}
-        root.add_widget(self.status)
-
+        footer=Label(text=rtl_text(f"{SCHOOL_NAME} • سال تحصیلی ۱۴۰۵–۱۴۰۶"),font_name=font_name(),font_size="8sp",
+                     color=(.60,.78,.92,1),size_hint=(.92,None),height=dp(28),pos_hint={"center_x":.5,"y":.035},halign="center")
+        footer.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(footer)
         self.add_widget(root)
 
     def _remember_changed(self, *_args):
