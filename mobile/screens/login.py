@@ -44,6 +44,8 @@ class LoginScreen(Screen):
         w = Label(
             text=rtl_text(str(value)),
             font_name=font_name(),
+            font_script_name="Arab",
+            text_language="fa",
             font_size=size,
             color=color,
             bold=bold,
@@ -126,7 +128,7 @@ class LoginScreen(Screen):
                 size_hint=(1, 1),
                 pos_hint={"x": 0, "y": 0},
                 allow_stretch=True,
-                keep_ratio=True,
+                keep_ratio=False,
                 opacity=1,
             )
             background.bind(
@@ -146,6 +148,8 @@ class LoginScreen(Screen):
                 password=password,
                 password_mask="*",
                 font_name=font_name(),
+                font_script_name="Arab",
+                text_language="fa",
                 font_size="14sp",
                 multiline=False,
                 size_hint=(0.55, None),
@@ -156,6 +160,7 @@ class LoginScreen(Screen):
                 background_active="",
                 background_color=(0.02, 0.10, 0.24, 0.82),
                 foreground_color=WHITE,
+                password_mask="*",
                 hint_text_color=MUTED,
                 cursor_color=CYAN,
                 selection_color=(0.10, 0.50, 0.90, 0.45),
@@ -182,6 +187,8 @@ class LoginScreen(Screen):
         remember_label = Button(
             text=rtl_text("مرا بخاطر بسپار"),
             font_name=font_name(),
+            font_script_name="Arab",
+            text_language="fa",
             font_size="10sp",
             color=WHITE,
             background_normal="",
