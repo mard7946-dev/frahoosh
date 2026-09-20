@@ -11,6 +11,7 @@ from kivy.uix.widget import Widget
 from kivy.graphics import Color, RoundedRectangle
 from kivy.animation import Animation
 from kivy.clock import Clock
+from kivy.app import App
 from pathlib import Path
 import json
 
@@ -139,6 +140,87 @@ class PanelCard(BoxLayout):
     def _sync(self,*_):
         self.bg.pos=self.pos; self.bg.size=self.size
 
+PANEL_HUBS = [
+    ("مدیریت","management"),
+    ("معاون آموزشی","educational"),
+    ("معاون اجرایی","executive"),
+    ("معاون پرورشی","cultural"),
+    ("مشاوره","advisor"),
+    ("دبیران","teachers"),
+    ("اولیا","parents"),
+    ("دانش‌آموزان","students"),
+    ("مالی","finance"),
+    ("تابلوی هوشمند","smart_board"),
+    ("آزمون آنلاین","teacher_exams"),
+    ("کلاس آنلاین","online"),
+    ("پرداخت آنلاین","payment"),
+    ("هوش مصنوعی","ai"),
+    ("صندوق پیام","messages"),
+]
+
+STUDENT_ALLOWED_PANELS = {key for _, key in PANEL_HUBS if key != "finance"}
+PARENT_ALLOWED_PANELS = {key for _, key in PANEL_HUBS if key not in {"finance","online","teacher_exams"}}
+
+PANEL_MODULE_SOURCE = {
+    "management":"management", "educational":"educational", "executive":"executive",
+    "cultural":"cultural", "advisor":"advisor", "teachers":"teachers",
+    "parents":"parents", "students":"students", "finance":"finance",
+    "smart_board":"smart_board", "online":"online", "ai":"ai", "messages":"messages",
+    "teacher_exams":"teachers", "payment":"finance"
+}
+
+class PanelHubScreen(Screen):
+    def __init__(self, app_state=None, panel_key="students", **kwargs):
+        super().__init__(**kwargs)
+        self.app_state=app_state
+        self.panel_key=panel_key
+        self._build()
+
+    def _build(self):
+        root=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(8))
+        with root.canvas.before:
+            Color(0.02,0.08,0.18,0.96)
+            self.bg=RoundedRectangle(radius=[dp(18)])
+        root.bind(pos=lambda o,v:setattr(self.bg,"pos",v),size=lambda o,v:setattr(self.bg,"size",v))
+        title=dict(PANEL_HUBS).get(self.panel_key,self.panel_key)
+        head=BoxLayout(size_hint_y=None,height=dp(58))
+        head.add_widget(Label(text=rtl_text(title),font_name=font_name(),font_size="21sp",color=WHITE,bold=True))
+        back=Button(text=rtl_text("بازگشت"),font_name=font_name(),size_hint_x=None,width=dp(92),
+                    background_normal="",background_color=PRIMARY,color=WHITE)
+        back.bind(on_release=lambda *_: setattr(self.manager,"current","dashboard") if self.manager else None)
+        head.add_widget(back); root.add_widget(head)
+        self.scroll=ScrollView(do_scroll_x=False)
+        self.grid=GridLayout(cols=2,spacing=dp(8),padding=dp(4),size_hint_y=None)
+        self.grid.bind(minimum_height=self.grid.setter("height"))
+        self.scroll.add_widget(self.grid); root.add_widget(self.scroll)
+        self.add_widget(root)
+
+    def refresh(self):
+        from mobile.screens.module_workspace import SUBMENUS
+        source=PANEL_MODULE_SOURCE.get(self.panel_key,self.panel_key)
+        items=SUBMENUS.get(source,[])
+        self.grid.clear_widgets()
+        for label,route in items:
+            b=Button(text=rtl_text(label),font_name=font_name(),font_size="13sp",
+                     background_normal="",background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(58))
+            b.bind(on_release=lambda *_a,r=route:self._open(r))
+            self.grid.add_widget(b)
+
+    def _open(self,route):
+        app=App.get_running_app()
+        if app is None: return
+        if route=="teacher_exams":
+            screen=app.ensure_exam()
+            if screen: app.sm.current="teacher_exams"
+            return
+        panel=app.ensure_panel()
+        if panel:
+            panel.set_route(route)
+            app.sm.current="panel"
+
+    def on_pre_enter(self,*_):
+        self.refresh()
+
 class DashboardScreen(Screen):
     """Mobile dashboard: animated swipeable panels inside a half-screen frame over the agreed artwork."""
     def __init__(self, app_state=None, **kwargs):
@@ -157,10 +239,12 @@ class DashboardScreen(Screen):
         return ROLE_ALIASES.get(raw,raw)
 
     def items(self):
-        # منبع قطعی پنل‌های موبایل: کاتالوگ استخراج‌شده از پروژه مادر.
-        # این فهرست دیگر از منوی موقت موبایل ساخته نمی‌شود.
-        role = self.role()
-        entry = MOTHER_PANEL_CATALOG.get(role) or MOTHER_PANEL_CATALOG.get("student")
+        role=self.role()
+        if role=="student":
+            return [(title,"panelhub:"+key) for title,key in PANEL_HUBS if key in STUDENT_ALLOWED_PANELS]
+        if role=="parent":
+            return [(title,"panelhub:"+key) for title,key in PANEL_HUBS if key in PARENT_ALLOWED_PANELS]
+        entry=MOTHER_PANEL_CATALOG.get(role) or MOTHER_PANEL_CATALOG.get("student")
         return [tuple(item) for item in (entry.get("items") or [])]
 
 
@@ -275,6 +359,16 @@ class DashboardScreen(Screen):
         if app is None or app.sm is None:
             return
         try:
+            if str(route).startswith("panelhub:"):
+                key=str(route).split(":",1)[1]
+                name="panelhub_"+key
+                try:
+                    screen=app.sm.get_screen(name)
+                except Exception:
+                    screen=PanelHubScreen(name=name,app_state=self.app_state,panel_key=key)
+                    app.sm.add_widget(screen)
+                app.sm.current=name
+                return
             if route=="about":
                 from mobile.screens.about import AboutScreen
                 try: screen=app.sm.get_screen("about")
