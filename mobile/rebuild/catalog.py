@@ -157,3 +157,11 @@ ROLE_MODULES = {
         ("messages","پیام‌ها و اطلاعیه‌ها","school_events"),
     ],
 }
+
+PANEL_ROLES = {
+    "management":"manager","educational":"educational","executive":"executive","cultural":"cultural",
+    "advisor":"advisor","teachers":"teacher","students":"student","parents":"parent",
+    "finance":"manager","payment":"parent","online":"teacher","teacher_exams":"teacher",
+    "smart_board":"teacher","ai":"advisor","reports":"manager","schedule":"manager",
+    "messages":"manager","settings":"manager","about":"manager",
+}
