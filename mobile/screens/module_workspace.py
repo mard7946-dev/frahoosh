@@ -561,63 +561,93 @@ class ModuleWorkspaceScreen(Screen):
     load_module=set_module
 
     def render(self):
+        # Use only stock Kivy layouts here.  This screen is the shared entry
+        # point for every panel, so a custom container must never be able to
+        # prevent the whole panel from opening on Android.
         self.body.clear_widgets()
         self.subbar.clear_widgets()
-        items=SUBMENUS.get(self.route) or [(FRIENDLY.get(self.route,self.route), self.route)]
+        items = SUBMENUS.get(self.route) or [(FRIENDLY.get(self.route, self.route), self.route)]
         self.body.size_hint_y = 1 if self.table else .60
-        self.title.text=rtl_text(dict(items).get(items[0][1],items[0][0]) if items else self.route)
+        current_title = dict(items).get(items[0][1], items[0][0]) if items else self.route
+        self.title.text = rtl_text(current_title)
 
-        for text,table in items:
-            b=self.btn(text,lambda *_a,t=table:self.open_table(t),
-                       PRIMARY if table==self.table else (0.06,0.25,0.42,0.94),
-                       dp(39),dp(max(92, len(text)*9+42)))
+        for text, table in items:
+            b = self.btn(
+                text,
+                lambda *_a, t=table: self.open_table(t),
+                PRIMARY if table == self.table else (0.06, 0.25, 0.42, 0.94),
+                dp(39),
+                dp(max(92, len(text) * 9 + 42)),
+            )
             self.subbar.add_widget(b)
 
         if self.table:
-            self.open_table(self.table,refresh_subbar=False)
+            self.open_table(self.table, refresh_subbar=False)
             return
 
-        # Half-screen translucent operational card. Modules are fixed two-column
-        # cards; only their entrance is animated so the background stays visible.
-        panel=Surface(size_hint_y=1,padding=dp(9),spacing=dp(6))
+        panel = BoxLayout(
+            orientation="vertical",
+            size_hint_y=1,
+            padding=dp(9),
+            spacing=dp(6),
+        )
         with panel.canvas.before:
-            Color(0.02,0.08,0.18,0.72)
-            panel._panel_bg=RoundedRectangle(radius=[dp(18)])
-        panel.bind(pos=lambda o,v:setattr(panel._panel_bg,"pos",v),
-                   size=lambda o,v:setattr(panel._panel_bg,"size",v))
+            Color(0.02, 0.08, 0.18, 0.72)
+            panel._panel_bg = RoundedRectangle(radius=[dp(18)])
+        panel.bind(
+            pos=lambda o, v: setattr(panel._panel_bg, "pos", v),
+            size=lambda o, v: setattr(panel._panel_bg, "size", v),
+        )
 
-        head=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(4))
-        head.add_widget(self.label(
-            dict(items).get(items[0][1],items[0][0]) if items else "پنل",
-            "18sp",WHITE,True,"center"))
+        head = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(4))
+        head.add_widget(self.label(current_title, "18sp", WHITE, True, "center"))
         panel.add_widget(head)
 
-        scroll=ScrollView(do_scroll_x=False,do_scroll_y=True)
-        grid=GridLayout(cols=2,spacing=dp(7),padding=[dp(2),dp(2)],size_hint_y=None)
+        scroll = ScrollView(do_scroll_x=False, do_scroll_y=True)
+        grid = GridLayout(cols=2, spacing=dp(7), padding=[dp(2), dp(2)], size_hint_y=None)
         grid.bind(minimum_height=grid.setter("height"))
 
-        for i,(text,table) in enumerate(items,1):
-            c=Surface(height=dp(116),size_hint_y=None,padding=dp(7),spacing=dp(3))
-            c.opacity=0
-            title_box=BoxLayout(size_hint_y=None,height=dp(34),spacing=dp(5))
+        for i, (text, table) in enumerate(items, 1):
+            card = BoxLayout(
+                orientation="vertical",
+                size_hint_y=None,
+                height=dp(116),
+                padding=dp(7),
+                spacing=dp(3),
+            )
+            with card.canvas.before:
+                Color(0.02, 0.10, 0.20, 0.90)
+                card._bg = RoundedRectangle(radius=[dp(16)])
+            card.bind(
+                pos=lambda o, v, bg=card._bg: setattr(bg, "pos", v),
+                size=lambda o, v, bg=card._bg: setattr(bg, "size", v),
+            )
+            card.opacity = 0
+
+            title_box = BoxLayout(size_hint_y=None, height=dp(34), spacing=dp(5))
             title_box.add_widget(ModuleIcon(table))
-            title_box.add_widget(self.label(text,"10sp",WHITE,True,"center"))
-            c.add_widget(title_box)
-            purpose = MODULE_PURPOSES.get(table, FRIENDLY.get(table,table))
-            c.add_widget(self.label(purpose,"7sp",(0.78,0.90,1,1),False,"center"))
-            c.add_widget(self.btn("ورود به بخش",lambda *_a,t=table:self.open_table(t),
-                                  SUCCESS if self.can_write(table) else PRIMARY,dp(32)))
-            grid.add_widget(c)
+            title_box.add_widget(self.label(text, "10sp", WHITE, True, "center"))
+            card.add_widget(title_box)
+            purpose = MODULE_PURPOSES.get(table, FRIENDLY.get(table, table))
+            card.add_widget(self.label(purpose, "7sp", (0.78, 0.90, 1, 1), False, "center"))
+            card.add_widget(
+                self.btn(
+                    "ورود به بخش",
+                    lambda *_a, t=table: self.open_table(t),
+                    SUCCESS if self.can_write(table) else PRIMARY,
+                    dp(32),
+                )
+            )
+            grid.add_widget(card)
             Clock.schedule_once(
-                lambda _dt, card=c, delay=i*0.025: (
-                    Animation(opacity=1,d=.18,t="out_quad").start(card)
-                ), i*0.025
+                lambda _dt, widget=card: Animation(opacity=1, d=.18, t="out_quad").start(widget),
+                i * .025,
             )
 
         scroll.add_widget(grid)
         panel.add_widget(scroll)
         self.body.add_widget(panel)
-        self.status.text=rtl_text(f"{len(items)} ماژول واقعی • دو ستون • اطلاعات متصل به سامانه")
+        self.status.text = rtl_text(f"{len(items)} ماژول واقعی • دو ستون • اطلاعات متصل به سامانه")
 
     def _badge(self,w):
         with w.canvas.before:
