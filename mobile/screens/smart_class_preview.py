@@ -39,7 +39,7 @@ class SmartClassPreviewScreen(Screen):
         self.return_to = "dashboard"
 
     def label(self, text, size="10sp", color=SECONDARY, height=34, bold=False, center=False):
-        w = Label(text=rtl_text(str(text)), font_name=font_name(), font_size=size,
+        w = Label(text=rtl_text(str(text)), font_name=font_name(), font_script_name="Arab", text_language="fa", font_size=size,
                   color=color, bold=bold,
                   halign="center" if center else "right", valign="middle",
                   size_hint_y=None, height=dp(height), padding=[dp(4), dp(2)])
