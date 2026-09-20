@@ -216,7 +216,7 @@ class RebuildTable(Screen):
         rr.pos=card.pos; rr.size=card.size
 
     def _open_form(self,row):
-        form=CrudForm(app_state=self.app_state,table=self.table,title=self.title,role=self.role,row=row,fields=self.fields or TABLES.get(self.table,[]),on_done=self._reload)
+        form=CrudForm(name="crud_"+str(self.table),app_state=self.app_state,table=self.table,title=self.title,role=self.role,row=row,fields=self.fields or TABLES.get(self.table,[]),on_done=self._reload)
         self.app_state._app.open_overlay(form)
 
     def _reload(self):
