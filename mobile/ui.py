@@ -6,6 +6,7 @@ from kivy.uix.widget import Widget
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
+from kivy.resources import resource_find, resource_add_path
 
 from mobile.config import (
     FONT_REGULAR,
@@ -27,6 +28,12 @@ def register_fonts():
 
     regular = Path(FONT_REGULAR)
     bold = Path(FONT_BOLD)
+    if not regular.is_file():
+        packaged = Path(__file__).resolve().parent / "assets" / "BTitrBd.ttf"
+        if packaged.is_file():
+            regular = packaged
+    if not bold.is_file():
+        bold = regular
 
     if not regular.is_file():
 
@@ -51,7 +58,7 @@ def register_fonts():
 
         _FONT_REGISTERED = True
 
-        return "Frahoosh"
+        return "FrahooshBTitr"
 
 
     except Exception as exc:
@@ -70,6 +77,23 @@ def font_name():
     # Kivy package does not contain the required Persian glyphs.
     registered = register_fonts()
     return registered or "Roboto"
+
+
+def bundled_login_background():
+    """Resolve the exact bundled portrait Frahoosh artwork on Android."""
+    asset_dir = Path(__file__).resolve().parent / "assets"
+    try:
+        for candidate in (asset_dir / "frahoosh_login_mobile.jpg",):
+            if candidate.is_file():
+                return str(candidate)
+        resource_add_path(str(asset_dir))
+        for name in ("frahoosh_login_mobile.jpg", "mobile/assets/frahoosh_login_mobile.jpg", "assets/frahoosh_login_mobile.jpg"):
+            found = resource_find(name)
+            if found:
+                return found
+    except Exception as exc:
+        print("LOGIN ART RESOURCE ERROR:", repr(exc))
+    return None
 
 
 
