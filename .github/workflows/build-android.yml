@@ -6,10 +6,6 @@ on:
     branches:
       - main
 
-concurrency:
-  group: frahoosh-android-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build:
     name: Build Frahoosh APK
