@@ -157,7 +157,7 @@ class DashboardScreen(Screen):
     def _build(self):
         root=FloatLayout()
         background_source = bundled_login_background()
-        bg=Image(source=background_source or "",size_hint=(1,1),allow_stretch=True,keep_ratio=False,fit_mode="fill",nocache=True)
+        bg=Image(source=background_source or "",size_hint=(1,1),allow_stretch=True,keep_ratio=True,fit_mode="contain",nocache=True)
         root.add_widget(bg)
         if background_source:
             Clock.schedule_once(lambda *_: bg.reload(), 0.20)
