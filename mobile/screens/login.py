@@ -126,7 +126,7 @@ class LoginScreen(Screen):
                 size_hint=(1, 1),
                 pos_hint={"x": 0, "y": 0},
                 allow_stretch=True,
-                keep_ratio=False,
+                keep_ratio=True,
                 opacity=1,
             )
             background.bind(
@@ -136,27 +136,8 @@ class LoginScreen(Screen):
         else:
             print("LOGIN BACKGROUND NOT FOUND:", background_candidates)
 
-        # Keep the school name in code as requested.  It is positioned over
-        # the same title area in the artwork, using the configured school name.
-        school_overlay = self.label(
-            SCHOOL_NAME,
-            "13sp",
-            WHITE,
-            True,
-            "center",
-        )
-        school_overlay.size_hint = (0.70, None)
-        school_overlay.height = dp(34)
-        school_overlay.pos_hint = {"center_x": 0.50, "top": 0.635}
-        root.add_widget(school_overlay)
-        self.school_overlay = school_overlay
-
-        title_overlay = self.label(APP_NAME, "20sp", WHITE, True, "center")
-        title_overlay.size_hint = (0.85, None)
-        title_overlay.height = dp(42)
-        title_overlay.pos_hint = {"center_x": 0.50, "top": 0.92}
-        root.add_widget(title_overlay)
-
+        # The agreed artwork already contains the Frahoosh logo, school name,
+        # card and button. Do not paint duplicate title layers over it.
         # Transparent input overlays: the artwork supplies the field frames,
         # icons and visual styling; these widgets provide the real interaction.
         def overlay_field(hint, password=False, y=0.50):
