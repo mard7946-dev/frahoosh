@@ -14,7 +14,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.behaviors import ButtonBehavior
 
 from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, WHITE
-from mobile.ui import font_name, rtl_text, PersianTextInput
+from mobile.ui import font_name, rtl_text, PersianTextInput, PersianSpinner
 
 class SelectableRow(ButtonBehavior, BoxLayout):
     """Touch-friendly table row: selecting it enables the module-level Edit/Delete buttons."""
@@ -768,7 +768,7 @@ class ModuleWorkspaceScreen(Screen):
             if f in spinner_values:
                 values = tuple(rtl_text(v) for v in spinner_values[f])
                 selected = rtl_text(existing) if existing and existing in spinner_values[f] else values[0]
-                ti = Spinner(
+                ti = PersianSpinner(
                     text=selected,
                     values=values,
                     font_name=font_name(),
@@ -845,7 +845,7 @@ class ModuleWorkspaceScreen(Screen):
     def save(self,table,row,inputs,p):
         payload={}
         for k, widget in inputs.items():
-            raw = str(widget.text or "").strip()
+            raw = (widget.get_logical_text() if hasattr(widget, "get_logical_text") else str(widget.text or "")).strip()
             if raw:
                 payload[k] = self._payload_value(k, raw)
         if not payload:
