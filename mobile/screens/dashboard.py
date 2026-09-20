@@ -265,8 +265,20 @@ class DashboardScreen(Screen):
             app.sm.current="panel"
         except Exception as exc:
             print("DASHBOARD ROUTE ERROR:",repr(exc))
-            self.status.text=rtl_text("ورود به پنل انجام نشد؛ گزارش فنی ثبت شد.")
-            self.status.color=(1,.35,.35,1)
+            try:
+                self.role_text.text=rtl_text("خطا در باز کردن پنل؛ دوباره تلاش کنید.")
+                self.role_text.color=(1,.35,.35,1)
+                Clock.schedule_once(lambda _dt:self._restore_role_status(),2.5)
+            except Exception:
+                pass
+
+    def _restore_role_status(self,*_):
+        try:
+            role=self.role()
+            self.role_text.text=rtl_text(f"پنل {ROLE_TITLES.get(role,'کاربر')} • دسترسی فعال")
+            self.role_text.color=(0.88,0.96,1,1)
+        except Exception:
+            pass
 
     def on_pre_enter(self,*_):
         if self.app_state is None or not getattr(self.app_state,"logged_in",False):
