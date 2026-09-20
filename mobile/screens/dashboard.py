@@ -143,16 +143,28 @@ class DashboardScreen(Screen):
         return ROLE_ALIASES.get(raw,raw)
 
     def items(self):
+        # پنل‌های اصلی موبایل دقیقاً از ساختار پروژه مادر Noura گرفته شده‌اند:
+        # مدیریت مدرسه، کادر اجرایی، مشاوره، دبیران، دانش‌آموزان و اولیا.
+        # محتوای داخل هر پنل از ماژول‌های واقعی Supabase/shared catalog تغذیه می‌شود.
         r=self.role()
-        if r=="manager":
-            return [("دانش‌آموزان","students"),("معاون آموزشی","educational"),
-                    ("دبیران","teachers"),("معاون اجرایی","executive"),
-                    ("کلاس‌های آنلاین","online"),("معاون پرورشی","cultural"),
-                    ("اطلاعیه‌ها","messages"),("مشاوره","advisor"),
-                    ("گزارش‌ها","reports"),("مالی","finance"),
-                    ("تنظیمات","settings"),("برنامه هفتگی","schedule"),
-                    ("هوش مصنوعی","ai")]
-        return ROLE_MENU.get(r,[("صندوق پیام‌ها","messages"),("درباره برنامه","about")])
+        mother_panels = [
+            ("مدیریت مدرسه", "management"),
+            ("کادر اجرایی", "executive"),
+            ("مشاوره", "advisor"),
+            ("دبیران", "teachers"),
+            ("دانش‌آموزان", "students"),
+            ("اولیا", "parents"),
+        ]
+        if r == "manager":
+            return mother_panels
+        role_panel = {
+            "executive": ("کادر اجرایی", "executive"),
+            "advisor": ("مشاوره", "advisor"),
+            "teacher": ("دبیران", "teachers"),
+            "student": ("دانش‌آموزان", "students"),
+            "parent": ("اولیا", "parents"),
+        }.get(r)
+        return [role_panel] if role_panel else mother_panels
 
     def _build(self):
         root=FloatLayout()
@@ -201,14 +213,12 @@ class DashboardScreen(Screen):
 
     def desc(self,route):
         return {
-            "management":"مدیریت واقعی کاربران، دانش‌آموزان، دبیران، کلاس‌ها، پیام‌ها و اطلاعات مدرسه.",
-            "educational":"حضور و غیاب، انضباط، نمرات، کلاس و آزمون و پیگیری آموزشی.",
-            "executive":"پرونده دانش‌آموزان، کارکنان، برنامه‌ها، گواهی‌ها و امور اجرایی.",
-            "cultural":"فعالیت‌های پرورشی، مسابقات، مراسم، شورا و مشارکت دانش‌آموزان.",
-            "advisor":"پرونده مشاوره، جلسات، پیگیری و هدایت تحصیلی هوشمند.",
-            "teachers":"کلاس‌های دبیر، طرح درس، حضور، نمره، تکلیف، آزمون و کلاس آنلاین.",
-            "students":"اطلاعات شخصی، نمرات، حضور، تکالیف، برنامه و کلاس آنلاین.",
-            "parents":"فرزندان، کارنامه، حضور، ملاقات، پرداخت و پیام‌های مدرسه.",
+            "management":"اطلاعات مدرسه، دانش‌آموزان، دبیران، کارکنان، کلاس‌ها، پیام‌ها، گزارش‌ها و تنظیمات مدیریت.",
+            "executive":"پرونده دانش‌آموزی، کارکنان، کلاس‌ها، گواهی‌ها، کارنامه‌ها، ملاقات‌ها و امور اجرایی.",
+            "advisor":"پرونده‌های مشاوره، پیگیری جلسات، ارتباط با والدین، گزارش‌ها و هدایت تحصیلی هوشمند.",
+            "teachers":"کلاس‌های من، طرح درس، برنامه هفتگی، حضور و غیاب، نمرات، تکالیف، آزمون و کلاس آنلاین.",
+            "students":"اطلاعات شخصی، پایه و کلاس، نمرات، حضور و غیاب، تکالیف، برنامه و کلاس‌های آنلاین.",
+            "parents":"فرزندان، نمرات، حضور و غیاب، کارنامه‌ها، ملاقات‌ها، آموزش خانواده و پیام‌های مدرسه.",
             "finance":"حساب‌ها، تراکنش‌ها، کمک‌ها و سوابق پرداخت.",
             "payment":"گزینه‌های پرداخت، درخواست و سوابق تراکنش.",
             "online":"کلاس‌های آنلاین، جلسات، دانش‌آموزان، دبیران و حضور سه‌مرحله‌ای.",
@@ -232,7 +242,7 @@ class DashboardScreen(Screen):
         total=len(items)
         for i,(title,route) in enumerate(items,1):
             card=PanelCard(title,i,total,self.desc(route),lambda *_a,r=route:self.open_route(r),
-                           route=route,size_hint_y=None,height=dp(122))
+                           route=route,size_hint_y=None,height=dp(154))
             self.grid.add_widget(card)
             Clock.schedule_once(lambda _dt,card=card:Animation(opacity=1,d=.22,t="out_quad").start(card),i*.035)
         return True
