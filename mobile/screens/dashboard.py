@@ -176,6 +176,9 @@ class PanelHubScreen(Screen):
         self.app_state=app_state
         self.panel_key=panel_key
         self._build()
+        # Render the mother modules immediately as well as on every entry.
+        # This avoids relying on ScreenManager lifecycle timing on Android.
+        Clock.schedule_once(lambda *_: self.refresh(), 0)
 
     def _build(self):
         root=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(8))
@@ -197,10 +200,37 @@ class PanelHubScreen(Screen):
         self.add_widget(root)
 
     def refresh(self):
-        from mobile.screens.module_workspace import SUBMENUS
-        source=PANEL_MODULE_SOURCE.get(self.panel_key,self.panel_key)
-        items=SUBMENUS.get(source,[])
+        # The uploaded v16.12 mother ZIP is the single source of truth for
+        # panel/module membership.  Do not derive this screen from the backend
+        # catalog or from a secondary navigation map.
+        catalog_key = {
+            "management": "manager",
+            "executive": "executive",
+            "educational": "educational",
+            "cultural": "cultural",
+            "advisor": "advisor",
+            "teachers": "teacher",
+            "students": "student",
+            "parents": "parent",
+            "finance": "finance",
+            "smart_board": "smart_board",
+            "ai": "ai",
+        }.get(self.panel_key, self.panel_key)
+        catalog = MOTHER_PANEL_CATALOG.get(catalog_key) or {}
+        items = catalog.get("items") or []
         self.grid.clear_widgets()
+        if not items:
+            # Keep a visible diagnostic instead of silently rendering an empty
+            # panel when a panel key is ever mistyped.
+            b=Button(
+                text=rtl_text("ماژول‌های این پنل در قرارداد مادر پیدا نشد"),
+                font_name=font_name(), font_size="13sp",
+                background_normal="", background_color=(0.65,0.12,0.12,1),
+                color=WHITE, size_hint_y=None, height=dp(58),
+            )
+            self.grid.add_widget(b)
+            print("MOTHER PANEL EMPTY:", self.panel_key, catalog_key)
+            return
         for label,route in items:
             b=Button(text=rtl_text(label),font_name=font_name(),font_size="13sp",
                      background_normal="",background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(58))
