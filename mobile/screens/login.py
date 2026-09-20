@@ -128,7 +128,7 @@ class LoginScreen(Screen):
         welcome=Label(text=rtl_text("ورود به حساب کاربری"),font_name=font_name(),font_size="18sp",
                       color=WHITE,bold=True,size_hint_y=None,height=dp(38),halign="center")
         welcome.bind(size=lambda o,v:setattr(o,"text_size",v)); card.add_widget(welcome)
-        self.identifier=self._field(LOGIN_USERNAME_HINT or "نام کاربری / کد ملی",False)
+        self.identifier=self._field(LOGIN_USERNAME_HINT or "نام کاربری / کد ملی / ایمیل",False)
         self.password=self._field(LOGIN_PASSWORD_HINT or "رمز عبور",True)
         card.add_widget(self.identifier); card.add_widget(self.password)
 
@@ -180,7 +180,11 @@ class LoginScreen(Screen):
         if "email not confirmed" in lower:
             return "حساب کاربری هنوز تأیید نشده است."
         if "user not found" in lower:
-            return "کاربری با این نام کاربری پیدا نشد."
+            return "کاربری با این مشخصات پیدا نشد."
+        if "pgrst202" in lower or "could not find the function" in lower:
+            return "سرویس ورود با کد ملی روی سرور فعال نشده است."
+        if "permission denied" in lower or "not allowed" in lower:
+            return "دسترسی سرویس ورود از سرور مجاز نیست."
         if "too many requests" in lower:
             return "تعداد تلاش‌ها زیاد است؛ کمی بعد دوباره تلاش کنید."
         if "timed out" in lower or "timeout" in lower:
