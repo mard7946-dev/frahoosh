@@ -73,6 +73,8 @@ TABLES = {
     "online_classes": ["id","title","subject","lesson","teacher","grade","class_name","duration","start_time_shamsi","end_time_shamsi","status","join_url","meeting_url"],
     "online_attendance": ["id","student_id","class_id","check_number","status","checked_at","leave_time"],
     "quiz_questions": ["id","quiz_id","question_type","question","options_json","correct_answer","accepted_answers","points"],
+    "school_profile": ["id","school_name","school_code","principal_name","academic_year","phone","address"],
+    "payment_offers": ["id","title","amount","payment_reason","target_type","target_value","active"],
 }
 
 ROLE_MODULES = {
