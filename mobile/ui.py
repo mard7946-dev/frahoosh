@@ -66,11 +66,9 @@ def register_fonts():
 
 
 def font_name():
-
-    if register_fonts():
-
-        return "Frahoosh"
-
+    # Android Kivy builds were showing missing-glyph boxes with the bundled
+    # Noto face on the real device. Use Roboto as the runtime font; rtl_text()
+    # performs Persian shaping before labels are drawn.
     return "Roboto"
 
 
