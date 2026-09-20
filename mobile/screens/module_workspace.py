@@ -1,6 +1,7 @@
 from threading import Thread
 
 from kivy.clock import Clock
+from kivy.animation import Animation
 from kivy.graphics import Color, RoundedRectangle
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
@@ -12,6 +13,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.behaviors import ButtonBehavior
+from kivy.resources import resource_find
 
 from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text, PersianTextInput, PersianSpinner
@@ -395,27 +397,43 @@ class ModuleWorkspaceScreen(Screen):
         self.app_state=app_state; self.route="management"; self.return_to="dashboard"; self.table=None; self.rows=[]; self._build()
 
     def label(self,text,size="11sp",color=SECONDARY,bold=False,center=False):
-        w=Label(text=rtl_text(str(text)),font_name=font_name(),font_size=size,color=color,bold=bold,halign="center" if center else "right",valign="middle")
+        w=Label(text=rtl_text(str(text)),font_name=font_name(),font_script_name="Arab",text_language="fa",font_size=size,color=color,bold=bold,halign="center" if center else "right",valign="middle")
         w.bind(size=lambda o,v:setattr(o,"text_size",v)); return w
 
     def btn(self,text,cb,color=PRIMARY,h=dp(40),width=None):
-        b=Button(text=rtl_text(text),font_name=font_name(),font_size="10sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=h)
+        b=Button(text=rtl_text(text),font_name=font_name(),font_script_name="Arab",text_language="fa",font_size="10sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=h)
         if width is not None: b.size_hint_x=None; b.width=width
         b.bind(on_release=cb); return b
 
     def _build(self):
         root=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(6))
+        # Keep the agreed portrait artwork behind the operational panel.
+        with root.canvas.before:
+            Color(0.01,0.03,0.09,0.18)
+            root._shade=RoundedRectangle(radius=[0])
+            root._background=Rectangle()
+        bg_source = resource_find("mobile/assets/frahoosh_login_mobile.jpg") or resource_find("assets/frahoosh_login_mobile.jpg")
+        if bg_source:
+            root._background.source = bg_source
+        def sync_bg(*_):
+            root._shade.pos=root.pos; root._shade.size=root.size
+            root._background.pos=root.pos; root._background.size=root.size
+        root.bind(pos=sync_bg,size=sync_bg)
         top=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(5))
         top.add_widget(self.btn("بازگشت",self.go_back,PRIMARY,dp(40),dp(78)))
-        self.title=self.label(APP_NAME,"18sp",PRIMARY,True,"center"); top.add_widget(self.title)
+        self.title=self.label(APP_NAME,"18sp",WHITE,True,"center"); top.add_widget(self.title)
         top.add_widget(self.btn("داشبورد",self.go_dashboard,PRIMARY,dp(40),dp(45)))
         root.add_widget(top)
-        root.add_widget(self.label(f"{SCHOOL_NAME}  •  سال تحصیلی {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}","9sp",SECONDARY,False,"center"))
-        self.status=self.label("اتصال فعال • اطلاعات واقعی سامانه","9sp",SUCCESS,True,"center"); root.add_widget(self.status)
-        self.subscroll=ScrollView(do_scroll_x=True,do_scroll_y=False,size_hint_y=None,height=dp(49))
+        root.add_widget(self.label(f"{SCHOOL_NAME}  •  سال تحصیلی {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}","9sp",WHITE,False,"center"))
+        self.status=self.label("اتصال فعال • اطلاعات واقعی سامانه","9sp",WHITE,True,"center"); root.add_widget(self.status)
+        self.subscroll=ScrollView(do_scroll_x=True,do_scroll_y=False,size_hint_y=None,height=dp(45))
         self.subbar=BoxLayout(orientation="horizontal",spacing=dp(5),size_hint_x=None)
         self.subbar.bind(minimum_width=self.subbar.setter("width")); self.subscroll.add_widget(self.subbar); root.add_widget(self.subscroll)
-        self.body=BoxLayout(orientation="vertical",spacing=dp(6)); root.add_widget(self.body); self.add_widget(root)
+        # This is deliberately about half the usable screen: the artwork remains visible.
+        self.body=BoxLayout(orientation="vertical",spacing=dp(6),size_hint_y=.60)
+        root.add_widget(self.body)
+        root.add_widget(Widget())
+        self.add_widget(root)
 
     def role(self):
         raw=str(getattr(self.app_state,"role","student") or "student").strip().lower()
@@ -433,36 +451,61 @@ class ModuleWorkspaceScreen(Screen):
     load_module=set_module
 
     def render(self):
-        self.body.clear_widgets(); self.subbar.clear_widgets(); items=SUBMENUS[self.route]
+        self.body.clear_widgets()
+        self.subbar.clear_widgets()
+        items=SUBMENUS[self.route]
+        self.body.size_hint_y = 1 if self.table else .60
         self.title.text=rtl_text(dict(items).get(items[0][1],items[0][0]) if items else self.route)
+
         for text,table in items:
-            b=self.btn(text,lambda *_a,t=table:self.open_table(t),PRIMARY if table==self.table else (0.10,0.32,0.50,1),dp(39),dp(max(92, len(text)*9+42)))
+            b=self.btn(text,lambda *_a,t=table:self.open_table(t),
+                       PRIMARY if table==self.table else (0.06,0.25,0.42,0.94),
+                       dp(39),dp(max(92, len(text)*9+42)))
             self.subbar.add_widget(b)
+
         if self.table:
-            self.open_table(self.table,refresh_subbar=False); return
-        hero=Surface(height=dp(112))
-        hero.add_widget(self.label(dict(items).get(items[0][1],items[0][0]) if items else "پنل","21sp",PRIMARY,True,"center"))
-        hero.add_widget(self.label("محیط عملیاتی یکپارچه • همه زیرپنل‌ها از همین داده‌های واقعی سامانه استفاده می‌کنند","10sp",SECONDARY,False,"center"))
-        hero.add_widget(self.label(f"{len(items)} زیرپنل فعال برای این نقش","9sp",SUCCESS,True,"center")); self.body.add_widget(hero)
-        stats=BoxLayout(size_hint_y=None,height=dp(76),spacing=dp(6))
-        for caption,value in [("زیرپنل‌ها",str(len(items))), ("قابل ویرایش",str(sum(1 for _,t in items if self.can_write(t)))), ("منبع داده","Supabase")]:
-            c=Surface(height=dp(70)); c.add_widget(self.label(value,"19sp",PRIMARY,True,"center")); c.add_widget(self.label(caption,"9sp",SECONDARY,False,"center")); stats.add_widget(c)
-        self.body.add_widget(stats)
-        scroll=ScrollView(do_scroll_x=False); grid=GridLayout(cols=2,spacing=dp(8),padding=[dp(2),dp(2)],size_hint_y=None); grid.bind(minimum_height=grid.setter('height'))
+            self.open_table(self.table,refresh_subbar=False)
+            return
+
+        # Half-screen translucent operational card. Modules are fixed two-column
+        # cards; only their entrance is animated so the background stays visible.
+        panel=Surface(size_hint_y=1,padding=dp(9),spacing=dp(6))
+        with panel.canvas.before:
+            Color(0.02,0.08,0.18,0.72)
+            panel._panel_bg=RoundedRectangle(radius=[dp(18)])
+        panel.bind(pos=lambda o,v:setattr(panel._panel_bg,"pos",v),
+                   size=lambda o,v:setattr(panel._panel_bg,"size",v))
+
+        head=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(4))
+        head.add_widget(self.label(
+            dict(items).get(items[0][1],items[0][0]) if items else "پنل",
+            "18sp",WHITE,True,"center"))
+        panel.add_widget(head)
+
+        scroll=ScrollView(do_scroll_x=False,do_scroll_y=True)
+        grid=GridLayout(cols=2,spacing=dp(7),padding=[dp(2),dp(2)],size_hint_y=None)
+        grid.bind(minimum_height=grid.setter("height"))
+
         for i,(text,table) in enumerate(items,1):
-            c=Surface(height=dp(128),size_hint_y=None,padding=dp(10))
-            row=BoxLayout(size_hint_y=None,height=dp(54),spacing=dp(6))
-            badge=BoxLayout(size_hint_x=None,width=dp(42)); badge.add_widget(self.label(f"{i:02d}","11sp",WHITE,True,"center")); self._badge(badge)
-            row.add_widget(badge)
-            title_box=BoxLayout(orientation="vertical",spacing=dp(2))
-            title_box.add_widget(self.label(text,"13sp",PRIMARY,True,"right"))
-            title_box.add_widget(self.label(FRIENDLY.get(table,table),"8sp",SECONDARY,False,"right"))
-            row.add_widget(title_box)
-            c.add_widget(row)
-            c.add_widget(self.label(("ثبت / ویرایش / حذف" if self.can_write(table) else "مشاهده اطلاعات بر اساس سطح دسترسی"),"8sp",SECONDARY,False,"right"))
-            c.add_widget(self.btn("ورود به محیط این بخش",lambda *_a,t=table:self.open_table(t),SUCCESS if self.can_write(table) else PRIMARY,dp(38)))
+            c=Surface(height=dp(92),size_hint_y=None,padding=dp(7),spacing=dp(3))
+            c.opacity=0
+            title_box=BoxLayout(size_hint_y=None,height=dp(34))
+            title_box.add_widget(self.label(text,"11sp",WHITE,True,"center"))
+            c.add_widget(title_box)
+            c.add_widget(self.label(FRIENDLY.get(table,table),"7sp",(0.78,0.86,0.95,1),False,"center"))
+            c.add_widget(self.btn("ورود",lambda *_a,t=table:self.open_table(t),
+                                  SUCCESS if self.can_write(table) else PRIMARY,dp(32)))
             grid.add_widget(c)
-        scroll.add_widget(grid); self.body.add_widget(scroll)
+            Clock.schedule_once(
+                lambda _dt, card=c, delay=i*0.025: (
+                    Animation(opacity=1,d=.18,t="out_quad").start(card)
+                ), i*0.025
+            )
+
+        scroll.add_widget(grid)
+        panel.add_widget(scroll)
+        self.body.add_widget(panel)
+        self.status.text=rtl_text(f"{len(items)} ماژول واقعی • دو ستون • اطلاعات متصل به سامانه")
 
     def _badge(self,w):
         with w.canvas.before:
