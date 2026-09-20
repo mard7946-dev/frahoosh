@@ -474,7 +474,10 @@ class ModuleIcon(Widget):
 
 class Surface(BoxLayout):
     def __init__(self, **kwargs):
-        super().__init__(orientation="vertical", padding=dp(11), spacing=dp(6), size_hint_y=None, **kwargs)
+        # Callers may explicitly provide size_hint_y. Do not pass the same
+        # keyword twice: that crashes panel rendering before any module appears.
+        kwargs.setdefault("size_hint_y", None)
+        super().__init__(orientation="vertical", padding=dp(11), spacing=dp(6), **kwargs)
         with self.canvas.before:
             Color(*CARD)
             self.bg = RoundedRectangle(radius=[dp(16)])
