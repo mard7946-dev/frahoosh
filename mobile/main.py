@@ -322,7 +322,7 @@ class FrahooshApp(App):
 
     def _refresh_dashboard_safe(self, *_):
         try:
-            dashboard = self.sm.get_screen("dashboard")
+            dashboard = self.sm.get_screen("clean_dashboard")
             dashboard.refresh()
         except Exception as exc:
             print("DASHBOARD REFRESH ERROR:", repr(exc))
@@ -342,7 +342,7 @@ class FrahooshApp(App):
             self._set_screen_capture_policy()
             # Login success always lands on the dashboard. Identity checks and
             # role-specific panels are deliberately handled after this boundary.
-            self.sm.current = "dashboard"
+            self.sm.current = "clean_dashboard"
             Clock.schedule_once(self._refresh_dashboard_safe, 0)
             return True
         except Exception as exc:
