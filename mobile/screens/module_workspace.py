@@ -2,7 +2,7 @@ from threading import Thread
 
 from kivy.clock import Clock
 from kivy.animation import Animation
-from kivy.graphics import Color, RoundedRectangle
+from kivy.graphics import Color, RoundedRectangle, Rectangle
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
