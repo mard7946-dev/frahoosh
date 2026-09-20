@@ -9,9 +9,10 @@ from kivy.uix.carousel import Carousel
 from kivy.uix.widget import Widget
 from kivy.graphics import Color, RoundedRectangle
 from kivy.animation import Animation
+from kivy.clock import Clock
 
 from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, BACKGROUND_PATH, PRIMARY, SECONDARY, SUCCESS, WHITE
-from mobile.ui import font_name, rtl_text
+from mobile.ui import font_name, rtl_text, bundled_login_background
 
 ROLE_ALIASES = {
     "admin":"manager","administrator":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager",
@@ -148,9 +149,14 @@ class DashboardScreen(Screen):
         root=FloatLayout()
 
         # The agreed portrait Frahoosh artwork is a real background, not a generated replacement.
-        bg=Image(source=str(BACKGROUND_PATH),size_hint=(1,1),pos_hint={"x":0,"y":0},
-                 allow_stretch=True,keep_ratio=True,fit_mode="cover",nocache=True,opacity=1)
+        background_source = bundled_login_background()
+        bg=Image(source=background_source or "",size_hint=(1,1),pos_hint={"x":0,"y":0},
+                 allow_stretch=True,keep_ratio=False,fit_mode="fill",nocache=True,opacity=1)
         root.add_widget(bg)
+        if background_source:
+            Clock.schedule_once(lambda *_: bg.reload(), 0.20)
+        else:
+            print("DASHBOARD BACKGROUND NOT FOUND")
 
         overlay=FloatLayout(size_hint=(1,1))
         with overlay.canvas.before:
