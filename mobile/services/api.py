@@ -144,14 +144,35 @@ class SupabaseClient:
             headers=self._headers(False), payload={"p_national_code": national_code},
             timeout=API_TIMEOUT,
         )
-        if not response.ok:
-            raise ApiError(self._error(response, "دسترسی به اطلاعات حساب کاربری از سرور امکان‌پذیر نیست."))
-        data = response.json()
-        if isinstance(data, str):
-            return data.strip() or None
-        if isinstance(data, list) and data and isinstance(data[0], str):
-            return data[0].strip() or None
-        return None
+        if response.ok:
+            data = response.json()
+            if isinstance(data, str):
+                return data.strip() or None
+            if isinstance(data, list) and data and isinstance(data[0], str):
+                return data[0].strip() or None
+            return None
+
+        # Older Supabase projects may not yet have the RPC. If the canonical
+        # account_settings table is readable to anon, use it as a compatibility
+        # path instead of turning a missing function into a login failure.
+        if response.status_code in (400, 404, 406):
+            fallback = _request(
+                "GET", f"{self.url}/rest/v1/account_settings",
+                headers=self._headers(False),
+                params={
+                    "select": "email",
+                    "national_code": f"eq.{national_code}",
+                    "limit": "1",
+                },
+                timeout=API_TIMEOUT,
+            )
+            if fallback.ok:
+                rows = fallback.json() or []
+                if rows and isinstance(rows[0], dict):
+                    email = str(rows[0].get("email") or "").strip()
+                    if email:
+                        return email
+        raise ApiError(self._error(response, "حساب کاربری برای این کد ملی پیدا نشد."))
 
     def send_password_recovery(self, identifier):
         identifier = self._normalize_digits(identifier).strip()
