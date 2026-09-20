@@ -543,14 +543,24 @@ class ModuleWorkspaceScreen(Screen):
         return table in EDITABLE.get(self.role(),set())
 
     def set_module(self,route,return_to="dashboard"):
-        self.route=route if route in SUBMENUS else "management"; self.return_to=return_to or "dashboard"; self.table=None; self.selected_row=None; self.render()
+        # Mother-project panels may expose a real table that is not part of the
+        # compact mobile submenu list. Keep that table as a valid single-module
+        # route instead of silently redirecting it to مدیریت.
+        route = str(route or "").strip()
+        if route not in SUBMENUS and route not in FRIENDLY:
+            route = "management"
+        self.route=route
+        self.return_to=return_to or "dashboard"
+        self.table=None
+        self.selected_row=None
+        self.render()
 
     load_module=set_module
 
     def render(self):
         self.body.clear_widgets()
         self.subbar.clear_widgets()
-        items=SUBMENUS[self.route]
+        items=SUBMENUS.get(self.route) or [(FRIENDLY.get(self.route,self.route), self.route)]
         self.body.size_hint_y = 1 if self.table else .60
         self.title.text=rtl_text(dict(items).get(items[0][1],items[0][0]) if items else self.route)
 
