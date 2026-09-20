@@ -160,7 +160,6 @@ class LoginScreen(Screen):
                 background_active="",
                 background_color=(0.02, 0.10, 0.24, 0.82),
                 foreground_color=WHITE,
-                password_mask="*",
                 hint_text_color=MUTED,
                 cursor_color=CYAN,
                 selection_color=(0.10, 0.50, 0.90, 0.45),
