@@ -42,13 +42,73 @@ ROLE_MENU = {
     "parent":[("پنل اولیا","parents"),("وضعیت تحصیلی فرزند","student_info"),("پرداخت آنلاین","payment"),("کلاس‌های آنلاین","online"),("تابلو هوشمند","smart_board"),("صندوق پیام‌ها","messages"),("درباره برنامه","about")]
 }
 
+class PanelIcon(Widget):
+    """Vector icon: no font glyphs, so it can never become a square."""
+    def __init__(self, route, **kwargs):
+        super().__init__(**kwargs)
+        self.route = route or "about"
+        self.size_hint_y = None
+        self.height = dp(62)
+        from kivy.graphics import Ellipse, Line
+        with self.canvas:
+            Color(0.08, 0.55, 0.85, 1)
+            self.badge = Ellipse()
+            Color(1, 1, 1, 1)
+            self.stroke = Line(width=1.8)
+            self.shape = Line(width=2.2)
+        self.bind(pos=self._sync, size=self._sync)
+        self._sync()
+
+    def _sync(self, *_):
+        cx, cy = self.center
+        r = min(self.width, self.height) * .34
+        self.badge.pos = (cx-r, cy-r)
+        self.badge.size = (2*r, 2*r)
+        self.stroke.circle = (cx, cy, r)
+        self.shape.points = self._points(cx, cy, r*.62)
+
+    def _points(self, cx, cy, s):
+        import math
+        rt = self.route
+        if rt in ("management", "settings"):
+            pts=[]
+            for i in range(8):
+                a=i*math.pi/4
+                pts += [cx+s*math.cos(a), cy+s*math.sin(a),
+                        cx+s*.42*math.cos(a), cy+s*.42*math.sin(a)]
+            return pts
+        if rt in ("educational", "teachers", "students"):
+            return [cx-s,cy-s*.45,cx,cy-s,cx+s,cy-s*.45,cx+s,cy+s*.7,
+                    cx,cy+s,cx-s,cy+s*.7,cx-s,cy-s*.45,cx,cy]
+        if rt in ("executive", "finance", "payment"):
+            return [cx-s,cy-s*.45,cx+s,cy-s*.45,cx+s,cy+s*.7,cx-s,cy+s*.7,
+                    cx-s,cy-s*.45,cx-s*.35,cy-s*.75,cx+s*.35,cy-s*.75]
+        if rt in ("advisor", "parents"):
+            return [cx,cy+s*.45,cx-s*.38,cy+s*.05,cx-s*.62,cy-s*.7,
+                    cx+s*.62,cy-s*.7,cx+s*.38,cy+s*.05,cx,cy+s*.45]
+        if rt in ("cultural", "about"):
+            return [cx,cy+s,cx+s*.25,cy+s*.28,cx+s,cy+s*.18,cx+s*.42,cy-s*.15,
+                    cx+s*.58,cy-s*.8,cx,cy-s*.35,cx-s*.58,cy-s*.8,
+                    cx-s*.42,cy-s*.15,cx-s,cy+s*.18,cx-s*.25,cy+s*.28,cx,cy+s]
+        if rt in ("online", "smart_board"):
+            return [cx-s,cy-s*.7,cx+s,cy-s*.7,cx+s,cy+s*.45,cx-s,cy+s*.45,
+                    cx-s,cy-s*.7,cx-s*.2,cy-s,cx+s*.2,cy-s]
+        if rt in ("teacher_exams", "reports", "schedule"):
+            return [cx-s*.75,cy+s,cx-s*.75,cy-s*.75,cx+s*.75,cy-s*.75,
+                    cx+s*.75,cy+s,cx-s*.75,cy+s]
+        if rt == "messages":
+            return [cx-s,cy+s*.45,cx+s,cy+s*.45,cx+s,cy-s*.45,cx+s*.2,cy-s*.45,
+                    cx-s*.15,cy-s,cx-s*.15,cy-s*.45,cx-s,cy+s*.45]
+        return [cx-s,cy,cx+s,cy,cx,cy-s,cx,cy+s]
+
 class PanelCard(BoxLayout):
-    def __init__(self, title, index, total, desc, enter, **kwargs):
+    def __init__(self, title, index, total, desc, enter, route=None, **kwargs):
         super().__init__(orientation="vertical", padding=dp(14), spacing=dp(7), **kwargs)
         with self.canvas.before:
             Color(0.02, 0.10, 0.20, 0.90)
             self.bg = RoundedRectangle(radius=[dp(18)])
         self.bind(pos=self._sync, size=self._sync)
+        self.add_widget(PanelIcon(route or "about"))
         self.add_widget(Label(text=rtl_text(title),font_name=font_name(),font_size="23sp",color=WHITE,bold=True,
                               halign="center",valign="middle",size_hint_y=None,height=dp(52)))
         self.add_widget(Label(text=rtl_text(f"پنل {index} از {total}"),font_name=font_name(),font_size="10sp",color=(0.55,0.85,1,1),
@@ -88,7 +148,7 @@ class DashboardScreen(Screen):
 
         # The agreed portrait Frahoosh artwork is a real background, not a generated replacement.
         bg=Image(source=str(BACKGROUND_PATH),size_hint=(1,1),pos_hint={"x":0,"y":0},
-                 allow_stretch=True,keep_ratio=True,opacity=1)
+                 allow_stretch=True,keep_ratio=True,fit_mode="cover",nocache=True,opacity=1)
         root.add_widget(bg)
 
         overlay=FloatLayout(size_hint=(1,1))
@@ -163,7 +223,7 @@ class DashboardScreen(Screen):
         total=len(items)
         for i,(title,route) in enumerate(items,1):
             card=PanelCard(title,i,total,self.desc(route),lambda *_a,r=route:self.open_route(r),
-                           size_hint=(1,1))
+                           route=route,size_hint=(1,1))
             self.carousel.add_widget(card)
         self.counter.text=rtl_text(f"پنل 1 از {total}" if total else "پنلی وجود ندارد")
         self.status.text=rtl_text("پنل‌ها با حرکت انگشت جابه‌جا می‌شوند • برای ورود، دکمه داخل پنل را بزنید.")

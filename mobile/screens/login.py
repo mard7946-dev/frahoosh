@@ -118,10 +118,15 @@ class LoginScreen(Screen):
             None,
         )
         if background_source is None:
-            background_source = next(
-                (candidate for candidate in background_candidates if resource_find(candidate)),
-                None,
-            )
+            for candidate in (
+                "mobile/assets/frahoosh_login_mobile.jpg",
+                "assets/frahoosh_login_mobile.jpg",
+                "frahoosh_login_mobile.jpg",
+            ):
+                found = resource_find(candidate)
+                if found:
+                    background_source = found
+                    break
         with root.canvas.before:
             Color(0.015, 0.035, 0.09, 1)
             root._fallback_bg = Rectangle(pos=root.pos, size=root.size)
@@ -140,12 +145,15 @@ class LoginScreen(Screen):
                 pos_hint={"x": 0, "y": 0},
                 allow_stretch=True,
                 keep_ratio=False,
+                fit_mode="fill",
+                nocache=True,
                 opacity=1,
             )
             background.bind(
                 on_texture=lambda *_: print("LOGIN BACKGROUND LOADED:", background_source),
             )
             root.add_widget(background)
+            Clock.schedule_once(lambda *_: background.reload(), 0.25)
         else:
             print("LOGIN BACKGROUND NOT FOUND:", background_candidates)
 
@@ -175,6 +183,7 @@ class LoginScreen(Screen):
                 selection_color=(0.10, 0.50, 0.90, 0.45),
                 pos_hint={"center_x": 0.50, "center_y": y},
             )
+            field.password_mask = "*"
             return field
 
         self.identifier = overlay_field(LOGIN_USERNAME_HINT or "نام کاربری", False, 0.525)

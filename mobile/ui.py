@@ -23,7 +23,7 @@ def register_fonts():
     global _FONT_REGISTERED
 
     if _FONT_REGISTERED:
-        return "Frahoosh"
+        return "FrahooshBTitr"
 
     regular = Path(FONT_REGULAR)
     bold = Path(FONT_BOLD)
@@ -40,7 +40,7 @@ def register_fonts():
     try:
 
         LabelBase.register(
-            name="Frahoosh",
+            name="FrahooshBTitr",
             fn_regular=str(regular),
             # Use the same known-complete Arabic/Persian glyph set for
             # bold labels as regular text. A separate bold face was producing
