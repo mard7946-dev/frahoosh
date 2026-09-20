@@ -180,7 +180,21 @@ class DashboardScreen(Screen):
             needs_identity=role in ("student","دانش‌آموز","parent","parents","ولی","اولیا")
             confirmed=bool((getattr(self.app_state,"session",{}) or {}).get("identity_confirmed"))
             if needs_identity and not confirmed:
-                gate=self.manager.get_screen("special_identity_gate"); gate.pending_route=route; self.manager.current="special_identity_gate"; return
+                # The identity-gate screen is optional in the Android build.
+                # Never let a missing gate turn a normal panel tap into the
+                # generic "internal panel error". If the gate exists, use it;
+                # otherwise continue to the operational panel and let the
+                # panel enforce its own access rules.
+                gate = None
+                try:
+                    if hasattr(app, "ensure_identity_gate"):
+                        gate = app.ensure_identity_gate()
+                except Exception as gate_exc:
+                    print("IDENTITY GATE ERROR:", repr(gate_exc))
+                if gate is not None:
+                    gate.pending_route = route
+                    self.manager.current = "special_identity_gate"
+                    return
             app=App.get_running_app()
             if app is None: raise RuntimeError("برنامه فراهوش آماده نیست.")
             if route=="teacher_exams" and hasattr(app,"ensure_exam"):
@@ -192,8 +206,12 @@ class DashboardScreen(Screen):
             if screen is None: raise RuntimeError("پنل عملیاتی آماده نشد.")
             screen.set_route(route); self.manager.current="panel"
         except Exception as exc:
-            self.status.text=rtl_text("خطای داخلی پنل: "+str(exc)); self.status.color=(0.85,0.15,0.15,1)
-            print("DASHBOARD PANEL OPEN ERROR:",repr(exc))
+            # Do not put raw Python/Kivy exception text into the Persian UI.
+            # It renders as squares on devices using the B Titr font and also
+            # exposes implementation details to the user.
+            self.status.text=rtl_text("پنل باز نشد؛ خطای فنی در گزارش برنامه ثبت شد.")
+            self.status.color=(0.85,0.15,0.15,1)
+            print("DASHBOARD PANEL OPEN ERROR:", repr(exc))
     def logout(self, *_):
         try:
             if self.app_state:
