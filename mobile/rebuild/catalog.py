@@ -165,3 +165,17 @@ PANEL_ROLES = {
     "smart_board":"teacher","ai":"advisor","reports":"manager","schedule":"manager",
     "messages":"manager","settings":"manager","about":"manager",
 }
+
+PANEL_MODULES = {
+    "finance":[("accounts","حساب‌های مالی","payment_records"),("payments","سوابق پرداخت","payment_records"),("reports","گزارش مالی","executive_reports")],
+    "payment":[("payments","پرداخت‌ها","payment_records"),("offers","خدمات و مبالغ","payment_records")],
+    "online":[("classes","کلاس‌های آنلاین","online_classes"),("attendance","کنترل حضور آنلاین","online_attendance"),("reports","گزارش کلاس آنلاین","online_attendance")],
+    "teacher_exams":[("exams","آزمون‌ها","teacher_exams"),("questions","بانک سؤال","quiz_questions"),("shares","اشتراک آزمون","teacher_exams"),("schedule","زمان‌بندی آزمون","exam_schedule")],
+    "smart_board":[("content","محتوای آموزشی","smart_board_content"),("whiteboards","تخته‌ها","smart_board_whiteboards"),("files","فایل‌ها","smart_board_files"),("media","رسانه‌ها","smart_board_media"),("quizzes","آزمونک‌ها","smart_board_quizzes"),("activities","فعالیت‌ها","smart_board_activities")],
+    "ai":[("sessions","جلسات هوش مصنوعی","ai_assistant_sessions"),("questions","پرسش‌های هوشمند","ai_questions"),("analysis","تحلیل آموزشی","ai_educational_analysis"),("reports","گزارش هوشمند","ai_smart_reports"),("guidance","هدایت تحصیلی هوشمند","ai_educational_analysis")],
+    "reports":[("executive","گزارش‌های اجرایی","executive_reports"),("activities","گزارش فعالیت‌ها","cultural_reports"),("analysis","تحلیل آموزشی","ai_educational_analysis")],
+    "schedule":[("weekly","برنامه هفتگی","weekly_schedule"),("exams","برنامه امتحانات","exam_schedule")],
+    "messages":[("announcements","اطلاعیه‌ها","school_events"),("messages","صندوق پیام‌ها","school_events")],
+    "settings":[("profile","تنظیمات حساب","staff"),("school","اطلاعات مدرسه","school_profile")],
+    "about":[("about","درباره فراهوش","school_profile")],
+}
