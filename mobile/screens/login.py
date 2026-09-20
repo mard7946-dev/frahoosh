@@ -103,15 +103,25 @@ class LoginScreen(Screen):
         # Android packaging can relocate the application root. Try the
         # packaged-relative asset first, then the configured path. Keep a dark
         # fallback canvas underneath so the login screen is never blank.
+        # Resolve the exact bundled portrait asset from the package source
+        # tree first. resource_find() can miss a packaged Android asset even
+        # though Buildozer has included it in the APK.
+        package_root = Path(__file__).resolve().parents[1]
         background_candidates = [
+            str(package_root / "assets" / "frahoosh_login_mobile.jpg"),
             "mobile/assets/frahoosh_login_mobile.jpg",
             "assets/frahoosh_login_mobile.jpg",
             str(BACKGROUND_PATH),
         ]
         background_source = next(
-            (candidate for candidate in background_candidates if resource_find(candidate)),
+            (candidate for candidate in background_candidates if Path(candidate).is_file()),
             None,
         )
+        if background_source is None:
+            background_source = next(
+                (candidate for candidate in background_candidates if resource_find(candidate)),
+                None,
+            )
         with root.canvas.before:
             Color(0.015, 0.035, 0.09, 1)
             root._fallback_bg = Rectangle(pos=root.pos, size=root.size)
@@ -123,6 +133,7 @@ class LoginScreen(Screen):
 
         if background_source:
             background_source = resource_find(background_source) or background_source
+            print("LOGIN BACKGROUND SOURCE:", background_source)
             background = Image(
                 source=background_source,
                 size_hint=(1, 1),
