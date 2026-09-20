@@ -239,8 +239,8 @@ jobs:
           assert not missing_fields, f"Canonical module fields missing from migrations: {missing_fields}"
           print("Canonical module-to-database contract validated.")
           PY
-          grep -Fq "version = 1.6.0" buildozer.spec
-          grep -Fq "android.numeric_version = 160" buildozer.spec
+          grep -Fq "version = 1.6.1" buildozer.spec
+          grep -Fq "android.numeric_version = 161" buildozer.spec
           grep -Fq "package.name = frahooshmobile" buildozer.spec
           grep -Fq "package.domain = ir.frahoosh" buildozer.spec
           grep -Fq "source.dir = ." buildozer.spec
@@ -322,7 +322,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Frahoosh-APK-v1.6.0
+          name: Frahoosh-APK-v1.6.1
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
