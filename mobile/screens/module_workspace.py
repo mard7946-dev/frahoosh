@@ -79,6 +79,47 @@ def _load_shared_catalog():
     return None, None, {}
 
 _shared_panels, _shared_friendly, _shared_modules = _load_shared_catalog()
+
+# The uploaded v16.12 ZIP is the authoritative UI contract.  Android must use
+# its exact panel/module membership; the shared catalog is only used for table
+# fields and labels.  Every module below resolves to a real backend table.
+_MOTHER_MODULES = {
+    "management":[("مدیریت کاربران و کارکنان","users"),("کلاس آنلاین","virtual"),("برنامه هفتگی و برنامه امتحانات","planning"),("گزارش‌ها و آمار","reports"),("تنظیمات مدرسه","settings")],
+    "executive":[("دانش‌آموزان","students"),("کلاس‌ها","class_management"),("کارکنان","staff"),("پرونده‌ها","student_archive"),("امور اجرایی","executive_operations"),("گزارش‌ها","reports")],
+    "educational":[("حضور و غیاب","attendance"),("ارجاعات آموزشی","referrals"),("جلسات","meetings"),("اطلاع‌رسانی","notifications"),("امتحانات","exams"),("بانک سؤال","questions"),("گزارش‌های آموزشی","reports")],
+    "cultural":[("فعالیت‌های فرهنگی","cultural_activities"),("مسابقات","competitions"),("برنامه‌های پرورشی","educational_programs"),("ثبت‌نام فعالیت‌ها","activity_registrations"),("گزارش‌های پرورشی","cultural_reports")],
+    "advisor":[("پرونده مشاوره","counseling_records"),("جلسات","meetings"),("پیگیری دانش‌آموز","student_followup"),("ارجاعات","referrals"),("هدایت تحصیلی","academic_guidance"),("گزارش مشاوره","counseling_reports")],
+    "teachers":[("کلاس‌های من","classes"),("نمرات و کارنامه","grades"),("تکالیف","assignments"),("حضور و غیاب","attendance"),("آزمون‌ها","exams"),("طرح درس","lesson"),("جلسات","meetings"),("گزارش‌ها","reports")],
+    "students":[("انتخاب و اطلاعات من","student_profile"),("کارنامه و نمرات","grades"),("تکالیف","assignments"),("پیام‌ها","messages"),("حضور و غیاب","attendance"),("مسابقات و فعالیت‌ها","activities"),("برنامه هفتگی","weekly_schedule"),("امتحانات","exams"),("گزارش عملکرد","performance_report"),("کلاس آنلاین","virtual"),("پرداخت آنلاین","online_payment")],
+    "parents":[("انتخاب دانش‌آموز","children"),("اطلاعات دانش‌آموز","student_info"),("کارنامه و نمرات","grades"),("حضور و غیاب","attendance"),("تکالیف و فعالیت‌های آموزشی","educational_activities"),("پیام‌ها و اطلاعیه‌ها","messages"),("برنامه هفتگی و امتحانات","schedule_exams"),("جلسات با دبیران","teacher_meetings"),("پرداخت‌ها و امور مالی","payments_finance"),("پرداخت آنلاین","online_payment"),("فعالیت‌های فرهنگی و پرورشی","cultural_activities")],
+    "finance":[("پرداخت‌ها","payments"),("تراکنش‌ها","transactions"),("حساب‌ها","accounts"),("گزارش مالی","financial_reports"),("تنظیمات پرداخت آنلاین","payment_settings")],
+    "smart_board":[("تخته آموزشی","whiteboard"),("فایل‌ها","files"),("تصاویر و ویدئوها","media"),("ابزارهای تعاملی","interactive_tools")],
+    "ai":[("دستیار هوشمند","assistant"),("تحلیل آموزشی","educational_analysis"),("گزارش هوشمند","smart_reports"),("پرسش و پاسخ","qa")],
+    "online":[("کلاس‌های آنلاین","online_classes"),("محیط کلاس هوشمند","smart_class_preview"),("جلسات","online_class_sessions"),("دانش‌آموزان کلاس","online_class_students"),("دبیران کلاس","online_class_teachers"),("حضور آنلاین","online_attendance"),("تخته کلاس","smart_board_whiteboards")],
+    "teacher_exams":[("آزمون‌های آنلاین","teacher_exams"),("بانک سؤال","quiz_questions"),("زمان‌بندی آزمون","quiz_schedules"),("اتصال آزمون به کلاس","quiz_links")],
+    "payment":[("گزینه‌های پرداخت","payment_offers"),("درخواست‌های پرداخت","payment_attempts"),("سوابق پرداخت","payment_records"),("تراکنش‌های پرداخت","payment_transactions")],
+    "messages":[("صندوق ورودی","messages"),("ارسال پیام","message_targets"),("مخاطبان","message_targets"),("وضعیت خواندن","message_reads")],
+}
+
+_MOTHER_TABLE_ALIASES = {
+    "users":"users","virtual":"online_classes","planning":"weekly_schedule","reports":"ai_smart_reports","settings":"school_profile",
+    "class_management":"executive_classes","student_archive":"archive_items","executive_operations":"executive_operations",
+    "referrals":"student_referrals","meetings":"meeting_requests","notifications":"school_events","exams":"teacher_exams","questions":"quiz_questions",
+    "cultural_activities":"educational_activities","competitions":"competitions","educational_programs":"cultural_items","activity_registrations":"cultural_activity_registrations","cultural_reports":"cultural_reports",
+    "counseling_records":"counseling_records","student_followup":"counseling_followups","academic_guidance":"counseling_followups","counseling_reports":"ai_smart_reports",
+    "classes":"teacher_classes","grades":"grades","assignments":"assignments","lesson":"lesson_plans","student_profile":"students","activities":"activity_registrations","performance_report":"ai_smart_reports","weekly_schedule":"weekly_schedule","online_payment":"payment_offers",
+    "children":"parent_children","student_info":"students","educational_activities":"educational_activities","schedule_exams":"weekly_schedule","teacher_meetings":"teacher_meetings","payments_finance":"payment_records",
+    "payments":"payment_records","transactions":"finance_transactions","accounts":"finance_accounts","financial_reports":"finance_transactions","payment_settings":"payment_offers",
+    "whiteboard":"smart_board_whiteboards","files":"smart_board_files","media":"smart_board_media","interactive_tools":"smart_board_interactive_tools",
+    "assistant":"ai_assistant_sessions","educational_analysis":"ai_educational_analysis","smart_reports":"ai_smart_reports","qa":"ai_questions",
+    "online_classes":"online_classes","online_class_sessions":"online_class_sessions","online_class_students":"online_class_students","online_class_teachers":"online_class_teachers","online_attendance":"online_attendance",
+    "teacher_exams":"teacher_exams","quiz_questions":"quiz_questions","quiz_schedules":"quiz_schedules","quiz_links":"quiz_links",
+    "payment_offers":"payment_offers","payment_attempts":"payment_attempts","payment_records":"payment_records","payment_transactions":"payment_transactions",
+    "messages":"messages","message_targets":"message_targets","message_reads":"message_reads","smart_board_whiteboards":"smart_board_whiteboards","smart_class_preview":"smart_class_preview"
+}
+
+if _MOTHER_MODULES:
+    SUBMENUS = _MOTHER_MODULES
 if _shared_panels:
     SUBMENUS = {k: [tuple(item) for item in v] for k, v in _shared_panels.items()}
 
@@ -546,13 +587,19 @@ class ModuleWorkspaceScreen(Screen):
         return table in EDITABLE.get(self.role(),set())
 
     def set_module(self,route,return_to="dashboard"):
-        # Mother-project panels may expose a real table that is not part of the
-        # compact mobile submenu list. Keep that table as a valid single-module
-        # route instead of silently redirecting it to مدیریت.
+        # Resolve the exact ZIP/mother module id to its canonical Supabase table.
+        # Never fall back to the management panel: an unknown module is a real
+        # integration error and must not silently open the wrong panel.
         route = str(route or "").strip()
-        if route not in SUBMENUS and route not in FRIENDLY:
-            route = "management"
-        self.route=route
+        canonical = _MOTHER_TABLE_ALIASES.get(route, route)
+        if canonical == "smart_class_preview":
+            self.route = route
+        elif route in SUBMENUS:
+            self.route = route
+        elif canonical in TABLE_FIELDS or canonical in FRIENDLY:
+            self.route = canonical
+        else:
+            raise RuntimeError("ماژول مادر به جدول عملیاتی متصل نیست: " + route)
         self.return_to=return_to or "dashboard"
         self.table=None
         self.selected_row=None
