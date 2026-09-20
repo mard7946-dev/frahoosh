@@ -239,12 +239,12 @@ class DashboardScreen(Screen):
             role=str(getattr(self.app_state,"role","student") or "student").strip().lower()
             needs_identity=role in ("student","دانش‌آموز","parent","parents","ولی","اولیا")
             confirmed=bool((getattr(self.app_state,"session",{}) or {}).get("identity_confirmed"))
+            app=App.get_running_app()
+            if app is None:
+                raise RuntimeError("برنامه فراهوش آماده نیست.")
             if needs_identity and not confirmed:
-                # The identity-gate screen is optional in the Android build.
-                # Never let a missing gate turn a normal panel tap into the
-                # generic "internal panel error". If the gate exists, use it;
-                # otherwise continue to the operational panel and let the
-                # panel enforce its own access rules.
+                # Identity confirmation is optional in this Android build.
+                # If the gate exists, use it; otherwise continue safely.
                 gate = None
                 try:
                     if hasattr(app, "ensure_identity_gate"):
@@ -255,7 +255,6 @@ class DashboardScreen(Screen):
                     gate.pending_route = route
                     self.manager.current = "special_identity_gate"
                     return
-            app=App.get_running_app()
             if app is None: raise RuntimeError("برنامه فراهوش آماده نیست.")
             if route=="teacher_exams" and hasattr(app,"ensure_exam"):
                 screen=app.ensure_exam()
