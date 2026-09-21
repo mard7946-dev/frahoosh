@@ -13,6 +13,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.behaviors import ButtonBehavior
+from kivy.uix.widget import Widget
 from kivy.resources import resource_find
 from pathlib import Path
 
