@@ -274,58 +274,57 @@ class PanelHubScreen(Screen):
         except Exception as exc: print("MODULE IO ERROR:",repr(exc))
 
     def _open(self,route):
+        """Open a module on the next Kivy frame.
+        
+        ScreenManager mutations from inside Button.on_release can race the
+        current transition on Android. The previous implementation created the
+        operational Screen synchronously and converted any construction/timing
+        exception into the visible red "پنل عملیاتی آماده نشد" message.
+        """
         app=App.get_running_app()
         if app is None:
             return
-        try:
-            route = str(route or "").strip()
+        route=str(route or "").strip()
 
-            # Dedicated workflows are optional presentation layers. A failed
-            # workflow must NEVER terminate navigation: the canonical mother
-            # module/table remains the deterministic fallback.
-            target = None
+        def navigate(_dt):
             try:
-                if route == "certificate_requests":
-                    target = app.ensure_certificate_workflow()
-                elif route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
-                    target = app.ensure_meeting_workflow()
-                elif route in {"online_classes","virtual"}:
-                    target = app.ensure_online_workflow()
-                elif route in {"teacher_exams","exams","questions","quiz_questions"}:
-                    target = app.ensure_exam_authoring()
-            except Exception as workflow_exc:
-                print("DEDICATED WORKFLOW FALLBACK:", repr(workflow_exc))
-                target = None
+                target=None
+                try:
+                    if route == "certificate_requests":
+                        target=app.ensure_certificate_workflow()
+                    elif route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
+                        target=app.ensure_meeting_workflow()
+                    elif route in {"online_classes","virtual"}:
+                        target=app.ensure_online_workflow()
+                    elif route in {"teacher_exams","exams","questions","quiz_questions"}:
+                        target=app.ensure_exam_authoring()
+                except Exception as workflow_exc:
+                    print("DEDICATED WORKFLOW FALLBACK:",repr(workflow_exc))
+                    target=None
 
-            if target is not None:
-                app.sm.current = target.name
-                return
+                if target is not None:
+                    app.sm.current=target.name
+                    return
 
-            panel = app.ensure_panel()
-            if panel is None:
-                raise RuntimeError("پنل عملیاتی آماده نشد.")
-
-            # The operational workspace must become the active Screen
-            # before its route is rendered. Its special workflows and async
-            # table loader use the ScreenManager from inside the workspace.
-            app.sm.current = "panel"
-            panel.set_route(route)
-        except Exception as exc:
-            print("MOTHER MODULE OPEN ERROR:", repr(exc))
-            try:
-                self.grid.add_widget(Button(
-                    text=rtl_text("خطای بازکردن ماژول: " + str(exc)),
-                    font_name=font_name(), font_size="11sp",
-                    background_normal="", background_color=(0.65,0.12,0.12,1),
-                    color=WHITE, size_hint_y=None, height=dp(54),
-                ))
-            except Exception:
-                pass
-            try:
-                if app.sm is not None:
+                panel=app.ensure_panel()
+                if panel is None:
+                    raise RuntimeError("پنل عملیاتی آماده نشد؛ ساخت ModuleWorkspaceScreen شکست خورد.")
+                panel.set_route(route)
+                if app.sm.current != "panel":
                     app.sm.current="panel"
-            except Exception:
-                pass
+            except Exception as exc:
+                print("MOTHER MODULE OPEN ERROR:",repr(exc))
+                try:
+                    self.grid.add_widget(Button(
+                        text=rtl_text("خطای بازکردن ماژول: "+str(exc)),
+                        font_name=font_name(),font_size="11sp",
+                        background_normal="",background_color=(0.65,0.12,0.12,1),
+                        color=WHITE,size_hint_y=None,height=dp(54),
+                    ))
+                except Exception:
+                    pass
+
+        Clock.schedule_once(navigate,0)
 
     def on_pre_enter(self,*_):
         self.refresh()
