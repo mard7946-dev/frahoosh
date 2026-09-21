@@ -84,21 +84,24 @@ _shared_panels, _shared_friendly, _shared_modules = _load_shared_catalog()
 # its exact panel/module membership; the shared catalog is only used for table
 # fields and labels.  Every module below resolves to a real backend table.
 _MOTHER_MODULES = {
-    "management":[("مدیریت کاربران و کارکنان","users"),("کلاس آنلاین","virtual"),("برنامه هفتگی و برنامه امتحانات","planning"),("گزارش‌ها و آمار","reports"),("تنظیمات مدرسه","settings")],
-    "executive":[("دانش‌آموزان","students"),("کلاس‌ها","class_management"),("کارکنان","staff"),("پرونده‌ها","student_archive"),("امور اجرایی","executive_operations"),("گزارش‌ها","reports")],
-    "educational":[("حضور و غیاب","attendance"),("ارجاعات آموزشی","referrals"),("جلسات","meetings"),("اطلاع‌رسانی","notifications"),("امتحانات","exams"),("بانک سؤال","questions"),("گزارش‌های آموزشی","reports")],
-    "cultural":[("فعالیت‌های فرهنگی","cultural_activities"),("مسابقات","competitions"),("برنامه‌های پرورشی","educational_programs"),("ثبت‌نام فعالیت‌ها","activity_registrations"),("گزارش‌های پرورشی","cultural_reports")],
-    "advisor":[("پرونده مشاوره","counseling_records"),("جلسات","meetings"),("پیگیری دانش‌آموز","student_followup"),("ارجاعات","referrals"),("هدایت تحصیلی","academic_guidance"),("گزارش مشاوره","counseling_reports")],
-    "teachers":[("کلاس‌های من","classes"),("نمرات و کارنامه","grades"),("تکالیف","assignments"),("حضور و غیاب","attendance"),("آزمون‌ها","exams"),("طرح درس","lesson"),("جلسات","meetings"),("گزارش‌ها","reports")],
-    "students":[("انتخاب و اطلاعات من","student_profile"),("کارنامه و نمرات","grades"),("تکالیف","assignments"),("پیام‌ها","messages"),("حضور و غیاب","attendance"),("مسابقات و فعالیت‌ها","activities"),("برنامه هفتگی","weekly_schedule"),("امتحانات","exams"),("گزارش عملکرد","performance_report"),("کلاس آنلاین","virtual"),("پرداخت آنلاین","online_payment")],
-    "parents":[("انتخاب دانش‌آموز","children"),("اطلاعات دانش‌آموز","student_info"),("کارنامه و نمرات","grades"),("حضور و غیاب","attendance"),("تکالیف و فعالیت‌های آموزشی","educational_activities"),("پیام‌ها و اطلاعیه‌ها","messages"),("برنامه هفتگی و امتحانات","schedule_exams"),("جلسات با دبیران","teacher_meetings"),("پرداخت‌ها و امور مالی","payments_finance"),("پرداخت آنلاین","online_payment"),("فعالیت‌های فرهنگی و پرورشی","cultural_activities")],
-    "finance":[("پرداخت‌ها","payments"),("تراکنش‌ها","transactions"),("حساب‌ها","accounts"),("گزارش مالی","financial_reports"),("تنظیمات پرداخت آنلاین","payment_settings")],
-    "smart_board":[("تخته آموزشی","whiteboard"),("فایل‌ها","files"),("تصاویر و ویدئوها","media"),("ابزارهای تعاملی","interactive_tools")],
-    "ai":[("دستیار هوشمند","assistant"),("تحلیل آموزشی","educational_analysis"),("گزارش هوشمند","smart_reports"),("پرسش و پاسخ","qa")],
-    "online":[("کلاس‌های آنلاین","online_classes"),("محیط کلاس هوشمند","smart_class_preview"),("جلسات","online_class_sessions"),("دانش‌آموزان کلاس","online_class_students"),("دبیران کلاس","online_class_teachers"),("حضور آنلاین","online_attendance"),("تخته کلاس","smart_board_whiteboards")],
-    "teacher_exams":[("آزمون‌های آنلاین","teacher_exams"),("بانک سؤال","quiz_questions"),("زمان‌بندی آزمون","quiz_schedules"),("اتصال آزمون به کلاس","quiz_links")],
+    "management":[("مدیریت کاربران و کارکنان","users"),("کلاس آنلاین","online"),("برنامه هفتگی و برنامه امتحانات","schedule"),("گزارش‌ها و آمار","reports"),("تنظیمات مدرسه","settings"),("ملاقات‌ها","meeting_requests"),("مالی","finance")],
+    "executive":[("دانش‌آموزان","students"),("کلاس‌ها","executive_classes"),("کارکنان","staff"),("پرونده‌ها","archive_items"),("امور اجرایی","executive_operations"),("گزارش‌ها","executive_reports"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("درخواست‌های ملاقات","meeting_requests")],
+    "educational":[("حضور و غیاب","attendance"),("ارجاعات آموزشی","student_referrals"),("جلسات","meeting_requests"),("اطلاع‌رسانی","messages"),("امتحانات","teacher_exams"),("بانک سؤال","quiz_questions"),("گزارش‌های آموزشی","ai_smart_reports"),("تأیید و مدیریت ملاقات‌ها","meeting_requests")],
+    "cultural":[("فعالیت‌های فرهنگی","educational_activities"),("مسابقات","cultural_competitions"),("برنامه‌های پرورشی","school_events"),("ثبت‌نام فعالیت‌ها","cultural_activity_registrations"),("گزارش‌های پرورشی","cultural_reports"),("درخواست‌های ملاقات","meeting_requests")],
+    "advisor":[("پرونده مشاوره","counseling_records"),("جلسات","meeting_requests"),("پیگیری دانش‌آموز","counseling_followups"),("ارجاعات","student_referrals"),("هدایت تحصیلی","counseling_followups"),("گزارش مشاوره","ai_smart_reports"),("درخواست‌های ملاقات","meeting_requests")],
+    "teachers":[("کلاس‌های من","teacher_classes"),("نمرات و کارنامه","student_grades"),("تکالیف","assignments"),("حضور و غیاب","attendance"),("آزمون‌ها","teacher_exams"),("طرح درس","lesson_plans"),("جلسات","meeting_requests"),("گزارش‌ها","teacher_activities"),("ملاقات با اولیا","teacher_parent_meetings")],
+    "students":[("انتخاب و اطلاعات من","students"),("پایه و کلاس","student_class_info"),("نمرات","student_grades"),("تکالیف","assignment_submissions"),("پیام‌ها","messages"),("حضور و غیاب","attendance"),("مسابقات و فعالیت‌ها","activity_registrations"),("برنامه هفتگی","weekly_schedule"),("امتحانات","exam_schedule"),("گزارش عملکرد","ai_smart_reports"),("کلاس آنلاین","online_classes"),("پرداخت آنلاین","payment_offers")],
+    "parents":[("انتخاب دانش‌آموز","parent_children"),("اطلاعات دانش‌آموز","students"),("کارنامه و نمرات","student_grades"),("حضور و غیاب","attendance"),("تکالیف و فعالیت‌های آموزشی","assignments"),("پیام‌ها و اطلاعیه‌ها","messages"),("برنامه هفتگی و امتحانات","schedule"),("جلسات با دبیران","teacher_meetings"),("پرداخت‌ها و امور مالی","payment_records"),("پرداخت آنلاین","payment_offers"),("فعالیت‌های فرهنگی و پرورشی","cultural_activity_registrations"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("تعیین وقت ملاقات","meeting_requests")],
+    "finance":[("پرداخت‌ها","payment_records"),("تراکنش‌ها","finance_transactions"),("حساب‌ها","finance_accounts"),("کمک‌های داوطلبانه","finance_donations"),("گزینه‌های پرداخت آنلاین","payment_offers"),("درخواست‌های پرداخت","payment_attempts"),("تراکنش‌های پرداخت","payment_transactions")],
+    "smart_board":[("تخته آموزشی","smart_board_whiteboards"),("محتوای آموزشی","smart_board_content"),("فعالیت‌های تعاملی","smart_board_activities"),("آزمون‌های کوتاه","smart_board_quizzes"),("فایل‌ها","smart_board_files"),("تصاویر و ویدئوها","smart_board_media"),("ابزارهای تعاملی","smart_board_interactive_tools")],
+    "ai":[("دستیار هوشمند","ai_assistant_sessions"),("تحلیل آموزشی","ai_educational_analysis"),("گزارش هوشمند","ai_smart_reports"),("پرسش و پاسخ","ai_questions")],
+    "online":[("کلاس‌های آنلاین","online_classes"),("جلسات","online_class_sessions"),("دانش‌آموزان کلاس","online_class_students"),("دبیران کلاس","online_class_teachers"),("حضور آنلاین","online_attendance"),("فعالیت کلاس","online_class_activity"),("اعلان‌های کلاس","online_class_notifications"),("تنظیمات کلاس","online_class_settings"),("کنترل حضور مرحله‌ای","online_presence_checks"),("چت کلاس","online_class_chat"),("رویدادهای تخته","online_class_board_events"),("گزارش هوشمند کلاس","online_class_ai_reports"),("تخته کلاس","smart_board_whiteboards")],
+    "teacher_exams":[("آزمون‌های آنلاین","teacher_exams"),("بانک سؤال","quiz_questions"),("زمان‌بندی آزمون","exam_schedule"),("اتصال آزمون به کلاس","teacher_exams")],
     "payment":[("گزینه‌های پرداخت","payment_offers"),("درخواست‌های پرداخت","payment_attempts"),("سوابق پرداخت","payment_records"),("تراکنش‌های پرداخت","payment_transactions")],
-    "messages":[("صندوق ورودی","messages"),("ارسال پیام","message_targets"),("مخاطبان","message_targets"),("وضعیت خواندن","message_reads")],
+    "messages":[("صندوق ورودی","messages"),("مخاطبان پیام","message_targets"),("تحویل پیام","message_delivery"),("وضعیت خواندن","message_reads")],
+    "reports":[("کارنامه‌ها","report_cards"),("نسخه‌های کارنامه","report_card_snapshots"),("نمرات","grades"),("حضور و غیاب","attendance"),("ارزیابی دانش‌آموزان","student_grades"),("گزارش هوشمند","ai_smart_reports")],
+    "schedule":[("برنامه هفتگی","weekly_schedule"),("برنامه تولیدشده","generated_weekly_schedule"),("برنامه امتحانات","exam_schedule"),("کلاس‌های دبیران","teacher_classes"),("صندلی امتحانی","exam_seat_assignments")],
+    "settings":[("تنظیمات حساب","account_settings"),("مشخصات مدرسه","school_profile"),("ساختار کلاس‌ها","school_class_config"),("حساب‌های سامانه","users"),("پشتیبان‌گیری","backup_records")],
 }
 
 _MOTHER_TABLE_ALIASES = {
@@ -581,6 +584,24 @@ class ModuleWorkspaceScreen(Screen):
         b.bind(on_release=cb)
         return b
 
+    def _ensure_built(self):
+        if self._built:
+            return
+        try:
+            self._build()
+            self._built=True
+        except Exception as exc:
+            import traceback
+            print("OPERATIONAL WORKSPACE BUILD ERROR:", traceback.format_exc())
+            self.clear_widgets()
+            root=BoxLayout(orientation="vertical",padding=dp(18),spacing=dp(10))
+            root.add_widget(self.label("خطای ساخت محیط عملیاتی","18sp",WHITE,True,"center"))
+            root.add_widget(self.label("جزئیات خطا در گزارش اجرای برنامه ثبت شد.","10sp",SECONDARY,False,"center"))
+            self.add_widget(root)
+            self.status=self.label("خطای واقعی: "+str(exc),"9sp",(.9,.2,.2,1),True,"center")
+            root.add_widget(self.status)
+            self._built=True
+
     def _build(self):
         # Android must be able to construct the operational workspace without
         # any optional/custom widget contract.  The previous implementation
@@ -653,6 +674,7 @@ class ModuleWorkspaceScreen(Screen):
         return resolved in EDITABLE.get(self.role(),set())
 
     def set_module(self,route,return_to="dashboard"):
+        self._ensure_built()
         # Resolve the exact ZIP/mother module id to its canonical Supabase table.
         # Never fall back to the management panel: an unknown module is a real
         # integration error and must not silently open the wrong panel.
@@ -696,6 +718,7 @@ class ModuleWorkspaceScreen(Screen):
         return self.set_module(route, return_to=return_to)
 
     def render(self):
+        self._ensure_built()
         # Use only stock Kivy layouts here.  This screen is the shared entry
         # point for every panel, so a custom container must never be able to
         # prevent the whole panel from opening on Android.

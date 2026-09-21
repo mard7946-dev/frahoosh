@@ -12,7 +12,6 @@ from kivy.graphics import Color, RoundedRectangle
 from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.app import App
-from kivy.core.window import Window
 from pathlib import Path
 from threading import Thread
 import json
@@ -205,28 +204,20 @@ class PanelHubScreen(Screen):
         # panel/module membership.  Do not derive this screen from the backend
         # catalog or from a secondary navigation map.
         catalog_key = {
-            "management": "management",
+            "management": "manager",
             "executive": "executive",
             "educational": "educational",
             "cultural": "cultural",
             "advisor": "advisor",
-            "teachers": "teachers",
-            "students": "students",
-            "parents": "parents",
+            "teachers": "teacher",
+            "students": "student",
+            "parents": "parent",
             "finance": "finance",
             "smart_board": "smart_board",
             "ai": "ai",
-            "online": "online",
-            "teacher_exams": "teacher_exams",
-            "payment": "payment",
-            "messages": "messages",
         }.get(self.panel_key, self.panel_key)
-        try:
-            from mobile.screens.module_workspace import SUBMENUS
-            items = list(SUBMENUS.get(catalog_key) or [])
-        except Exception as exc:
-            print("PANEL MODULE CONTRACT ERROR:", repr(exc))
-            items = []
+        catalog = MOTHER_PANEL_CATALOG.get(catalog_key) or {}
+        items = catalog.get("items") or []
         self.grid.clear_widgets()
         if not items:
             # Keep a visible diagnostic instead of silently rendering an empty
@@ -241,22 +232,22 @@ class PanelHubScreen(Screen):
             print("MOTHER PANEL EMPTY:", self.panel_key, catalog_key)
             return
         for label,route in items:
-            card=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(8),size_hint_y=None,height=max(dp(380), Window.height * .46))
+            card=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(5),size_hint_y=None,height=dp(132))
             with card.canvas.before:
                 Color(0.03,0.14,0.25,0.96)
                 card_bg=RoundedRectangle(radius=[dp(14)])
             card.bind(pos=lambda o,v,bg=card_bg:setattr(bg,"pos",v),size=lambda o,v,bg=card_bg:setattr(bg,"size",v))
-            card.add_widget(Label(text=rtl_text(label),font_name=font_name(),font_size="15sp",bold=True,color=WHITE,
-                                  halign="center",valign="middle",size_hint_y=None,height=dp(54)))
-            card.add_widget(Label(text=rtl_text(self._module_purpose(label,route)),font_name=font_name(),font_size="10sp",
+            card.add_widget(Label(text=rtl_text(label),font_name=font_name(),font_size="13sp",bold=True,color=WHITE,
+                                  halign="center",valign="middle",size_hint_y=None,height=dp(34)))
+            card.add_widget(Label(text=rtl_text(self._module_purpose(label,route)),font_name=font_name(),font_size="8sp",
                                   color=(0.75,0.9,1,1),halign="center",valign="middle"))
-            actions=BoxLayout(size_hint_y=None,height=dp(58),spacing=dp(4))
+            actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(4))
             # Every mother module has one operational entry point.  Excel/PDF
             # is an export/import utility, not the module itself, and showing it
             # beside every module was the source of the generic "ورودی و خروجی"
             # page being mistaken for the real module workspace.
             enter=Button(text=rtl_text("ورود به جدول تخصصی و عملیات"),
-                         font_name=font_name(),font_size="12sp",
+                         font_name=font_name(),font_size="10sp",
                          background_normal="",background_color=SUCCESS,color=WHITE)
             enter.bind(on_release=lambda *_a,r=route:self._open(r))
             actions.add_widget(enter); card.add_widget(actions)
@@ -317,24 +308,19 @@ class PanelHubScreen(Screen):
 
                 panel=app.ensure_panel()
                 if panel is None:
-                    detail=str(getattr(app,"last_panel_build_error","") or "").strip()
-                    detail=detail.splitlines()[-1] if detail else "خطای ساخت پنل ثبت نشده است."
-                    raise RuntimeError("ساخت پنل شکست خورد: "+detail)
+                    raise RuntimeError("پنل عملیاتی آماده نشد؛ ساخت ModuleWorkspaceScreen شکست خورد.")
                 panel.set_route(route)
                 if app.sm.current != "panel":
                     app.sm.current="panel"
             except Exception as exc:
                 print("MOTHER MODULE OPEN ERROR:",repr(exc))
                 try:
-                    if hasattr(self, "_open_error") and self._open_error in self.grid.children:
-                        self.grid.remove_widget(self._open_error)
-                    self._open_error = Button(
-                        text=rtl_text("خطای واقعی ساخت پنل: "+str(exc)),
-                        font_name=font_name(),font_size="9sp",
+                    self.grid.add_widget(Button(
+                        text=rtl_text("خطای بازکردن ماژول: "+str(exc)),
+                        font_name=font_name(),font_size="11sp",
                         background_normal="",background_color=(0.65,0.12,0.12,1),
                         color=WHITE,size_hint_y=None,height=dp(54),
-                    )
-                    self.grid.add_widget(self._open_error)
+                    ))
                 except Exception:
                     pass
 
@@ -396,7 +382,7 @@ class DashboardScreen(Screen):
             Color(0,0,0,0.22); self.tint=RoundedRectangle()
         overlay.bind(pos=lambda o,v:setattr(self.tint,"pos",v),size=lambda o,v:setattr(self.tint,"size",v))
         root.add_widget(overlay)
-        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(8),dp(14),dp(120)],spacing=dp(5))
+        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(8),dp(14),dp(78)],spacing=dp(5))
         head=BoxLayout(size_hint_y=None,height=dp(56))
         head.add_widget(self.label(APP_NAME,"25sp",WHITE,True,True)); content.add_widget(head)
         self.welcome=self.label("خوش آمدید","14sp",WHITE,True,True); content.add_widget(self.welcome)
@@ -486,7 +472,7 @@ class DashboardScreen(Screen):
         for i,(title,route) in enumerate(items,1):
             real_route = self.resolve_module_route(role, title, route)
             card=PanelCard(title,i,total,self.desc(real_route),lambda *_a,r=real_route:self.open_route(r),
-                           route=real_route,size_hint_y=None,height=max(dp(360), Window.height * .46))
+                           route=real_route,size_hint_y=None,height=dp(148))
             self.grid.add_widget(card)
             Clock.schedule_once(lambda _dt,card=card:Animation(opacity=1,d=.22,t="out_quad").start(card),i*.035)
         return True
@@ -529,9 +515,7 @@ class DashboardScreen(Screen):
                 # Fall through to the canonical mother/table workspace.
             panel=app.ensure_panel()
             if panel is None:
-                detail=str(getattr(app,"last_panel_build_error","") or "").strip()
-                detail=detail.splitlines()[-1] if detail else "خطای ساخت پنل ثبت نشده است."
-                raise RuntimeError("ساخت پنل شکست خورد: "+detail)
+                raise RuntimeError("پنل عملیاتی آماده نشد.")
             # Activate the real workspace first; do not render a module while
             # the dashboard is still the current Screen on Android.
             app.sm.current="panel"

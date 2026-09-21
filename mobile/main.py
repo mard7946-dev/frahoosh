@@ -212,10 +212,7 @@ class FrahooshApp(App):
             self.sm.add_widget(screen)
             return screen
         except Exception as exc:
-            import traceback
-            self.last_panel_build_error = traceback.format_exc()
-            print("PANEL BUILD ERROR:", self.last_panel_build_error)
-            traceback.print_exc()
+            print("PANEL BUILD ERROR:", repr(exc))
             return None
 
     def ensure_dashboard(self):
