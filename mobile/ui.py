@@ -29,7 +29,7 @@ def register_fonts():
     regular = Path(FONT_REGULAR)
     bold = Path(FONT_BOLD)
     if not regular.is_file():
-        packaged = Path(__file__).resolve().parent / "assets" / "NotoSansArabic-Regular.ttf"
+        packaged = Path(__file__).resolve().parent / "assets" / "BTitrBd.ttf"
         if packaged.is_file():
             regular = packaged
     if not bold.is_file():
