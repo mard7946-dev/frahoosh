@@ -164,7 +164,7 @@ class ExamAuthoringScreen(BaseWorkflow):
         root.add_widget(tool)
         self.q=self.field("متن سؤال؛ رادیکال، فرمول و نماد ریاضی را وارد کنید",100,True); self.opts=self.field("گزینه‌ها / جواب‌ها؛ در وصل‌کردنی شماره جواب را جلوی گزینه بنویسید",90,True)
         root.add_widget(self.q); root.add_widget(self.opts); root.add_widget(self.lab("این سؤال تشخیصی است؛ لطفاً هیچ چتی به آن جواب ندهید.",40,"8sp",SECONDARY))
-        root.add_widget(self.btn("افزودن سؤال",self.addq,SUCCESS)); root.add_widget(self.btn("ساخت آزمون",self.create,PRIMARY)); root.add_widget(self.btn("بازگشت",self.back,SECONDARY)); self.questions=[]
+        root.add_widget(self.btn("افزودن سؤال",self.addq,SUCCESS)); root.add_widget(self.btn("ساخت آزمون",self.create,PRIMARY)); root.add_widget(self.btn("خروجی PDF آزمون",self.export_pdf,SECONDARY)); root.add_widget(self.btn("خروجی Excel نمرات",self.export_scores,SECONDARY)); root.add_widget(self.btn("بازگشت",self.back,SECONDARY)); self.questions=[]
     def _symbol(self,s): self.q.text += s
     def addq(self,*_):
         typ=dict((v,k) for k,v in self.TYPES).get(str(self.qtype.text),"multiple_choice"); self.questions.append({"question":self.q.text.strip(),"question_type":typ,"option1":(self.opts.text.splitlines()+["","","",""])[0],"option2":(self.opts.text.splitlines()+["","","",""])[1],"option3":(self.opts.text.splitlines()+["","","",""])[2],"option4":(self.opts.text.splitlines()+["","","",""])[3],"correct_answer":"","points":1,"diagnostic_note":"این سؤال تشخیصی است؛ لطفاً هیچ چتی به آن جواب ندهید."}); self.q.text=""; self.opts.text=""
@@ -174,8 +174,27 @@ class ExamAuthoringScreen(BaseWorkflow):
             ex=(self.api().table_insert("teacher_exams",{"title":self.title.text.strip(),"subject":self.subject.text.strip(),"class_name":self.cls.text.strip(),"duration":int(self.duration.text or 45),"teacher":getattr(self.app_state,"display_name",""),"secure_mode":True,"published":False,"share_enabled":bool(self.share_code.text.strip()),"share_code":self.share_code.text.strip() or None}) or [{}])[0]
             for q in self.questions:
                 q["quiz_id"]=ex.get("id"); self.api().table_insert("quiz_questions",q)
-            self.msg("آزمون و بانک سؤال واقعی ذخیره شد.",SUCCESS)
+            for cls_name in [x.strip() for x in self.cls.text.split(",") if x.strip()]:
+                try:self.api().table_insert("teacher_exam_slots",{"quiz_id":ex.get("id"),"class_name":cls_name,"exam_date_shamsi":self.exam_date.text.strip(),"start_time_shamsi":self.start_time.text.strip(),"end_time_shamsi":self.end_time.text.strip(),"duration":int(self.duration.text or 45),"coordinated":False,"secure_mode":True,"active":True})
+                except Exception as slot_exc: print("EXAM SLOT ERROR:",repr(slot_exc))
+            self.msg("آزمون، بانک سؤال و زمان‌بندی کلاس‌ها ذخیره شد.",SUCCESS)
         except Exception as e:self.msg(str(e),ERROR)
+
+    def _last_exam(self):
+        try:return (self.api().table_select("teacher_exams",{"order":"id.desc","limit":"1"}) or [None])[0]
+        except Exception:return None
+    def export_scores(self,*_):
+        try:
+            from mobile.services.export_service import export_excel
+            ex=self._last_exam(); rows=self.api().table_select("teacher_exam_attempts",{"quiz_id":f"eq.{ex.get('id')}","limit":"1000"}) if ex else []
+            path=export_excel(rows or [],list((rows or [{}])[0].keys()) or ["student_id","score"],"frahoosh_exam_scores"); self.msg("خروجی Excel نمرات ساخته شد: "+path,SUCCESS)
+        except Exception as e:self.msg("خروجی Excel ناموفق: "+str(e),ERROR)
+    def export_pdf(self,*_):
+        try:
+            from mobile.services.export_service import export_pdf
+            ex=self._last_exam(); rows=self.api().table_select("quiz_questions",{"quiz_id":f"eq.{ex.get('id')}","limit":"1000"}) if ex else []
+            path=export_pdf(rows or [],["question","question_type","option1","option2","option3","option4","points"],"آزمون فراهوش"); self.msg("PDF آزمون ساخته شد: "+path,SUCCESS)
+        except Exception as e:self.msg("خروجی PDF ناموفق: "+str(e),ERROR)
 
 class PanelIOWorkflowScreen(BaseWorkflow):
     ALIASES={"users":"users","virtual":"online_classes","planning":"weekly_schedule","reports":"ai_smart_reports","settings":"school_profile","class_management":"executive_classes","student_archive":"archive_items","executive_operations":"executive_operations","referrals":"student_referrals","meetings":"meeting_requests","meeting_requests":"meeting_requests","notifications":"school_events","exams":"teacher_exams","questions":"quiz_questions","cultural_activities":"educational_activities","competitions":"competitions","educational_programs":"school_events","activity_registrations":"cultural_activity_registrations","cultural_reports":"cultural_reports","counseling_records":"counseling_records","student_followup":"counseling_followups","academic_guidance":"counseling_followups","counseling_reports":"ai_smart_reports","classes":"teacher_classes","grades":"grades","assignments":"assignments","lesson":"lesson_plans","student_profile":"students","activities":"activity_registrations","performance_report":"ai_smart_reports","weekly_schedule":"weekly_schedule","online_payment":"payment_offers","children":"parent_children","student_info":"students","educational_activities":"educational_activities","schedule_exams":"exam_schedule","teacher_meetings":"teacher_meetings","payments_finance":"payment_records","payments":"payment_records","transactions":"finance_transactions","accounts":"finance_accounts","financial_reports":"finance_transactions","payment_settings":"payment_offers","whiteboard":"smart_board_whiteboards","files":"smart_board_files","media":"smart_board_media","interactive_tools":"smart_board_interactive_tools","assistant":"ai_assistant_sessions","educational_analysis":"ai_educational_analysis","smart_reports":"ai_smart_reports","qa":"ai_questions","online_classes":"online_classes","certificate_requests":"certificate_requests"}
