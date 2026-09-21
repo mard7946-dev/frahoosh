@@ -694,10 +694,14 @@ class ModuleWorkspaceScreen(Screen):
         else:
             spec = (_shared_modules or {}).get(route) or {}
             shared_table = spec.get("table") if isinstance(spec, dict) else None
-            if shared_table and (shared_table in TABLE_FIELDS or shared_table in FRIENDLY):
-                self.route = str(shared_table)
+            if shared_table:
+                self.route = str(shared_table).strip()
             else:
-                raise RuntimeError("ماژول مادر به جدول عملیاتی متصل نیست: " + route)
+                # Mother catalog ids are canonical table ids in v16.12.
+                # Do not block a real table merely because a client-side
+                # column definition has not been added yet; the Data API is
+                # the final authority and will return the real backend error.
+                self.route = route
         self.return_to=return_to or "dashboard"
         self.table=None
         self.selected_row=None
