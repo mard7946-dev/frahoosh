@@ -889,28 +889,57 @@ class ModuleWorkspaceScreen(Screen):
         if role not in {"student","parent"}:
             self.table="certificate_requests"; self.selected_row=None; self.render(); return
         root=BoxLayout(orientation="vertical",padding=dp(10),spacing=dp(7))
+        title=BoxLayout(size_hint_y=None,height=dp(45))
+        title.add_widget(self.label("گواهی اشتغال به تحصیل","16sp",PRIMARY,True,"center"))
+        root.add_widget(title)
+        actions=BoxLayout(size_hint_y=None,height=dp(45),spacing=dp(6))
+        actions.add_widget(self.btn("درخواست جدید",lambda *_:self._certificate_form(),SUCCESS,dp(40)))
+        root.add_widget(actions)
+        scroll=ScrollView(do_scroll_x=False); listing=GridLayout(cols=1,spacing=dp(6),size_hint_y=None); listing.bind(minimum_height=listing.setter("height")); scroll.add_widget(listing); root.add_widget(scroll)
+        self.body.clear_widgets(); self.title.text=rtl_text("گواهی اشتغال به تحصیل"); self.body.add_widget(root)
+        listing.add_widget(self.label("در حال دریافت گواهی‌های تأییدشده…","11sp",SECONDARY,True,"center"))
+        def work():
+            try:
+                rows=self.app_state.api.table_select("certificate_requests",{"status":"eq.approved","limit":"50"}) or []
+            except Exception as exc:
+                rows=[]; err=str(exc)
+            else: err=""
+            def done(_):
+                listing.clear_widgets()
+                if err:
+                    listing.add_widget(self.label("خطا در دریافت اطلاعات: "+err,"10sp",(0.8,.15,.15,1),True,"center")); return
+                if not rows:
+                    listing.add_widget(self.label("هنوز گواهی تأییدشده‌ای وجود ندارد.","12sp",PRIMARY,True,"center")); return
+                for row in rows:
+                    card=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(105),padding=dp(8),spacing=dp(4))
+                    card.add_widget(self.label("دانش‌آموز: "+str(row.get("student_name") or ""),"12sp",PRIMARY,True,"right"))
+                    card.add_widget(self.label("ارائه به: "+str(row.get("destination") or "")+" • وضعیت: تأیید شد","10sp",SUCCESS,True,"right"))
+                    card.add_widget(self.btn("صدور PDF گواهی",lambda *_r,r=dict(row):self.export_certificate_row_pdf(r),PRIMARY,dp(38)))
+                    listing.add_widget(card)
+            Clock.schedule_once(done,0)
+        Thread(target=work,daemon=True).start()
+
+    def _certificate_form(self):
+        root=BoxLayout(orientation="vertical",padding=dp(10),spacing=dp(7))
         root.add_widget(self.label("درخواست گواهی اشتغال به تحصیل","16sp",PRIMARY,True,"center"))
         student_id=""; student_name=""
         try:
             from mobile.services.live_data import LiveSchoolData
             live=LiveSchoolData(self.app_state)
-            if role=="student":
-                st=live.current_student()
-                student_id=str(st.get("id") or st.get("student_id") or "")
-                student_name=str(st.get("name") or st.get("student_name") or ((st.get("first_name") or "")+" "+(st.get("last_name") or "")).strip())
+            if self.role()=="student":
+                st=live.current_student(); student_id=str(st.get("id") or st.get("student_id") or ""); student_name=str(st.get("name") or st.get("student_name") or ((st.get("first_name") or "")+" "+(st.get("last_name") or "")).strip())
             else:
                 ids=live.parent_student_ids()
-                if ids: student_id=str(ids[0])
-                if student_id:
-                    rows=self.app_state.api.table_select("students",{"id":"eq."+student_id,"limit":"1"}) or []
-                    if rows:
-                        st=rows[0]; student_name=str(st.get("name") or st.get("student_name") or ((st.get("first_name") or "")+" "+(st.get("last_name") or "")).strip())
+                if ids:
+                    student_id=str(ids[0])
+                    rr=self.app_state.api.table_select("students",{"id":"eq."+student_id,"limit":"1"}) or []
+                    if rr:
+                        st=rr[0]; student_name=str(st.get("name") or st.get("student_name") or ((st.get("first_name") or "")+" "+(st.get("last_name") or "")).strip())
         except Exception: pass
         fields={}
         for key,label,value in (("student_id","شناسه دانش‌آموز",student_id),("student_name","نام دانش‌آموز",student_name),("destination","فقط به منظور ارائه به",""),("request_date","تاریخ درخواست","")):
             root.add_widget(self.label(label,"10sp",PRIMARY,True))
-            w=PersianTextInput(text=value,hint_text=rtl_text(label),font_name=font_name(),font_size="12sp",halign="right",size_hint_y=None,height=dp(44))
-            fields[key]=w; root.add_widget(w)
+            w=PersianTextInput(text=value,hint_text=rtl_text(label),font_name=font_name(),font_size="12sp",halign="right",size_hint_y=None,height=dp(44)); fields[key]=w; root.add_widget(w)
         actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5))
         p=Popup(title=rtl_text("درخواست گواهی"),content=root,size_hint=(.94,.78),auto_dismiss=False)
         actions.add_widget(self.btn("انصراف",lambda *_:p.dismiss(),SECONDARY,dp(40)))
@@ -918,16 +947,30 @@ class ModuleWorkspaceScreen(Screen):
             def val(w): return (w.get_logical_text() if hasattr(w,"get_logical_text") else str(w.text or "")).strip()
             payload={k:val(w) for k,w in fields.items()}
             payload.update({"requester_username":getattr(self.app_state,"username","") or getattr(self.app_state,"user",{}).get("username",""),"status":"pending"})
-            if not payload["student_id"] or not payload["student_name"] or not payload["destination"]:
-                self.message("درخواست گواهی","دانش‌آموز، مقصد و تاریخ/مشخصات درخواست الزامی است."); return
+            if not all(payload.get(k) for k in ("student_id","student_name","destination","request_date")):
+                self.message("درخواست گواهی","همه فیلدها الزامی است."); return
             p.dismiss()
             def work():
                 try:
                     self.app_state.api.table_insert("certificate_requests",payload,return_representation=False)
-                    Clock.schedule_once(lambda *_: self.after_write("درخواست گواهی ثبت شد و برای معاون اجرایی ارسال شد."),0)
+                    Clock.schedule_once(lambda *_: self._open_certificate_request(),0)
                 except Exception as exc: Clock.schedule_once(lambda *_: self.write_error(str(exc)),0)
             Thread(target=work,daemon=True).start()
         actions.add_widget(self.btn("ثبت درخواست",submit,SUCCESS,dp(40))); root.add_widget(actions); p.open()
+
+    def export_certificate_row_pdf(self,row):
+        self.status.text=rtl_text("در حال صدور گواهی…")
+        def work():
+            try:
+                from mobile.services.document_service import generate_enrollment_certificate
+                out=Path("/storage/emulated/0/Download") / ("govaahi_"+str(row.get("student_id") or "student")+".pdf")
+                generate_enrollment_certificate(row,out)
+                Clock.schedule_once(lambda *_: self._certificate_pdf_done(str(out)),0)
+            except Exception as exc: Clock.schedule_once(lambda *_: self.write_error("صدور گواهی انجام نشد: "+str(exc)),0)
+        Thread(target=work,daemon=True).start()
+
+    def _certificate_pdf_done(self,path):
+        self.status.text=rtl_text("گواهی PDF صادر شد: "+path); self.status.color=SUCCESS
 
     def _open_meeting_request(self):
         if self.role() in {"manager","executive","educational","cultural","advisor","teacher","parent"}:
