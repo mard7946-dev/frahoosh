@@ -236,10 +236,44 @@ class PanelHubScreen(Screen):
             print("MOTHER PANEL EMPTY:", self.panel_key, catalog_key)
             return
         for label,route in items:
-            b=Button(text=rtl_text(label),font_name=font_name(),font_size="13sp",
-                     background_normal="",background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(58))
-            b.bind(on_release=lambda *_a,r=route:self._open(r))
-            self.grid.add_widget(b)
+            card=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(5),size_hint_y=None,height=dp(132))
+            with card.canvas.before:
+                Color(0.03,0.14,0.25,0.96)
+                card_bg=RoundedRectangle(radius=[dp(14)])
+            card.bind(pos=lambda o,v,bg=card_bg:setattr(bg,"pos",v),size=lambda o,v,bg=card_bg:setattr(bg,"size",v))
+            card.add_widget(Label(text=rtl_text(label),font_name=font_name(),font_size="13sp",bold=True,color=WHITE,
+                                  halign="center",valign="middle",size_hint_y=None,height=dp(34)))
+            card.add_widget(Label(text=rtl_text(self._module_purpose(label,route)),font_name=font_name(),font_size="8sp",
+                                  color=(0.75,0.9,1,1),halign="center",valign="middle"))
+            actions=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(4))
+            enter=Button(text=rtl_text("ورود و عملیات"),font_name=font_name(),font_size="10sp",
+                         background_normal="",background_color=PRIMARY,color=WHITE)
+            io=Button(text=rtl_text("Excel/PDF"),font_name=font_name(),font_size="9sp",
+                      background_normal="",background_color=SUCCESS,color=WHITE,size_hint_x=.42)
+            enter.bind(on_release=lambda *_a,r=route:self._open(r))
+            io.bind(on_release=lambda *_a,r=route:self._open_io(r))
+            actions.add_widget(enter); actions.add_widget(io); card.add_widget(actions)
+            self.grid.add_widget(card)
+
+    def _module_purpose(self,label,route):
+        return {
+            "دانش‌آموزان":"پرونده، اطلاعات هویتی، کلاس و سوابق دانش‌آموز.",
+            "دبیران":"پرونده پرسنلی، کلاس‌ها، نمرات و فعالیت‌های آموزشی.",
+            "حضور و غیاب":"ثبت، اصلاح و گزارش حضور و غیاب.",
+            "آزمون آنلاین":"طراحی، زمان‌بندی، انتشار و نمره آزمون.",
+            "کلاس آنلاین":"جلسه، دانش‌آموزان، حضور و کنترل ادامه کلاس.",
+            "درخواست گواهی":"درخواست و صدور گواهی اشتغال به تحصیل.",
+            "درخواست ملاقات":"ثبت درخواست، تأیید مسئول و تأیید نهایی مدیر.",
+        }.get(label,"ثبت، ویرایش، حذف، گزارش و تبادل اطلاعات واقعی سامانه.")
+
+    def _open_io(self,route):
+        app=App.get_running_app()
+        if not app: return
+        try:
+            screen=app.ensure_panel_io(self.panel_key)
+            if screen:
+                app.sm.current=screen.name
+        except Exception as exc: print("MODULE IO ERROR:",repr(exc))
 
     def _open(self,route):
         app=App.get_running_app()
