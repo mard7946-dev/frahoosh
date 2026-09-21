@@ -601,11 +601,32 @@ class ModuleWorkspaceScreen(Screen):
         raw=str(getattr(self.app_state,"role","student") or "student").strip().lower()
         return {"admin":"manager","administrator":"manager","مدیر":"manager","مدیریت":"manager","معاون آموزشی":"educational","معاون اجرایی":"executive","معاون پرورشی":"cultural","مشاور":"advisor","دبیر":"teacher","معلم":"teacher","دانش‌آموز":"student","ولی":"parent","اولیا":"parent"}.get(raw,raw)
 
+    def _resolve_backend_route(self, route):
+        """Resolve a visible mother/ZIP module id to its real Supabase table.
+
+        Navigation labels use mother/ZIP ids (for example virtual or
+        payments), while CRUD must use canonical Supabase table names.
+        The resolver is shared by permissions, special workflows and CRUD.
+        """
+        value = str(route or "").strip()
+        if not value:
+            return value
+        canonical = _MOTHER_TABLE_ALIASES.get(value)
+        if canonical:
+            return str(canonical)
+        spec = (_shared_modules or {}).get(value) or {}
+        if isinstance(spec, dict):
+            shared_table = spec.get("table")
+            if shared_table:
+                return str(shared_table).strip()
+        return value
+
     def can_write(self,table):
         # The smart classroom is a live environment, not a CRUD table.
-        if str(table) == "smart_class_preview":
+        resolved = self._resolve_backend_route(table)
+        if resolved == "smart_class_preview":
             return False
-        return table in EDITABLE.get(self.role(),set())
+        return resolved in EDITABLE.get(self.role(),set())
 
     def set_module(self,route,return_to="dashboard"):
         # Resolve the exact ZIP/mother module id to its canonical Supabase table.
@@ -779,6 +800,8 @@ class ModuleWorkspaceScreen(Screen):
                 self.status.color = (.8, .15, .15, 1)
                 return
 
+        # Mother/ZIP module buttons carry logical ids; all operational paths use the canonical Supabase table.
+        table = self._resolve_backend_route(table)
         self.table=table
         # A selection belongs only to the currently open table. Never carry a row
         # from another module into Edit/Delete.
