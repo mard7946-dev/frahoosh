@@ -188,6 +188,17 @@ class PersianTextInput(TextInput):
     def _focus_changed(self, _widget, focused):
         if self._shaping:
             return
+        # Password fields must never pass through Arabic reshaping.  Kivy
+        # masks their logical value with password_mask; reshaping the stored
+        # password can turn the visible mask into missing-glyph boxes and can
+        # also change the value sent to authentication.
+        if getattr(self, "password", False):
+            self._shaping = True
+            try:
+                self.text = self.logical_text
+            finally:
+                self._shaping = False
+            return
         if focused:
             self._shaping = True
             try:
