@@ -719,6 +719,10 @@ class ModuleWorkspaceScreen(Screen):
         w.bind(pos=lambda o,v:setattr(bg,"pos",v),size=lambda o,v:setattr(bg,"size",v))
 
     def open_table(self,table,refresh_subbar=True):
+        if table == "certificate_requests":
+            self._open_certificate_request(); return
+        if table == "meeting_requests":
+            self._open_meeting_request(); return
         # Special school workflows use student-bound operational screens instead
         # of the generic CRUD renderer.
         if table in ("attendance", "discipline_records", "online_attendance"):
@@ -786,6 +790,7 @@ class ModuleWorkspaceScreen(Screen):
             bar.add_widget(self.btn("ویرایش",lambda *_:self._edit_selected_row(),PRIMARY,dp(38)))
             bar.add_widget(self.btn("حذف",lambda *_:self._delete_selected_row(),(0.72,.16,.18,1),dp(38)))
             bar.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+            bar.add_widget(self.btn("خروجی PDF",lambda *_:self.export_pdf(),(0.18,.48,.30,1),dp(38)))
             bar.add_widget(self.btn("ورودی Excel",lambda *_:self.import_excel(),(0.42,.30,.62,1),dp(38)))
             self.body.add_widget(bar)
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
@@ -862,6 +867,103 @@ class ModuleWorkspaceScreen(Screen):
                 Clock.schedule_once(lambda *_: self.write_error("ورودی Excel انجام نشد: "+str(exc)),0)
         Thread(target=work,daemon=True).start()
 
+    def export_pdf(self):
+        table=str(self.table or "").strip()
+        if not table: return
+        self.status.text=rtl_text("در حال ساخت PDF…")
+        def work():
+            try:
+                from mobile.services.document_service import export_table_pdf
+                rows=self.app_state.api.table_select(table,{"limit":"1000"}) or []
+                fields=[f for f in (TABLE_FIELDS.get(table) or []) if f not in HIDDEN]
+                if not fields and rows: fields=[k for k in rows[0] if k not in HIDDEN]
+                out=Path("/storage/emulated/0/Download") / ("frahoosh_"+table+".pdf")
+                export_table_pdf(table,rows,fields,COLUMNS,out,FRIENDLY.get(table,table))
+                Clock.schedule_once(lambda *_: self._excel_done("خروجی PDF ذخیره شد: "+str(out)),0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_: self.write_error("خروجی PDF انجام نشد: "+str(exc)),0)
+        Thread(target=work,daemon=True).start()
+
+    def _open_certificate_request(self):
+        role=self.role()
+        if role not in {"student","parent"}:
+            self.table="certificate_requests"; self.selected_row=None; self.render(); return
+        root=BoxLayout(orientation="vertical",padding=dp(10),spacing=dp(7))
+        root.add_widget(self.label("درخواست گواهی اشتغال به تحصیل","16sp",PRIMARY,True,"center"))
+        student_id=""; student_name=""
+        try:
+            from mobile.services.live_data import LiveSchoolData
+            live=LiveSchoolData(self.app_state)
+            if role=="student":
+                st=live.current_student()
+                student_id=str(st.get("id") or st.get("student_id") or "")
+                student_name=str(st.get("name") or st.get("student_name") or ((st.get("first_name") or "")+" "+(st.get("last_name") or "")).strip())
+            else:
+                ids=live.parent_student_ids()
+                if ids: student_id=str(ids[0])
+                if student_id:
+                    rows=self.app_state.api.table_select("students",{"id":"eq."+student_id,"limit":"1"}) or []
+                    if rows:
+                        st=rows[0]; student_name=str(st.get("name") or st.get("student_name") or ((st.get("first_name") or "")+" "+(st.get("last_name") or "")).strip())
+        except Exception: pass
+        fields={}
+        for key,label,value in (("student_id","شناسه دانش‌آموز",student_id),("student_name","نام دانش‌آموز",student_name),("destination","فقط به منظور ارائه به",""),("request_date","تاریخ درخواست","")):
+            root.add_widget(self.label(label,"10sp",PRIMARY,True))
+            w=PersianTextInput(text=value,hint_text=rtl_text(label),font_name=font_name(),font_size="12sp",halign="right",size_hint_y=None,height=dp(44))
+            fields[key]=w; root.add_widget(w)
+        actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5))
+        p=Popup(title=rtl_text("درخواست گواهی"),content=root,size_hint=(.94,.78),auto_dismiss=False)
+        actions.add_widget(self.btn("انصراف",lambda *_:p.dismiss(),SECONDARY,dp(40)))
+        def submit(*_):
+            def val(w): return (w.get_logical_text() if hasattr(w,"get_logical_text") else str(w.text or "")).strip()
+            payload={k:val(w) for k,w in fields.items()}
+            payload.update({"requester_username":getattr(self.app_state,"username","") or getattr(self.app_state,"user",{}).get("username",""),"status":"pending"})
+            if not payload["student_id"] or not payload["student_name"] or not payload["destination"]:
+                self.message("درخواست گواهی","دانش‌آموز، مقصد و تاریخ/مشخصات درخواست الزامی است."); return
+            p.dismiss()
+            def work():
+                try:
+                    self.app_state.api.table_insert("certificate_requests",payload,return_representation=False)
+                    Clock.schedule_once(lambda *_: self.after_write("درخواست گواهی ثبت شد و برای معاون اجرایی ارسال شد."),0)
+                except Exception as exc: Clock.schedule_once(lambda *_: self.write_error(str(exc)),0)
+            Thread(target=work,daemon=True).start()
+        actions.add_widget(self.btn("ثبت درخواست",submit,SUCCESS,dp(40))); root.add_widget(actions); p.open()
+
+    def _open_meeting_request(self):
+        if self.role() in {"manager","executive","educational","cultural","advisor","teacher","parent"}:
+            self._meeting_editor(self.role()); return
+        self.table="meeting_requests"; self.render()
+
+    def _meeting_editor(self,role):
+        root=BoxLayout(orientation="vertical",padding=dp(10),spacing=dp(6))
+        sc=ScrollView(do_scroll_x=False); form=GridLayout(cols=1,spacing=dp(5),size_hint_y=None); form.bind(minimum_height=form.setter("height")); root.add_widget(sc); sc.add_widget(form)
+        values=[("requested_date","روز ملاقات"),("requested_time","ساعت ملاقات"),("reason","علت ملاقات"),("target_role","مخاطب مورد ملاقات"),("target_name","نام مخاطب")]
+        fields={}
+        for key,label in values:
+            form.add_widget(self.label(label,"10sp",PRIMARY,True))
+            w=PersianTextInput(hint_text=rtl_text(label),font_name=font_name(),font_size="12sp",halign="right",size_hint_y=None,height=dp(44))
+            fields[key]=w; form.add_widget(w)
+        form.add_widget(self.label("توضیحات تکمیلی","10sp",PRIMARY,True))
+        fields["description"]=PersianTextInput(hint_text=rtl_text("توضیحات تکمیلی"),font_name=font_name(),font_size="12sp",halign="right",multiline=True,size_hint_y=None,height=dp(72)); form.add_widget(fields["description"])
+        actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5))
+        p=Popup(title=rtl_text("تعیین وقت ملاقات"),content=root,size_hint=(.94,.82),auto_dismiss=False)
+        actions.add_widget(self.btn("انصراف",lambda *_:p.dismiss(),SECONDARY,dp(40)))
+        def submit(*_):
+            def val(k):
+                w=fields[k]; return (w.get_logical_text() if hasattr(w,"get_logical_text") else str(w.text or "")).strip()
+            payload={k:val(k) for k in fields}
+            payload.update({"requester_username":getattr(self.app_state,"username","") or getattr(self.app_state,"user",{}).get("username",""),"requester_role":role,"requester_name":getattr(self.app_state,"display_name","کاربر فراهوش"),"status":"pending","manager_status":"pending","educational_status":"pending"})
+            if not payload["requested_date"] or not payload["requested_time"] or not payload["reason"] or not payload["target_name"]:
+                self.message("تعیین وقت","روز، ساعت، علت و مخاطب مورد ملاقات الزامی است."); return
+            p.dismiss()
+            def work():
+                try:
+                    self.app_state.api.table_insert("meeting_requests",payload,return_representation=False)
+                    Clock.schedule_once(lambda *_: self.after_write("درخواست ملاقات ثبت شد و تا تأیید نهایی مدیر نمایش داده نمی‌شود."),0)
+                except Exception as exc: Clock.schedule_once(lambda *_: self.write_error(str(exc)),0)
+            Thread(target=work,daemon=True).start()
+        actions.add_widget(self.btn("ثبت درخواست",submit,SUCCESS,dp(40))); root.add_widget(actions); p.open()
+
     def _excel_done(self,message):
         self.status.text=rtl_text(message)
         self.status.color=SUCCESS
@@ -897,7 +999,11 @@ class ModuleWorkspaceScreen(Screen):
                 api = getattr(self.app_state, "api", None)
                 if api is None:
                     raise RuntimeError("اتصال سرویس داده آماده نیست.")
-                rows = api.table_select(table, {"limit": "25"}) or []
+                query={"limit":"25"}
+                role=self.role()
+                if table=="meeting_requests" and role!="manager": query["manager_status"]="eq.approved"
+                if table=="certificate_requests" and role in {"student","parent"}: query["status"]="eq.approved"
+                rows = api.table_select(table, query) or []
                 if not isinstance(rows, list):
                     rows = []
                 safe_rows = [dict(r) for r in rows if isinstance(r, dict)]
@@ -1079,6 +1185,8 @@ class ModuleWorkspaceScreen(Screen):
             "secure_mode": ("فعال", "غیرفعال"),
             "share_enabled": ("فعال", "غیرفعال"),
             "manager_released": ("تأیید شده", "در انتظار تأیید"),
+            "manager_status": ("pending", "approved", "rejected"),
+            "educational_status": ("pending", "approved", "rejected"),
             "status": ("فعال", "در انتظار", "تأیید شد", "رد شد", "بسته", "لغو شد"),
             "priority": ("کم", "عادی", "زیاد", "فوری"),
             "transaction_type": ("بدهکار", "بستانکار"),
