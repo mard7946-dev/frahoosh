@@ -245,14 +245,16 @@ class PanelHubScreen(Screen):
                                   halign="center",valign="middle",size_hint_y=None,height=dp(34)))
             card.add_widget(Label(text=rtl_text(self._module_purpose(label,route)),font_name=font_name(),font_size="8sp",
                                   color=(0.75,0.9,1,1),halign="center",valign="middle"))
-            actions=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(4))
-            enter=Button(text=rtl_text("ورود و عملیات"),font_name=font_name(),font_size="10sp",
-                         background_normal="",background_color=PRIMARY,color=WHITE)
-            io=Button(text=rtl_text("Excel/PDF"),font_name=font_name(),font_size="9sp",
-                      background_normal="",background_color=SUCCESS,color=WHITE,size_hint_x=.42)
+            actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(4))
+            # Every mother module has one operational entry point.  Excel/PDF
+            # is an export/import utility, not the module itself, and showing it
+            # beside every module was the source of the generic "ورودی و خروجی"
+            # page being mistaken for the real module workspace.
+            enter=Button(text=rtl_text("ورود به جدول تخصصی و عملیات"),
+                         font_name=font_name(),font_size="10sp",
+                         background_normal="",background_color=SUCCESS,color=WHITE)
             enter.bind(on_release=lambda *_a,r=route:self._open(r))
-            io.bind(on_release=lambda *_a,r=route:self._open_io(r))
-            actions.add_widget(enter); actions.add_widget(io); card.add_widget(actions)
+            actions.add_widget(enter); card.add_widget(actions)
             self.grid.add_widget(card)
 
     def _module_purpose(self,label,route):
