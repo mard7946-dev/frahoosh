@@ -506,9 +506,14 @@ class DashboardScreen(Screen):
                     screen=ParticipationScreen(name="participation",app_state=self.app_state); app.sm.add_widget(screen)
                 screen.set_route(self.role()); app.sm.current="participation"; return
             if route=="teacher_exams":
-                screen=app.ensure_exam()
-                if screen: app.sm.current="teacher_exams"
-                return
+                try:
+                    screen=app.ensure_exam()
+                    if screen:
+                        app.sm.current="teacher_exams"
+                        return
+                except Exception as exam_exc:
+                    print("TEACHER EXAM WORKFLOW FALLBACK:",repr(exam_exc))
+                # Fall through to the canonical mother/table workspace.
             panel=app.ensure_panel()
             if panel is None:
                 raise RuntimeError("پنل عملیاتی آماده نشد.")
