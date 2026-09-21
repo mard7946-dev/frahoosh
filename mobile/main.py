@@ -78,28 +78,43 @@ class OperationalPanelScreen(Screen):
     def set_route(self, route):
         if self.workspace is None:
             raise RuntimeError("محیط عملیاتی پنل آماده نیست.")
-        route = str(route or "")
+        route = str(route or "").strip()
         app = App.get_running_app()
-        if route == "certificate_requests":
-            screen=app.ensure_certificate_workflow()
-            if screen: app.sm.current=screen.name
-            return
-        if route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
-            screen=app.ensure_meeting_workflow()
-            if screen: app.sm.current=screen.name
-            return
-        if route in {"online_classes","virtual"}:
-            screen=app.ensure_online_workflow()
-            if screen: app.sm.current=screen.name
-            return
-        if route in {"teacher_exams","exams","questions","quiz_questions"}:
-            screen=app.ensure_exam_authoring()
-            if screen: app.sm.current=screen.name
-            return
-        if route.startswith("io:"):
-            screen=app.ensure_panel_io(route.split(":",1)[1])
-            if screen: app.sm.current=screen.name
-            return
+
+        # Mother-panel navigation must never be allowed to terminate the Android
+        # process. Special workflows are preferred, but every one has a real
+        # workspace/table fallback if its dedicated screen cannot be constructed.
+        try:
+            if route == "certificate_requests":
+                screen = app.ensure_certificate_workflow() if app else None
+                if screen:
+                    app.sm.current = screen.name
+                    return
+            elif route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
+                screen = app.ensure_meeting_workflow() if app else None
+                if screen:
+                    app.sm.current = screen.name
+                    return
+            elif route in {"online_classes","virtual"}:
+                screen = app.ensure_online_workflow() if app else None
+                if screen:
+                    app.sm.current = screen.name
+                    return
+            elif route in {"teacher_exams","exams","questions","quiz_questions"}:
+                screen = app.ensure_exam_authoring() if app else None
+                if screen:
+                    app.sm.current = screen.name
+                    return
+            elif route.startswith("io:"):
+                screen = app.ensure_panel_io(route.split(":",1)[1]) if app else None
+                if screen:
+                    app.sm.current = screen.name
+                    return
+        except Exception as exc:
+            print("SPECIAL MODULE ROUTE FALLBACK:", repr(exc))
+
+        # If a dedicated workflow is unavailable, open the mother module in the
+        # real generic workspace instead of letting an event callback crash.
         self.workspace.set_module(route, return_to="dashboard")
 
 class FrahooshApp(App):
