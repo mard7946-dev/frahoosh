@@ -10,8 +10,8 @@ LOGIN_PASSWORD_HINT = "رمز عبور"
 SYSTEM_TITLE = "سامانه هوشمند آموزشی یکپارچه مدرسه"
 BASE_DIR = Path(__file__).resolve().parent
 ASSETS_DIR = BASE_DIR / "assets"
-FONT_REGULAR = ASSETS_DIR / "BTitrBd.ttf"
-FONT_BOLD = ASSETS_DIR / "BTitrBd.ttf"
+FONT_REGULAR = ASSETS_DIR / "NotoSansArabic-Regular.ttf"
+FONT_BOLD = ASSETS_DIR / "NotoSansArabic-Bold.ttf"
 LOGO_PATH = str(ASSETS_DIR / "frahoosh_logo.png")
 
 
