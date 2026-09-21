@@ -177,15 +177,6 @@ COLUMNS.update({
 
 # Replace the legacy hard-coded table map with the ZIP canonical contract.
 # The JSON catalog is the single source for Web + Android module fields.
-if _shared_modules:
-    for _module_id, _spec in _shared_modules.items():
-        if not isinstance(_spec, dict):
-            continue
-        _table = str(_spec.get("table") or _module_id).strip()
-        _fields = _spec.get("fields") or []
-        if _table and isinstance(_fields, list):
-            TABLE_FIELDS[_table] = [str(f) for f in _fields if f and str(f) not in {"id", "created_at", "updated_at", "deleted_at"}]
-
 CANONICAL_OPERATIONS = {
     str(_spec.get("table") or _module_id): tuple(_spec.get("operations") or ("create", "update", "delete"))
     for _module_id, _spec in (_shared_modules or {}).items()
