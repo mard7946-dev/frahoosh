@@ -190,42 +190,31 @@ class FrahooshApp(App):
             print("SCREEN SECURITY POLICY ERROR:", repr(exc))
 
     def ensure_panel(self):
-        """Return a usable operational panel; never fall through to the old None error."""
+        """Mount the real ModuleWorkspace directly in ScreenManager.
+
+        The old design nested ModuleWorkspaceScreen inside another Screen.
+        A nested Screen has no ScreenManager, so its navigation and async table
+        refresh could not operate correctly. The operational workspace itself
+        must be the managed screen.
+        """
         if self.sm is None:
             return None
         try:
-            return self.sm.get_screen("panel")
+            screen = self.sm.get_screen("panel")
+            if screen.__class__.__name__ == "ModuleWorkspaceScreen":
+                return screen
+            self.sm.remove_widget(screen)
         except Exception:
             pass
         try:
-            screen = OperationalPanelScreen(name="panel", app_state=self.app_state)
+            from mobile.screens.module_workspace import ModuleWorkspaceScreen
+            screen = ModuleWorkspaceScreen(app_state=self.app_state, name="panel")
             self.sm.add_widget(screen)
             return screen
         except Exception as exc:
             print("PANEL BUILD ERROR:", repr(exc))
-        # Deterministic fallback: even if the large workspace fails, the screen
-        # exists and can route the three critical school workflows.
-        from kivy.uix.boxlayout import BoxLayout
-        from kivy.uix.label import Label
-        from kivy.uix.button import Button
-        from kivy.metrics import dp
-        class SafePanelScreen(Screen):
-            def __init__(self, **kwargs):
-                super().__init__(**kwargs)
-                root=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(8))
-                root.add_widget(Label(text="فراهوش • پنل عملیاتی",font_size="20sp"))
-                root.add_widget(Label(text="محیط عملیاتی اصلی در حال بازیابی است."))
-                for title,mode in (("حضور و غیاب","attendance"),("ثبت انضباطی","discipline"),("حضور و غیاب کلاس آنلاین","online_attendance")):
-                    btn=Button(text=title,size_hint_y=None,height=dp(48))
-                    btn.bind(on_release=lambda *_a,m=mode:self._open(m)); root.add_widget(btn)
-                back=Button(text="بازگشت به داشبورد",size_hint_y=None,height=dp(44))
-                back.bind(on_release=lambda *_: setattr(self.manager,"current","dashboard") if self.manager else None); root.add_widget(back)
-                self.add_widget(root)
-            def set_route(self,route): self.route=route
-            def _open(self,mode):
-                app=App.get_running_app(); screen=app.ensure_school_action(mode) if app else None
-                if screen and self.manager: self.manager.current=screen.name
-        screen=SafePanelScreen(name="panel",app_state=self.app_state); self.sm.add_widget(screen); return screen
+            return None
+
     def ensure_dashboard(self):
         if self.sm is None:
             return None
