@@ -115,7 +115,8 @@ _MOTHER_TABLE_ALIASES = {
     "online_classes":"online_classes","online_class_sessions":"online_class_sessions","online_class_students":"online_class_students","online_class_teachers":"online_class_teachers","online_attendance":"online_attendance",
     "teacher_exams":"teacher_exams","quiz_questions":"quiz_questions","quiz_schedules":"exam_schedule","quiz_links":"teacher_exams",
     "payment_offers":"payment_offers","payment_attempts":"payment_attempts","payment_records":"payment_records","payment_transactions":"payment_transactions",
-    "messages":"messages","message_targets":"message_targets","message_reads":"message_reads","smart_board_whiteboards":"smart_board_whiteboards","smart_class_preview":"smart_class_preview"
+    "messages":"messages","message_targets":"message_targets","message_reads":"message_reads","smart_board_whiteboards":"smart_board_whiteboards","smart_class_preview":"smart_class_preview",
+    "school_settings":"school_profile","backup":"backup_records"
 }
 
 if _MOTHER_MODULES:
