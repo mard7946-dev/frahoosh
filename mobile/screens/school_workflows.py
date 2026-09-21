@@ -129,25 +129,142 @@ class MeetingWorkflowScreen(BaseWorkflow):
         except Exception: pass
 
 class OnlineClassWorkflowScreen(BaseWorkflow):
-    def on_pre_enter(self,*_): self.build()
+    """Operational online-class lifecycle shared by manager, deputies, teachers and students."""
+    STAFF_ROLES = {"manager", "educational", "executive", "teacher"}
+
+    def on_pre_enter(self, *_):
+        self.build()
+
     def build(self):
-        self.clear_widgets(); root=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(5)); root.add_widget(self.lab("کلاس آنلاین واقعی",48,"20sp",PRIMARY,True))
-        try: classes=self.api().table_select("online_classes",{"order":"id.desc","limit":"30"}) or []
-        except Exception: classes=[]
-        for c in classes: root.add_widget(self.btn(f"{c.get('title','کلاس')} | {c.get('class_name','')}",lambda *_a,row=c:self.join(row),PRIMARY))
-        root.add_widget(self.lab("ورود + دو حضور شناور برای هر زنگ ثبت می‌شود؛ در صورت عدم تأیید، غیبت و اعلان ثبت خواهد شد.",60)); root.add_widget(self.btn("بازگشت",self.back,SECONDARY)); self.add_widget(root)
-    def join(self,c):
-        api=self.api(); p=getattr(self.app_state,"profile",{}) or {}; sid=p.get("linked_student_id") or p.get("student_id"); cid=c.get("id"); now=datetime.now(timezone.utc)
+        self.clear_widgets()
+        root = BoxLayout(orientation="vertical", padding=dp(8), spacing=dp(5))
+        root.add_widget(self.lab("کلاس آنلاین واقعی", 48, "20sp", PRIMARY, True))
+        role = role_of(self.app_state)
+        if role in self.STAFF_ROLES:
+            root.add_widget(self.btn("ایجاد کلاس آنلاین", self.show_create_form, SUCCESS))
+            self._create_area = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(0), spacing=dp(4))
+            root.add_widget(self._create_area)
+        self.list_box = BoxLayout(orientation="vertical", spacing=dp(4), size_hint_y=None)
+        root.add_widget(self.list_box)
+        root.add_widget(self.lab("دانش‌آموز فقط پس از شروع جلسه توسط دبیر/مسئول مجاز وارد می‌شود؛ حضور و راستی‌آزمایی در جداول واقعی ثبت می‌شود.", 58))
+        root.add_widget(self.btn("بازگشت", self.back, SECONDARY))
+        self.add_widget(root)
+        self._load_classes()
+
+    def _load_classes(self):
         try:
-            ss=api.table_select("online_class_sessions",{"class_id":f"eq.{cid}","order":"id.desc","limit":"1"}) or []; session=ss[0] if ss else (api.table_insert("online_class_sessions",{"class_id":cid,"started_at":now.isoformat()}) or [{}])[0]
-            if role_of(self.app_state)=="student" and sid:
-                api.table_insert("online_attendance",{"class_id":cid,"session_id":session.get("id"),"student_id":sid,"status":"present","checkpoint_no":0})
-                for recipient,title in [("parent","حضور دانش‌آموز در کلاس"),("educational","حضور دانش‌آموز در کلاس")]:
-                    api.table_insert("online_class_notifications",{"class_id":cid,"student_id":sid,"recipient":recipient,"recipient_role":recipient,"title":title,"message":"ورود دانش‌آموز ثبت شد."})
-                duration=max(12,int(c.get("duration",50) or 50)); offsets=sorted(random.sample(range(5,max(7,duration-5)),2))
-                for n,off in enumerate(offsets,1): api.table_insert("online_presence_checks",{"class_id":cid,"session_id":session.get("id"),"student_id":sid,"checkpoint_no":n,"scheduled_at":(now+timedelta(minutes=off)).isoformat(),"response":"pending"})
-            self.msg("حضور ورود ثبت شد؛ دو زمان شناور برای تأیید ادامه کلاس تعیین شد.",SUCCESS)
-        except Exception as e:self.msg("ثبت حضور ناموفق: "+str(e),ERROR)
+            rows = self.api().table_select("online_classes", {"order": "id.desc", "limit": "50"}) or []
+        except Exception as exc:
+            rows = []
+            self.msg("دریافت کلاس‌ها ناموفق بود: " + str(exc), ERROR)
+        role = role_of(self.app_state)
+        if role in {"student", "parent"}:
+            rows = [r for r in rows if str(r.get("status", "")).lower() == "active"]
+        self.classes = rows
+        self.list_box.clear_widgets()
+        for row in rows:
+            self._add_class_row(row)
+
+    def _add_class_row(self, row):
+        role = role_of(self.app_state)
+        title = row.get("title") or "کلاس آنلاین"
+        meta = " | ".join(str(x or "") for x in (row.get("subject"), row.get("class_name"), row.get("teacher"), row.get("start_time_shamsi"), row.get("end_time_shamsi")) if str(x or "").strip())
+        self.list_box.add_widget(self.lab(f"#{row.get('id')} • {title} • {meta}", 42, "10sp", WHITE, True))
+        if role in {"manager", "educational", "executive"}:
+            status = str(row.get("status") or "inactive")
+            if status != "active":
+                self.list_box.add_widget(self.btn("فعال‌سازی کلاس", lambda *_a, r=row: self.activate(r), SUCCESS, 40))
+            else:
+                self.list_box.add_widget(self.btn("غیرفعال‌سازی کلاس", lambda *_a, r=row: self.deactivate(r), SECONDARY, 40))
+            self.list_box.add_widget(self.btn("شروع جلسه", lambda *_a, r=row: self.start_session(r), PRIMARY, 40))
+        elif role == "teacher":
+            if str(row.get("status") or "") == "active":
+                self.list_box.add_widget(self.btn("شروع جلسه / ورود", lambda *_a, r=row: self.start_session(r), PRIMARY, 40))
+            else:
+                self.list_box.add_widget(self.lab("این کلاس هنوز توسط مسئول مجاز فعال نشده است.", 36, "9sp", SECONDARY))
+        elif role == "student":
+            self.list_box.add_widget(self.btn("ورود به کلاس", lambda *_a, r=row: self.join(r), PRIMARY, 42))
+
+    def show_create_form(self, *_):
+        if getattr(self, "_create_open", False):
+            return
+        self._create_open = True
+        fields = [("title","عنوان کلاس"),("subject","درس"),("lesson","مبحث/جلسه"),("teacher","نام دبیر"),("grade","پایه"),("class_name","کلاس"),("duration","مدت (دقیقه)"),("start_time_shamsi","ساعت شروع"),("end_time_shamsi","ساعت پایان"),("join_url","لینک ورود"),("meeting_url","لینک جلسه")]
+        self.form = {}
+        self._create_area.clear_widgets()
+        for key, hint in fields:
+            w = self.field(hint)
+            if key == "duration": w.text = "60"
+            self.form[key] = w
+            self._create_area.add_widget(w)
+        actions = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(4))
+        actions.add_widget(self.btn("ذخیره کلاس", self.create_class, SUCCESS, 40))
+        actions.add_widget(self.btn("انصراف", self.close_create_form, SECONDARY, 40))
+        self._create_area.add_widget(actions)
+        self._create_area.height = dp(len(fields) * 46 + 42)
+
+    def close_create_form(self, *_):
+        self._create_open = False
+        self._create_area.clear_widgets()
+        self._create_area.height = 0
+
+    def create_class(self, *_):
+        payload = {key: widget.text.strip() for key, widget in self.form.items() if widget.text.strip()}
+        if not payload.get("title"):
+            self.msg("عنوان کلاس را وارد کنید.", ERROR); return
+        try: payload["duration"] = int(payload.get("duration") or 60)
+        except ValueError: payload["duration"] = 60
+        role = role_of(self.app_state)
+        payload["status"] = "active" if role in {"manager","educational","executive"} else "pending"
+        if not payload.get("teacher"): payload["teacher"] = getattr(self.app_state,"display_name","") or self.username()
+        created = (self.api().table_insert("online_classes", payload) or [{}])[0]
+        class_id = created.get("id")
+        profile = getattr(self.app_state,"profile",{}) or {}
+        teacher_id = profile.get("linked_teacher_id") or profile.get("teacher_id")
+        if class_id and teacher_id:
+            try: self.api().table_insert("online_class_teachers",{"class_id":class_id,"teacher_id":teacher_id,"teacher_name":payload.get("teacher","")})
+            except Exception as exc: print("ONLINE CLASS TEACHER LINK ERROR:",repr(exc))
+        self.close_create_form()
+        self.msg("کلاس آنلاین در سامانه ثبت شد." if payload["status"]=="active" else "کلاس ثبت شد و برای فعال‌سازی مسئول مجاز ارسال شد.",SUCCESS)
+        self._load_classes()
+
+    def activate(self,row):
+        try: self.api().table_update("online_classes",{"id":f"eq.{row['id']}"},{"status":"active"}); self._load_classes()
+        except Exception as exc: self.msg("فعال‌سازی ناموفق: "+str(exc),ERROR)
+
+    def deactivate(self,row):
+        try: self.api().table_update("online_classes",{"id":f"eq.{row['id']}"},{"status":"inactive"}); self._load_classes()
+
+        except Exception as exc: self.msg("غیرفعال‌سازی ناموفق: "+str(exc),ERROR)
+
+    def start_session(self,row):
+        try:
+            api=self.api()
+            active=api.table_select("online_class_sessions",{"class_id":f"eq.{row['id']}","ended_at":"is.null","order":"id.desc","limit":"1"}) or []
+            if active: self.msg("جلسه فعال است؛ دانش‌آموزان می‌توانند وارد شوند.",SUCCESS); return
+            api.table_insert("online_class_sessions",{"class_id":row["id"],"started_at":datetime.now(timezone.utc).isoformat()})
+            api.table_update("online_classes",{"id":f"eq.{row['id']}"},{"status":"active"})
+            self.msg("جلسه کلاس شروع شد.",SUCCESS); self._load_classes()
+        except Exception as exc: self.msg("شروع جلسه ناموفق: "+str(exc),ERROR)
+
+    def join(self,row):
+        api=self.api(); profile=getattr(self.app_state,"profile",{}) or {}; student_id=profile.get("linked_student_id") or profile.get("student_id")
+        if role_of(self.app_state)!="student" or not student_id:
+            self.msg("این عملیات برای ورود دانش‌آموز به جلسه است.",ERROR); return
+        try:
+            sessions=api.table_select("online_class_sessions",{"class_id":f"eq.{row['id']}","ended_at":"is.null","order":"id.desc","limit":"1"}) or []
+            if not sessions: self.msg("جلسه هنوز توسط دبیر یا مسئول مجاز شروع نشده است.",ERROR); return
+            session=sessions[0]; student_name=str(profile.get("display_name") or getattr(self.app_state,"display_name","") or ""); now=datetime.now(timezone.utc).isoformat()
+            links=api.table_select("online_class_students",{"class_id":f"eq.{row['id']}","student_id":f"eq.{student_id}","limit":"1"}) or []
+            if not links: api.table_insert("online_class_students",{"class_id":row["id"],"student_id":student_id,"student_name":student_name})
+            api.table_insert("online_attendance",{"class_id":row["id"],"session_id":session.get("id"),"student_id":student_id,"student_name":student_name,"status":"present","event_time":now,"source":"online","checkpoint_no":0})
+            api.table_insert("online_class_activity",{"class_id":row["id"],"session_id":session.get("id"),"student_id":student_id,"event_type":"join","event_time":now,"metadata":{}})
+            api.table_insert("online_class_notifications",{"class_id":row["id"],"student_id":student_id,"recipient":self.username(),"recipient_role":"student","title":"ورود به کلاس آنلاین","message":"ورود شما به کلاس ثبت شد."})
+            duration=max(12,int(row.get("duration",60) or 60)); upper=max(7,duration-5); count=2 if upper-5>=2 else 1
+            for n,offset in enumerate(sorted(random.sample(range(5,upper),count)),1):
+                api.table_insert("online_presence_checks",{"class_id":row["id"],"session_id":session.get("id"),"student_id":student_id,"checkpoint_no":n,"scheduled_at":(datetime.now(timezone.utc)+timedelta(minutes=offset)).isoformat(),"response":"pending"})
+            self.msg("ورود ثبت شد؛ حضورهای راستی‌آزمایی نیز برای این جلسه ثبت شد.",SUCCESS)
+        except Exception as exc: self.msg("ورود به کلاس ناموفق: "+str(exc),ERROR)
 
 class ExamAuthoringScreen(BaseWorkflow):
     TYPES=[("multiple_choice","تستی"),("fill_blank","جای خالی"),("short_answer","پاسخ کوتاه"),("true_false","صحیح/غلط"),("matching","وصل کردنی"),("essay","تشریحی")]

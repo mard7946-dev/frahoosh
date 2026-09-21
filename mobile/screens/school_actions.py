@@ -274,7 +274,13 @@ class OnlineAttendanceScreen(_Base):
             for s in rows:
                 sid=s.get("id"); value=self.values.get(str(sid),"present")
                 try:
-                    self.app_state.api.table_insert("online_attendance",{"class_id":selected,"student_id":sid,"join_time":now,"status":f"check{stage}_{value}","last_activity":now})
+                    classes=self.app_state.api.table_select("online_classes",{"class_name":f"eq.{s.get('class_name')}","limit":"1"}) or []
+                    class_row=classes[0] if classes else None
+                    if not class_row: raise RuntimeError("کلاس آنلاین برای این کلاس پیدا نشد.")
+                    sessions=self.app_state.api.table_select("online_class_sessions",{"class_id":f"eq.{class_row.get('id')}","ended_at":"is.null","order":"id.desc","limit":"1"}) or []
+                    session=sessions[0] if sessions else (self.app_state.api.table_insert("online_class_sessions",{"class_id":class_row.get("id"),"started_at":now}) or [{}])[0]
+                    self.app_state.api.table_insert("online_attendance",{"class_id":class_row.get("id"),"session_id":session.get("id"),"student_id":sid,"student_name":f"{s.get('first_name','')} {s.get('last_name','')}".strip(),"event_time":now,"source":"teacher_checkpoint","checkpoint_no":stage,"status":f"check{stage}_{value}"})
+                    self.app_state.api.table_insert("online_class_activity",{"class_id":class_row.get("id"),"session_id":session.get("id"),"student_id":sid,"event_type":f"checkpoint_{stage}","event_time":now,"metadata":{"result":value}})
                     if value=="failed":self._notify("کلاس آنلاین",f"راستی‌آزمایی مرحله {stage} تأیید نشد؛ ادامه کلاس برای این دانش‌آموز بسته شد.",s)
                 except Exception as exc:print("ONLINE ATTENDANCE SAVE ERROR:",repr(exc))
             Clock.schedule_once(lambda *_:self.after_stage(stage),0)

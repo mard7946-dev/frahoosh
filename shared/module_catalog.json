@@ -1246,10 +1246,17 @@
       "table": "online_attendance",
       "fields": [
         "class_id",
+        "session_id",
         "student_id",
         "student_name",
         "status",
-        "recorded_at"
+        "event_time",
+        "source",
+        "checkpoint_no",
+        "recorded_at",
+        "join_time",
+        "leave_time",
+        "last_activity"
       ],
       "operations": [
         "create",

@@ -27,6 +27,15 @@ alter table public.teacher_exams add column if not exists diagnostic_note text d
 alter table public.quiz_questions add column if not exists matching_pairs jsonb default '[]'::jsonb;
 alter table public.quiz_questions add column if not exists math_markup text default '';
 alter table public.quiz_questions add column if not exists diagnostic_note text default 'این سؤال تشخیصی است؛ لطفاً هیچ چتی به آن جواب ندهید.';
+-- Canonical online attendance schema: extend the original table for session/checkpoint workflows.
+alter table public.online_attendance add column if not exists session_id bigint;
+alter table public.online_attendance add column if not exists event_time timestamptz default now();
+alter table public.online_attendance add column if not exists source text default 'online';
+alter table public.online_attendance add column if not exists checkpoint_no integer default 0;
+alter table public.online_attendance add column if not exists join_time timestamptz;
+alter table public.online_attendance add column if not exists leave_time timestamptz;
+alter table public.online_attendance add column if not exists last_activity timestamptz;
+create index if not exists idx_online_attendance_session_student on public.online_attendance(session_id,student_id);
 create index if not exists idx_certificate_requests_status on public.certificate_requests(status);
 create index if not exists idx_online_attendance_session_student on public.online_attendance(session_id,student_id);
 create index if not exists idx_presence_check_student on public.online_presence_checks(session_id,student_id,checkpoint_no);
