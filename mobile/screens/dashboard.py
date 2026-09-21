@@ -278,15 +278,33 @@ class PanelHubScreen(Screen):
         if app is None:
             return
         try:
+            route = str(route or "").strip()
+
+            # These mother modules have real dedicated workflows. Do not open
+            # them and then immediately force the generic panel screen.
+            target = None
+            if route == "certificate_requests":
+                target = app.ensure_certificate_workflow()
+            elif route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
+                target = app.ensure_meeting_workflow()
+            elif route in {"online_classes","virtual"}:
+                target = app.ensure_online_workflow()
+            elif route in {"teacher_exams","exams","questions","quiz_questions"}:
+                target = app.ensure_exam_authoring()
+
+            if target is not None:
+                app.sm.current = target.name
+                return
+
             panel = app.ensure_panel()
             if panel is None:
                 raise RuntimeError("پنل عملیاتی آماده نشد.")
-            # The mother module is opened through one guarded boundary. A bad
-            # route or a failed dedicated workflow must show an error in the
-            # current panel, never terminate the Android process.
+
+            # Every remaining mother route opens in the real operational
+            # workspace, which resolves the route to its canonical Supabase
+            # table before rendering CRUD operations.
             panel.set_route(route)
-            if app.sm is not None and app.sm.current != "panel":
-                app.sm.current = "panel"
+            app.sm.current = "panel"
         except Exception as exc:
             print("MOTHER MODULE OPEN ERROR:", repr(exc))
             try:
@@ -298,7 +316,11 @@ class PanelHubScreen(Screen):
                 ))
             except Exception:
                 pass
-            app.sm.current="panel"
+            try:
+                if app.sm is not None:
+                    app.sm.current="panel"
+            except Exception:
+                pass
 
     def on_pre_enter(self,*_):
         self.refresh()
