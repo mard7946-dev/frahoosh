@@ -280,17 +280,22 @@ class PanelHubScreen(Screen):
         try:
             route = str(route or "").strip()
 
-            # These mother modules have real dedicated workflows. Do not open
-            # them and then immediately force the generic panel screen.
+            # Dedicated workflows are optional presentation layers. A failed
+            # workflow must NEVER terminate navigation: the canonical mother
+            # module/table remains the deterministic fallback.
             target = None
-            if route == "certificate_requests":
-                target = app.ensure_certificate_workflow()
-            elif route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
-                target = app.ensure_meeting_workflow()
-            elif route in {"online_classes","virtual"}:
-                target = app.ensure_online_workflow()
-            elif route in {"teacher_exams","exams","questions","quiz_questions"}:
-                target = app.ensure_exam_authoring()
+            try:
+                if route == "certificate_requests":
+                    target = app.ensure_certificate_workflow()
+                elif route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
+                    target = app.ensure_meeting_workflow()
+                elif route in {"online_classes","virtual"}:
+                    target = app.ensure_online_workflow()
+                elif route in {"teacher_exams","exams","questions","quiz_questions"}:
+                    target = app.ensure_exam_authoring()
+            except Exception as workflow_exc:
+                print("DEDICATED WORKFLOW FALLBACK:", repr(workflow_exc))
+                target = None
 
             if target is not None:
                 app.sm.current = target.name
