@@ -355,7 +355,12 @@ class DashboardScreen(Screen):
         # is opened only after entering a panel; it must never replace the panel
         # cards themselves with a handful of unrelated modules.
         if role=="manager":
-            return [(title,"panelhub:"+key) for title,key in PANEL_HUBS]
+            # Finance is a first-class main panel. Keep the canonical 15-panel
+            # dashboard even if a stale catalog/filter omits it.
+            hubs=list(PANEL_HUBS)
+            if not any(key=="finance" for _,key in hubs):
+                hubs.insert(8,("مالی","finance"))
+            return [(title,"panelhub:"+key) for title,key in hubs]
         if role=="student":
             return [(title,"panelhub:"+key) for title,key in PANEL_HUBS if key in STUDENT_ALLOWED_PANELS]
         if role=="parent":
