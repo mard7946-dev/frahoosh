@@ -555,47 +555,62 @@ class ModuleWorkspaceScreen(Screen):
         self.app_state=app_state; self.route="management"; self.return_to="dashboard"; self.table=None; self.rows=[]; self._build()
 
     def label(self,text,size="11sp",color=SECONDARY,bold=False,center=False):
-        w=Label(text=rtl_text(str(text)),font_name=font_name(),font_script_name="Arab",text_language="fa",font_size=size,color=color,bold=bold,halign="center" if center else "right",valign="middle")
-        w.bind(size=lambda o,v:setattr(o,"text_size",v)); return w
+        # Keep the operational workspace on the smallest Kivy text contract
+        # supported by every Android build. Persian shaping is already handled
+        # by rtl_text() and the bundled Frahoosh font.
+        w=Label(text=rtl_text(str(text)),font_name=font_name(),font_size=size,color=color,bold=bold,
+                halign="center" if center else "right",valign="middle")
+        w.bind(size=lambda o,v:setattr(o,"text_size",v))
+        return w
 
     def btn(self,text,cb,color=PRIMARY,h=dp(40),width=None):
-        b=Button(text=rtl_text(text),font_name=font_name(),font_script_name="Arab",text_language="fa",font_size="10sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=h)
-        if width is not None: b.size_hint_x=None; b.width=width
-        b.bind(on_release=cb); return b
+        b=Button(text=rtl_text(text),font_name=font_name(),font_size="10sp",
+                 background_normal="",background_color=color,color=WHITE,
+                 size_hint_y=None,height=h)
+        if width is not None:
+            b.size_hint_x=None
+            b.width=width
+        b.bind(on_release=cb)
+        return b
 
     def _build(self):
+        # Android must be able to construct the operational workspace without
+        # any optional/custom widget contract.  The previous implementation
+        # used a few advanced Kivy text properties that can fail during Screen
+        # construction and were hidden by ensure_panel() as a generic
+        # "پنل عملیاتی آماده نشد" error.
         root=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(6))
-        # Keep the agreed portrait artwork behind the operational panel.
         with root.canvas.before:
-            Color(0.01,0.03,0.09,0.18)
-            root._shade=RoundedRectangle(radius=[0])
-            root._background=Rectangle()
-        try:
-            from mobile.ui import bundled_login_background
-            bg_source = bundled_login_background()
-        except Exception as exc:
-            print("WORKSPACE BACKGROUND ERROR:", repr(exc))
-            bg_source = None
-        if bg_source:
-            root._background.source = bg_source
-        def sync_bg(*_):
-            root._shade.pos=root.pos; root._shade.size=root.size
-            root._background.pos=root.pos; root._background.size=root.size
-        root.bind(pos=sync_bg,size=sync_bg)
+            Color(0.01,0.03,0.09,1)
+            root._bg=RoundedRectangle(radius=[dp(10)])
+        root.bind(pos=lambda o,v:setattr(root._bg,"pos",v),
+                  size=lambda o,v:setattr(root._bg,"size",v))
+
         top=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(5))
         top.add_widget(self.btn("بازگشت",self.go_back,PRIMARY,dp(40),dp(78)))
-        self.title=self.label(APP_NAME,"18sp",WHITE,True,"center"); top.add_widget(self.title)
-        top.add_widget(self.btn("داشبورد",self.go_dashboard,PRIMARY,dp(40),dp(45)))
+        self.title=self.label(APP_NAME,"18sp",WHITE,True,"center")
+        top.add_widget(self.title)
+        top.add_widget(self.btn("داشبورد",self.go_dashboard,PRIMARY,dp(40),dp(68)))
         root.add_widget(top)
-        root.add_widget(self.label(f"{SCHOOL_NAME}  •  سال تحصیلی {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}","9sp",WHITE,False,"center"))
-        self.status=self.label("اتصال فعال • اطلاعات واقعی سامانه","9sp",WHITE,True,"center"); root.add_widget(self.status)
-        self.subscroll=ScrollView(do_scroll_x=True,do_scroll_y=False,size_hint_y=None,height=dp(45))
-        self.subbar=BoxLayout(orientation="horizontal",spacing=dp(5),size_hint_x=None)
-        self.subbar.bind(minimum_width=self.subbar.setter("width")); self.subscroll.add_widget(self.subbar); root.add_widget(self.subscroll)
-        # This is deliberately about half the usable screen: the artwork remains visible.
-        self.body=BoxLayout(orientation="vertical",spacing=dp(6),size_hint_y=.60)
+
+        root.add_widget(self.label(
+            f"{SCHOOL_NAME}  •  سال تحصیلی {SCHOOL_YEAR or '۱۴۰۵-۱۴۰۶'}",
+            "9sp",WHITE,False,"center"
+        ))
+        self.status=self.label("محیط عملیاتی آماده است • اطلاعات واقعی سامانه",
+                               "9sp",WHITE,True,"center")
+        root.add_widget(self.status)
+
+        self.subscroll=ScrollView(do_scroll_x=True,do_scroll_y=False,
+                                  size_hint_y=None,height=dp(45))
+        self.subbar=BoxLayout(orientation="horizontal",spacing=dp(5),
+                              size_hint_x=None)
+        self.subbar.bind(minimum_width=self.subbar.setter("width"))
+        self.subscroll.add_widget(self.subbar)
+        root.add_widget(self.subscroll)
+
+        self.body=BoxLayout(orientation="vertical",spacing=dp(6),size_hint_y=1)
         root.add_widget(self.body)
-        root.add_widget(Widget())
         self.add_widget(root)
 
     def role(self):
