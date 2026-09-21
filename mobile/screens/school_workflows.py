@@ -57,7 +57,7 @@ class CertificateWorkflowScreen(BaseWorkflow):
         try:
             rows=api.table_select("certificate_requests",{"order":"id.desc","limit":"50"}) or []
             for r in rows:
-                if str(r.get("requester_username","")).lower()==self.username().lower() and r.get("status")=="approved":
+                if r.get("status")=="approved" and str(r.get("student_id")) in {str(s.get("id")) for s in students}:
                     root.add_widget(self.lab(f"#{r.get('id')} • {r.get('student_name')} • تأیید شد",42))
                     root.add_widget(self.btn("دریافت گواهی PDF",lambda *_a,row=r:self.make_pdf(row),PRIMARY,40))
         except Exception: pass
@@ -65,7 +65,7 @@ class CertificateWorkflowScreen(BaseWorkflow):
         if not self.students or not self.api(): return
         s=self.students[max(0,[f"{x.get('first_name','')} {x.get('last_name','')}".strip() for x in self.students].index(str(self.student.text)) if str(self.student.text) in [f"{x.get('first_name','')} {x.get('last_name','')}".strip() for x in self.students] else 0)]
         try:
-            self.api().table_insert("certificate_requests",{"student_id":s.get("id"),"student_name":f"{s.get('first_name','')} {s.get('last_name','')}".strip(),"destination":self.dest.text.strip(),"request_date":datetime.now().strftime("%Y-%m-%d"),"status":"pending_executive","requester_username":self.username(),"requester_role":role_of(self.app_state)})
+            self.api().table_insert("certificate_requests",{"student_id":s.get("id"),"student_name":f"{s.get('first_name','')} {s.get('last_name','')}".strip(),"destination":self.dest.text.strip(),"request_date":datetime.now().strftime("%Y-%m-%d"),"status":"pending_executive",})
             self.build()
         except Exception as e:self.msg("ثبت نشد: "+str(e),ERROR)
     def review(self,root):
@@ -94,7 +94,7 @@ class CertificateWorkflowScreen(BaseWorkflow):
             rows=self.api().table_select("students",{"id":f"eq.{row.get('student_id')}","limit":"1"}) or []; s=rows[0] if rows else {}
             name=row.get("student_name") or ""; code=s.get("national_code") or s.get("student_code") or ""; father=s.get("father_name") or ""; birth=s.get("birth_date") or s.get("birth_date_shamsi") or ""; grade=s.get("grade") or ""
             school_code=str((getattr(self.app_state,"profile",{}) or {}).get("school_code") or "")
-            line("شماره:",h-160); line(f"بدین وسیله گواهی میشود: {name} کد ملی {code} فرزند: {father}",h-195); line(f"شماره شناسنامه: {s.get('birth_certificate_no') or code} تاریخ تولد: {birth} سال تحصیلی: {SCHOOL_YEAR}",h-230); line(f"در مدرسه: {SCHOOL_NAME} ({school_code}) در پایه: {grade}",h-265); line("مشغول به تحصیل میباشد",h-300); line(f"این گواهی طبق تقاضای مورخ : {row.get('request_date','')}",h-335); line(f"فقط به منظور ارائه به: {row.get('destination','')}",h-370); line("صادر گردید و فاقد هرگونه ارزش دیگری می باشد.",h-405); line("دوره تحصیلی: دوره متوسطه اول",h-440); line("مهر و امضا مدیر مدرسه",h-505); line("مدیر( فاقد اعتبار بدون مهر و امضا)",h-540); c.save(); self.msg("گواهی ساخته شد: "+str(path),SUCCESS)
+            line("شماره:",h-160); line(f"بدین وسیله گواهی میشود: {name} کد ملی {code} فرزند: {father}",h-195); line(f"شماره شناسنامه: {s.get('birth_certificate_no') or code} تاریخ تولد: {birth} سال تحصیلی: {SCHOOL_YEAR}",h-230); line(f"در مدرسه: {SCHOOL_NAME} ({school_code}) در پایه: {grade}",h-265); line("مشغول به تحصیل میباشد",h-300); line(f"این گواهی طبق تقاضای مورخ : {row.get('request_date','')}",h-335); line(f"فقط به منظور ارائه به: {row.get('destination','')}",h-370); line("صادر گردید و فاقد هرگونه ارزش دیگری می باشد.",h-405); line("دوره تحصیلی: دوره متوسطه اول",h-440); line("تاریخ",h-475); line("مهر و امضا مدیر مدرسه",h-515); line("مدیر( فاقد اعتبار بدون مهر و امضا)",h-545); c.save(); self.msg("گواهی ساخته شد: "+str(path),SUCCESS)
         except Exception as e:self.msg("ساخت PDF ناموفق: "+str(e),ERROR)
 
 class MeetingWorkflowScreen(BaseWorkflow):
@@ -102,8 +102,8 @@ class MeetingWorkflowScreen(BaseWorkflow):
     def build(self):
         self.clear_widgets(); root=BoxLayout(orientation="vertical",padding=dp(10),spacing=dp(6)); root.add_widget(self.lab("تعیین وقت ملاقات",50,"21sp",PRIMARY,True))
         role=role_of(self.app_state)
-        if role in {"parent","teacher","staff","counselor","educational","executive"}: self.request(root)
-        if role in {"manager","educational","executive"}: self.review(root,role)
+        if role in {"parent","teacher","staff","counselor","educational","executive","cultural","manager"}: self.request(root)
+        if role in {"manager","educational","executive","cultural"}: self.review(root,role)
         root.add_widget(self.lab("درخواست تا تأیید نهایی مدیر برای درخواست‌کننده و مخاطب نمایش داده نمی‌شود.",55)); root.add_widget(self.btn("بازگشت",self.back,SECONDARY)); self.add_widget(root)
     def request(self,root):
         self.target=self.field("مخاطب مورد ملاقات"); self.reason=self.field("علت ملاقات"); self.date=self.field("روز ملاقات"); self.time=self.field("ساعت ملاقات")
@@ -111,7 +111,7 @@ class MeetingWorkflowScreen(BaseWorkflow):
         root.add_widget(self.btn("ثبت درخواست",self.create,SUCCESS))
     def create(self,*_):
         if not all(x.text.strip() for x in [self.target,self.reason,self.date,self.time]): return
-        p={"requester_username":self.username(),"requester_role":role_of(self.app_state),"requester_name":getattr(self.app_state,"display_name",""),"target_name":self.target.text.strip(),"reason":self.reason.text.strip(),"requested_date":self.date.text.strip(),"requested_time":self.time.text.strip(),"status":"pending_responsible","manager_status":"pending","educational_status":"pending"}
+        p={"student_id":(getattr(self.app_state,"profile",{}) or {}).get("linked_student_id"),"teacher_id":None,"parent_phone":(getattr(self.app_state,"profile",{}) or {}).get("phone") or "","target_type":role_of(self.app_state),"target_person":self.target.text.strip(),"requested_date":self.date.text.strip(),"reason":self.reason.text.strip(),"status":"pending_responsible"}
         try:self.api().table_insert("meeting_requests",p); self.msg("درخواست ثبت شد؛ پس از تأیید مسئول مربوط و مدیر قابل مشاهده است."); self.build()
         except Exception as e:self.msg(str(e),ERROR)
     def review(self,root,role):
@@ -122,10 +122,10 @@ class MeetingWorkflowScreen(BaseWorkflow):
             if role=="manager" and r.get("status") in {"pending_responsible","responsible_approved"}: root.add_widget(self.btn("تأیید نهایی مدیر",lambda *_a,row=r:self.final(row),SUCCESS))
             elif role!="manager" and r.get("status")=="pending_responsible": root.add_widget(self.btn("تأیید مسئول مربوط",lambda *_a,row=r:self.responsible(row),PRIMARY))
     def responsible(self,row):
-        try:self.api().table_update("meeting_requests",{"id":f"eq.{row['id']}"},{"status":"responsible_approved","responsible_status":"approved"}); self.build()
+        try:self.api().table_update("meeting_requests",{"id":f"eq.{row['id']}"},{"status":"responsible_approved"}); self.build()
         except Exception: pass
     def final(self,row):
-        try:self.api().table_update("meeting_requests",{"id":f"eq.{row['id']}"},{"status":"approved","manager_status":"approved","manager_final_at":datetime.now(timezone.utc).isoformat()}); self.build()
+        try:self.api().table_update("meeting_requests",{"id":f"eq.{row['id']}"},{"status":"approved"}); self.build()
         except Exception: pass
 
 class OnlineClassWorkflowScreen(BaseWorkflow):
@@ -156,16 +156,22 @@ class ExamAuthoringScreen(BaseWorkflow):
         self.clear_widgets(); root=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(5)); root.add_widget(self.lab("طراح آزمون آنلاین",48,"20sp",PRIMARY,True))
         self.title=self.field("عنوان آزمون"); self.subject=self.field("درس"); self.cls=self.field("کلاس"); self.duration=self.field("مدت آزمون")
         for x in [self.title,self.subject,self.cls,self.duration]: root.add_widget(x)
+        self.exam_date=self.field("تاریخ آزمون"); self.start_time=self.field("ساعت شروع"); self.end_time=self.field("ساعت پایان"); self.share_code=self.field("کد انتشار")
+        for x in [self.exam_date,self.start_time,self.end_time,self.share_code]: root.add_widget(x)
         self.qtype=Spinner(text="تستی",values=tuple(x[1] for x in self.TYPES),font_name=font_name(),size_hint_y=None,height=dp(45)); root.add_widget(self.qtype)
+        tool=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(3))
+        for symbol in ("√","∑","∫","²","³","≤","≥"): tool.add_widget(self.btn(symbol,lambda *_a,s=symbol:self._symbol(s),SECONDARY,40))
+        root.add_widget(tool)
         self.q=self.field("متن سؤال؛ رادیکال، فرمول و نماد ریاضی را وارد کنید",100,True); self.opts=self.field("گزینه‌ها / جواب‌ها؛ در وصل‌کردنی شماره جواب را جلوی گزینه بنویسید",90,True)
         root.add_widget(self.q); root.add_widget(self.opts); root.add_widget(self.lab("این سؤال تشخیصی است؛ لطفاً هیچ چتی به آن جواب ندهید.",40,"8sp",SECONDARY))
         root.add_widget(self.btn("افزودن سؤال",self.addq,SUCCESS)); root.add_widget(self.btn("ساخت آزمون",self.create,PRIMARY)); root.add_widget(self.btn("بازگشت",self.back,SECONDARY)); self.questions=[]
+    def _symbol(self,s): self.q.text += s
     def addq(self,*_):
-        typ=dict((v,k) for k,v in self.TYPES).get(str(self.qtype.text),"multiple_choice"); self.questions.append({"question":self.q.text.strip(),"question_type":typ,"options_json":[x.strip() for x in self.opts.text.splitlines() if x.strip()],"diagnostic_note":"این سؤال تشخیصی است؛ لطفاً هیچ چتی به آن جواب ندهید."}); self.q.text=""; self.opts.text=""
+        typ=dict((v,k) for k,v in self.TYPES).get(str(self.qtype.text),"multiple_choice"); self.questions.append({"question":self.q.text.strip(),"question_type":typ,"option1":(self.opts.text.splitlines()+["","","",""])[0],"option2":(self.opts.text.splitlines()+["","","",""])[1],"option3":(self.opts.text.splitlines()+["","","",""])[2],"option4":(self.opts.text.splitlines()+["","","",""])[3],"correct_answer":"","points":1,"diagnostic_note":"این سؤال تشخیصی است؛ لطفاً هیچ چتی به آن جواب ندهید."}); self.q.text=""; self.opts.text=""
     def create(self,*_):
         if not self.questions or not self.title.text.strip(): return
         try:
-            ex=(self.api().table_insert("teacher_exams",{"title":self.title.text.strip(),"subject":self.subject.text.strip(),"class_name":self.cls.text.strip(),"duration":int(self.duration.text or 45),"teacher":getattr(self.app_state,"display_name",""),"secure_mode":True}) or [{}])[0]
+            ex=(self.api().table_insert("teacher_exams",{"title":self.title.text.strip(),"subject":self.subject.text.strip(),"class_name":self.cls.text.strip(),"duration":int(self.duration.text or 45),"teacher":getattr(self.app_state,"display_name",""),"secure_mode":True,"published":False,"share_enabled":bool(self.share_code.text.strip()),"share_code":self.share_code.text.strip() or None}) or [{}])[0]
             for q in self.questions:
                 q["quiz_id"]=ex.get("id"); self.api().table_insert("quiz_questions",q)
             self.msg("آزمون و بانک سؤال واقعی ذخیره شد.",SUCCESS)
