@@ -104,7 +104,7 @@ stable
 security definer
 set search_path=''
 as $$
-  select lower(coalesce((select private.frahoosh_current_role(),''),''))
+  select lower(coalesce(private.frahoosh_current_role(),''))
     = any(array[
       'مدیر','مدیریت','manager',
       'معاون آموزشی','educational',
