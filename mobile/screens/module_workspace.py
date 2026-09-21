@@ -613,6 +613,13 @@ class ModuleWorkspaceScreen(Screen):
         # integration error and must not silently open the wrong panel.
         route = str(route or "").strip()
         canonical = _MOTHER_TABLE_ALIASES.get(route, route)
+
+        # The mother catalog is the navigation contract, while the shared
+        # catalog is the authoritative route -> Supabase table contract.
+        # Resolve every mother button through that contract before touching
+        # Kivy widgets. This prevents an unmapped button from terminating the
+        # Android process and guarantees that a visible module always lands on
+        # its real backend table.
         if canonical == "smart_class_preview":
             self.route = route
         elif route in SUBMENUS:
@@ -620,7 +627,12 @@ class ModuleWorkspaceScreen(Screen):
         elif canonical in TABLE_FIELDS or canonical in FRIENDLY:
             self.route = canonical
         else:
-            raise RuntimeError("ماژول مادر به جدول عملیاتی متصل نیست: " + route)
+            spec = (_shared_modules or {}).get(route) or {}
+            shared_table = spec.get("table") if isinstance(spec, dict) else None
+            if shared_table and (shared_table in TABLE_FIELDS or shared_table in FRIENDLY):
+                self.route = str(shared_table)
+            else:
+                raise RuntimeError("ماژول مادر به جدول عملیاتی متصل نیست: " + route)
         self.return_to=return_to or "dashboard"
         self.table=None
         self.selected_row=None
