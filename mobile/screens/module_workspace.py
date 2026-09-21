@@ -548,14 +548,12 @@ class ModuleWorkspaceScreen(Screen):
     """Reusable, touch-first, RTL operational workspace backed by the real Supabase API."""
     def __init__(self, app_state, **kwargs):
         super().__init__(**kwargs)
-        self.app_state=app_state; self.route="management"; self.return_to="dashboard"; self.table=None; self.rows=[]
-        try:
-            self._build()
-        except Exception as exc:
-            import traceback
-            self.build_error = traceback.format_exc()
-            print("MODULE WORKSPACE BUILD ERROR:", self.build_error)
-            self._build_emergency(exc)
+        self.app_state=app_state
+        self.route="management"
+        self.return_to="dashboard"
+        self.table=None
+        self.rows=[]
+        self._built=False
 
     def _build_emergency(self, exc):
         root=BoxLayout(orientation="vertical",padding=dp(18),spacing=dp(12))
