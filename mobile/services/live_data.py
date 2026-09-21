@@ -32,7 +32,7 @@ class LiveSchoolData:
         "online_class_settings",
         "school_events",
         "event_audiences",
-        "parent_student_links",
+        "parent_children",
         "discipline_records",
     )
 
@@ -165,7 +165,7 @@ class LiveSchoolData:
         seen=set(); result=[]
         for field,value in candidates:
             try:
-                _, rows=self._try_select(("parent_student_links",), {"select":"*", field:f"eq.{value}", "limit":"100"})
+                _, rows=self._try_select(("parent_children",), {"select":"*", field:f"eq.{value}", "limit":"100"})
                 for row in rows:
                     sid=self._first(row,"student_id","child_id","linked_student_id","student")
                     if sid and str(sid) not in seen:
