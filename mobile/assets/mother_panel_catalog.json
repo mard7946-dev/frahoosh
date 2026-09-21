@@ -1,7 +1,7 @@
 {
   "source": "Frahoosh_v16_12_LOGIN_BACKGROUND_FINAL_02(2).zip",
   "source_component": "inspect168/v167src/ui/panel_shell.py:PANEL_ITEMS",
-  "version": "exact-mother-panel-items-2026-09-20",
+  "version": "exact-mother-panel-items-plus-real-workflows-2026-09-21",
   "panels": {
     "manager": {
       "title": "مدیریت",
@@ -25,6 +25,10 @@
         [
           "تنظیمات مدرسه",
           "settings"
+        ],
+        [
+          "ملاقات‌ها",
+          "meeting_requests"
         ]
       ]
     },
@@ -54,6 +58,14 @@
         [
           "گزارش‌ها",
           "reports"
+        ],
+        [
+          "درخواست گواهی اشتغال به تحصیل",
+          "certificate_requests"
+        ],
+        [
+          "درخواست‌های ملاقات",
+          "meeting_requests"
         ]
       ]
     },
@@ -87,6 +99,10 @@
         [
           "گزارش‌های آموزشی",
           "reports"
+        ],
+        [
+          "تأیید و مدیریت ملاقات‌ها",
+          "meeting_requests"
         ]
       ]
     },
@@ -112,6 +128,10 @@
         [
           "گزارش‌های پرورشی",
           "cultural_reports"
+        ],
+        [
+          "درخواست‌های ملاقات",
+          "meeting_requests"
         ]
       ]
     },
@@ -141,6 +161,10 @@
         [
           "گزارش مشاوره",
           "counseling_reports"
+        ],
+        [
+          "درخواست‌های ملاقات",
+          "meeting_requests"
         ]
       ]
     },
@@ -178,6 +202,10 @@
         [
           "گزارش‌ها",
           "reports"
+        ],
+        [
+          "ملاقات با اولیا",
+          "meeting_requests"
         ]
       ]
     },
@@ -276,6 +304,14 @@
         [
           "فعالیت‌های فرهنگی و پرورشی",
           "cultural_activities"
+        ],
+        [
+          "درخواست گواهی اشتغال به تحصیل",
+          "certificate_requests"
+        ],
+        [
+          "تعیین وقت ملاقات",
+          "meeting_requests"
         ]
       ]
     },
