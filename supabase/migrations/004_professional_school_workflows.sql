@@ -336,3 +336,10 @@ do $$ declare t text; begin
     execute format('create policy frahoosh_authenticated_all on public.%I for all to authenticated using (true) with check (true)',t);
   end loop;
 end $$;
+
+-- Canonical meeting-request fields required by the ZIP-backed module contract.
+-- Keep these additive so existing meeting data and earlier schemas remain compatible.
+alter table if exists public.meeting_requests add column if not exists student_id bigint;
+alter table if exists public.meeting_requests add column if not exists requested_date text;
+alter table if exists public.meeting_requests add column if not exists reason text;
+alter table if exists public.meeting_requests add column if not exists status text default 'pending';
