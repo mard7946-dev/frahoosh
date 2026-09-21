@@ -305,11 +305,11 @@ class PanelHubScreen(Screen):
             if panel is None:
                 raise RuntimeError("پنل عملیاتی آماده نشد.")
 
-            # Every remaining mother route opens in the real operational
-            # workspace, which resolves the route to its canonical Supabase
-            # table before rendering CRUD operations.
-            panel.set_route(route)
+            # The operational workspace must become the active Screen
+            # before its route is rendered. Its special workflows and async
+            # table loader use the ScreenManager from inside the workspace.
             app.sm.current = "panel"
+            panel.set_route(route)
         except Exception as exc:
             print("MOTHER MODULE OPEN ERROR:", repr(exc))
             try:
@@ -517,8 +517,10 @@ class DashboardScreen(Screen):
             panel=app.ensure_panel()
             if panel is None:
                 raise RuntimeError("پنل عملیاتی آماده نشد.")
-            panel.set_route(route)
+            # Activate the real workspace first; do not render a module while
+            # the dashboard is still the current Screen on Android.
             app.sm.current="panel"
+            panel.set_route(route)
         except Exception as exc:
             print("DASHBOARD ROUTE ERROR:",repr(exc))
             try:
