@@ -102,7 +102,7 @@ _MOTHER_MODULES = {
 }
 
 _MOTHER_TABLE_ALIASES = {
-    "users":"users","virtual":"online_classes","planning":"weekly_schedule","reports":"ai_smart_reports","settings":"school_profile",
+    "users":"users","virtual":"online_classes","planning":"weekly_schedule","reports":"ai_smart_reports","settings":"school_profile","students":"students","staff":"staff","meeting_requests":"meeting_requests","certificate_requests":"certificate_requests","attendance":"attendance","account_settings":"account_settings",
     "class_management":"executive_classes","student_archive":"archive_items","executive_operations":"executive_operations",
     "referrals":"student_referrals","meetings":"meeting_requests","notifications":"school_events","exams":"teacher_exams","questions":"quiz_questions",
     "cultural_activities":"educational_activities","competitions":"competitions","educational_programs":"school_events","activity_registrations":"cultural_activity_registrations","cultural_reports":"cultural_reports",
