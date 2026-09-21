@@ -232,22 +232,22 @@ class PanelHubScreen(Screen):
             print("MOTHER PANEL EMPTY:", self.panel_key, catalog_key)
             return
         for label,route in items:
-            card=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(5),size_hint_y=None,height=dp(300))
+            card=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(8),size_hint_y=None,height=dp(380))
             with card.canvas.before:
                 Color(0.03,0.14,0.25,0.96)
                 card_bg=RoundedRectangle(radius=[dp(14)])
             card.bind(pos=lambda o,v,bg=card_bg:setattr(bg,"pos",v),size=lambda o,v,bg=card_bg:setattr(bg,"size",v))
-            card.add_widget(Label(text=rtl_text(label),font_name=font_name(),font_size="13sp",bold=True,color=WHITE,
-                                  halign="center",valign="middle",size_hint_y=None,height=dp(34)))
-            card.add_widget(Label(text=rtl_text(self._module_purpose(label,route)),font_name=font_name(),font_size="8sp",
+            card.add_widget(Label(text=rtl_text(label),font_name=font_name(),font_size="15sp",bold=True,color=WHITE,
+                                  halign="center",valign="middle",size_hint_y=None,height=dp(54)))
+            card.add_widget(Label(text=rtl_text(self._module_purpose(label,route)),font_name=font_name(),font_size="10sp",
                                   color=(0.75,0.9,1,1),halign="center",valign="middle"))
-            actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(4))
+            actions=BoxLayout(size_hint_y=None,height=dp(58),spacing=dp(4))
             # Every mother module has one operational entry point.  Excel/PDF
             # is an export/import utility, not the module itself, and showing it
             # beside every module was the source of the generic "ورودی و خروجی"
             # page being mistaken for the real module workspace.
             enter=Button(text=rtl_text("ورود به جدول تخصصی و عملیات"),
-                         font_name=font_name(),font_size="10sp",
+                         font_name=font_name(),font_size="12sp",
                          background_normal="",background_color=SUCCESS,color=WHITE)
             enter.bind(on_release=lambda *_a,r=route:self._open(r))
             actions.add_widget(enter); card.add_widget(actions)
@@ -385,7 +385,7 @@ class DashboardScreen(Screen):
             Color(0,0,0,0.22); self.tint=RoundedRectangle()
         overlay.bind(pos=lambda o,v:setattr(self.tint,"pos",v),size=lambda o,v:setattr(self.tint,"size",v))
         root.add_widget(overlay)
-        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(8),dp(14),dp(125)],spacing=dp(5))
+        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(8),dp(14),dp(92)],spacing=dp(5))
         head=BoxLayout(size_hint_y=None,height=dp(56))
         head.add_widget(self.label(APP_NAME,"25sp",WHITE,True,True)); content.add_widget(head)
         self.welcome=self.label("خوش آمدید","14sp",WHITE,True,True); content.add_widget(self.welcome)
@@ -475,7 +475,7 @@ class DashboardScreen(Screen):
         for i,(title,route) in enumerate(items,1):
             real_route = self.resolve_module_route(role, title, route)
             card=PanelCard(title,i,total,self.desc(real_route),lambda *_a,r=real_route:self.open_route(r),
-                           route=real_route,size_hint_y=None,height=dp(220))
+                           route=real_route,size_hint_y=None,height=dp(360))
             self.grid.add_widget(card)
             Clock.schedule_once(lambda _dt,card=card:Animation(opacity=1,d=.22,t="out_quad").start(card),i*.035)
         return True

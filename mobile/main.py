@@ -213,8 +213,8 @@ class FrahooshApp(App):
             return screen
         except Exception as exc:
             import traceback
-            self.last_panel_build_error = repr(exc)
-            print("PANEL BUILD ERROR:", repr(exc))
+            self.last_panel_build_error = traceback.format_exc()
+            print("PANEL BUILD ERROR:", self.last_panel_build_error)
             traceback.print_exc()
             return None
 

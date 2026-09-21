@@ -179,7 +179,7 @@ COLUMNS.update({
 # The JSON catalog is the single source for Web + Android module fields.
 CANONICAL_OPERATIONS = {
     str(_spec.get("table") or _module_id): tuple(_spec.get("operations") or ("create", "update", "delete"))
-    for _module_id, _spec in (_shared_modules or {}).items()
+    for _module_id, _spec in (_shared_modules.items() if isinstance(_shared_modules, dict) else [])
     if isinstance(_spec, dict)
 }
 
@@ -268,11 +268,13 @@ TABLE_FIELDS = {
 # Keep the Android table columns exactly aligned with the canonical Web/ZIP
 # contract. The legacy TABLE_FIELDS block remains only as a fallback for old
 # APKs; when the shared catalog is present it is always authoritative.
-if _shared_modules:
+if isinstance(_shared_modules, dict):
     for _table_name, _definition in _shared_modules.items():
-        _catalog_fields = list((_definition or {}).get("fields") or [])
+        if not isinstance(_definition, dict):
+            continue
+        _catalog_fields = list(_definition.get("fields") or [])
         if _catalog_fields:
-            TABLE_FIELDS[_table_name] = [
+            TABLE_FIELDS[str(_table_name)] = [
                 str(f) for f in _catalog_fields
                 if f and str(f) not in {"id", "created_at", "updated_at", "deleted_at"}
             ]
@@ -543,7 +545,22 @@ class ModuleWorkspaceScreen(Screen):
     """Reusable, touch-first, RTL operational workspace backed by the real Supabase API."""
     def __init__(self, app_state, **kwargs):
         super().__init__(**kwargs)
-        self.app_state=app_state; self.route="management"; self.return_to="dashboard"; self.table=None; self.rows=[]; self._build()
+        self.app_state=app_state; self.route="management"; self.return_to="dashboard"; self.table=None; self.rows=[]
+        try:
+            self._build()
+        except Exception as exc:
+            import traceback
+            self.build_error = traceback.format_exc()
+            print("MODULE WORKSPACE BUILD ERROR:", self.build_error)
+            self._build_emergency(exc)
+
+    def _build_emergency(self, exc):
+        root=BoxLayout(orientation="vertical",padding=dp(18),spacing=dp(12))
+        root.add_widget(Label(text="فراهوش",font_size="24sp",bold=True))
+        root.add_widget(Label(text="محیط عملیاتی پنل آماده شد، اما ساخت رابط تخصصی با خطا روبه‌رو شد.",font_size="15sp"))
+        root.add_widget(Label(text="جزئیات خطا در گزارش اجرای Android ثبت شده است.",font_size="12sp"))
+        root.add_widget(self.btn("بازگشت",self.go_back,PRIMARY,dp(46)))
+        self.add_widget(root)
 
     def label(self,text,size="11sp",color=SECONDARY,bold=False,center=False):
         # Keep the operational workspace on the smallest Kivy text contract
