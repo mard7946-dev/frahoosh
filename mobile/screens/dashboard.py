@@ -189,10 +189,6 @@ class PanelHubScreen(Screen):
         title=dict(PANEL_HUBS).get(self.panel_key,self.panel_key)
         head=BoxLayout(size_hint_y=None,height=dp(58))
         head.add_widget(Label(text=rtl_text(title),font_name=font_name(),font_size="18sp",color=WHITE,bold=True))
-        io=Button(text=rtl_text("Excel/PDF"),font_name=font_name(),font_size="10sp",size_hint_x=None,width=dp(88),
-                  background_normal="",background_color=SUCCESS,color=WHITE)
-        io.bind(on_release=lambda *_: App.get_running_app().ensure_panel_io(self.panel_key) and setattr(self.manager,"current","panel_io_"+self.panel_key))
-        head.add_widget(io)
         back=Button(text=rtl_text("بازگشت"),font_name=font_name(),size_hint_x=None,width=dp(78),
                     background_normal="",background_color=PRIMARY,color=WHITE)
         back.bind(on_release=lambda *_: setattr(self.manager,"current","dashboard") if self.manager else None)
@@ -294,9 +290,12 @@ class PanelHubScreen(Screen):
         except Exception as exc:
             print("MOTHER MODULE OPEN ERROR:", repr(exc))
             try:
-                self.role_text.text = rtl_text("ماژول باز نشد؛ خطا ثبت شد.")
-                self.role_text.color = (1, .35, .35, 1)
-                Clock.schedule_once(lambda _dt:self._restore_role_status(), 2.5)
+                self.grid.add_widget(Button(
+                    text=rtl_text("خطای بازکردن ماژول: " + str(exc)),
+                    font_name=font_name(), font_size="11sp",
+                    background_normal="", background_color=(0.65,0.12,0.12,1),
+                    color=WHITE, size_hint_y=None, height=dp(54),
+                ))
             except Exception:
                 pass
             app.sm.current="panel"
