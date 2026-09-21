@@ -277,12 +277,26 @@ class PanelHubScreen(Screen):
 
     def _open(self,route):
         app=App.get_running_app()
-        if app is None: return
-        panel=app.ensure_panel()
-        if panel:
-            # ModuleWorkspace resolves the ZIP module id to its canonical table
-            # or special operational screen. Do not bypass that contract here.
+        if app is None:
+            return
+        try:
+            panel = app.ensure_panel()
+            if panel is None:
+                raise RuntimeError("پنل عملیاتی آماده نشد.")
+            # The mother module is opened through one guarded boundary. A bad
+            # route or a failed dedicated workflow must show an error in the
+            # current panel, never terminate the Android process.
             panel.set_route(route)
+            if app.sm is not None and app.sm.current != "panel":
+                app.sm.current = "panel"
+        except Exception as exc:
+            print("MOTHER MODULE OPEN ERROR:", repr(exc))
+            try:
+                self.role_text.text = rtl_text("ماژول باز نشد؛ خطا ثبت شد.")
+                self.role_text.color = (1, .35, .35, 1)
+                Clock.schedule_once(lambda _dt:self._restore_role_status(), 2.5)
+            except Exception:
+                pass
             app.sm.current="panel"
 
     def on_pre_enter(self,*_):
