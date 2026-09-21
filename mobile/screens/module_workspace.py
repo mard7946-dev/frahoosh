@@ -1144,6 +1144,18 @@ class ModuleWorkspaceScreen(Screen):
             except Exception:
                 pass
 
+    def _header(self, header):
+        """Apply a lightweight visual header background without custom widgets."""
+        with header.canvas.before:
+            Color(0.04, 0.24, 0.38, 1)
+            bg = RoundedRectangle(radius=[dp(8)])
+        header.bind(
+            pos=lambda o, v: setattr(bg, "pos", v),
+            size=lambda o, v: setattr(bg, "size", v),
+        )
+        bg.pos = header.pos
+        bg.size = header.size
+
     def row(self,r,index,keys,totalw):
         b=SelectableRow(owner=self,record=r,size_hint=(None,None),width=totalw,height=dp(100),spacing=dp(3),padding=[dp(5),dp(5)])
         for k in keys:
