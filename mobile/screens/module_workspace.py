@@ -103,11 +103,11 @@ _MOTHER_MODULES = {
 
 _MOTHER_TABLE_ALIASES = {
     "users":"users","virtual":"online_classes","planning":"weekly_schedule","reports":"ai_smart_reports","settings":"school_profile","students":"students","staff":"staff","meeting_requests":"meeting_requests","certificate_requests":"certificate_requests","attendance":"attendance","account_settings":"account_settings",
-    "class_management":"executive_classes","student_archive":"archive_items","executive_operations":"executive_operations",
+    "class_management":"executive_classes","student_archive":"archive_items","executive_operations":"executive_operations","executive_reports":"executive_reports",
     "referrals":"student_referrals","meetings":"meeting_requests","notifications":"school_events","exams":"teacher_exams","questions":"quiz_questions",
     "cultural_activities":"educational_activities","competitions":"competitions","educational_programs":"school_events","activity_registrations":"cultural_activity_registrations","cultural_reports":"cultural_reports",
     "counseling_records":"counseling_records","student_followup":"counseling_followups","academic_guidance":"counseling_followups","counseling_reports":"ai_smart_reports",
-    "classes":"teacher_classes","grades":"grades","assignments":"assignments","lesson":"lesson_plans","student_profile":"students","activities":"activity_registrations","performance_report":"ai_smart_reports","weekly_schedule":"weekly_schedule","online_payment":"payment_offers",
+    "classes":"teacher_classes","grades":"grades","teacher_activities":"teacher_activities","assignments":"assignments","lesson":"lesson_plans","student_profile":"students","activities":"activity_registrations","performance_report":"ai_smart_reports","weekly_schedule":"weekly_schedule","online_payment":"payment_offers",
     "children":"parent_children","student_info":"students","educational_activities":"educational_activities","schedule_exams":"weekly_schedule","teacher_meetings":"teacher_meetings","payments_finance":"payment_records",
     "payments":"payment_records","transactions":"finance_transactions","accounts":"finance_accounts","financial_reports":"finance_transactions","payment_settings":"payment_offers",
     "whiteboard":"smart_board_whiteboards","files":"smart_board_files","media":"smart_board_media","interactive_tools":"smart_board_interactive_tools",
@@ -729,8 +729,8 @@ class ModuleWorkspaceScreen(Screen):
             card = BoxLayout(
                 orientation="vertical",
                 size_hint_y=None,
-                height=dp(116),
-                padding=dp(7),
+                height=dp(220),
+                padding=dp(10),
                 spacing=dp(3),
             )
             with card.canvas.before:
@@ -750,7 +750,7 @@ class ModuleWorkspaceScreen(Screen):
             card.add_widget(self.label(purpose, "7sp", (0.78, 0.90, 1, 1), False, "center"))
             card.add_widget(
                 self.btn(
-                    "ورود به بخش",
+                    "ورود به جدول تخصصی و عملیات",
                     lambda *_a, t=table: self.open_table(t),
                     SUCCESS if self.can_write(table) else PRIMARY,
                     dp(32),
@@ -761,7 +761,7 @@ class ModuleWorkspaceScreen(Screen):
         scroll.add_widget(grid)
         panel.add_widget(scroll)
         self.body.add_widget(panel)
-        self.status.text = rtl_text(f"{len(items)} ماژول واقعی • دو ستون • اطلاعات متصل به سامانه")
+        self.status.text = rtl_text(f"{len(items)} جدول تخصصی واقعی • اتصال Supabase در حال بررسی")
 
     def _badge(self,w):
         with w.canvas.before:
