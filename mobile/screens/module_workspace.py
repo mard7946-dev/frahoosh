@@ -662,6 +662,16 @@ class ModuleWorkspaceScreen(Screen):
 
     load_module=set_module
 
+    def set_route(self, route, return_to="dashboard"):
+        """Public navigation contract used by DashboardScreen.
+
+        The operational workspace is now mounted directly in ScreenManager,
+        so callers must address this screen itself rather than the old wrapper.
+        Keep the route contract explicit and delegate to the real module/table
+        resolver so every mother-panel button reaches its operational backend.
+        """
+        return self.set_module(route, return_to=return_to)
+
     def render(self):
         # Use only stock Kivy layouts here.  This screen is the shared entry
         # point for every panel, so a custom container must never be able to
