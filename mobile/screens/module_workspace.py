@@ -795,6 +795,12 @@ class ModuleWorkspaceScreen(Screen):
             self.body.add_widget(bar)
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
 
+        if not self.can_write(self.table):
+            bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
+            bar.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+            bar.add_widget(self.btn("خروجی PDF",lambda *_:self.export_pdf(),(0.18,.48,.30,1),dp(38)))
+            self.body.add_widget(bar)
+
     def _excel_path(self):
         table=str(self.table or "table")
         try:
@@ -813,7 +819,10 @@ class ModuleWorkspaceScreen(Screen):
             try:
                 from openpyxl import Workbook
                 api=self.app_state.api
-                rows=api.table_select(table,{"limit":"1000"}) or []
+                query={"limit":"1000"}
+                if table=="meeting_requests" and self.role()!="manager": query["manager_status"]="eq.approved"
+                if table=="certificate_requests" and self.role() in {"student","parent"}: query["status"]="eq.approved"
+                rows=api.table_select(table,query) or []
                 rows=[dict(x) for x in rows if isinstance(x,dict)]
                 fields=[f for f in (TABLE_FIELDS.get(table) or []) if f not in HIDDEN]
                 if not fields and rows:
@@ -956,6 +965,7 @@ class ModuleWorkspaceScreen(Screen):
                     Clock.schedule_once(lambda *_: self._open_certificate_request(),0)
                 except Exception as exc: Clock.schedule_once(lambda *_: self.write_error(str(exc)),0)
             Thread(target=work,daemon=True).start()
+        actions.add_widget(self.btn("ملاقات‌های تأییدشده",lambda *_:(p.dismiss(),setattr(self,"table","meeting_requests"),self.render()),PRIMARY,dp(40)))
         actions.add_widget(self.btn("ثبت درخواست",submit,SUCCESS,dp(40))); root.add_widget(actions); p.open()
 
     def export_certificate_row_pdf(self,row):
@@ -973,8 +983,11 @@ class ModuleWorkspaceScreen(Screen):
         self.status.text=rtl_text("گواهی PDF صادر شد: "+path); self.status.color=SUCCESS
 
     def _open_meeting_request(self):
-        if self.role() in {"manager","executive","educational","cultural","advisor","teacher","parent"}:
-            self._meeting_editor(self.role()); return
+        role=self.role()
+        if role=="manager":
+            self.table="meeting_requests"; self.selected_row=None; self.render(); return
+        if role in {"executive","educational","cultural","advisor","teacher","parent"}:
+            self._meeting_editor(role); return
         self.table="meeting_requests"; self.render()
 
     def _meeting_editor(self,role):
