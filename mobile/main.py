@@ -78,6 +78,28 @@ class OperationalPanelScreen(Screen):
     def set_route(self, route):
         if self.workspace is None:
             raise RuntimeError("محیط عملیاتی پنل آماده نیست.")
+        route = str(route or "")
+        app = App.get_running_app()
+        if route == "certificate_requests":
+            screen=app.ensure_certificate_workflow()
+            if screen: app.sm.current=screen.name
+            return
+        if route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
+            screen=app.ensure_meeting_workflow()
+            if screen: app.sm.current=screen.name
+            return
+        if route in {"online_classes","virtual"}:
+            screen=app.ensure_online_workflow()
+            if screen: app.sm.current=screen.name
+            return
+        if route in {"teacher_exams","exams","questions","quiz_questions"}:
+            screen=app.ensure_exam_authoring()
+            if screen: app.sm.current=screen.name
+            return
+        if route.startswith("io:"):
+            screen=app.ensure_panel_io(route.split(":",1)[1])
+            if screen: app.sm.current=screen.name
+            return
         self.workspace.set_module(route, return_to="dashboard")
 
 class FrahooshApp(App):
@@ -289,6 +311,39 @@ class FrahooshApp(App):
         except Exception as exc:
             print("SMART CLASS PREVIEW BUILD ERROR:", repr(exc))
             return None
+
+    def ensure_certificate_workflow(self):
+        if self.sm is None:return None
+        try:return self.sm.get_screen("certificate_workflow")
+        except Exception:pass
+        from mobile.screens.school_workflows import CertificateWorkflowScreen
+        s=CertificateWorkflowScreen(name="certificate_workflow",app_state=self.app_state); self.sm.add_widget(s); return s
+    def ensure_meeting_workflow(self):
+        if self.sm is None:return None
+        try:return self.sm.get_screen("meeting_workflow")
+        except Exception:pass
+        from mobile.screens.school_workflows import MeetingWorkflowScreen
+        s=MeetingWorkflowScreen(name="meeting_workflow",app_state=self.app_state); self.sm.add_widget(s); return s
+    def ensure_online_workflow(self):
+        if self.sm is None:return None
+        try:return self.sm.get_screen("online_workflow")
+        except Exception:pass
+        from mobile.screens.school_workflows import OnlineClassWorkflowScreen
+        s=OnlineClassWorkflowScreen(name="online_workflow",app_state=self.app_state); self.sm.add_widget(s); return s
+    def ensure_exam_authoring(self):
+        if self.sm is None:return None
+        try:return self.sm.get_screen("exam_authoring")
+        except Exception:pass
+        from mobile.screens.school_workflows import ExamAuthoringScreen
+        s=ExamAuthoringScreen(name="exam_authoring",app_state=self.app_state); self.sm.add_widget(s); return s
+    def ensure_panel_io(self,panel_key):
+        if self.sm is None:return None
+        name="panel_io_"+str(panel_key)
+        try:
+            s=self.sm.get_screen(name); s.panel_key=panel_key; return s
+        except Exception:pass
+        from mobile.screens.school_workflows import PanelIOWorkflowScreen
+        s=PanelIOWorkflowScreen(name=name,app_state=self.app_state,panel_key=panel_key); self.sm.add_widget(s); return s
 
     def ensure_special_module(self, mode):
         name = "special_" + str(mode)

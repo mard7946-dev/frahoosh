@@ -188,8 +188,12 @@ class PanelHubScreen(Screen):
         root.bind(pos=lambda o,v:setattr(self.bg,"pos",v),size=lambda o,v:setattr(self.bg,"size",v))
         title=dict(PANEL_HUBS).get(self.panel_key,self.panel_key)
         head=BoxLayout(size_hint_y=None,height=dp(58))
-        head.add_widget(Label(text=rtl_text(title),font_name=font_name(),font_size="21sp",color=WHITE,bold=True))
-        back=Button(text=rtl_text("بازگشت"),font_name=font_name(),size_hint_x=None,width=dp(92),
+        head.add_widget(Label(text=rtl_text(title),font_name=font_name(),font_size="18sp",color=WHITE,bold=True))
+        io=Button(text=rtl_text("Excel/PDF"),font_name=font_name(),font_size="10sp",size_hint_x=None,width=dp(88),
+                  background_normal="",background_color=SUCCESS,color=WHITE)
+        io.bind(on_release=lambda *_: App.get_running_app().ensure_panel_io(self.panel_key) and setattr(self.manager,"current","panel_io_"+self.panel_key))
+        head.add_widget(io)
+        back=Button(text=rtl_text("بازگشت"),font_name=font_name(),size_hint_x=None,width=dp(78),
                     background_normal="",background_color=PRIMARY,color=WHITE)
         back.bind(on_release=lambda *_: setattr(self.manager,"current","dashboard") if self.manager else None)
         head.add_widget(back); root.add_widget(head)
