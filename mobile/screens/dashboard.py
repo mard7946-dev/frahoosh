@@ -382,7 +382,7 @@ class DashboardScreen(Screen):
             Color(0,0,0,0.22); self.tint=RoundedRectangle()
         overlay.bind(pos=lambda o,v:setattr(self.tint,"pos",v),size=lambda o,v:setattr(self.tint,"size",v))
         root.add_widget(overlay)
-        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(8),dp(14),dp(78)],spacing=dp(5))
+        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(8),dp(14),dp(84)],spacing=dp(5))
         head=BoxLayout(size_hint_y=None,height=dp(56))
         head.add_widget(self.label(APP_NAME,"25sp",WHITE,True,True)); content.add_widget(head)
         self.welcome=self.label("خوش آمدید","14sp",WHITE,True,True); content.add_widget(self.welcome)
@@ -397,7 +397,7 @@ class DashboardScreen(Screen):
         self.grid.bind(minimum_height=self.grid.setter("height"))
         self.grid_scroll.add_widget(self.grid); frame.add_widget(self.grid_scroll); content.add_widget(frame)
         root.add_widget(content)
-        nav=BoxLayout(size_hint=(.90,None),height=dp(56),pos_hint={"center_x":.5,"y":.095},spacing=dp(3),padding=dp(3))
+        nav=BoxLayout(size_hint=(.90,None),height=dp(56),pos_hint={"center_x":.5,"y":.02},spacing=dp(3),padding=dp(3))
         with nav.canvas.before:
             Color(0.01,0.08,0.17,0.92); self.nav_bg=RoundedRectangle(radius=[dp(24)])
         nav.bind(pos=lambda o,v:setattr(self.nav_bg,"pos",v),size=lambda o,v:setattr(self.nav_bg,"size",v))
