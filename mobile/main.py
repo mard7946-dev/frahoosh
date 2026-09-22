@@ -146,20 +146,38 @@ class EmergencyDashboardScreen(Screen):
         self._populate()
 
     def _populate(self):
-        from mobile.screens.dashboard import PANEL_HUBS, ROLE_ALIASES, PanelHubScreen
+        # Keep the emergency dashboard independent from dashboard.py itself.
+        # If dashboard.py is the component that fails to import/build on Android,
+        # importing it here would make the fallback fail for the same reason.
+        hubs = [
+            ("مدیریت","management"), ("معاون آموزشی","educational"),
+            ("معاون اجرایی","executive"), ("معاون پرورشی","cultural"),
+            ("مشاوره","advisor"), ("دبیران","teachers"),
+            ("اولیا","parents"), ("دانش‌آموزان","students"),
+            ("مالی","finance"), ("تابلوی هوشمند","smart_board"),
+            ("آزمون آنلاین","teacher_exams"), ("کلاس آنلاین","online"),
+            ("پرداخت آنلاین","payment"), ("هوش مصنوعی","ai"),
+            ("صندوق پیام","messages"),
+        ]
         raw = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
-        role = ROLE_ALIASES.get(raw, raw)
+        aliases = {
+            "admin":"manager","administrator":"manager","مدیر":"manager","مدیریت":"manager",
+            "executive":"executive","educational":"educational","cultural":"cultural",
+            "advisor":"advisor","counselor":"advisor","teacher":"teacher_staff",
+            "student":"student","parent":"parent","guardian":"parent",
+        }
+        role = aliases.get(raw, raw)
         if role == "manager":
-            allowed = [key for _, key in PANEL_HUBS]
+            allowed = {k for _,k in hubs}
         elif role == "student":
-            allowed = [key for _, key in PANEL_HUBS if key != "finance"]
+            allowed = {k for _,k in hubs if k != "finance"}
         elif role == "parent":
-            allowed = [key for _, key in PANEL_HUBS if key not in {"finance", "online", "teacher_exams"}]
+            allowed = {k for _,k in hubs if k not in {"finance","online","teacher_exams"}}
         else:
             own = {"executive":"executive","educational":"educational","cultural":"cultural",
-                   "advisor":"advisor","teacher":"teachers"}.get(role)
-            allowed = ([own] if own else []) + [k for k in ("online","teacher_exams","smart_board","ai","messages","payment") if k != own]
-        for title, key in PANEL_HUBS:
+                   "advisor":"advisor","teacher_staff":"teachers"}.get(role)
+            allowed = ({own} if own else set()) | {"online","teacher_exams","smart_board","ai","messages","payment"}
+        for title, key in hubs:
             if key not in allowed:
                 continue
             b = Button(text=title, size_hint_y=None, height=54)
