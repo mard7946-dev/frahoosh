@@ -337,7 +337,49 @@ class DashboardScreen(Screen):
         self._parent_seen=set()
         self._parent_poll_event=None
         self._parent_poll_busy=False
-        self._build()
+        try:
+            self._build()
+        except Exception as exc:
+            # The dashboard is the first screen after authentication. If one
+            # optional visual/widget resource is broken on a particular Android
+            # build, never return a false dashboard to LoginScreen. Render the
+            # same real panel entry points with a dependency-light fallback.
+            print("DASHBOARD BUILD ERROR:", repr(exc))
+            self._build_safe_fallback(exc)
+
+    def _build_safe_fallback(self, exc=None):
+        self.clear_widgets()
+        root=BoxLayout(orientation="vertical",padding=[dp(12),dp(12),dp(12),dp(74)],spacing=dp(6))
+        with root.canvas.before:
+            Color(0.02,0.08,0.18,1)
+            self._safe_bg=RoundedRectangle()
+        root.bind(pos=lambda o,v:setattr(self._safe_bg,"pos",v),size=lambda o,v:setattr(self._safe_bg,"size",v))
+        self.welcome=self.label("خوش آمدید","18sp",WHITE,True,True)
+        self.role_text=self.label("داشبورد فراهوش","11sp",(0.88,0.96,1,1),False,True)
+        self.parent_alert=self.label("","9sp",WHITE,False,True)
+        root.add_widget(self.welcome)
+        root.add_widget(self.role_text)
+        root.add_widget(self.parent_alert)
+        scroll=ScrollView(do_scroll_x=False,do_scroll_y=True)
+        self.grid=GridLayout(cols=2,spacing=dp(7),padding=dp(3),size_hint_y=None)
+        self.grid.bind(minimum_height=self.grid.setter("height"))
+        scroll.add_widget(self.grid)
+        root.add_widget(scroll)
+        self.grid_scroll=scroll
+        root.add_widget(Widget(size_hint_y=None,height=dp(1)))
+        self.add_widget(root)
+        # Keep the canonical role-aware dashboard entry list. Each button opens
+        # the existing PanelHubScreen, so the fallback is not a fake module.
+        try:
+            items=self.items()
+        except Exception:
+            items=[(title,"panelhub:"+key) for title,key in PANEL_HUBS]
+        total=len(items)
+        for i,(title,route) in enumerate(items,1):
+            card=PanelCard(title,i,total,self.desc(route.replace("panelhub:","")),lambda *_a,r=route:self.open_route(r),
+                           route=route.replace("panelhub:",""),size_hint_y=None,height=dp(148))
+            self.grid.add_widget(card)
+        print("DASHBOARD SAFE FALLBACK ACTIVE:", repr(exc))
 
     def label(self,text,size="11sp",color=WHITE,bold=False,center=True):
         w=Label(text=rtl_text(str(text)),font_name=font_name(),font_size=size,color=color,bold=bold,
