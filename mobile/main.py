@@ -520,7 +520,10 @@ class FrahooshApp(App):
             dashboard = self.ensure_dashboard()
         except Exception as exc:
             print("DASHBOARD CONSTRUCTION ERROR:", repr(exc))
-            dashboard = None\n        if dashboard is None:\n            print("DASHBOARD OPEN ERROR: dashboard screen could not be created")\n            return False
+            dashboard = None
+        if dashboard is None:
+            print("DASHBOARD OPEN ERROR: dashboard screen could not be created")
+            return False
 
         try:
             self._set_screen_capture_policy()
