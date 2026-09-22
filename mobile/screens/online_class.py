@@ -41,7 +41,7 @@ def role_of(state):
 
 class OnlineClassScreen(Screen):
     def __init__(self,app_state=None,**kwargs):
-        super().__init__(**kwargs); self.app_state=app_state; self.current_id=None; self.mic=True; self.camera=True; self._build()
+        super().__init__(**kwargs); self.app_state=app_state; self.current_id=None; self.selected_class=None; self.mic=True; self.camera=True; self._build()
     def _build(self):
         root=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(7)); head=BoxLayout(size_hint_y=None,height=dp(52),spacing=dp(7))
         back=Button(text=rtl_text("‹ داشبورد"),font_name=font_name(),background_normal="",background_color=PRIMARY,color=WHITE,size_hint_x=None,width=dp(100)); back.bind(on_release=lambda *_:self._back()); head.add_widget(back)
@@ -49,7 +49,7 @@ class OnlineClassScreen(Screen):
         self.status=Label(text="",font_name=font_name(),font_size="11sp",color=SECONDARY,halign="center",valign="middle",size_hint_y=None,height=dp(38)); self.status.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(self.status)
         scroll=ScrollView(do_scroll_x=False); self.body=BoxLayout(orientation="vertical",spacing=dp(8),padding=dp(4),size_hint_y=None); self.body.bind(minimum_height=self.body.setter("height")); scroll.add_widget(self.body); root.add_widget(scroll); self.add_widget(root)
     def on_pre_enter(self,*args): self.show_home()
-    def _clear(self): self.body.clear_widgets(); self.current_id=None
+    def _clear(self): self.body.clear_widgets(); self.current_id=None; self.selected_class=None
     def _label(self,text,size="13sp",color=SECONDARY,height=58,bold=False):
         w=Label(text=rtl_text(text),font_name=font_name(),font_size=size,color=color,bold=bold,halign="right",valign="middle",size_hint_y=None,height=dp(height)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); self.body.add_widget(w); return w
     def _button(self,text,cb,color=PRIMARY,height=46):
@@ -75,8 +75,13 @@ class OnlineClassScreen(Screen):
         except Exception as exc:return self._error("خواندن کلاس‌ها انجام نشد: "+str(exc))
         if not rows:self._label("هنوز کلاسی ثبت نشده است.",height=55); return
         for r in rows:
-            cid=r.get("id"); state=str(r.get("status") or "inactive"); self._label(f"#{cid} | {r.get('title') or 'کلاس آنلاین'}\n{r.get('subject','')} | پایه {r.get('grade','')} | کلاس {r.get('class_name','')} | دبیر {r.get('teacher','')}\nوضعیت: {'فعال' if state=='active' else ('پایان‌یافته' if state=='ended' else 'غیرفعال')}",height=92,bold=True)
+            cid=r.get("id"); state=str(r.get("status") or "inactive")
+            self._label(f"#{cid} | {r.get('title') or 'کلاس آنلاین'}\n{r.get('subject','')} | پایه {r.get('grade','')} | کلاس {r.get('class_name','')} | دبیر {r.get('teacher','')}\nوضعیت: {'فعال' if state=='active' else ('پایان‌یافته' if state=='ended' else 'غیرفعال')}",height=92,bold=True)
             if role_of(self.app_state) in MANAGERS:
+                self._button("✎ ویرایش کلاس",lambda *_ ,row=dict(r):self._edit_class(row),PRIMARY)
+                self._button("حذف کلاس",lambda *_ ,x=cid:self._delete_class(x),ERROR)
+                self._button("خروجی Excel کلاس‌ها",lambda *_:self._export_excel(),PRIMARY)
+                self._button("ورودی Excel کلاس‌ها",lambda *_:self._import_excel(),PRIMARY)
                 self._button("＋ اتصال دانش‌آموز به کلاس",lambda *_ ,x=cid:self._add_student(x),SUCCESS)
                 self._button("＋ اتصال دبیر به کلاس",lambda *_ ,x=cid:self._add_teacher(x),SUCCESS)
                 if state!="active": self._button("▶ شروع جلسه",lambda *_ ,x=cid:self._start(x),SUCCESS)
@@ -90,6 +95,87 @@ class OnlineClassScreen(Screen):
                 if url:self._button("ورود به جلسه و فعال‌سازی دوربین/میکروفون",lambda *_ ,u=url,x=cid:self._join(u,x),SUCCESS)
                 self._button(f"میکروفون: {'روشن' if self.mic else 'خاموش'}",lambda *_:self._toggle_mic(),SECONDARY)
                 self._button(f"دوربین: {'روشن' if self.camera else 'خاموش'}",lambda *_:self._toggle_camera(),SECONDARY)
+    def _edit_class(self,row):
+        self._clear()
+        self._label(f"ویرایش کلاس #{row.get('id')}","21sp",PRIMARY,52,True)
+        title=self._field("عنوان کلاس"); title.text=str(row.get("title") or "")
+        subject=self._field("درس / موضوع"); subject.text=str(row.get("subject") or row.get("lesson") or "")
+        teacher=self._field("نام دبیر"); teacher.text=str(row.get("teacher") or "")
+        grade=self._field("پایه"); grade.text=str(row.get("grade") or "")
+        cls=self._field("نام کلاس"); cls.text=str(row.get("class_name") or "")
+        duration=self._field("مدت به دقیقه"); duration.text=str(row.get("duration") or 60)
+        join=self._field("لینک جلسه واقعی؛ اختیاری"); join.text=str(row.get("join_url") or row.get("meeting_url") or "")
+        self._button("ذخیره ویرایش",lambda *_:self._save_class_edit(row.get("id"),title,subject,teacher,grade,cls,duration,join),SUCCESS)
+        self._button("بازگشت",lambda *_:self.show_home())
+
+    def _save_class_edit(self,cid,title,subject,teacher,grade,cls,duration,join):
+        try:
+            d=max(1,int(duration.text.strip() or 60))
+            if not title.text.strip(): return self._error("عنوان کلاس الزامی است.")
+            self.app_state.api.table_update("online_classes",{"id":f"eq.{cid}"},{
+                "title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),
+                "teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),
+                "duration":d,"join_url":join.text.strip(),"meeting_url":join.text.strip()
+            })
+            self._ok("کلاس با موفقیت ویرایش شد."); self.show_home()
+        except Exception as exc:
+            self._error("ویرایش کلاس انجام نشد: "+str(exc))
+
+    def _delete_class(self,cid):
+        try:
+            rows=self.app_state.api.table_select("online_classes",{"id":f"eq.{cid}","limit":"1"}) or []
+            if not rows: return self._error("کلاس پیدا نشد.")
+            self.app_state.api.table_delete("online_classes",{"id":f"eq.{cid}"})
+            self._ok("کلاس با موفقیت حذف شد."); self.show_home()
+        except Exception as exc:
+            self._error("حذف کلاس انجام نشد: "+str(exc))
+
+    def _excel_path(self):
+        from pathlib import Path
+        p=Path("/storage/emulated/0/Download/frahoosh_online_classes.xlsx")
+        try: p.parent.mkdir(parents=True,exist_ok=True)
+        except Exception: pass
+        return p
+
+    def _export_excel(self):
+        try:
+            from openpyxl import Workbook
+            rows=self.app_state.api.table_select("online_classes",{"limit":"1000"}) or []
+            fields=["id","title","subject","lesson","teacher","grade","class_name","duration","status","join_url","meeting_url"]
+            wb=Workbook(); ws=wb.active; ws.title="کلاس‌های آنلاین"
+            ws.append(fields)
+            for r in rows: ws.append([r.get(k,"") for k in fields])
+            path=self._excel_path(); wb.save(str(path))
+            self._ok("خروجی Excel ذخیره شد: Download/frahoosh_online_classes.xlsx")
+        except Exception as exc:
+            self._error("خروجی Excel انجام نشد: "+str(exc))
+
+    def _import_excel(self):
+        from pathlib import Path
+        path=self._excel_path()
+        if not path.is_file():
+            return self._error("فایل frahoosh_online_classes.xlsx را در پوشه Download گوشی قرار دهید.")
+        try:
+            from openpyxl import load_workbook
+            wb=load_workbook(str(path),read_only=True,data_only=True); ws=wb.active
+            rows=list(ws.iter_rows(values_only=True))
+            if not rows: return self._error("فایل Excel خالی است.")
+            headers=[str(x or "").strip() for x in rows[0]]
+            allowed={"title","subject","lesson","teacher","grade","class_name","duration","status","join_url","meeting_url"}
+            inserted=0
+            for values in rows[1:]:
+                payload={}
+                for i,v in enumerate(values):
+                    if i>=len(headers) or headers[i] not in allowed or v in (None,""): continue
+                    payload[headers[i]]=v
+                if payload.get("title"):
+                    try: payload["duration"]=max(1,int(payload.get("duration") or 60))
+                    except Exception: payload["duration"]=60
+                    self.app_state.api.table_insert("online_classes",payload,return_representation=False); inserted+=1
+            wb.close(); self._ok(f"{inserted} کلاس از Excel وارد شد."); self.show_home()
+        except Exception as exc:
+            self._error("ورودی Excel انجام نشد: "+str(exc))
+
     def _add_student(self,cid):
         self._clear()
         self._label(f"اتصال دانش‌آموز به کلاس #{cid}","21sp",PRIMARY,50,True)
