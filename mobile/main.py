@@ -416,10 +416,7 @@ class FrahooshApp(App):
             print("DASHBOARD OPEN ERROR: ScreenManager is not ready")
             return False
 
-        dashboard = self.ensure_dashboard()
-        if dashboard is None:
-            print("DASHBOARD OPEN ERROR: dashboard screen could not be created")
-            return False
+        # Build the dashboard behind a single failure boundary. A post-login\n        # screen construction error must never bring down the Android process.\n        try:\n            dashboard = self.ensure_dashboard()\n        except Exception as exc:\n            print("DASHBOARD CONSTRUCTION ERROR:", repr(exc))\n            dashboard = None\n        if dashboard is None:\n            print("DASHBOARD OPEN ERROR: dashboard screen could not be created")\n            return False
 
         try:
             self._set_screen_capture_policy()
