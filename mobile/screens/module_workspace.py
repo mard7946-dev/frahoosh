@@ -691,7 +691,17 @@ class ModuleWorkspaceScreen(Screen):
         self.add_widget(root)
 
     def role(self):
-        raw=str(getattr(self.app_state,"role","student") or "student").strip().lower()
+        # Resolve the role from the same identity sources used by login.
+        # Some sessions populate app_state.profile but leave app_state.role empty;
+        # that previously downgraded a real manager to the student/read-only path.
+        profile = getattr(self.app_state, "profile", {}) or {}
+        candidates = [
+            getattr(self.app_state, "role", None),
+            profile.get("role"),
+            profile.get("user_role"),
+            profile.get("permissions", {}).get("role") if isinstance(profile.get("permissions"), dict) else None,
+        ]
+        raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
         return {
             "admin":"manager","administrator":"manager","principal":"manager","manager":"manager",
             "مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager",
@@ -729,7 +739,12 @@ class ModuleWorkspaceScreen(Screen):
         resolved = self._resolve_backend_route(table)
         if resolved == "smart_class_preview":
             return False
-        return resolved in EDITABLE.get(self.role(),set())
+        role = self.role()
+        # A manager is the owner of the school data contract.  Do not let a
+        # stale/partial module permission set hide CRUD controls from the manager.
+        if role == "manager":
+            return True
+        return resolved in EDITABLE.get(role,set())
 
     def set_module(self,route,return_to="dashboard"):
         self._ensure_built()
