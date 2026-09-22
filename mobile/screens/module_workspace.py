@@ -84,6 +84,20 @@ def _load_shared_catalog():
 
 _shared_panels, _shared_friendly, _shared_modules = _load_shared_catalog()
 
+def _module_fields(table):
+    """Return the real field contract from the shared catalog plus local UI extras."""
+    key = str(table or "").strip()
+    local = list(TABLE_FIELDS.get(key) or []) if "TABLE_FIELDS" in globals() else []
+    spec = (_shared_modules or {}).get(key) or {}
+    shared = list(spec.get("fields") or []) if isinstance(spec, dict) else []
+    result = []
+    for field in shared + local:
+        field = str(field or "").strip()
+        if field and field not in result:
+            result.append(field)
+    return result
+
+
 # The uploaded v16.12 ZIP is the authoritative UI contract.  Android must use
 # its exact panel/module membership; the shared catalog is only used for table
 # fields and labels.  Every module below resolves to a real backend table.
@@ -939,7 +953,7 @@ class ModuleWorkspaceScreen(Screen):
                 api=self.app_state.api
                 rows=api.table_select(table,{"limit":"1000"}) or []
                 rows=[dict(x) for x in rows if isinstance(x,dict)]
-                fields=[f for f in (TABLE_FIELDS.get(table) or []) if f not in HIDDEN]
+                fields=[f for f in _module_fields(table) if f not in HIDDEN]
                 if not fields and rows:
                     fields=[k for k in rows[0] if k not in HIDDEN]
                 wb=Workbook(); ws=wb.active; ws.title="فراهوش"
@@ -997,7 +1011,7 @@ class ModuleWorkspaceScreen(Screen):
                 headers=[str(x or "").strip() for x in values[0]]
                 reverse={str(v):k for k,v in COLUMNS.items()}
                 fields=[reverse.get(h,h) for h in headers]
-                allowed=set(TABLE_FIELDS.get(table) or [])
+                allowed=set(_module_fields(table) or [])
                 fields=[f if f in allowed else None for f in fields]
                 inserted=0
                 for row in values[1:]:
@@ -1102,7 +1116,7 @@ class ModuleWorkspaceScreen(Screen):
             self.area.clear_widgets()
             rows = [dict(r) for r in (rows or []) if isinstance(r, dict)]
 
-            preferred = list(TABLE_FIELDS.get(self.table) or [])
+            preferred = list(_module_fields(self.table) or [])
             keys = [k for k in preferred if k not in HIDDEN]
             if not keys:
                 for r in rows:
@@ -1233,7 +1247,7 @@ class ModuleWorkspaceScreen(Screen):
     def editor(self,table,row):
         # The shared ZIP/Web contract is authoritative for forms too. This prevents
         # a module from silently falling back to decorative fields.
-        canonical = list(TABLE_FIELDS.get(table) or [])
+        canonical = list(_module_fields(table) or [])
         fields=[k for k in (canonical or FORMS.get(table) or self._infer(row)) if k not in HIDDEN]
         # Never expose internal metadata or an unknown placeholder as a form field.
         fields=[k for k in fields if k and k not in {"password","school_id"}]
