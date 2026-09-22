@@ -349,6 +349,22 @@ class FrahooshApp(App):
         from mobile.screens.school_workflows import PanelIOWorkflowScreen
         s=PanelIOWorkflowScreen(name=name,app_state=self.app_state,panel_key=panel_key); self.sm.add_widget(s); return s
 
+    def ensure_message_workflow(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("message_compose")
+        except Exception:
+            pass
+        try:
+            from mobile.screens.message_compose import MessageComposeScreen
+            screen = MessageComposeScreen(name="message_compose", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+        except Exception as exc:
+            print("MESSAGE COMPOSE BUILD ERROR:", repr(exc))
+            return None
+
     def ensure_special_module(self, mode):
         name = "special_" + str(mode)
         if self.sm is None:
