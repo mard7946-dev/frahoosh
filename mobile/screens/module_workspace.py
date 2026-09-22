@@ -815,6 +815,26 @@ class ModuleWorkspaceScreen(Screen):
         w.bind(pos=lambda o,v:setattr(bg,"pos",v),size=lambda o,v:setattr(bg,"size",v))
 
     def open_table(self,table,refresh_subbar=True):
+        # Student/parent messaging has a dedicated composer with a recipient
+        # dropdown; do not downgrade it to a generic CRUD table.
+        if table == "messages":
+            try:
+                from kivy.app import App
+                app = App.get_running_app()
+                role = self.role()
+                if role in {"student", "parent"} and app is not None:
+                    screen = app.ensure_message_workflow()
+                    if screen is None:
+                        raise RuntimeError("محیط ارسال پیام آماده نشد.")
+                    screen.return_to = "panel"
+                    if self.manager:
+                        self.manager.current = screen.name
+                    return
+            except Exception as exc:
+                print("MESSAGE WORKFLOW ERROR:", repr(exc))
+                self.status.text = rtl_text("محیط ارسال پیام باز نشد: " + str(exc))
+                self.status.color = (.8, .15, .15, 1)
+                return
         # Special school workflows use student-bound operational screens instead
         # of the generic CRUD renderer.
         if table in ("attendance", "discipline_records", "online_attendance"):
@@ -1425,10 +1445,10 @@ class ModuleWorkspaceScreen(Screen):
                             payload["student_id"] = sid
                     if row is None:
                         api.table_insert(table,payload); msg='رکورد جدید با موفقیت ثبت شد.'
-                else:
-                    rid=row.get('id')
-                    if rid is None: raise RuntimeError('شناسه رکورد برای ویرایش پیدا نشد.')
-                    api.table_update(table,{'id':'eq.'+str(rid)},payload); msg='رکورد با موفقیت ویرایش شد.'
+                    else:
+                        rid=row.get('id')
+                        if rid is None: raise RuntimeError('شناسه رکورد برای ویرایش پیدا نشد.')
+                        api.table_update(table,{'id':'eq.'+str(rid)},payload); msg='رکورد با موفقیت ویرایش شد.'
                 Clock.schedule_once(lambda *_:self.after_write(msg),0)
             except Exception as exc: Clock.schedule_once(lambda *_:self.write_error(str(exc)),0)
         Thread(target=work,daemon=True).start()
