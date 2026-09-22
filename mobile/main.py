@@ -427,17 +427,19 @@ class FrahooshApp(App):
         from mobile.screens.school_workflows import MeetingWorkflowScreen
         s=MeetingWorkflowScreen(name="meeting_workflow",app_state=self.app_state); self.sm.add_widget(s); return s
     def ensure_online_workflow(self):
+        """Open the full online-class center used by the operational module."""
         if self.sm is None:return None
         try:return self.sm.get_screen("online_workflow")
         except Exception:pass
-        from mobile.screens.school_workflows import OnlineClassWorkflowScreen
-        s=OnlineClassWorkflowScreen(name="online_workflow",app_state=self.app_state); self.sm.add_widget(s); return s
+        from mobile.screens.online_class import OnlineClassScreen
+        s=OnlineClassScreen(name="online_workflow",app_state=self.app_state); self.sm.add_widget(s); return s
     def ensure_exam_authoring(self):
+        """Open the full teacher/student online-exam center, not the legacy demo form."""
         if self.sm is None:return None
         try:return self.sm.get_screen("exam_authoring")
         except Exception:pass
-        from mobile.screens.school_workflows import ExamAuthoringScreen
-        s=ExamAuthoringScreen(name="exam_authoring",app_state=self.app_state); self.sm.add_widget(s); return s
+        from mobile.screens.teacher_exams_v4 import TeacherExamsV4Screen
+        s=TeacherExamsV4Screen(name="exam_authoring",app_state=self.app_state); self.sm.add_widget(s); return s
     def ensure_panel_io(self,panel_key):
         if self.sm is None:return None
         name="panel_io_"+str(panel_key)
