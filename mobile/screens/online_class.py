@@ -66,7 +66,7 @@ class OnlineClassScreen(Screen):
                 self._button("اعلام غیبت به ولی",lambda *_ ,x=cid:self._absence_notice(x),PRIMARY)
             if state=="active":
                 url=r.get("join_url") or r.get("meeting_url")
-                if url:self._button("ورود به جلسه و فعال‌سازی دوربین/میکروفون",lambda *_ ,u=url:self._join(u),SUCCESS)
+                if url:self._button("ورود به جلسه و فعال‌سازی دوربین/میکروفون",lambda *_ ,u=url,x=cid:self._join(u,x),SUCCESS)
                 self._button(f"میکروفون: {'روشن' if self.mic else 'خاموش'}",lambda *_:self._toggle_mic(),SECONDARY)
                 self._button(f"دوربین: {'روشن' if self.camera else 'خاموش'}",lambda *_:self._toggle_camera(),SECONDARY)
     def _start(self,cid):
@@ -118,15 +118,15 @@ class OnlineClassScreen(Screen):
                 self.app_state.api.table_insert("messages",{"sender_name":"مدیریت مدرسه","title":"اطلاع غیبت کلاس آنلاین","body":f"دانش‌آموز {m.get('student_name') or m.get('student_id')} در جلسه آنلاین #{cid} غایب ثبت شد.","audience_type":"parent","student_id":m.get("student_id")}); sent+=1
             self._ok(f"اطلاع غیبت برای {sent} ولی در صندوق پیام‌ها ثبت شد.")
         except Exception as exc:self._error("ارسال اطلاع غیبت انجام نشد: "+str(exc))
-    def _join(self,url):
+    def _join(self,url,cid=None):
         try:
             profile=getattr(self.app_state,"profile",{}) or {}
             role=role_of(self.app_state)
             student_id=profile.get("linked_student_id") or profile.get("student_id")
-            if role=="student" and student_id and self.current_id:
+            class_id=cid or self.current_id\n            if role=="student" and student_id and class_id:
                 sessions=self.app_state.api.table_select(
                     "online_class_sessions",
-                    {"class_id":f"eq.{self.current_id}","ended_at":"is.null","order":"id.desc","limit":"1"}
+                    {"class_id":f"eq.{class_id}","ended_at":"is.null","order":"id.desc","limit":"1"}
                 ) or []
                 if sessions:
                     session=sessions[0]
@@ -138,11 +138,11 @@ class OnlineClassScreen(Screen):
                     if not links:
                         self.app_state.api.table_insert(
                             "online_class_students",
-                            {"class_id":self.current_id,"student_id":student_id,"student_name":name}
+                            {"class_id":class_id,"student_id":student_id,"student_name":name}
                         )
                     self.app_state.api.table_insert(
                         "online_attendance",
-                        {"class_id":self.current_id,"session_id":session.get("id"),
+                        {"class_id":class_id,"session_id":session.get("id"),
                          "student_id":student_id,"student_name":name,
                          "status":"present","event_time":datetime.now(timezone.utc).isoformat(),
                          "source":"online"}
