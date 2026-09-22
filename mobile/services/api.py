@@ -285,7 +285,7 @@ class SupabaseClient:
     def table_select(self, table, params=None):
         response = self._authenticated_request("GET", f"{self.url}/rest/v1/{table}", params=params)
         if not response.ok:
-            raise ApiError(self._error(response))
+            raise ApiError(self._data_error(response, f"خواندن جدول «{table}» انجام نشد."))
         return response.json()
 
     def table_insert(self, table, payload, return_representation=True):
@@ -293,7 +293,7 @@ class SupabaseClient:
             raise ApiError("نشست معتبر برای ثبت اطلاعات وجود ندارد.")
         response = self._authenticated_request("POST", f"{self.url}/rest/v1/{table}", payload=payload, prefer="return=representation" if return_representation else None)
         if not response.ok:
-            raise ApiError(self._error(response))
+            raise ApiError(self._data_error(response, f"ثبت رکورد در جدول «{table}» انجام نشد."))
         return response.json()
 
     def table_update(self, table, filters, payload):
@@ -301,7 +301,7 @@ class SupabaseClient:
             raise ApiError("نشست معتبر برای ویرایش اطلاعات وجود ندارد.")
         response = self._authenticated_request("PATCH", f"{self.url}/rest/v1/{table}", payload=payload, params=dict(filters or {}), prefer="return=representation")
         if not response.ok:
-            raise ApiError(self._error(response))
+            raise ApiError(self._data_error(response, f"ویرایش رکورد جدول «{table}» انجام نشد."))
         return response.json()
 
     def rpc(self, function_name, payload=None):
@@ -317,8 +317,35 @@ class SupabaseClient:
             raise ApiError("نشست معتبر برای حذف اطلاعات وجود ندارد.")
         response = self._authenticated_request("DELETE", f"{self.url}/rest/v1/{table}", params=filters or {})
         if not response.ok:
-            raise ApiError(self._error(response))
+            raise ApiError(self._data_error(response, f"حذف رکورد جدول «{table}» انجام نشد."))
         return response.json()
+
+    def _data_error(self, response, default):
+        """Keep backend CRUD failures visible enough to fix schema/RLS issues."""
+        data = response.json()
+        code = ""
+        message = ""
+        detail = ""
+        hint = ""
+        if isinstance(data, dict):
+            code = str(data.get("code") or "").strip()
+            message = str(data.get("message") or data.get("msg") or data.get("error_description") or data.get("error") or "").strip()
+            detail = str(data.get("details") or data.get("detail") or "").strip()
+            hint = str(data.get("hint") or "").strip()
+        if response.status_code in (401, 403):
+            prefix = "دسترسی به جدول مجاز نیست."
+        elif response.status_code == 404:
+            prefix = "جدول یا ستون در Data API پیدا نشد."
+        elif response.status_code in (400, 406):
+            prefix = "ساختار درخواست با جدول سامانه سازگار نیست."
+        elif response.status_code == 409:
+            prefix = "ثبت رکورد به علت تعارض داده انجام نشد."
+        elif response.status_code >= 500:
+            prefix = "سرور هنگام کار با جدول خطا داد."
+        else:
+            prefix = default
+        diagnostics = " | ".join(x for x in (message, detail, hint, code) if x)
+        return f"{prefix} {diagnostics}".strip() if diagnostics else default
 
     def _error(self, response, default="خطا در ارتباط با سرور"):
         data = response.json()
