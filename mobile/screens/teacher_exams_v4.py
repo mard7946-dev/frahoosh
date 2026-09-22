@@ -29,11 +29,27 @@ LABEL_TO_TYPE = {v: k for k, v in TYPES}
 
 
 def role_of(state):
-    raw = str(getattr(state, "role", "student") or "student").strip().lower()
-    return {"admin":"manager", "administrator":"manager", "manager":"manager", "مدیر":"manager", "مدیریت":"manager",
-            "معاون آموزشی":"educational", "معاون اجرایی":"executive", "معاون پرورشی":"cultural",
-            "دبیر":"teacher", "معلم":"teacher", "teacher_staff":"teacher", "دانش‌آموز":"student",
-            "دانش آموز":"student", "ولی":"parent", "اولیا":"parent"}.get(raw, raw)
+    # Resolve the role from the authenticated profile as well as app_state.
+    # This keeps the teacher exam authoring controls visible after login.
+    profile = getattr(state, "profile", {}) or {}
+    candidates = [
+        getattr(state, "role", None),
+        profile.get("role"),
+        profile.get("user_role"),
+        profile.get("permissions", {}).get("role") if isinstance(profile.get("permissions"), dict) else None,
+    ]
+    raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
+    return {
+        "admin":"manager", "administrator":"manager", "principal":"manager",
+        "manager":"manager", "مدیر":"manager", "مدیریت":"manager",
+        "معاون آموزشی":"educational", "educational":"educational",
+        "معاون اجرایی":"executive", "اجرایی":"executive", "executive":"executive",
+        "معاون پرورشی":"cultural", "پرورشی":"cultural", "cultural":"cultural",
+        "دبیر":"teacher", "معلم":"teacher", "teacher_staff":"teacher",
+        "teacher":"teacher", "teachers":"teacher",
+        "دانش‌آموز":"student", "دانش آموز":"student", "student":"student",
+        "ولی":"parent", "اولیا":"parent", "parent":"parent", "parents":"parent",
+    }.get(raw, raw)
 
 
 class _SecurityNote(BoxLayout):
