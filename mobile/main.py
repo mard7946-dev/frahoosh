@@ -420,15 +420,10 @@ class FrahooshApp(App):
 
         try:
             self._set_screen_capture_policy()
-            # First authenticated entry is gated by the universal identity
-            # confirmation screen. The gate checks the server-side confirmation
-            # record, so after confirmation it silently forwards to dashboard.
-            if not bool((self.app_state.session or {}).get("identity_confirmed")):
-                gate = self.ensure_identity_gate()
-                if gate is not None:
-                    gate.pending_route = "dashboard"
-                    self.sm.current = "identity_gate"
-                    return True
+            # After successful authentication, go directly to the dashboard.
+            # Keep the login -> dashboard transition deterministic on Android;
+            # identity confirmation is handled separately and must not run
+            # asynchronous database queries during this critical transition.
             self.sm.current = "dashboard"
             Clock.schedule_once(self._refresh_dashboard_safe, 0)
             return True
