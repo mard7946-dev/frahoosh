@@ -12,7 +12,7 @@ from kivy.uix.scrollview import ScrollView
 from mobile.config import APP_NAME, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text
 
-MANAGERS={"manager","educational","executive"}
+MANAGERS={"manager","educational","executive","teacher"}
 
 
 def role_of(state):
@@ -119,8 +119,38 @@ class OnlineClassScreen(Screen):
             self._ok(f"اطلاع غیبت برای {sent} ولی در صندوق پیام‌ها ثبت شد.")
         except Exception as exc:self._error("ارسال اطلاع غیبت انجام نشد: "+str(exc))
     def _join(self,url):
-        try:webbrowser.open(str(url)); self._ok("جلسه واقعی در لینک تعیین‌شده باز شد؛ کنترل دوربین و میکروفون توسط سرویس جلسه انجام می‌شود.")
-        except Exception:self._error("باز کردن جلسه انجام نشد.")
+        try:
+            profile=getattr(self.app_state,"profile",{}) or {}
+            role=role_of(self.app_state)
+            student_id=profile.get("linked_student_id") or profile.get("student_id")
+            if role=="student" and student_id and self.current_id:
+                sessions=self.app_state.api.table_select(
+                    "online_class_sessions",
+                    {"class_id":f"eq.{self.current_id}","ended_at":"is.null","order":"id.desc","limit":"1"}
+                ) or []
+                if sessions:
+                    session=sessions[0]
+                    name=str(profile.get("display_name") or getattr(self.app_state,"display_name","") or "دانش‌آموز")
+                    links=self.app_state.api.table_select(
+                        "online_class_students",
+                        {"class_id":f"eq.{self.current_id}","student_id":f"eq.{student_id}","limit":"1"}
+                    ) or []
+                    if not links:
+                        self.app_state.api.table_insert(
+                            "online_class_students",
+                            {"class_id":self.current_id,"student_id":student_id,"student_name":name}
+                        )
+                    self.app_state.api.table_insert(
+                        "online_attendance",
+                        {"class_id":self.current_id,"session_id":session.get("id"),
+                         "student_id":student_id,"student_name":name,
+                         "status":"present","event_time":datetime.now(timezone.utc).isoformat(),
+                         "source":"online"}
+                    )
+            webbrowser.open(str(url))
+            self._ok("جلسه واقعی باز شد و ورود شما در سامانه ثبت شد؛ کنترل دوربین و میکروفون توسط سرویس جلسه انجام می‌شود.")
+        except Exception as exc:
+            self._error("ورود به جلسه انجام نشد: "+str(exc))
     def _toggle_mic(self):self.mic=not self.mic; self.show_home()
     def _toggle_camera(self):self.camera=not self.camera; self.show_home()
     def _ok(self,text):self.status.color=SUCCESS;self.status.text=rtl_text(text)
