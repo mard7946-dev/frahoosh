@@ -89,3 +89,26 @@ create policy frahoosh_message_read_update on public.message_reads
   );
 
 grant select, insert, update, delete on table public.messages, public.message_targets, public.message_reads to authenticated;
+
+
+-- The recipient dropdown needs a safe staff directory. The users table contains
+-- no password/secret field; students and parents can see only school-staff roles.
+drop policy if exists frahoosh_student_parent_staff_directory on public.users;
+create policy frahoosh_student_parent_staff_directory on public.users
+  for select to authenticated
+  using (
+    (select private.frahoosh_is_staff())
+    or (
+      lower(coalesce(private.frahoosh_current_role(),'')) = any(array[
+        'student','دانش‌آموز','parent','parents','ولی','اولیا'
+      ])
+      and lower(coalesce(role,'')) = any(array[
+        'manager','admin','مدیر','مدیریت',
+        'educational','معاون آموزشی',
+        'executive','معاون اجرایی',
+        'cultural','معاون پرورشی',
+        'advisor','counselor','مشاور',
+        'teacher','دبیر','معلم'
+      ])
+    )
+  );
