@@ -16,8 +16,27 @@ MANAGERS={"manager","educational","executive","teacher"}
 
 
 def role_of(state):
-    raw=str(getattr(state,"role","student") or "student").strip().lower()
-    return {"admin":"manager","administrator":"manager","مدیر":"manager","مدیریت":"manager","معاون آموزشی":"educational","معاون اجرایی":"executive","معاون پرورشی":"cultural","دبیر":"teacher","معلم":"teacher","دانش‌آموز":"student","دانش آموز":"student","ولی":"parent","اولیا":"parent"}.get(raw,raw)
+    # Login may keep the canonical role in profile while app_state.role is empty.
+    # Resolve both sources so operational create/manage controls are not hidden.
+    profile = getattr(state, "profile", {}) or {}
+    candidates = [
+        getattr(state, "role", None),
+        profile.get("role"),
+        profile.get("user_role"),
+        profile.get("permissions", {}).get("role") if isinstance(profile.get("permissions"), dict) else None,
+    ]
+    raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
+    return {
+        "admin":"manager","administrator":"manager","principal":"manager","manager":"manager",
+        "مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager",
+        "معاون آموزشی":"educational","educational":"educational",
+        "معاون اجرایی":"executive","اجرایی":"executive","executive":"executive",
+        "معاون پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural",
+        "مشاور":"advisor","مشاوره":"advisor","counselor":"advisor","advisor":"advisor",
+        "دبیر":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher",
+        "دانش‌آموز":"student","دانش آموز":"student","student":"student",
+        "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parents":"parent",
+    }.get(raw, raw)
 
 
 class OnlineClassScreen(Screen):
@@ -58,6 +77,8 @@ class OnlineClassScreen(Screen):
         for r in rows:
             cid=r.get("id"); state=str(r.get("status") or "inactive"); self._label(f"#{cid} | {r.get('title') or 'کلاس آنلاین'}\n{r.get('subject','')} | پایه {r.get('grade','')} | کلاس {r.get('class_name','')} | دبیر {r.get('teacher','')}\nوضعیت: {'فعال' if state=='active' else ('پایان‌یافته' if state=='ended' else 'غیرفعال')}",height=92,bold=True)
             if role_of(self.app_state) in MANAGERS:
+                self._button("＋ اتصال دانش‌آموز به کلاس",lambda *_ ,x=cid:self._add_student(x),SUCCESS)
+                self._button("＋ اتصال دبیر به کلاس",lambda *_ ,x=cid:self._add_teacher(x),SUCCESS)
                 if state!="active": self._button("▶ شروع جلسه",lambda *_ ,x=cid:self._start(x),SUCCESS)
                 if state=="active": self._button("■ پایان جلسه",lambda *_ ,x=cid:self._end(x),ERROR)
                 self._button("حضور و غیاب",lambda *_ ,x=cid:self._attendance(x),PRIMARY)
@@ -69,6 +90,54 @@ class OnlineClassScreen(Screen):
                 if url:self._button("ورود به جلسه و فعال‌سازی دوربین/میکروفون",lambda *_ ,u=url,x=cid:self._join(u,x),SUCCESS)
                 self._button(f"میکروفون: {'روشن' if self.mic else 'خاموش'}",lambda *_:self._toggle_mic(),SECONDARY)
                 self._button(f"دوربین: {'روشن' if self.camera else 'خاموش'}",lambda *_:self._toggle_camera(),SECONDARY)
+    def _add_student(self,cid):
+        self._clear()
+        self._label(f"اتصال دانش‌آموز به کلاس #{cid}","21sp",PRIMARY,50,True)
+        sid=self._field("شناسه دانش‌آموز")
+        name=self._field("نام دانش‌آموز")
+        self._button("ثبت اتصال دانش‌آموز",lambda *_:self._save_student(cid,sid,name),SUCCESS)
+        self._button("بازگشت به کلاس‌ها",lambda *_:self.show_home())
+
+    def _save_student(self,cid,sid,name):
+        if not sid.text.strip() or not name.text.strip():
+            return self._error("شناسه و نام دانش‌آموز الزامی است.")
+        try:
+            existing=self.app_state.api.table_select("online_class_students",{
+                "class_id":f"eq.{cid}","student_id":f"eq.{sid.text.strip()}","limit":"1"
+            }) or []
+            if not existing:
+                self.app_state.api.table_insert("online_class_students",{
+                    "class_id":cid,"student_id":int(sid.text.strip()),"student_name":name.text.strip()
+                })
+            self._ok("دانش‌آموز به کلاس متصل شد.")
+            self.show_home()
+        except Exception as exc:
+            self._error("اتصال دانش‌آموز انجام نشد: "+str(exc))
+
+    def _add_teacher(self,cid):
+        self._clear()
+        self._label(f"اتصال دبیر به کلاس #{cid}","21sp",PRIMARY,50,True)
+        tid=self._field("شناسه دبیر")
+        name=self._field("نام دبیر")
+        self._button("ثبت اتصال دبیر",lambda *_:self._save_teacher(cid,tid,name),SUCCESS)
+        self._button("بازگشت به کلاس‌ها",lambda *_:self.show_home())
+
+    def _save_teacher(self,cid,tid,name):
+        if not tid.text.strip() or not name.text.strip():
+            return self._error("شناسه و نام دبیر الزامی است.")
+        try:
+            existing=self.app_state.api.table_select("online_class_teachers",{
+                "class_id":f"eq.{cid}","teacher_id":f"eq.{tid.text.strip()}","limit":"1"
+            }) or []
+            if not existing:
+                self.app_state.api.table_insert("online_class_teachers",{
+                    "class_id":cid,"teacher_id":int(tid.text.strip()),"teacher_name":name.text.strip()
+                })
+            self._ok("دبیر به کلاس متصل شد.")
+            self.show_home()
+        except Exception as exc:
+            self._error("اتصال دبیر انجام نشد: "+str(exc))
+
     def _start(self,cid):
         try:self.app_state.api.table_insert("online_class_sessions",{"class_id":cid,"started_at":datetime.now(timezone.utc).isoformat()}); self.app_state.api.table_update("online_classes",{"id":f"eq.{cid}"},{"status":"active"}); self._ok("جلسه شروع شد و در سامانه ثبت گردید."); self.show_home()
         except Exception as exc:self._error("شروع جلسه انجام نشد: "+str(exc))
@@ -143,10 +212,9 @@ class OnlineClassScreen(Screen):
                         )
                     self.app_state.api.table_insert(
                         "online_attendance",
-                        {"class_id":class_id,"session_id":session.get("id"),
-                         "student_id":student_id,"student_name":name,
-                         "status":"present","event_time":datetime.now(timezone.utc).isoformat(),
-                         "source":"online"}
+                        {"class_id":class_id,"student_id":student_id,
+                         "student_name":name,"status":"present",
+                         "recorded_at":datetime.now(timezone.utc).isoformat()}
                     )
             webbrowser.open(str(url))
             self._ok("جلسه واقعی باز شد و ورود شما در سامانه ثبت شد؛ کنترل دوربین و میکروفون توسط سرویس جلسه انجام می‌شود.")
