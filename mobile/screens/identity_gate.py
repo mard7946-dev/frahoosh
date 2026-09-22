@@ -89,7 +89,7 @@ class IdentityGateScreen(Screen):
         source={}; source_table="account_settings"
         if role in ("student","دانش‌آموز"):
             sid=p.get("linked_student_id") or p.get("student_id")
-            rows=api.table_select("students",{"id":"eq."+str(sid),"limit":"1"}) if sid else api.table_select("students",{"national_code":"eq."+str(getattr(self.app_state,"national_code",""))),"limit":"1"}) if getattr(self.app_state,"national_code","") else []
+            rows=api.table_select("students",{"id":"eq."+str(sid),"limit":"1"}) if sid else api.table_select("students",{"national_code":"eq."+str(getattr(self.app_state,"national_code","")),"limit":"1"}) if getattr(self.app_state,"national_code","") else []
             source=rows[0] if rows else {}; source_table="students"
         elif role in ("teacher","دبیر","معلم"):
             tid=p.get("linked_teacher_id") or p.get("teacher_id")
