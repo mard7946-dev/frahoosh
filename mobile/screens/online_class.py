@@ -23,6 +23,9 @@ def role_of(state):
         getattr(state, "role", None),
         profile.get("role"),
         profile.get("user_role"),
+        profile.get("school_role"),
+        profile.get("user_type"),
+        profile.get("account_type"),
         profile.get("permissions", {}).get("role") if isinstance(profile.get("permissions"), dict) else None,
     ]
     raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
