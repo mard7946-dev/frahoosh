@@ -327,7 +327,31 @@ class PanelHubScreen(Screen):
         Clock.schedule_once(navigate,0)
 
     def on_pre_enter(self,*_):
-        self.refresh()
+        # Kivy calls this synchronously while ScreenManager.current is changed.
+        # An exception here bubbles back into open_dashboard() and is reported
+        # incorrectly as "dashboard did not open" even though authentication
+        # succeeded. Keep the lifecycle boundary non-throwing on Android.
+        if self.app_state is None or not getattr(self.app_state,"logged_in",False):
+            try:
+                if self.manager:
+                    self.manager.current="login"
+            except Exception as exc:
+                print("DASHBOARD LOGIN REDIRECT ERROR:",repr(exc))
+            return
+        try:
+            self.refresh()
+        except Exception as exc:
+            print("DASHBOARD PRE-ENTER REFRESH ERROR:",repr(exc))
+            try:
+                self.welcome.text=rtl_text("ورود موفق بود؛ داشبورد آماده است.")
+                self.role_text.text=rtl_text("پنل‌ها در حال آماده‌سازی هستند...")
+            except Exception:
+                pass
+        if self.role()=="parent":
+            try:
+                self._start_parent_poll()
+            except Exception as exc:
+                print("DASHBOARD PARENT POLL START ERROR:",repr(exc))
 
 class DashboardScreen(Screen):
     """Mobile dashboard: animated swipeable panels inside a half-screen frame over the agreed artwork."""
