@@ -363,11 +363,17 @@ class FrahooshApp(App):
         if self.sm is None:
             return None
         try:
-            screen = self.sm.get_screen("special_identity_gate")
+            return self.sm.get_screen("identity_gate")
+        except Exception:
+            pass
+        try:
+            from mobile.screens.identity_gate import IdentityGateScreen
+            screen = IdentityGateScreen(name="identity_gate", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
         except Exception as exc:
-            print("IDENTITY GATE LOOKUP ERROR:", repr(exc))
+            print("IDENTITY GATE BUILD ERROR:", repr(exc))
             return None
-        return screen
 
     def ensure_update(self):
         if self.sm is None:
@@ -401,8 +407,15 @@ class FrahooshApp(App):
 
         try:
             self._set_screen_capture_policy()
-            # Login success always lands on the dashboard. Identity checks and
-            # role-specific panels are deliberately handled after this boundary.
+            # First authenticated entry is gated by the universal identity
+            # confirmation screen. The gate checks the server-side confirmation
+            # record, so after confirmation it silently forwards to dashboard.
+            if not bool((self.app_state.session or {}).get("identity_confirmed")):
+                gate = self.ensure_identity_gate()
+                if gate is not None:
+                    gate.pending_route = "dashboard"
+                    self.sm.current = "identity_gate"
+                    return True
             self.sm.current = "dashboard"
             Clock.schedule_once(self._refresh_dashboard_safe, 0)
             return True
