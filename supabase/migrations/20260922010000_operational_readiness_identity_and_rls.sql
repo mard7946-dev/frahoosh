@@ -92,7 +92,7 @@ returns text language sql stable security definer set search_path=''
 as $$
   select coalesce(
     (
-      select nullif(trim(coalesce(u.role, a.role, (u_permissions->>'role'))),'')
+      select nullif(trim(coalesce(u.role, a.role, (p.u_permissions->>'role'))),'')
       from public.users u
       full join public.account_settings a
         on lower(coalesce(a.email,'')) = lower(coalesce(auth.jwt()->>'email',''))
