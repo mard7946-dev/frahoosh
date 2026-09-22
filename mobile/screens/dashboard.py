@@ -617,12 +617,27 @@ class DashboardScreen(Screen):
             pass
 
     def on_pre_enter(self,*_):
+        # Never let a dashboard refresh exception escape the Kivy lifecycle.
+        # On Android an uncaught exception here can terminate the process
+        # exactly after the login screen reports success.
         if self.app_state is None or not getattr(self.app_state,"logged_in",False):
-            if self.manager:self.manager.current="login"
+            if self.manager:
+                self.manager.current="login"
             return
-        self.refresh()
+        try:
+            self.refresh()
+        except Exception as exc:
+            print("DASHBOARD PRE-ENTER REFRESH ERROR:", repr(exc))
+            try:
+                self.welcome.text = rtl_text("ورود موفق بود؛ داشبورد آماده شد.")
+                self.role_text.text = rtl_text("در حال آماده‌سازی پنل‌ها...")
+            except Exception:
+                pass
         if self.role() == "parent":
-            self._start_parent_poll()
+            try:
+                self._start_parent_poll()
+            except Exception as exc:
+                print("DASHBOARD PARENT POLL START ERROR:", repr(exc))
 
     def logout(self,*_):
         try:
