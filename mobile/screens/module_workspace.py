@@ -1029,8 +1029,7 @@ class ModuleWorkspaceScreen(Screen):
             return
         path=self._excel_path()
         if not path.is_file():
-            self.message("ورودی Excel",f"فایل مورد انتظار پیدا نشد.
-فایل {path.name} را در پوشه Download گوشی قرار دهید و دوباره بزنید.")
+            self.message("ورودی Excel",f"فایل مورد انتظار پیدا نشد.\nفایل {path.name} را در پوشه Download گوشی قرار دهید و دوباره بزنید.")
             return
         self.status.text=rtl_text("در حال خواندن فایل Excel…")
         def work():
