@@ -78,15 +78,13 @@ class ProfessionalModuleScreen(ModuleWorkspaceScreen):
         self.set_module(self.module_key, return_to="dashboard")
 
     def set_module(self, route, return_to="dashboard"):
+        # Mother-panel ids (users, virtual, planning, finance, etc.) are
+        # operational routes too.  Do not silently redirect an unknown id to
+        # the management landing page; let the canonical workspace resolver
+        # map it to its real Supabase table.
         route = str(route or "").strip()
-        if route not in SUBMENUS:
-            route = "management"
-        self.route = route
         self.module_key = route
-        self.return_to = return_to or "dashboard"
-        self.table = None
-        self.selected_row = None
-        self.render()
+        return ModuleWorkspaceScreen.set_module(self, route, return_to=return_to)
 
     load_module = set_module
 
