@@ -94,6 +94,29 @@ class AppState:
             return False
 
         self.session = dict(payload)
+
+        # The Auth response normally already contains the school profile, but
+        # older/partially configured Supabase projects can return only the Auth
+        # user. Enrich the session immediately while the fresh bearer token is
+        # available so role-aware panels do not silently fall back to student
+        # mode. This is especially important for the manager account: CRUD
+        # controls and operational workflows depend on the canonical role.
+        if self.api is not None:
+            try:
+                user = self.session.get("user") or {}
+                current_profile = self.session.get("profile")
+                if not isinstance(current_profile, dict):
+                    current_profile = {}
+                if not current_profile.get("role"):
+                    refreshed = self.api._profile(user)
+                    if isinstance(refreshed, dict):
+                        merged = dict(current_profile)
+                        merged.update(refreshed)
+                        current_profile = merged
+                self.session["profile"] = current_profile
+            except Exception as exc:
+                print("PROFILE ENRICHMENT ERROR:", repr(exc))
+
         self.session["remember_me"] = bool(remember)
         self._load_tokens()
 
