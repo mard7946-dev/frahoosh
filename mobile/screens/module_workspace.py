@@ -270,7 +270,8 @@ TABLE_FIELDS = {
 "smart_board_content":["title","content","class_id","teacher_id","content_date_shamsi"],"smart_board_activities":["title","activity_text","class_id","teacher_id","activity_date_shamsi"],"smart_board_quizzes":["title","question","option_a","option_b","option_c","option_d","correct_option","class_id","teacher_id","quiz_date_shamsi"],"smart_board_whiteboards":["title","content","class_id","teacher_id","board_date"],
 "educational_activities":["title","subject","grade","class_name","teacher_id","student_id","description","activity_date","status"],"counseling_records":["student_name","visit_reason","recommendations","next_visit","reason_summary"],"counseling_followups":["student_id","subject","description","status"],
 "ai_questions":["username","role","question","answer","student_id","answered_at","answer_date_shamsi"],"ai_assistant_sessions":["username","role","title","context","request_date_shamsi"],"ai_smart_reports":["title","report_type","target_type","target_id","report","created_by","report_date_shamsi"],
-"messages":["sender","receiver","text","sender_user_id","sender_name","title","body","audience_type","audience_value"],\n"online_class_chat":["class_id","session_id","sender_id","sender_name","sender_role","message"],"message_targets":["message_id","target_type","target_value","target_role","target_id","read_at"],"message_delivery":["message_id","username","received_at","seen_at"],
+"messages":["sender","receiver","text","sender_user_id","sender_name","title","body","audience_type","audience_value"],
+"online_class_chat":["class_id","session_id","sender_id","sender_name","sender_role","message"],"message_targets":["message_id","target_type","target_value","target_role","target_id","read_at"],"message_delivery":["message_id","username","received_at","seen_at"],
 "school_profile":["school_name","school_code","principal_name","phone","address","academic_year","logo_path","request_date_shamsi"],"school_class_config":["total_classes","grade7_classes","grade8_classes","grade9_classes"],"users":["username","password","role","permissions","linked_student_id","linked_teacher_id","linked_staff_id","display_name"],"account_settings":["username","display_name","phone","email","preferences","national_code","role","auth_user_id"],
 "teacher_exams":["teacher_id","title","subject","grade","class_name","exam_type","exam_date","duration","description","published","secure_mode","share_enabled","share_code","standard_mode","max_attempts","passing_score"],"quiz_questions":["quiz_id","question","option1","option2","option3","option4","correct_answer","points","question_type","image_url","options_json","accepted_answers","explanation","difficulty","cognitive_level","auto_grade","negative_score"],
 "discipline_records":["student_id","teacher_id","title","description","priority","status","item_id","deduction","actor_username","actor_role","note"],"educational_followups":["student_id","followup_date","followup_items","decision","status"],"academic_followups":["student_id","followup_date","followup_items","decision","status"],"certificates":["student_id","title","code"],"parent_meetings":["student_id","teacher_id","parent_phone","reason","meeting_date","status"],
@@ -1028,7 +1029,8 @@ class ModuleWorkspaceScreen(Screen):
             return
         path=self._excel_path()
         if not path.is_file():
-            self.message("ورودی Excel",f"فایل مورد انتظار پیدا نشد.\nفایل {path.name} را در پوشه Download گوشی قرار دهید و دوباره بزنید.")
+            self.message("ورودی Excel",f"فایل مورد انتظار پیدا نشد.
+فایل {path.name} را در پوشه Download گوشی قرار دهید و دوباره بزنید.")
             return
         self.status.text=rtl_text("در حال خواندن فایل Excel…")
         def work():
