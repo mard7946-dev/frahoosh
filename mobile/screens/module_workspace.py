@@ -54,7 +54,10 @@ SUBMENUS = {
 "reports":[("کارنامه‌ها","report_cards"),("نسخه‌های کارنامه","report_card_snapshots"),("نمرات","grades"),("حضور و غیاب","attendance"),("ارزیابی دانش‌آموزان","student_grades"),("گزارش هوشمند","ai_smart_reports")],
 "schedule":[("برنامه هفتگی","weekly_schedule"),("برنامه تولیدشده","generated_weekly_schedule"),("برنامه امتحانات","exam_schedule"),("کلاس‌های دبیران","teacher_classes"),("صندلی امتحانی","exam_seat_assignments")],
 "settings":[("تنظیمات حساب","account_settings"),("مشخصات مدرسه","school_profile"),("ساختار کلاس‌ها","school_class_config"),("حساب‌های سامانه","users")],
-"student_info":[("اطلاعات شخصی","students"),("پایه و کلاس","student_class_info"),("نمرات","student_grades"),("حضور و غیاب","attendance"),("تکالیف","assignments"),("کارنامه","report_cards")]
+"student_info":[("اطلاعات شخصی","students"),("پایه و کلاس","student_class_info"),("نمرات","student_grades"),("حضور و غیاب","attendance"),("تکالیف","assignments"),("کارنامه","report_cards")],
+"teacher_exams":[("آزمون آنلاین","teacher_exams"),("بانک سؤال","quiz_questions"),("زمان‌بندی","exam_schedule")],
+"payment":[("پرداخت آنلاین","payment_offers"),("درخواست‌های پرداخت","payment_attempts"),("سوابق پرداخت","payment_records"),("تراکنش‌ها","payment_transactions")],
+"messages":[("صندوق ورودی","messages"),("ارسال پیام","message_targets"),("وضعیت خواندن","message_reads")]
 }
 
 # Canonical module catalog shared with the Web client. The large in-file map remains
@@ -882,6 +885,7 @@ class ModuleWorkspaceScreen(Screen):
             bar.add_widget(self.btn("حذف",lambda *_:self._delete_selected_row(),(0.72,.16,.18,1),dp(38)))
             bar.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
             bar.add_widget(self.btn("ورودی Excel",lambda *_:self.import_excel(),(0.42,.30,.62,1),dp(38)))
+            bar.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
             self.body.add_widget(bar)
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
 
@@ -917,6 +921,30 @@ class ModuleWorkspaceScreen(Screen):
                 Clock.schedule_once(lambda *_: self._excel_done(msg),0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self.write_error("خروجی Excel انجام نشد: "+str(exc)),0)
+        Thread(target=work,daemon=True).start()
+
+    def export_pdf(self):
+        table=str(self.table or "").strip()
+        if not table:
+            return
+        self.status.text=rtl_text("در حال ساخت گزارش PDF…")
+        def work():
+            try:
+                from mobile.services.document_service import export_table_pdf
+                rows=self.app_state.api.table_select(table,{"limit":"2000"}) or []
+                rows=[dict(x) for x in rows if isinstance(x,dict)]
+                fields=[f for f in (TABLE_FIELDS.get(table) or []) if f not in HIDDEN]
+                if not fields and rows:
+                    fields=[k for k in rows[0] if k not in HIDDEN]
+                output=Path(getattr(getattr(self.app_state,"api",None),"local",Path(".")))
+                if not isinstance(output,Path):
+                    output=Path(".")
+                output.mkdir(parents=True,exist_ok=True)
+                path=output/("frahoosh_"+table+"_report.pdf")
+                export_table_pdf(table,rows,fields,COLUMNS,str(path),title=FRIENDLY.get(table,table))
+                Clock.schedule_once(lambda *_: self._excel_done("گزارش PDF ذخیره شد: "+str(path)),0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_: self.write_error("گزارش PDF انجام نشد: "+str(exc)),0)
         Thread(target=work,daemon=True).start()
 
     def import_excel(self):
@@ -1384,8 +1412,19 @@ class ModuleWorkspaceScreen(Screen):
                         else:
                             api.table_insert("grade_items", item_payload)
                         msg='نمره و نسخه‌های مرتبط با موفقیت ویرایش شد.'
-                elif row is None:
-                    api.table_insert(table,payload); msg='رکورد جدید با موفقیت ثبت شد.'
+                else:
+                    role = self.role()
+                    profile = getattr(self.app_state, "profile", {}) or {}
+                    if role in ("teacher", "دبیر", "معلم") and table in {"grades","student_grades","attendance","assignments","discipline_records","teacher_exams","lesson_plans","teacher_activities"}:
+                        tid = profile.get("linked_teacher_id") or profile.get("teacher_id")
+                        if tid and not payload.get("teacher_id"):
+                            payload["teacher_id"] = tid
+                    if role in ("student","دانش‌آموز") and table in {"student_grades","attendance","assignments","assignment_submissions","discipline_records"}:
+                        sid = profile.get("linked_student_id") or profile.get("student_id")
+                        if sid and not payload.get("student_id"):
+                            payload["student_id"] = sid
+                    if row is None:
+                        api.table_insert(table,payload); msg='رکورد جدید با موفقیت ثبت شد.'
                 else:
                     rid=row.get('id')
                     if rid is None: raise RuntimeError('شناسه رکورد برای ویرایش پیدا نشد.')
