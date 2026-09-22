@@ -117,6 +117,75 @@ class OperationalPanelScreen(Screen):
         # real generic workspace instead of letting an event callback crash.
         self.workspace.set_module(route, return_to="dashboard")
 
+class EmergencyDashboardScreen(Screen):
+    """Last-resort authenticated dashboard that keeps login from failing.
+
+    It uses the same real PanelHubScreen and role catalog as the normal
+    dashboard, but avoids the heavy dashboard artwork/lifecycle path.
+    """
+    def __init__(self, app_state=None, build_error=None, **kwargs):
+        super().__init__(**kwargs)
+        self.app_state = app_state
+        self.build_error = build_error
+        self._build()
+        if build_error:
+            print("EMERGENCY DASHBOARD ACTIVE:", repr(build_error))
+
+    def _build(self):
+        root = BoxLayout(orientation="vertical", padding=18, spacing=10)
+        root.add_widget(Label(text="فراهوش", font_size="24sp", size_hint_y=None, height=48))
+        root.add_widget(Label(text="داشبورد مدیریت مدرسه", font_size="16sp", size_hint_y=None, height=40))
+        scroll = ScreenAwareScrollView()
+        grid = BoxLayout(orientation="vertical", spacing=8, size_hint_y=None)
+        grid.bind(minimum_height=grid.setter("height"))
+        scroll.add_widget(grid)
+        root.add_widget(scroll)
+        self._grid = grid
+        self.add_widget(root)
+        self._populate()
+
+    def _populate(self):
+        from mobile.screens.dashboard import PANEL_HUBS, ROLE_ALIASES, PanelHubScreen
+        raw = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
+        role = ROLE_ALIASES.get(raw, raw)
+        if role == "manager":
+            allowed = [key for _, key in PANEL_HUBS]
+        elif role == "student":
+            allowed = [key for _, key in PANEL_HUBS if key != "finance"]
+        elif role == "parent":
+            allowed = [key for _, key in PANEL_HUBS if key not in {"finance", "online", "teacher_exams"}]
+        else:
+            own = {"executive":"executive","educational":"educational","cultural":"cultural",
+                   "advisor":"advisor","teacher":"teachers"}.get(role)
+            allowed = ([own] if own else []) + [k for k in ("online","teacher_exams","smart_board","ai","messages","payment") if k != own]
+        for title, key in PANEL_HUBS:
+            if key not in allowed:
+                continue
+            b = Button(text=title, size_hint_y=None, height=54)
+            b.bind(on_release=lambda *_a, k=key: self._open_panel(k))
+            self._grid.add_widget(b)
+
+    def _open_panel(self, key):
+        app = App.get_running_app()
+        if not app or not app.sm:
+            return
+        try:
+            name = "panelhub_" + str(key)
+            try:
+                screen = app.sm.get_screen(name)
+            except Exception:
+                from mobile.screens.dashboard import PanelHubScreen
+                screen = PanelHubScreen(name=name, app_state=self.app_state, panel_key=key)
+                app.sm.add_widget(screen)
+            app.sm.current = name
+        except Exception as exc:
+            print("EMERGENCY DASHBOARD PANEL ERROR:", repr(exc))
+
+
+class ScreenAwareScrollView(ScrollView):
+    pass
+
+
 class FrahooshApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
