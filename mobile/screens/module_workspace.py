@@ -646,7 +646,17 @@ class ModuleWorkspaceScreen(Screen):
 
     def role(self):
         raw=str(getattr(self.app_state,"role","student") or "student").strip().lower()
-        return {"admin":"manager","administrator":"manager","مدیر":"manager","مدیریت":"manager","معاون آموزشی":"educational","معاون اجرایی":"executive","معاون پرورشی":"cultural","مشاور":"advisor","دبیر":"teacher","معلم":"teacher","دانش‌آموز":"student","ولی":"parent","اولیا":"parent"}.get(raw,raw)
+        return {
+            "admin":"manager","administrator":"manager","principal":"manager","manager":"manager",
+            "مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager",
+            "معاون آموزشی":"educational","educational":"educational",
+            "معاون اجرایی":"executive","اجرایی":"executive","executive":"executive",
+            "معاون پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural",
+            "مشاور":"advisor","مشاوره":"advisor","counselor":"advisor","advisor":"advisor",
+            "دبیر":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher",
+            "دانش‌آموز":"student","دانش آموز":"student","student":"student",
+            "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parents":"parent"
+        }.get(raw,raw)
 
     def _resolve_backend_route(self, route):
         """Resolve a visible mother/ZIP module id to its real Supabase table.
