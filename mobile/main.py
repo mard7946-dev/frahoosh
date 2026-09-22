@@ -6,6 +6,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import SlideTransition
 
 # IMPORTANT: LoginScreen is intentionally NOT imported at module import time.
@@ -298,7 +299,17 @@ class FrahooshApp(App):
             return screen
         except Exception as exc:
             print("CLEAN DASHBOARD BUILD ERROR:", repr(exc))
-            return None
+            try:
+                screen = EmergencyDashboardScreen(
+                    app_state=self.app_state,
+                    build_error=exc,
+                    name="dashboard",
+                )
+                self.sm.add_widget(screen)
+                return screen
+            except Exception as fallback_exc:
+                print("EMERGENCY DASHBOARD BUILD ERROR:", repr(fallback_exc))
+                return None
 
     def ensure_school_action(self, mode):
         if self.sm is None:
