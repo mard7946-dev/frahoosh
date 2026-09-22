@@ -223,6 +223,31 @@ alter table if exists public.quiz_questions
   add column if not exists difficulty text,
   add column if not exists auto_grade boolean default true;
 
+-- Fields used by the live classroom UI and message routing.
+alter table if exists public.messages
+  add column if not exists student_id bigint,
+  add column if not exists class_id bigint,
+  add column if not exists audience_type text,
+  add column if not exists audience_value text;
+
+alter table if exists public.online_class_sessions
+  add column if not exists class_id bigint,
+  add column if not exists started_at timestamptz,
+  add column if not exists ended_at timestamptz,
+  add column if not exists status text default 'active';
+
+alter table if exists public.online_class_students
+  add column if not exists class_id bigint,
+  add column if not exists student_id bigint,
+  add column if not exists student_name text;
+
+alter table if exists public.smart_board_whiteboards
+  add column if not exists class_id bigint,
+  add column if not exists teacher_id bigint,
+  add column if not exists title text,
+  add column if not exists content text,
+  add column if not exists board_date text;
+
 -- RLS: the application role policies decide who may write. These baseline
 -- policies only make the newly materialized module tables reachable by
 -- authenticated users; manager/teacher-specific policies can coexist.
