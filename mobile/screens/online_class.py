@@ -123,7 +123,8 @@ class OnlineClassScreen(Screen):
             profile=getattr(self.app_state,"profile",{}) or {}
             role=role_of(self.app_state)
             student_id=profile.get("linked_student_id") or profile.get("student_id")
-            class_id=cid or self.current_id\n            if role=="student" and student_id and class_id:
+            class_id=cid or self.current_id
+            if role=="student" and student_id and class_id:
                 sessions=self.app_state.api.table_select(
                     "online_class_sessions",
                     {"class_id":f"eq.{class_id}","ended_at":"is.null","order":"id.desc","limit":"1"}
@@ -133,7 +134,7 @@ class OnlineClassScreen(Screen):
                     name=str(profile.get("display_name") or getattr(self.app_state,"display_name","") or "دانش‌آموز")
                     links=self.app_state.api.table_select(
                         "online_class_students",
-                        {"class_id":f"eq.{self.current_id}","student_id":f"eq.{student_id}","limit":"1"}
+                        {"class_id":f"eq.{class_id}","student_id":f"eq.{student_id}","limit":"1"}
                     ) or []
                     if not links:
                         self.app_state.api.table_insert(
