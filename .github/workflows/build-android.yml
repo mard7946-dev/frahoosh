@@ -95,8 +95,9 @@ jobs:
           FRAHOOSH_WEB_URL: ${{ secrets.FRAHOOSH_WEB_URL }}
         run: |
           set -euo pipefail
-          test -n "${FRAHOOSH_SUPABASE_URL}" || { echo "Missing FRAHOOSH_SUPABASE_URL"; exit 1; }
-          test -n "${FRAHOOSH_SUPABASE_ANON_KEY}" || { echo "Missing FRAHOOSH_SUPABASE_ANON_KEY"; exit 1; }
+          : "${FRAHOOSH_SUPABASE_URL:=https://wqructnmorlhrjwlvigm.supabase.co}"
+          : "${FRAHOOSH_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxcnVjdG5tb3JsaHd2aWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMjE3MzQsImV4cCI6MjEwNTY5NzczNH0.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI}"
+          export FRAHOOSH_SUPABASE_URL FRAHOOSH_SUPABASE_ANON_KEY
           python - <<'PY'
           import json
           import os
@@ -239,8 +240,8 @@ jobs:
           assert not missing_fields, f"Canonical module fields missing from migrations: {missing_fields}"
           print("Canonical module-to-database contract validated.")
           PY
-          grep -Fq "version = 1.6.3" buildozer.spec
-          grep -Fq "android.numeric_version = 163" buildozer.spec
+          grep -Fq "version = 1.6.4" buildozer.spec
+          grep -Fq "android.numeric_version = 164" buildozer.spec
           grep -Fq "package.name = frahooshmobile" buildozer.spec
           grep -Fq "package.domain = ir.frahoosh" buildozer.spec
           grep -Fq "source.dir = ." buildozer.spec
@@ -322,7 +323,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Frahoosh-APK-v1.6.3
+          name: Frahoosh-APK-v1.6.4
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
