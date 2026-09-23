@@ -154,7 +154,7 @@ class TeacherAttendanceScreen(_Base):
 
     def set_value(self, sid, value):
         self.values[sid] = value
-        self.status.text = rtl_text("وضعیت انتخاب شد؛ برای ثبت نهایی دکمه پایین را بزنید.")
+        self.status.text = fa_display("وضعیت انتخاب شد؛ برای ثبت نهایی دکمه پایین را بزنید.")
         self.status.color = SUCCESS
 
     def save_all(self, *_):
@@ -162,7 +162,7 @@ class TeacherAttendanceScreen(_Base):
         selected = str(self.class_spinner.text or "").strip()
         rows = [s for s in self.students if selected in ("انتخاب کلاس", "همه کلاس‌ها") or str(s.get("class_name") or "").strip() == selected]
         date = datetime.now().strftime("%Y-%m-%d")
-        self.status.text = rtl_text("در حال ثبت حضور و غیاب…"); self.status.color = SECONDARY
+        self.status.text = fa_display("در حال ثبت حضور و غیاب…"); self.status.color = SECONDARY
         def work():
             ok = 0
             for s in rows:
@@ -180,7 +180,7 @@ class TeacherAttendanceScreen(_Base):
         Thread(target=work, daemon=True).start()
 
     def done(self, ok, total):
-        self.status.text = rtl_text(f"{ok} از {total} رکورد ثبت شد؛ گزارش حضور برای معاون آموزشی و اطلاع‌رسانی والدین در صف پیام قرار گرفت.")
+        self.status.text = fa_display(f"{ok} از {total} رکورد ثبت شد؛ گزارش حضور برای معاون آموزشی و اطلاع‌رسانی والدین در صف پیام قرار گرفت.")
         self.status.color = SUCCESS if ok else ERROR
 
 
@@ -201,7 +201,7 @@ class DisciplineScreen(_Base):
 
     def loaded(self, rows, error):
         if error:
-            self.status.text = rtl_text("دریافت دانش‌آموزان انجام نشد: " + error); self.status.color = ERROR; return
+            self.status.text = fa_display("دریافت دانش‌آموزان انجام نشد: " + error); self.status.color = ERROR; return
         self.students = rows
         self.student_map = {}
         values = []
@@ -217,7 +217,7 @@ class DisciplineScreen(_Base):
         kind_display = str(self.type_spinner.text or "").strip()
         kind = self.discipline_type_map.get(kind_display, kind_display)
         if not student or selected == fa_display("انتخاب دانش‌آموز") or kind == fa_display("نوع مشکل انضباطی"):
-            self.status.text = rtl_text("دانش‌آموز و نوع مشکل انضباطی را انتخاب کنید."); self.status.color = ERROR; return
+            self.status.text = fa_display("دانش‌آموز و نوع مشکل انضباطی را انتخاب کنید."); self.status.color = ERROR; return
         try:
             self.app_state.api.table_insert("discipline_records", {
                 "student_id": student.get("id"),
@@ -228,10 +228,10 @@ class DisciplineScreen(_Base):
                 "actor_username": str(getattr(self.app_state, "national_code", "") or ""),
             })
             self._notify("مورد انضباطی", f"مورد «{kind}» برای دانش‌آموز ثبت شد و برای معاون آموزشی ارسال شد.", student)
-            self.status.text = rtl_text("ثبت شد؛ ابتدا در صف معاون آموزشی قرار گرفت و سپس برای اطلاع ولی ارسال می‌شود.")
+            self.status.text = fa_display("ثبت شد؛ ابتدا در صف معاون آموزشی قرار گرفت و سپس برای اطلاع ولی ارسال می‌شود.")
             self.status.color = SUCCESS
         except Exception as exc:
-            self.status.text = rtl_text("ثبت مورد انضباطی انجام نشد: " + str(exc)); self.status.color = ERROR
+            self.status.text = fa_display("ثبت مورد انضباطی انجام نشد: " + str(exc)); self.status.color = ERROR
 
 
 class OnlineAttendanceScreen(_Base):
@@ -253,9 +253,9 @@ class OnlineAttendanceScreen(_Base):
             if str(n) in s:return n
         return fallback
     def loaded(self,rows,error):
-        if error:self.status.text=rtl_text("دریافت دانش‌آموزان انجام نشد: "+error); self.status.color=ERROR; return
-        self.students=rows; classes=sorted({str(s.get("class_name") or "").strip() for s in rows if str(s.get("class_name") or "").strip()}); self.class_spinner.values=tuple(rtl_text(x) for x in classes) or (rtl_text("همه کلاس‌ها"),)
-        if classes:self.class_spinner.text=rtl_text(classes[0])
+        if error:self.status.text=fa_display("دریافت دانش‌آموزان انجام نشد: "+error); self.status.color=ERROR; return
+        self.students=rows; classes=sorted({str(s.get("class_name") or "").strip() for s in rows if str(s.get("class_name") or "").strip()}); self.class_spinner.values=tuple(fa_display(x) for x in classes) or (fa_display("همه کلاس‌ها"),)
+        if classes:self.class_spinner.text=fa_display(classes[0])
         self.render()
     def render(self):
         self.list_box.clear_widgets(); selected=str(self.class_spinner.text or "").strip(); rows=[s for s in self.students if selected in ("انتخاب کلاس","همه کلاس‌ها") or str(s.get("class_name") or "").strip()==selected]
@@ -263,13 +263,13 @@ class OnlineAttendanceScreen(_Base):
             sid=str(s.get("id")); self.values.setdefault(sid,"present"); line=BoxLayout(size_hint_y=None,height=dp(46),spacing=dp(4)); line.add_widget(self.label(f"{s.get('first_name','')} {s.get('last_name','')}","11sp",PRIMARY,46,True)); line.add_widget(self.button("تأیید حضور",lambda *_ ,i=sid:self.set_value(i,"present"),SUCCESS,40)); line.add_widget(self.button("عدم تأیید",lambda *_ ,i=sid:self.set_value(i,"failed"),(0.72,.16,.18,1),40)); self.list_box.add_widget(line)
     def set_value(self,sid,value):
         if not self.stage_ready:return
-        self.values[sid]=value; self.status.text=rtl_text("انتخاب‌ها ثبت نشده‌اند؛ دکمه مرحله را بزنید."); self.status.color=SUCCESS
+        self.values[sid]=value; self.status.text=fa_display("انتخاب‌ها ثبت نشده‌اند؛ دکمه مرحله را بزنید."); self.status.color=SUCCESS
     def _lock_until_next_stage(self,minutes):
-        self.stage_ready=False; self.next_btn.disabled=True; self.status.text=rtl_text(f"مرحله بعدی پس از {minutes} دقیقه فعال می‌شود."); self.status.color=SECONDARY
+        self.stage_ready=False; self.next_btn.disabled=True; self.status.text=fa_display(f"مرحله بعدی پس از {minutes} دقیقه فعال می‌شود."); self.status.color=SECONDARY
         if self._stage_event:self._stage_event.cancel()
         self._stage_event=Clock.schedule_once(lambda *_:self._unlock_stage(),minutes*60)
     def _unlock_stage(self):
-        self.stage_ready=True; self.next_btn.disabled=False; self.status.text=rtl_text(f"مرحله {self.stage} از ۳ اکنون فعال است."); self.status.color=SUCCESS
+        self.stage_ready=True; self.next_btn.disabled=False; self.status.text=fa_display(f"مرحله {self.stage} از ۳ اکنون فعال است."); self.status.color=SUCCESS
     def save_stage(self,*_):
         if not self.stage_ready:return
         selected=str(self.class_spinner.text or "").strip(); rows=[s for s in self.students if selected in ("انتخاب کلاس","همه کلاس‌ها") or str(s.get("class_name") or "").strip()==selected]; stage=self.stage; now=datetime.now().isoformat()
@@ -290,7 +290,7 @@ class OnlineAttendanceScreen(_Base):
         Thread(target=work,daemon=True).start()
     def after_stage(self,stage):
         if stage>=3:
-            self.stage_ready=False; self.next_btn.disabled=True; self.status.text=rtl_text("هر سه مرحله ثبت شد؛ دانش‌آموزان تأییدشده می‌توانند ادامه کلاس را داشته باشند."); self.status.color=SUCCESS; return
+            self.stage_ready=False; self.next_btn.disabled=True; self.status.text=fa_display("هر سه مرحله ثبت شد؛ دانش‌آموزان تأییدشده می‌توانند ادامه کلاس را داشته باشند."); self.status.color=SUCCESS; return
         self.stage+=1; self.stage_ready=False; self.stage_label.text=fa_display(f"مرحله {self.stage} از ۳ • راستی‌آزمایی جدید"); self.next_btn.text=fa_display(f"ثبت مرحله {self.stage}"); delay=self._minutes(self.delay2.text,5) if self.stage==2 else self._minutes(self.delay3.text,10); self._lock_until_next_stage(delay)
 
 
