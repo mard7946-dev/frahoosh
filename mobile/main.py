@@ -92,7 +92,7 @@ class OperationalPanelScreen(Screen):
                     app.sm.current = screen.name
                     return
             elif route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
-                screen = app.ensure_meeting_workflow() if app else None
+                screen = app.ensure_meetings() if app else None
                 if screen:
                     app.sm.current = screen.name
                     return
