@@ -191,9 +191,9 @@ class PersianTextInput(TextInput):
         self.bind(text=self._capture_external_text, focus=self._focus_changed)
 
     def _visual(self, logical):
-        if getattr(self, "password", False):
-            return logical
-        return fa_display(logical)
+        # Keep TextInput logical Unicode text; only labels/buttons are bidi-shaped.
+        # Feeding fa_display() back into TextInput corrupts subsequent Persian input.
+        return logical
 
     def _render_visual(self):
         if self._rendering_persian:
