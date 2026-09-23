@@ -780,8 +780,10 @@ class ModuleWorkspaceScreen(Screen):
         # that previously downgraded a real manager to the student/read-only path.
         profile = getattr(self.app_state, "profile", {}) or {}
         candidates = [
-            getattr(self.app_state, "role", None),
             profile.get("role"),
+            profile.get("user_role"),
+            profile.get("school_role"),
+            getattr(self.app_state, "role", None),
             profile.get("user_role"),
             profile.get("school_role"),
             profile.get("user_type"),
@@ -834,7 +836,7 @@ class ModuleWorkspaceScreen(Screen):
         role = self.role()
         # A manager is the owner of the school data contract.  Do not let a
         # stale/partial module permission set hide CRUD controls from the manager.
-        if role == "manager":
+        if role in {"manager","educational","executive","cultural","advisor","teacher","staff","counselor"}:
             return True
         # The Android panel catalog is the school's internal workspace.
         # Unknown-but-authenticated staff roles must not get a decorative
@@ -975,7 +977,7 @@ class ModuleWorkspaceScreen(Screen):
         scroll.add_widget(grid)
         panel.add_widget(scroll)
         self.body.add_widget(panel)
-        self.status.text = rtl_text(f"{len(items)} جدول تخصصی واقعی • اتصال Supabase در حال بررسی")
+        self.status.text = fa_display(f"{len(items)} جدول تخصصی واقعی • اتصال Supabase در حال بررسی")
 
     def _badge(self,w):
         with w.canvas.before:
@@ -985,7 +987,7 @@ class ModuleWorkspaceScreen(Screen):
     def open_table(self,table,refresh_subbar=True):
         # Student/parent messaging has a dedicated composer with a recipient
         # dropdown; do not downgrade it to a generic CRUD table.
-        if table in ("online_classes", "virtual"):
+        if table in ("online_classes", "virtual", "online_class_sessions"):
             try:
                 from kivy.app import App
                 app = App.get_running_app()
@@ -998,7 +1000,7 @@ class ModuleWorkspaceScreen(Screen):
                 return
             except Exception as exc:
                 print("ONLINE CLASS OPEN ERROR:", repr(exc))
-                self.status.text = rtl_text("محیط کلاس آنلاین باز نشد: " + str(exc))
+                self.status.text = fa_display("محیط کلاس آنلاین باز نشد: " + str(exc))
                 self.status.color = (.8, .15, .15, 1)
                 return
 
@@ -1015,9 +1017,25 @@ class ModuleWorkspaceScreen(Screen):
                 return
             except Exception as exc:
                 print("ONLINE EXAM OPEN ERROR:", repr(exc))
-                self.status.text = rtl_text("مرکز آزمون آنلاین باز نشد: " + str(exc))
+                self.status.text = fa_display("مرکز آزمون آنلاین باز نشد: " + str(exc))
                 self.status.color = (.8, .15, .15, 1)
                 return
+
+        if table in ("meeting_requests", "parent_meeting_requests", "teacher_meetings", "meetings"):
+            try:
+                from kivy.app import App
+                app = App.get_running_app()
+                screen = app.ensure_meeting_workflow() if app is not None else None
+                if screen is None:
+                    raise RuntimeError("محیط ملاقات‌ها آماده نشد.")
+                screen.return_to = "panel"
+                if self.manager:
+                    self.manager.current = screen.name
+                return
+            except Exception as exc:
+                print("MEETING WORKFLOW OPEN ERROR:", repr(exc))
+                self.status.text = fa_display("محیط ملاقات‌ها باز نشد: " + str(exc))
+                self.status.color = (.8, .15, .15, 1)
 
         if table == "messages":
             try:
@@ -1035,7 +1053,7 @@ class ModuleWorkspaceScreen(Screen):
                     return
             except Exception as exc:
                 print("MESSAGE WORKFLOW ERROR:", repr(exc))
-                self.status.text = rtl_text("محیط ارسال پیام باز نشد: " + str(exc))
+                self.status.text = fa_display("محیط ارسال پیام باز نشد: " + str(exc))
                 self.status.color = (.8, .15, .15, 1)
                 return
         # Special school workflows use student-bound operational screens instead
@@ -1061,7 +1079,7 @@ class ModuleWorkspaceScreen(Screen):
                     return
             except Exception as exc:
                 print("SPECIAL SCHOOL ACTION ERROR:", repr(exc))
-                self.status.text = rtl_text("محیط عملیاتی باز نشد: " + str(exc))
+                self.status.text = fa_display("محیط عملیاتی باز نشد: " + str(exc))
                 self.status.color = (.8, .15, .15, 1)
                 return
 
@@ -1082,7 +1100,7 @@ class ModuleWorkspaceScreen(Screen):
                 return
             except Exception as exc:
                 print("SMART CLASS OPEN ERROR:", repr(exc))
-                self.status.text = rtl_text("محیط کلاس هوشمند باز نشد: " + str(exc))
+                self.status.text = fa_display("محیط کلاس هوشمند باز نشد: " + str(exc))
                 self.status.color = (.8, .15, .15, 1)
                 return
 
@@ -1131,7 +1149,7 @@ class ModuleWorkspaceScreen(Screen):
         row2.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
         bar.add_widget(row1); bar.add_widget(row2)
         self.body.add_widget(bar)
-        self.status.text = rtl_text(
+        self.status.text = fa_display(
             "عملیات واقعی فعال است • ساخت، ویرایش و حذف به جدول Supabase متصل است"
             if can_write else
             "فقط مشاهده • برای ساخت، ویرایش یا حذف نیاز به دسترسی ثبت اطلاعات دارید"
@@ -1168,7 +1186,7 @@ class ModuleWorkspaceScreen(Screen):
         table=str(self.table or "").strip()
         if not table:
             return
-        self.status.text=rtl_text("در حال ساخت فایل Excel…")
+        self.status.text = fa_display("در حال ساخت فایل Excel…")
         def work():
             try:
                 from openpyxl import Workbook
@@ -1194,7 +1212,7 @@ class ModuleWorkspaceScreen(Screen):
         table=str(self.table or "").strip()
         if not table:
             return
-        self.status.text=rtl_text("در حال ساخت قالب Excel…")
+        self.status.text = fa_display("در حال ساخت قالب Excel…")
         def work():
             try:
                 from openpyxl import Workbook
@@ -1215,7 +1233,7 @@ class ModuleWorkspaceScreen(Screen):
         table=str(self.table or "").strip()
         if not table:
             return
-        self.status.text=rtl_text("در حال ساخت گزارش PDF…")
+        self.status.text = fa_display("در حال ساخت گزارش PDF…")
         def work():
             try:
                 from mobile.services.document_service import export_table_pdf
@@ -1304,7 +1322,7 @@ class ModuleWorkspaceScreen(Screen):
         table=str(self.table or "").strip()
         if not table:
             return
-        self.status.text=rtl_text("در حال خواندن فایل Excel و ثبت گروهی…")
+        self.status.text = fa_display("در حال خواندن فایل Excel و ثبت گروهی…")
         def work():
             try:
                 from openpyxl import load_workbook
@@ -1349,7 +1367,7 @@ class ModuleWorkspaceScreen(Screen):
         try:
             from kivy.utils import platform
             if platform == "android" and self._pick_excel_android():
-                self.status.text=rtl_text("فایل Excel را انتخاب کنید…")
+                self.status.text = fa_display("فایل Excel را انتخاب کنید…")
                 return
         except Exception as exc:
             print("EXCEL PICKER FALLBACK:", repr(exc))
@@ -1369,7 +1387,7 @@ class ModuleWorkspaceScreen(Screen):
         self._import_excel_path(path)
 
     def _excel_done(self,message):
-        self.status.text=rtl_text(message)
+        self.status.text = fa_display(message)
         self.status.color=SUCCESS
         self.load_table()
 
@@ -1393,10 +1411,10 @@ class ModuleWorkspaceScreen(Screen):
         # Android: start backend work after the navigation callback has returned.
         table = str(self.table or "").strip()
         if not table:
-            self.status.text = rtl_text("شناسه زیرپنل معتبر نیست.")
+            self.status.text = fa_display("شناسه زیرپنل معتبر نیست.")
             self.status.color = (.8, .15, .15, 1)
             return
-        self.status.text = rtl_text("در حال دریافت اطلاعات واقعی… (حداکثر ۲۵ رکورد)")
+        self.status.text = fa_display("در حال دریافت اطلاعات واقعی… (حداکثر ۲۵ رکورد)")
         self.status.color = SECONDARY
         def work():
             try:
@@ -1421,7 +1439,7 @@ class ModuleWorkspaceScreen(Screen):
         except Exception as exc:
             print("MODULE TABLE RENDER ERROR:", repr(exc))
             try:
-                self.status.text = rtl_text("خطا در نمایش اطلاعات: " + str(exc))
+                self.status.text = fa_display("خطا در نمایش اطلاعات: " + str(exc))
                 self.status.color = (.8, .15, .15, 1)
             except Exception:
                 pass
@@ -1435,11 +1453,11 @@ class ModuleWorkspaceScreen(Screen):
         self.rows=rows
         self.selected_row=None
         if error:
-            self.status.text=rtl_text("خطا در دریافت اطلاعات: "+str(error))
+            self.status.text = fa_display("خطا در دریافت اطلاعات: "+str(error))
             self.status.color=(.8,.15,.15,1)
             self.render_rows([])
             return
-        self.status.text=rtl_text(f"{len(rows)} رکورد واقعی • {FRIENDLY.get(self.table,self.table)}")
+        self.status.text = fa_display(f"{len(rows)} رکورد واقعی • {FRIENDLY.get(self.table,self.table)}")
         self.status.color=SUCCESS
         self.render_rows(rows)
 
@@ -1533,7 +1551,7 @@ class ModuleWorkspaceScreen(Screen):
         except Exception as exc:
             print("MODULE TABLE RENDER ERROR:", repr(exc))
             try:
-                self.status.text = rtl_text("خطا در نمایش جدول: " + str(exc))
+                self.status.text = fa_display("خطا در نمایش جدول: " + str(exc))
                 self.status.color = (.8, .15, .15, 1)
                 self.area.clear_widgets()
                 fallback = Surface(height=dp(150))
@@ -1616,8 +1634,8 @@ class ModuleWorkspaceScreen(Screen):
             if existing and all(ch in "□�▯" for ch in existing.strip()):
                 existing = ""
             if f in spinner_values:
-                values = tuple(rtl_text(v) for v in spinner_values[f])
-                selected = rtl_text(existing) if existing and existing in spinner_values[f] else values[0]
+                values = tuple(fa_display(v) for v in spinner_values[f])
+                selected = fa_display(existing) if existing and existing in spinner_values[f] else values[0]
                 ti = PersianSpinner(
                     text=selected,
                     values=values,
@@ -1700,7 +1718,7 @@ class ModuleWorkspaceScreen(Screen):
                 payload[k] = self._payload_value(k, raw)
         if not payload:
             self.message('ثبت اطلاعات','حداقل یک فیلد را وارد کنید.'); return
-        p.dismiss(); self.status.text=rtl_text('در حال ذخیره اطلاعات واقعی…')
+        p.dismiss(); self.status.text = fa_display('در حال ذخیره اطلاعات واقعی…')
         def work():
             try:
                 api = self.app_state.api
@@ -1816,8 +1834,8 @@ class ModuleWorkspaceScreen(Screen):
             except Exception as exc: Clock.schedule_once(lambda *_:self.write_error(str(exc)),0)
         Thread(target=work,daemon=True).start()
 
-    def after_write(self,msg): self.selected_row=None; self.status.text=rtl_text(msg); self.status.color=SUCCESS; self.load_table()
-    def write_error(self,msg): self.status.text=rtl_text('ذخیره انجام نشد: '+msg); self.status.color=(.8,.15,.15,1)
+    def after_write(self,msg): self.selected_row=None; self.status.text = fa_display(msg); self.status.color=SUCCESS; self.load_table()
+    def write_error(self,msg): self.status.text = fa_display('ذخیره انجام نشد: '+msg); self.status.color=(.8,.15,.15,1)
 
     def confirm_delete(self,table,row):
         rid=row.get('id');
@@ -1825,7 +1843,7 @@ class ModuleWorkspaceScreen(Screen):
         root=BoxLayout(orientation='vertical',padding=dp(12),spacing=dp(8)); root.add_widget(self.label('آیا از حذف این رکورد مطمئن هستید؟','14sp',PRIMARY,True,'center')); root.add_widget(self.label('این عملیات روی اطلاعات واقعی سامانه انجام می‌شود.','9sp',SECONDARY,False,'center')); actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5)); p=Popup(title=fa_display('تأیید حذف'),content=root,size_hint=(.88,.36),auto_dismiss=False); actions.add_widget(self.btn('انصراف',lambda *_:p.dismiss(),SECONDARY,dp(40))); actions.add_widget(self.btn('حذف قطعی',lambda *_:self.delete(table,rid,p),(0.72,.16,.18,1),dp(40))); root.add_widget(actions); p.open()
 
     def delete(self,table,rid,p):
-        p.dismiss(); self.status.text=rtl_text('در حال حذف اطلاعات واقعی…')
+        p.dismiss(); self.status.text = fa_display('در حال حذف اطلاعات واقعی…')
         def work():
             try: self.app_state.api.table_delete(table,{'id':'eq.'+str(rid)}); Clock.schedule_once(lambda *_:self.after_write('رکورد با موفقیت حذف شد.'),0)
             except Exception as exc: Clock.schedule_once(lambda *_:self.write_error(str(exc)),0)
