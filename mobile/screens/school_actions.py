@@ -114,7 +114,7 @@ class TeacherAttendanceScreen(_Base):
 
     def _build(self):
         self._root("حضور و غیاب کلاس")
-        self.class_spinner = Spinner(text=rtl_text("انتخاب کلاس"), values=(), size_hint_y=None,
+        self.class_spinner = Spinner(text=fa_display("انتخاب کلاس"), values=(), size_hint_y=None,
                                      height=dp(45), font_name=font_name(), font_size="12sp")
         self.body.add_widget(self.class_spinner)
         self.subject = self.label("درس را بعداً می‌توان از برنامه دبیر گرفت؛ فعلاً ثبت حضور مستقل از درس است.", "9sp", SECONDARY, 38)
@@ -128,11 +128,11 @@ class TeacherAttendanceScreen(_Base):
 
     def loaded(self, rows, error):
         if error:
-            self.status.text = rtl_text("دریافت دانش‌آموزان انجام نشد: " + error); self.status.color = ERROR; return
+            self.status.text = fa_display("دریافت دانش‌آموزان انجام نشد: " + error); self.status.color = ERROR; return
         self.students = rows
         classes = sorted({str(s.get("class_name") or "").strip() for s in rows if str(s.get("class_name") or "").strip()})
-        self.class_spinner.values = tuple(rtl_text(x) for x in classes) or (rtl_text("همه کلاس‌ها"),)
-        if classes: self.class_spinner.text = rtl_text(classes[0])
+        self.class_spinner.values = tuple(fa_display(x) for x in classes) or (fa_display("همه کلاس‌ها"),)
+        if classes: self.class_spinner.text = fa_display(classes[0])
         self.render()
 
     def render(self):
@@ -188,9 +188,9 @@ class DisciplineScreen(_Base):
 
     def _build(self):
         self._root("ثبت انضباطی")
-        self.student_spinner = Spinner(text=rtl_text("انتخاب دانش‌آموز"), values=(), size_hint_y=None,
+        self.student_spinner = Spinner(text=fa_display("انتخاب دانش‌آموز"), values=(), size_hint_y=None,
                                        height=dp(45), font_name=font_name(), font_size="12sp")
-        self.type_spinner = Spinner(text=rtl_text("نوع مشکل انضباطی"), values=tuple(rtl_text(x) for x in DISCIPLINE_TYPES),
+        self.type_spinner = Spinner(text=rtl_text("نوع مشکل انضباطی"), values=tuple(fa_display(x) for x in DISCIPLINE_TYPES),
                                     size_hint_y=None, height=dp(45), font_name=font_name(), font_size="12sp")
         self.note = self.label("پس از انتخاب دانش‌آموز، نوع مورد را از منوی کشویی انتخاب کنید.", "10sp", SECONDARY, 42)
         self.body.add_widget(self.student_spinner); self.body.add_widget(self.type_spinner); self.body.add_widget(self.note)
@@ -205,15 +205,15 @@ class DisciplineScreen(_Base):
         values = []
         for s in rows:
             label = f"{s.get('first_name','')} {s.get('last_name','')} • {s.get('class_name','')} • {s.get('student_code','')}"
-            values.append(label); self.student_map[label] = s
-        self.student_spinner.values = tuple(rtl_text(x) for x in values)
-        if values: self.student_spinner.text = rtl_text(values[0])
+            values.append(label); self.student_map[fa_display(label)] = s
+        self.student_spinner.values = tuple(fa_display(x) for x in values)
+        if values: self.student_spinner.text = fa_display(values[0])
 
     def save(self, *_):
         selected = str(self.student_spinner.text or "").strip()
         student = self.student_map.get(selected)
         kind = str(self.type_spinner.text or "").strip()
-        if not student or selected == "انتخاب دانش‌آموز" or kind == "نوع مشکل انضباطی":
+        if not student or selected == fa_display("انتخاب دانش‌آموز") or kind == fa_display("نوع مشکل انضباطی"):
             self.status.text = rtl_text("دانش‌آموز و نوع مشکل انضباطی را انتخاب کنید."); self.status.color = ERROR; return
         try:
             self.app_state.api.table_insert("discipline_records", {
@@ -235,9 +235,9 @@ class OnlineAttendanceScreen(_Base):
     """Three checkpoints. Stage 2/3 cannot be submitted until their configured delay."""
     def _build(self):
         self._root("حضور و غیاب سه‌مرحله‌ای کلاس آنلاین")
-        self.class_spinner=Spinner(text=rtl_text("انتخاب کلاس"),values=(),size_hint_y=None,height=dp(45),font_name=font_name(),font_size="12sp"); self.body.add_widget(self.class_spinner)
-        self.delay2=Spinner(text=rtl_text("مرحله ۲: پنج دقیقه بعد"),values=tuple(rtl_text(x) for x in ("۱ دقیقه بعد","۵ دقیقه بعد","۱۰ دقیقه بعد","۱۵ دقیقه بعد")),size_hint_y=None,height=dp(45),font_name=font_name(),font_size="12sp"); self.body.add_widget(self.delay2)
-        self.delay3=Spinner(text=rtl_text("مرحله ۳: ده دقیقه بعد"),values=tuple(rtl_text(x) for x in ("۲ دقیقه بعد","۱۰ دقیقه بعد","۲۰ دقیقه بعد","۳۰ دقیقه بعد")),size_hint_y=None,height=dp(45),font_name=font_name(),font_size="12sp"); self.body.add_widget(self.delay3)
+        self.class_spinner=Spinner(text=fa_display("انتخاب کلاس"),values=(),size_hint_y=None,height=dp(45),font_name=font_name(),font_size="12sp"); self.body.add_widget(self.class_spinner)
+        self.delay2=Spinner(text=fa_display("مرحله ۲: پنج دقیقه بعد"),values=tuple(fa_display(x) for x in ("۱ دقیقه بعد","۵ دقیقه بعد","۱۰ دقیقه بعد","۱۵ دقیقه بعد")),size_hint_y=None,height=dp(45),font_name=font_name(),font_size="12sp"); self.body.add_widget(self.delay2)
+        self.delay3=Spinner(text=fa_display("مرحله ۳: ده دقیقه بعد"),values=tuple(fa_display(x) for x in ("۲ دقیقه بعد","۱۰ دقیقه بعد","۲۰ دقیقه بعد","۳۰ دقیقه بعد")),size_hint_y=None,height=dp(45),font_name=font_name(),font_size="12sp"); self.body.add_widget(self.delay3)
         self.body.add_widget(self.label("مرحله ۱ ابتدای زنگ است؛ مرحله‌های ۲ و ۳ در زمان‌های متفاوت فعال می‌شوند. عدم تأیید هر مرحله، ادامه کلاس دانش‌آموز را می‌بندد و گزارش برای ولی ثبت می‌شود.","10sp",SECONDARY,72))
         self.stage_label=self.label("مرحله ۱ از ۳","17sp",PRIMARY,45,True); self.body.add_widget(self.stage_label)
         self.list_box=BoxLayout(orientation="vertical",spacing=dp(4),size_hint_y=None); self.list_box.bind(minimum_height=self.list_box.setter("height")); self.body.add_widget(self.list_box)
@@ -288,7 +288,7 @@ class OnlineAttendanceScreen(_Base):
     def after_stage(self,stage):
         if stage>=3:
             self.stage_ready=False; self.next_btn.disabled=True; self.status.text=rtl_text("هر سه مرحله ثبت شد؛ دانش‌آموزان تأییدشده می‌توانند ادامه کلاس را داشته باشند."); self.status.color=SUCCESS; return
-        self.stage+=1; self.stage_ready=False; self.stage_label.text=rtl_text(f"مرحله {self.stage} از ۳ • راستی‌آزمایی جدید"); self.next_btn.text=rtl_text(f"ثبت مرحله {self.stage}"); delay=self._minutes(self.delay2.text,5) if self.stage==2 else self._minutes(self.delay3.text,10); self._lock_until_next_stage(delay)
+        self.stage+=1; self.stage_ready=False; self.stage_label.text=fa_display(f"مرحله {self.stage} از ۳ • راستی‌آزمایی جدید"); self.next_btn.text=fa_display(f"ثبت مرحله {self.stage}"); delay=self._minutes(self.delay2.text,5) if self.stage==2 else self._minutes(self.delay3.text,10); self._lock_until_next_stage(delay)
 
 
 class SchoolActionsScreen(Screen):
