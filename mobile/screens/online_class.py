@@ -12,7 +12,7 @@ from kivy.uix.scrollview import ScrollView
 from mobile.config import APP_NAME, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 
-MANAGERS={"manager","educational","executive","cultural","advisor","teacher","staff","counselor"}
+MANAGERS={"manager","educational","executive","cultural","advisor","teacher","staff","counselor","teacher_staff","educational_deputy","executive_deputy","cultural_deputy"}
 
 
 def role_of(state):
@@ -46,15 +46,15 @@ def role_of(state):
         token = str(getattr(getattr(state, "api", None), "access_token", "") or "")
         raw = "staff" if token else "student"
     return {
-        "admin":"manager","administrator":"manager","principal":"manager","manager":"manager","management":"manager","school_management":"manager",
+        "admin":"manager","administrator":"manager","principal":"manager","manager":"manager","management":"manager","management_panel":"manager","school_management":"manager","مدیریت پنل":"manager","پنل مدیریت":"manager",
         "مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager",
         "معاون آموزشی":"educational","معاونت آموزشی":"educational","educational":"educational","educational_deputy":"educational",
         "معاون اجرایی":"executive","معاونت اجرایی":"executive","اجرایی":"executive","executive":"executive","executive_deputy":"executive","کادر اجرایی":"executive",
         "معاون پرورشی":"cultural","معاونت پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural","cultural_deputy":"cultural","کادر پرورشی":"cultural",
         "مشاور":"advisor","مشاوره":"advisor","counselor":"counselor","counseling":"counselor","advisor":"advisor",
-        "دبیر":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher","staff":"staff","school_staff":"staff",
+        "دبیر":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher","teacher_staff":"teacher","staff":"staff","school_staff":"staff","staff_teacher":"teacher",
         "دانش‌آموز":"student","دانش آموز":"student","student":"student",
-        "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parents":"parent",
+        "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parents":"parent","guardian":"parent",
     }.get(raw, raw)
 
 
