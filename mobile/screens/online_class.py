@@ -19,18 +19,26 @@ def role_of(state):
     # Login may keep the canonical role in profile while app_state.role is empty.
     # Resolve both sources so operational create/manage controls are not hidden.
     profile = getattr(state, "profile", {}) or {}
+    user = getattr(state, "user", {}) or {}
+    metadata = user.get("user_metadata", {}) if isinstance(user, dict) else {}
     candidates = [
         profile.get("role"),
         profile.get("user_role"),
         profile.get("school_role"),
+        metadata.get("role"),
+        metadata.get("user_role"),
+        metadata.get("school_role"),
         getattr(state, "role", None),
-        profile.get("user_role"),
-        profile.get("school_role"),
         profile.get("user_type"),
         profile.get("account_type"),
         profile.get("permissions", {}).get("role") if isinstance(profile.get("permissions"), dict) else None,
     ]
-    raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
+    raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "")
+    raw = raw.replace("\u200c", " ").replace("\u200f", "").replace("ي", "ی").replace("ك", "ک")
+    raw = " ".join(raw.split())
+    if not raw:
+        token = str(getattr(getattr(state, "api", None), "access_token", "") or "")
+        raw = "staff" if token else "student"
     return {
         "admin":"manager","administrator":"manager","principal":"manager","manager":"manager","management":"manager","school_management":"manager",
         "مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager",
