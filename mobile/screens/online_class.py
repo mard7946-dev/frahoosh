@@ -20,8 +20,10 @@ def role_of(state):
     # Resolve both sources so operational create/manage controls are not hidden.
     profile = getattr(state, "profile", {}) or {}
     candidates = [
-        getattr(state, "role", None),
         profile.get("role"),
+        profile.get("user_role"),
+        profile.get("school_role"),
+        getattr(state, "role", None),
         profile.get("user_role"),
         profile.get("school_role"),
         profile.get("user_type"),
@@ -61,7 +63,7 @@ class OnlineClassScreen(Screen):
         f=PersianTextInput(hint_text=fa_display(hint),font_name=font_name(),font_size="13sp",multiline=multiline,size_hint_y=None,height=dp(height),halign="right",padding=[dp(10),dp(10)]); self.body.add_widget(f); return f
     def show_home(self):
         self._clear(); role=role_of(self.app_state); self._label("کلاس آنلاین واقعی","21sp",PRIMARY,52,True); self._label("ساخت کلاس، شروع/پایان جلسه، حضور و غیاب، گفت‌وگو، تخته مشترک، کنترل دوربین/میکروفون و اطلاع غیبت به ولی در همین پنل ثبت می‌شود.",height=82)
-        if role in MANAGERS:self._create_form()
+        if role not in {"student","parent"}:self._create_form()
         self._load_classes()
     def _create_form(self):
         title=self._field("عنوان کلاس"); subject=self._field("درس / موضوع"); teacher=self._field("نام دبیر"); grade=self._field("پایه"); cls=self._field("نام کلاس"); duration=self._field("مدت به دقیقه"); duration.text="60"; join=self._field("لینک جلسه واقعی؛ اختیاری")
@@ -319,6 +321,6 @@ class OnlineClassScreen(Screen):
     def _toggle_mic(self):self.mic=not self.mic; self.show_home()
     def _toggle_camera(self):self.camera=not self.camera; self.show_home()
     def _ok(self,text):self.status.color=SUCCESS;self.status.text=fa_display(text)
-    def _error(self,text):self.status.color=ERROR;self.status.text=rtl_text(text)
+    def _error(self,text):self.status.color=ERROR;self.status.text=fa_display(text)
     def _back(self):
         if self.manager:self.manager.current="dashboard"
