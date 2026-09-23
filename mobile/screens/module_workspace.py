@@ -1061,10 +1061,6 @@ class ModuleWorkspaceScreen(Screen):
                 # The workflow must not fall back to the login/profile role when a deputy panel is open.
                 if hasattr(screen, "panel_role"):
                     screen.panel_role = getattr(self, "panel_role", "")
-                # Preserve the active school panel role inside the dedicated workflow.
-                # The workflow must not fall back to the login/profile role when a deputy panel is open.
-                if hasattr(screen, "panel_role"):
-                    screen.panel_role = getattr(self, "panel_role", "")
                 screen.return_to = "panel"
                 if self.manager:
                     self.manager.current = screen.name
@@ -1082,7 +1078,9 @@ class ModuleWorkspaceScreen(Screen):
                 screen = app.ensure_exam_authoring() if app is not None else None
                 if screen is None:
                     raise RuntimeError("مرکز آزمون آنلاین آماده نشد.")
-                # Preserve the active school panel role for the dedicated exam workflow.\n                if hasattr(screen, "panel_role"):\n                    screen.panel_role = getattr(self, "panel_role", "")\n                screen.return_to = "panel"
+                # Preserve the active school panel role for the dedicated exam workflow.
+                if hasattr(screen, "panel_role"):
+                    screen.panel_role = getattr(self, "panel_role", "")
                 if self.manager:
                     self.manager.current = screen.name
                 return
