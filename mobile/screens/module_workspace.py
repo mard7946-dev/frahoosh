@@ -30,7 +30,7 @@ class SelectableRow(ButtonBehavior, BoxLayout):
         if self.owner is not None:
             self.owner.selected_row = self.record
             try:
-                self.owner.status.text = rtl_text("رکورد انتخاب شد؛ از ویرایش یا حذف استفاده کنید.")
+                self.owner.status.text = fa_display("رکورد انتخاب شد؛ از ویرایش یا حذف استفاده کنید.")
                 self.owner.status.color = SUCCESS
             except Exception:
                 pass
