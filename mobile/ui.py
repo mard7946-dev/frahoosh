@@ -9,6 +9,14 @@ from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
 from kivy.resources import resource_find, resource_add_path
 
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+except Exception as exc:
+    arabic_reshaper = None
+    get_display = None
+    print("PERSIAN SHAPER UNAVAILABLE:", repr(exc))
+
 from mobile.config import (
     FONT_REGULAR,
     FONT_BOLD,
@@ -69,6 +77,19 @@ def register_fonts():
 
         return ""
 
+
+
+def fa_display(value):
+    """Return visually ordered/shaped Persian text for Kivy labels/buttons."""
+    text = rtl_text(value)
+    if not text:
+        return text
+    try:
+        if arabic_reshaper is not None and get_display is not None:
+            return get_display(arabic_reshaper.reshape(text))
+    except Exception as exc:
+        print("PERSIAN DISPLAY SHAPE ERROR:", repr(exc))
+    return text
 
 
 def font_name():
