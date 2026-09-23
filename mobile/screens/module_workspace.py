@@ -623,8 +623,9 @@ class ModuleWorkspaceScreen(Screen):
         # overrides here: with some BTitr builds those overrides select a missing
         # glyph path and render Persian letters as □. rtl_text() keeps the logical
         # Persian string normalized and Kivy handles the visual direction.
-        w=Label(text=fa_display(str(text)),font_name=font_name(),font_size=size,color=color,bold=bold,
-                halign="center" if center else "right",valign="middle")
+        w=Label(text=rtl_text(str(text)),font_name=font_name(),font_size=size,color=color,bold=bold,
+                 halign="center" if center else "right",valign="middle",
+                 text_language="fa",base_direction="rtl")
         w.bind(size=lambda o,v:setattr(o,"text_size",v))
         return w
 
@@ -637,9 +638,10 @@ class ModuleWorkspaceScreen(Screen):
         reaches the button first executes the operation; the second event is
         ignored.  This does not duplicate CRUD/Excel/PDF actions.
         """
-        b=Button(text=fa_display(str(text)),font_name=font_name(),font_size="10sp",
+        b=Button(text=rtl_text(str(text)),font_name=font_name(),font_size="10sp",
                  background_normal="",background_color=color,color=WHITE,
-                 size_hint_y=None,height=h)
+                 size_hint_y=None,height=h,
+                 text_language="fa",base_direction="rtl")
         b.always_release=True
         b.min_state_time=0
         if width is not None:
@@ -987,8 +989,9 @@ class ModuleWorkspaceScreen(Screen):
             try:
                 from kivy.app import App
                 app = App.get_running_app()
-                role = self.role()
-                if role in {"student", "parent"} and app is not None:
+                # Messaging is a school-wide feature. Every authenticated role
+                # opens the same real composer/inbox workflow.
+                if app is not None:
                     screen = app.ensure_message_workflow()
                     if screen is None:
                         raise RuntimeError("محیط ارسال پیام آماده نشد.")
