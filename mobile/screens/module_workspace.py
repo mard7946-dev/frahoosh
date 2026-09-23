@@ -674,10 +674,14 @@ class ModuleWorkspaceScreen(Screen):
                     fired["value"] = False
             Clock.schedule_once(_run, 0)
 
-        def _on_press(instance, touch):
+        # Kivy Button.on_press/on_release dispatch the button instance;
+        # they do not pass a touch object.  The previous two-argument handlers
+        # therefore raised TypeError before any CRUD/Excel/PDF callback ran,
+        # making every toolbar button look completely dead on Android.
+        def _on_press(instance, *args):
             _execute(instance, "press")
 
-        def _on_release(instance, touch):
+        def _on_release(instance, *args):
             # Fallback for devices/event paths where release is the first
             # delivered callback.  The single-fire guard prevents double work.
             _execute(instance, "release")
