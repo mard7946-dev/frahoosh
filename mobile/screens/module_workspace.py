@@ -26,7 +26,7 @@ class SelectableRow(ButtonBehavior, BoxLayout):
         super().__init__(**kwargs)
         self.owner = owner
         self.record = dict(record or {})
-    def on_release(self):
+    def on_press(self):
         if self.owner is not None:
             self.owner.selected_row = self.record
             try:
@@ -641,6 +641,9 @@ class ModuleWorkspaceScreen(Screen):
             b.size_hint_x=None
             b.width=width
         def _invoke(instance, *_touch):
+            # Use press, not release: on Android a ScrollView/Popup can consume
+            # the release event after the finger moves a few pixels.  Press is
+            # the stable action boundary for every module command.
             def _run(_dt):
                 try:
                     cb(instance)
@@ -652,7 +655,7 @@ class ModuleWorkspaceScreen(Screen):
                     except Exception:
                         pass
             Clock.schedule_once(_run, 0)
-        b.bind(on_release=_invoke)
+        b.bind(on_press=_invoke)
         return b
 
     def _ensure_built(self):
