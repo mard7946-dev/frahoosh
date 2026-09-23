@@ -1057,6 +1057,14 @@ class ModuleWorkspaceScreen(Screen):
                 screen = app.ensure_online_workflow() if app is not None else None
                 if screen is None:
                     raise RuntimeError("محیط کلاس آنلاین آماده نشد.")
+                # Preserve the active school panel role inside the dedicated workflow.
+                # The workflow must not fall back to the login/profile role when a deputy panel is open.
+                if hasattr(screen, "panel_role"):
+                    screen.panel_role = getattr(self, "panel_role", "")
+                # Preserve the active school panel role inside the dedicated workflow.
+                # The workflow must not fall back to the login/profile role when a deputy panel is open.
+                if hasattr(screen, "panel_role"):
+                    screen.panel_role = getattr(self, "panel_role", "")
                 screen.return_to = "panel"
                 if self.manager:
                     self.manager.current = screen.name
