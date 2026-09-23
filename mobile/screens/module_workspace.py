@@ -431,6 +431,17 @@ for _role_key in tuple(EDITABLE):
     EDITABLE[_role_key] = _expanded
 EDITABLE.setdefault("manager", set()).update(_MOTHER_TABLE_ALIASES.values())
 
+# Every operational panel receives the same CRUD/Excel/PDF toolbar.
+# The backend/RLS remains the final security boundary; this client-side map
+# guarantees that the actions are visible for every module in the five
+# administrative panels instead of silently disappearing because a new module
+# was added to the catalog.
+for _panel_role in ("executive", "educational", "cultural", "advisor"):
+    _panel_tables = set()
+    for _label, _module_id in SUBMENUS.get(_panel_role, []):
+        _panel_tables.add(_MOTHER_TABLE_ALIASES.get(_module_id, _module_id))
+    EDITABLE.setdefault(_panel_role, set()).update(_panel_tables)
+
 FORMS = {
     "students":["first_name","last_name","father_name","mother_name","national_code","birth_certificate_place","birth_place","religion","sect","nationality","student_phone","father_phone","mother_phone","grade","class_name"],
     "teachers":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","subject"],
@@ -866,7 +877,7 @@ class ModuleWorkspaceScreen(Screen):
         items = SUBMENUS.get(self.route) or [(FRIENDLY.get(self.route, self.route), self.route)]
         self.body.size_hint_y = 1 if self.table else .60
         current_title = dict(items).get(items[0][1], items[0][0]) if items else self.route
-        self.title.text = rtl_text(current_title)
+        self.title.text = fa_display(current_title)
 
         for text, table in items:
             b = self.btn(
