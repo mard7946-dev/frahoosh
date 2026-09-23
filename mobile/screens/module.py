@@ -10,7 +10,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
-from mobile.ui import font_name, rtl_text
+from mobile.ui import font_name, rtl_text, fa_display
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, WHITE
 
 SUBMENUS.setdefault("participation", [
@@ -29,9 +29,9 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
         # Spacious operational home: every subpanel is a real touch card.
         self.body.clear_widgets()
         items = SUBMENUS.get(self.route, [])
-        self.title.text = rtl_text(FRIENDLY.get(self.route, self.route))
+        self.title.text = fa_display(FRIENDLY.get(self.route, self.route))
         intro = self._surface(dp(104))
-        intro.add_widget(self.label(FRIENDLY.get(self.route, self.route), "21sp", PRIMARY, True, "center"))
+        intro.add_widget(self.label(fa_display(FRIENDLY.get(self.route, self.route)), "21sp", PRIMARY, True, "center"))
         intro.add_widget(self.label("محیط اختصاصی این پنل • هر کارت یک زیرپنل مستقل و متصل به اطلاعات واقعی سامانه است.", "10sp", SECONDARY, False, "center"))
         intro.add_widget(self.label(f"{len(items)} زیرپنل فعال", "9sp", SUCCESS, True, "center"))
         self.body.add_widget(intro)
@@ -46,8 +46,8 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
             card = self._surface(dp(154))
             card.add_widget(self.label(f"{i:02d}", "10sp", WHITE, True, "center"))
             # Give the number its own visible header strip without changing the actual data model.
-            card.add_widget(self.label(text, "14sp", PRIMARY, True, "center"))
-            card.add_widget(self.label(FRIENDLY.get(table, table), "8sp", SECONDARY, False, "center"))
+            card.add_widget(self.label(fa_display(text), "14sp", PRIMARY, True, "center"))
+            card.add_widget(self.label(fa_display(FRIENDLY.get(table, table)), "8sp", SECONDARY, False, "center"))
             card.add_widget(self.btn("ورود به محیط این بخش", lambda *_a, t=table: self.open_table(t), SUCCESS if self.can_write(table) else PRIMARY, dp(40)))
             grid.add_widget(card)
         scroll.add_widget(grid)
