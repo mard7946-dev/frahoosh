@@ -7,10 +7,9 @@ from kivy.metrics import dp
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
-from mobile.ui import font_name, rtl_text, fa_display, fa_display
+from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, WHITE
 
 SUBMENUS.setdefault("participation", [
@@ -73,7 +72,7 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 existing = "" if row is None else str(row.get(field, ""))
                 if existing and all(ch in "□�▯" for ch in existing.strip()):
                     existing = ""
-                ti = TextInput(
+                ti = PersianTextInput(
                     text=existing,
                     hint_text=fa_display(label_text),
                     font_name=font_name(), font_size="12sp", halign="right",
@@ -200,7 +199,7 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
         form.bind(minimum_height=form.setter("height"))
         inputs = {}
         for key, hint in fields:
-            ti = TextInput(
+            ti = PersianTextInput(
                 hint_text=rtl_text(hint), text="", font_name=font_name(), font_size="15sp",
                 halign="right", multiline=True if key in {"description", "body", "question", "accepted_answers"} else False,
                 size_hint_y=None, height=dp(76 if key in {"description", "body", "question"} else 52),
