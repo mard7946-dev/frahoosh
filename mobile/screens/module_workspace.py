@@ -629,13 +629,28 @@ class ModuleWorkspaceScreen(Screen):
         return w
 
     def btn(self,text,cb,color=PRIMARY,h=dp(40),width=None):
+        # Android touch contract: use release + always_release so a tiny finger
+        # movement cannot cancel an action. Schedule callbacks on Kivy's UI
+        # thread so popups/navigation are never executed re-entrantly.
         b=Button(text=fa_display(str(text)),font_name=font_name(),font_size="10sp",
                  background_normal="",background_color=color,color=WHITE,
                  size_hint_y=None,height=h)
+        b.always_release=True
+        b.min_state_time=0
         if width is not None:
             b.size_hint_x=None
             b.width=width
-        b.bind(on_press=cb)
+        def _invoke(instance, *_touch):
+            try:
+                Clock.schedule_once(lambda *_: cb(instance), 0)
+            except Exception as exc:
+                print("MODULE BUTTON CALLBACK ERROR:", repr(exc))
+                try:
+                    self.status.text=rtl_text("اجرای عملیات با خطا روبه‌رو شد: "+str(exc))
+                    self.status.color=(.8,.15,.15,1)
+                except Exception:
+                    pass
+        b.bind(on_release=_invoke)
         return b
 
     def _ensure_built(self):
