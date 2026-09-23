@@ -194,6 +194,20 @@ class PanelHubScreen(Screen):
                     background_normal="",background_color=PRIMARY,color=WHITE)
         back.bind(on_release=lambda *_: setattr(self.manager,"current","dashboard") if self.manager else None)
         head.add_widget(back); root.add_widget(head)
+        # Dedicated creation actions for the two first-class teaching workspaces.
+        # Keep them visible at the top of their panel, before the module list.
+        if self.panel_key == "online":
+            create=Button(text=fa_display("＋ تشکیل کلاس جدید"),font_name=font_name(),font_size="14sp",
+                           background_normal="",background_color=SUCCESS,color=WHITE,
+                           size_hint_y=None,height=dp(52))
+            create.bind(on_release=lambda *_: self._open_online_create())
+            root.add_widget(create)
+        elif self.panel_key == "teacher_exams":
+            create=Button(text=fa_display("＋ ساخت آزمون جدید"),font_name=font_name(),font_size="14sp",
+                           background_normal="",background_color=SUCCESS,color=WHITE,
+                           size_hint_y=None,height=dp(52))
+            create.bind(on_release=lambda *_: self._open_exam_create())
+            root.add_widget(create)
         self.scroll=ScrollView(do_scroll_x=False)
         self.grid=GridLayout(cols=2,spacing=dp(8),padding=dp(4),size_hint_y=None)
         self.grid.bind(minimum_height=self.grid.setter("height"))
@@ -265,6 +279,28 @@ class PanelHubScreen(Screen):
             "درخواست گواهی":"درخواست و صدور گواهی اشتغال به تحصیل.",
             "درخواست ملاقات":"ثبت درخواست، تأیید مسئول و تأیید نهایی مدیر.",
         }.get(label,"ثبت، ویرایش، حذف، گزارش و تبادل اطلاعات واقعی سامانه.")
+
+    def _open_online_create(self):
+        app=App.get_running_app()
+        try:
+            target=app.ensure_online_workflow()
+            if target is None: raise RuntimeError("مرکز کلاس آنلاین آماده نشد.")
+            app.sm.current=target.name
+            if hasattr(target, "_open_create_form"):
+                Clock.schedule_once(lambda *_: target._open_create_form(), 0.05)
+        except Exception as exc:
+            print("ONLINE CREATE OPEN ERROR:",repr(exc))
+
+    def _open_exam_create(self):
+        app=App.get_running_app()
+        try:
+            target=app.ensure_exam_authoring()
+            if target is None: raise RuntimeError("مرکز آزمون آنلاین آماده نشد.")
+            app.sm.current=target.name
+            if hasattr(target, "_new_exam"):
+                Clock.schedule_once(lambda *_: target._new_exam(), 0.05)
+        except Exception as exc:
+            print("EXAM CREATE OPEN ERROR:",repr(exc))
 
     def _open_io(self,route):
         app=App.get_running_app()
