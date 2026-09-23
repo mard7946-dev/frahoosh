@@ -46,7 +46,7 @@ def role_of(state):
         "معاون اجرایی":"executive","معاونت اجرایی":"executive","اجرایی":"executive","executive":"executive","executive_deputy":"executive","کادر اجرایی":"executive",
         "معاون پرورشی":"cultural","معاونت پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural","cultural_deputy":"cultural","کادر پرورشی":"cultural",
         "مشاور":"advisor","مشاوره":"advisor","counselor":"counselor","counseling":"counselor","advisor":"advisor",
-        "دبیر":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher",
+        "دبیر":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher","staff":"staff","school_staff":"staff",
         "دانش‌آموز":"student","دانش آموز":"student","student":"student",
         "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parents":"parent",
     }.get(raw, raw)
@@ -74,7 +74,7 @@ class OnlineClassScreen(Screen):
         if role not in {"student","parent"}:
             # Keep the creation action above the class list so it is visible
             # immediately on a phone-sized screen.
-            self._button("＋ ساخت و تولید کلاس جدید",lambda *_:self._open_create_form(),SUCCESS,52)
+            self._button("ساخت و تولید کلاس جدید",lambda *_:self._open_create_form(),SUCCESS,56)
             self._create_form()
         self._load_classes()
 
