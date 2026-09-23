@@ -629,9 +629,14 @@ class ModuleWorkspaceScreen(Screen):
         return w
 
     def btn(self,text,cb,color=PRIMARY,h=dp(40),width=None):
-        # Android touch contract: use release + always_release so a tiny finger
-        # movement cannot cancel an action. Schedule callbacks on Kivy's UI
-        # thread so popups/navigation are never executed re-entrantly.
+        """Create a touch-safe action button.
+        
+        Android builds have shown cases where relying on a single Kivy event
+        makes an otherwise visible toolbar appear dead.  We therefore keep a
+        single-fire guard and listen to both press and release.  Whichever event
+        reaches the button first executes the operation; the second event is
+        ignored.  This does not duplicate CRUD/Excel/PDF actions.
+        """
         b=Button(text=fa_display(str(text)),font_name=font_name(),font_size="10sp",
                  background_normal="",background_color=color,color=WHITE,
                  size_hint_y=None,height=h)
@@ -640,10 +645,19 @@ class ModuleWorkspaceScreen(Screen):
         if width is not None:
             b.size_hint_x=None
             b.width=width
-        def _invoke(instance, *_touch):
-            # Use press, not release: on Android a ScrollView/Popup can consume
-            # the release event after the finger moves a few pixels.  Press is
-            # the stable action boundary for every module command.
+
+        fired = {"value": False}
+
+        def _execute(instance, event_name):
+            if fired["value"]:
+                return
+            fired["value"] = True
+            try:
+                self.status.text = rtl_text("در حال اجرای عملیات…")
+                self.status.color = SECONDARY
+            except Exception:
+                pass
+
             def _run(_dt):
                 try:
                     cb(instance)
@@ -654,8 +668,22 @@ class ModuleWorkspaceScreen(Screen):
                         self.status.color=(.8,.15,.15,1)
                     except Exception:
                         pass
+                finally:
+                    # Re-arm after the current touch cycle so the next tap is
+                    # always accepted.
+                    fired["value"] = False
             Clock.schedule_once(_run, 0)
-        b.bind(on_press=_invoke)
+
+        def _on_press(instance, touch):
+            _execute(instance, "press")
+
+        def _on_release(instance, touch):
+            # Fallback for devices/event paths where release is the first
+            # delivered callback.  The single-fire guard prevents double work.
+            _execute(instance, "release")
+
+        b.bind(on_press=_on_press)
+        b.bind(on_release=_on_release)
         return b
 
     def _ensure_built(self):
