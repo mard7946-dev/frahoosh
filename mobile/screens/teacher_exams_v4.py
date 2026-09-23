@@ -119,6 +119,9 @@ class TeacherExamsV4Screen(Screen):
     def _spinner(self,text,values):
         s=Spinner(text=fa_display(text),values=tuple(fa_display(x) for x in values),font_name=font_name(),font_size="13sp",size_hint_y=None,height=dp(50)); self.body.add_widget(s); return s
     def _error(self,text): self.status.text=fa_display(text); self.status.color=ERROR
+    @staticmethod
+    def _value(widget):
+        return (widget.get_logical_text() if hasattr(widget, "get_logical_text") else str(getattr(widget, "text", "") or "")).strip()
     def _ok(self,text): self.status.text=fa_display(text); self.status.color=SUCCESS
     def _back(self):
         if self.manager:self.manager.current="dashboard"
@@ -218,13 +221,13 @@ class TeacherExamsV4Screen(Screen):
         except Exception:return None
 
     def _save_exam(self,title,subject,grade,duration,attempts,passing,mode,desc):
-        if not title.text.strip() or not self.questions:self._error("عنوان آزمون و حداقل یک سؤال لازم است.");return
-        try: dur=max(1,min(600,int(duration.text.strip() or 45))); mx=max(1,int(attempts.text.strip() or 1)); ps=max(0,float(passing.text.strip() or 0))
+        if not self._value(title) or not self.questions:self._error("عنوان آزمون و حداقل یک سؤال لازم است.");return
+        try: dur=max(1,min(600,int(self._value(duration) or 45))); mx=max(1,int(self._value(attempts) or 1)); ps=max(0,float(self._value(passing) or 0))
         except Exception:self._error("مدت، تعداد دفعات و نمره قبولی باید عدد باشند.");return
         tid=self._teacher_id()
         if not tid:self._error("حساب دبیر به پرونده دبیر متصل نشده است.");return
         self.status.text=fa_display("در حال ذخیره آزمون…"); self.status.color=SECONDARY
-        payload={"teacher_id":tid,"title":title.text.strip(),"subject":subject.text,"grade":grade.text.strip(),"class_name":grade.text.strip(),"exam_type":"آزمون آنلاین","duration":dur,"description":desc.text.strip(),"published":False,"secure_mode":True,"standard_mode":mode.text==fa_display("استاندارد"),"max_attempts":mx,"passing_score":ps}
+        payload={"teacher_id":tid,"title":self._value(title),"subject":subject.text,"grade":self._value(grade),"class_name":self._value(grade),"exam_type":"آزمون آنلاین","duration":dur,"description":self._value(desc),"published":False,"secure_mode":True,"standard_mode":mode.text==fa_display("استاندارد"),"max_attempts":mx,"passing_score":ps}
         Thread(target=self._save_worker,args=(payload,dur),daemon=True).start()
 
     def _save_worker(self,payload,dur):
@@ -232,12 +235,12 @@ class TeacherExamsV4Screen(Screen):
             created=self.app_state.api.table_insert("teacher_exams",payload); row=created[0] if isinstance(created,list) else created; eid=int(row["id"])
             for item in self.questions:
                 kind=question_kind(item["typ"])
-                values=[w.text.strip() for w in item["opts"]]
+                values=[self._value(w) for w in item["opts"]
                 if kind=="true_false": values=["صحیح","غلط"]
-                correct=item["correct"].text.strip() if kind in ("multiple_choice","true_false") else ""
-                try: pts=float(item["points"].text or 1); neg=float(item["negative"].text or 0)
+                correct=self._value(item["correct"]) if kind in ("multiple_choice","true_false") else ""
+                try: pts=float(self._value(item["points"]) or 1); neg=float(self._value(item["negative"]) or 0)
                 except Exception: pts=1; neg=0
-                payload_q={"quiz_id":eid,"question":item["q"].text.strip(),"option1":values[0] if values else "","option2":values[1] if len(values)>1 else "","option3":values[2] if len(values)>2 else "","option4":values[3] if len(values)>3 else "","correct_answer":correct,"points":pts,"question_type":kind,"options_json":json.dumps(values,ensure_ascii=False),"accepted_answers":item["accepted"].text.strip(),"difficulty":item["difficulty"].text,"cognitive_level":item["cognitive"].text,"auto_grade":kind!="essay","negative_score":neg}
+                payload_q={"quiz_id":eid,"question":self._value(item["q"]),"option1":values[0] if values else "","option2":values[1] if len(values)>1 else "","option3":values[2] if len(values)>2 else "","option4":values[3] if len(values)>3 else "","correct_answer":correct,"points":pts,"question_type":kind,"options_json":json.dumps(values,ensure_ascii=False),"accepted_answers":self._value(item["accepted"]),"difficulty":item["difficulty"].text,"cognitive_level":item["cognitive"].text,"auto_grade":kind!="essay","negative_score":neg}
                 self.app_state.api.table_insert("quiz_questions",payload_q)
             # Publication is finalized after the teacher saves the class/time window.
             Clock.schedule_once(lambda *_:self._schedule(eid,dur),0)
@@ -254,8 +257,8 @@ class TeacherExamsV4Screen(Screen):
         self._button("＋ ساخت لینک انتشار برای مدرسه دیگر",lambda *_:self._share_form(eid,dur),PRIMARY)
         self._button("بازگشت به آزمون‌های من",lambda *_:self._load_exams())
     def _save_slot(self,eid,dur,cls,per,date,start,end):
-        if not date.text.strip():self._error("تاریخ آزمون لازم است.");return
-        common=start.text.strip(); common_end=end.text.strip()
+        if not self._value(date):self._error("تاریخ آزمون لازم است.");return
+        common=self._value(start); common_end=self._value(end)
         try:
             if common and not common_end:
                 h,m=[int(x) for x in common.split(":")[:2]]; t=h*60+m+dur; common_end=f"{(t//60)%24:02d}:{t%60:02d}"
