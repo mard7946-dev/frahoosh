@@ -1081,6 +1081,7 @@ class ModuleWorkspaceScreen(Screen):
                 # Preserve the active school panel role for the dedicated exam workflow.
                 if hasattr(screen, "panel_role"):
                     screen.panel_role = getattr(self, "panel_role", "")
+                screen.return_to = "panel"
                 if self.manager:
                     self.manager.current = screen.name
                 return
