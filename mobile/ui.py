@@ -231,7 +231,7 @@ class PersianSpinnerOption(Button):
     def __init__(self, **kwargs):
         register_fonts()
         kwargs.setdefault("font_name", font_name())
-                kwargs.setdefault("font_size", "12sp")
+        kwargs.setdefault("font_size", "12sp")
         kwargs.setdefault("halign", "right")
         kwargs.setdefault("text_size", (None, None))
         kwargs.setdefault("color", (1, 1, 1, 1))
