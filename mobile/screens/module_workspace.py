@@ -1082,7 +1082,7 @@ class ModuleWorkspaceScreen(Screen):
                 screen = app.ensure_exam_authoring() if app is not None else None
                 if screen is None:
                     raise RuntimeError("مرکز آزمون آنلاین آماده نشد.")
-                screen.return_to = "panel"
+                # Preserve the active school panel role for the dedicated exam workflow.\n                if hasattr(screen, "panel_role"):\n                    screen.panel_role = getattr(self, "panel_role", "")\n                screen.return_to = "panel"
                 if self.manager:
                     self.manager.current = screen.name
                 return
