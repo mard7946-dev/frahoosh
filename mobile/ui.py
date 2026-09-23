@@ -188,7 +188,7 @@ class PersianTextInput(TextInput):
         self._shaping = False
         kwargs.setdefault("font_name", font_name())
         kwargs.setdefault("halign", "right")
-                kwargs.setdefault("multiline", False)
+        kwargs.setdefault("multiline", False)
         kwargs.setdefault("cursor_width", 2)
         super().__init__(**kwargs)
         self.bind(text=self._capture_text, focus=self._focus_changed)
