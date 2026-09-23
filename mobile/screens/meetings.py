@@ -14,15 +14,25 @@ from mobile.ui import font_name, rtl_text, fa_display
 
 def role_of(state):
     profile = getattr(state, "profile", {}) or {}
-    candidates = [getattr(state, "role", None), profile.get("role"), profile.get("user_role"), profile.get("school_role"), profile.get("user_type"), profile.get("account_type")]
+    candidates = [
+        getattr(state, "role", None),
+        profile.get("role"),
+        profile.get("user_role"),
+        profile.get("school_role"),
+        profile.get("user_type"),
+        profile.get("account_type"),
+    ]
     raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
     return {
-        "admin": "manager", "administrator": "manager", "principal": "manager", "manager": "manager", "management": "manager", "school_management": "manager", "مدیر": "manager", "مدیریت": "manager",
-        "معاون آموزشی": "educational", "educational": "educational", "educational_deputy": "educational",
-        "معاون اجرایی": "executive", "executive": "executive", "executive_deputy": "executive", "معاون پرورشی": "cultural", "cultural": "cultural", "cultural_deputy": "cultural", "دبیر": "teacher", "teacher": "teacher",
-        "کادر": "staff", "staff": "staff",
-        "مشاور": "counselor", "مشاوره": "counselor", "counselor": "counselor",
-        "ولی": "parent", "اولیا": "parent", "parent": "parent",
+        "admin":"manager","administrator":"manager","principal":"manager","manager":"manager","management":"manager","school_management":"manager",
+        "مدیر":"manager","مدیریت":"manager",
+        "معاون آموزشی":"educational","educational":"educational","educational_deputy":"educational",
+        "معاون اجرایی":"executive","اجرایی":"executive","executive":"executive","executive_deputy":"executive",
+        "معاون پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural","cultural_deputy":"cultural",
+        "مشاور":"counselor","مشاوره":"counselor","counselor":"counselor","counseling":"counselor",
+        "دبیر":"teacher","teacher":"teacher","کادر":"staff","staff":"staff",
+        "ولی":"parent","اولیا":"parent","parent":"parent",
+        "دانش‌آموز":"student","دانش آموز":"student","student":"student",
     }.get(raw, raw)
 
 
