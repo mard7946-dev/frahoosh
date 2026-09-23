@@ -140,10 +140,12 @@ _MOTHER_TABLE_ALIASES = {
     "school_settings":"school_profile","backup":"backup_records"
 }
 
-if _MOTHER_MODULES:
-    SUBMENUS = _MOTHER_MODULES
-if _shared_panels and not _MOTHER_MODULES:
+# The shared ZIP/Web catalog is the authoritative complete module map.
+# Keep _MOTHER_MODULES only as a compatibility fallback for older builds.
+if _shared_panels:
     SUBMENUS = {k: [tuple(item) for item in v] for k, v in _shared_panels.items()}
+elif _MOTHER_MODULES:
+    SUBMENUS = _MOTHER_MODULES
 
 FRIENDLY = {
 "school_profile":"مشخصات مدرسه","school_class_config":"ساختار کلاس‌ها","users":"حساب‌های سامانه","students":"دانش‌آموزان","teachers":"دبیران","staff":"کادر و کارکنان","teacher_classes":"کلاس‌های دبیران","lesson_plans":"طرح درس","attendance":"حضور و غیاب","grades":"نمرات","student_grades":"ارزیابی دانش‌آموزان","assignments":"تکالیف","parents":"اولیا","parent_children":"ارتباط ولی و فرزند","parent_meetings":"جلسات اولیا","finance_accounts":"حساب‌های مالی","finance_transactions":"تراکنش‌های مالی","finance_donations":"کمک‌های داوطلبانه","payment_offers":"گزینه‌های پرداخت","payment_attempts":"درخواست‌های پرداخت","payment_records":"سوابق پرداخت","online_classes":"کلاس‌های آنلاین","online_class_sessions":"جلسات آنلاین","online_class_students":"دانش‌آموزان کلاس","online_class_teachers":"دبیران کلاس","educational_activities":"فعالیت‌های پرورشی","school_events":"رویدادهای مدرسه","counseling_records":"سوابق مشاوره","counseling_followups":"پیگیری مشاوره","smart_board_content":"محتوای تابلو","smart_board_activities":"فعالیت‌های تابلو","smart_board_quizzes":"آزمون‌های کوتاه","smart_board_whiteboards":"تخته‌های آموزشی","ai_assistant_sessions":"جلسات دستیار","ai_questions":"پرسش‌های هوشمند","ai_smart_reports":"گزارش‌های هوشمند","messages":"پیام‌ها","message_targets":"مخاطبان پیام","message_reads":"وضعیت خواندن","report_cards":"کارنامه‌ها","report_card_snapshots":"نسخه‌های کارنامه","weekly_schedule":"برنامه هفتگی","generated_weekly_schedule":"برنامه تولیدشده","exam_schedule":"برنامه امتحانات","account_settings":"تنظیمات حساب","teacher_exams":"آزمون‌های آنلاین","discipline_records":"موارد انضباطی","educational_followups":"پیگیری‌های آموزشی","academic_followups":"پیگیری‌های درسی","certificate_requests":"درخواست گواهی اشتغال به تحصیل","activity_offers":"مسابقات و فعالیت‌ها","activity_registrations":"ثبت‌نام فعالیت‌ها","student_council":"انتخابات شورای دانش‌آموزی","basij_registration":"عضویت بسیج دانش‌آموزی","school_ally":"طرح همیار مدرسه","school_mayor":"طرح شهردار مدرسه","cultural_competitions":"مسابقات فرهنگی","art_competitions":"مسابقات هنری","sport_competitions":"مسابقات ورزشی","morning_leaders":"مکبر","qari_registration":"قاری برنامه ظهرگاهی","morning_ceremony":"مراسم ظهرگاهی","student_referrals":"ارجاع دانش‌آموز","teacher_parent_meetings":"درخواست ملاقات اولیا","parent_meeting_requests":"درخواست ملاقات","meeting_requests":"ملاقات و درخواست جلسه","smart_class_preview":"نمونه کلاس هوشمند","khwarizmi_registrations":"جشنواره خوارزمی","monthly_report_cards":"کارنامه ماهیانه","class_seat_assignments":"شماره صندلی کلاسی","exam_seat_assignments":"شماره صندلی امتحانی","assignment_submissions":"ارسال تکالیف","parent_activities":"فعالیت‌های اولیا","student_class_info":"پایه و کلاس"
@@ -891,6 +893,40 @@ class ModuleWorkspaceScreen(Screen):
     def open_table(self,table,refresh_subbar=True):
         # Student/parent messaging has a dedicated composer with a recipient
         # dropdown; do not downgrade it to a generic CRUD table.
+        if table in ("online_classes", "virtual"):
+            try:
+                from kivy.app import App
+                app = App.get_running_app()
+                screen = app.ensure_online_workflow() if app is not None else None
+                if screen is None:
+                    raise RuntimeError("محیط کلاس آنلاین آماده نشد.")
+                screen.return_to = "panel"
+                if self.manager:
+                    self.manager.current = screen.name
+                return
+            except Exception as exc:
+                print("ONLINE CLASS OPEN ERROR:", repr(exc))
+                self.status.text = rtl_text("محیط کلاس آنلاین باز نشد: " + str(exc))
+                self.status.color = (.8, .15, .15, 1)
+                return
+
+        if table in ("teacher_exams", "exams", "quiz_questions"):
+            try:
+                from kivy.app import App
+                app = App.get_running_app()
+                screen = app.ensure_exam_authoring() if app is not None else None
+                if screen is None:
+                    raise RuntimeError("مرکز آزمون آنلاین آماده نشد.")
+                screen.return_to = "panel"
+                if self.manager:
+                    self.manager.current = screen.name
+                return
+            except Exception as exc:
+                print("ONLINE EXAM OPEN ERROR:", repr(exc))
+                self.status.text = rtl_text("مرکز آزمون آنلاین باز نشد: " + str(exc))
+                self.status.color = (.8, .15, .15, 1)
+                return
+
         if table == "messages":
             try:
                 from kivy.app import App
@@ -1027,12 +1063,11 @@ class ModuleWorkspaceScreen(Screen):
                 from mobile.services.document_service import export_table_pdf
                 rows=self.app_state.api.table_select(table,{"limit":"2000"}) or []
                 rows=[dict(x) for x in rows if isinstance(x,dict)]
-                fields=[f for f in (TABLE_FIELDS.get(table) or []) if f not in HIDDEN]
+                fields=[f for f in (_module_fields(table) or []) if f not in HIDDEN]
                 if not fields and rows:
                     fields=[k for k in rows[0] if k not in HIDDEN]
-                output=Path(getattr(getattr(self.app_state,"api",None),"local",Path(".")))
-                if not isinstance(output,Path):
-                    output=Path(".")
+                # Save PDF reports beside Excel exports in Download.
+                output=self._excel_path().parent
                 output.mkdir(parents=True,exist_ok=True)
                 path=output/("frahoosh_"+table+"_report.pdf")
                 export_table_pdf(table,rows,fields,COLUMNS,str(path),title=FRIENDLY.get(table,table))
