@@ -30,7 +30,7 @@ LABEL_TO_TYPE = {v: k for k, v in TYPES}
 def role_of(state):
     # Resolve the role from the authenticated profile as well as app_state.
     # This keeps the teacher exam authoring controls visible after login.
-    profile = getattr(state, "profile", {}) or {}
+    # Respect the active panel when the workflow is opened from a role-specific dashboard.\n    active_panel = str(getattr(state, "panel_role", "") or "").strip().lower()\n    if active_panel:\n        normalized_panel = {"management":"manager","teachers":"teacher"}.get(active_panel, active_panel)\n        if normalized_panel in {"manager","educational","executive","cultural","advisor","teacher","staff","student","parent"}:\n            return normalized_panel\n    profile = getattr(state, "profile", {}) or {}
     user = getattr(state, "user", {}) or {}
     metadata = user.get("user_metadata", {}) if isinstance(user, dict) else {}
     candidates = [
