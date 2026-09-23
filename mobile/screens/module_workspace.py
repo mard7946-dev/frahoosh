@@ -1131,7 +1131,6 @@ class ModuleWorkspaceScreen(Screen):
             else:
                 self.message("ورودی Excel",f"فایل مورد انتظار پیدا نشد.\nفایل {path.name} را در پوشه Download گوشی قرار دهید و دوباره بزنید.")
                 return
-            return
         self.status.text=rtl_text("در حال خواندن فایل Excel…")
         def work():
             try:
