@@ -71,7 +71,14 @@ class OnlineClassScreen(Screen):
         except Exception:return self._error("مدت کلاس باید عدد باشد.")
         if not title.text.strip():return self._error("عنوان کلاس الزامی است.")
         try:
-            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":d,"status":"inactive","join_url":join.text.strip(),"meeting_url":join.text.strip()}); self._ok("کلاس در پایگاه داده ثبت شد."); self.show_home()
+            join_url=join.text.strip()
+            if not join_url:
+                # Create a real browser-based video room automatically when the
+                # school does not provide its own meeting provider URL.
+                import secrets
+                slug="frahoosh-"+str(cls.text.strip() or "class").replace(" ","-")+"-"+secrets.token_hex(5)
+                join_url="https://meet.jit.si/"+slug
+            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":d,"status":"inactive","join_url":join_url,"meeting_url":join_url}); self._ok("کلاس ثبت شد و لینک جلسه واقعی ساخته شد."); self.show_home()
         except Exception as exc:self._error("ساخت کلاس انجام نشد: "+str(exc))
     def _load_classes(self):
         try:rows=self.app_state.api.table_select("online_classes",{"order":"id.desc","limit":"50"})
