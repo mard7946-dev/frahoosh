@@ -797,6 +797,28 @@ class ModuleWorkspaceScreen(Screen):
         # Normalize common Arabic/Persian spelling variants and invisible separators
         raw = raw.replace("\u200c", " ").replace("\u200f", "").replace("ي", "ی").replace("ك", "ک")
         raw = " ".join(raw.split())
+        # Profiles can store a combined Persian/English role label instead of
+        # the canonical enum. Resolve those labels before CRUD permission checks.
+        role_fragments = (
+            ("معاون آموزشی", "educational"),
+            ("معاونت آموزشی", "educational"),
+            ("معاون اجرایی", "executive"),
+            ("معاونت اجرایی", "executive"),
+            ("معاون پرورشی", "cultural"),
+            ("معاونت پرورشی", "cultural"),
+            ("مشاور", "advisor"),
+            ("مشاوره", "advisor"),
+            ("مدیر", "manager"),
+            ("مدیریت", "manager"),
+            ("educational deputy", "educational"),
+            ("executive deputy", "executive"),
+            ("cultural deputy", "cultural"),
+            ("vice principal", "manager"),
+            ("principal", "manager"),
+        )
+        for _fragment, _canonical in role_fragments:
+            if _fragment in raw:
+                return _canonical
         if not raw:
             # An authenticated account with no explicit role must not be silently
             # downgraded to student/read-only in the internal school workspace.
