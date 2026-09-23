@@ -15,7 +15,7 @@ from mobile.config import (
     APP_NAME, SCHOOL_NAME, APP_SLOGAN, SYSTEM_TITLE, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
     SUCCESS, WHITE, ERROR,
 )
-from mobile.ui import font_name, rtl_text, PersianTextInput
+from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 
 
 NAVY = (0.015, 0.07, 0.18, 1)
@@ -39,7 +39,7 @@ class LoginScreen(Screen):
 
     def label(self, value, size="11sp", color=WHITE, bold=False, halign="right"):
         w = Label(
-            text=rtl_text(str(value)),
+            text=fa_display(str(value)),
             font_name=font_name(),
             text_language="fa",
             font_size=size,
@@ -53,7 +53,7 @@ class LoginScreen(Screen):
 
     def _field(self, hint, password=False):
         field = PersianTextInput(
-            hint_text=rtl_text(hint),
+            hint_text=fa_display(hint),
             password=password,
             password_mask="*",
             font_name=font_name(),
@@ -99,16 +99,16 @@ class LoginScreen(Screen):
             self._glow2.pos=(-root.width*.28,root.height*.15); self._glow2.size=(root.width*.56,root.width*.56)
         root.bind(pos=sync,size=sync); Clock.schedule_once(sync,0)
 
-        title=Label(text=rtl_text("فراهوش"),font_name=font_name(),font_size="30sp",bold=True,color=WHITE,
+        title=Label(text=fa_display("فراهوش"),font_name=font_name(),font_size="30sp",bold=True,color=WHITE,
                     size_hint=(.94,None),height=dp(48),pos_hint={"center_x":.5,"center_y":.86},halign="center")
         title.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(title)
-        subtitle=Label(text=rtl_text("سامانه هوشمند آموزشی یکپارچه مدرسه"),font_name=font_name(),font_size="12sp",bold=True,
+        subtitle=Label(text=fa_display("سامانه هوشمند آموزشی یکپارچه مدرسه"),font_name=font_name(),font_size="12sp",bold=True,
                       color=CYAN,size_hint=(.94,None),height=dp(34),pos_hint={"center_x":.5,"center_y":.815},halign="center")
         subtitle.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(subtitle)
-        slogan=Label(text=rtl_text("یادگیری هوشمند، مدرسه یکپارچه، دانش آموز خلاق"),font_name=font_name(),font_size="10sp",
+        slogan=Label(text=fa_display("یادگیری هوشمند، مدرسه یکپارچه، دانش آموز خلاق"),font_name=font_name(),font_size="10sp",
                      color=MUTED,size_hint=(.94,None),height=dp(30),pos_hint={"center_x":.5,"center_y":.775},halign="center")
         slogan.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(slogan)
-        school=Label(text=rtl_text("دبیرستان سردار شهید حاجی زاده ۲"),font_name=font_name(),font_size="10sp",bold=True,
+        school=Label(text=fa_display("دبیرستان سردار شهید حاجی زاده ۲"),font_name=font_name(),font_size="10sp",bold=True,
                      color=GOLD,size_hint=(.94,None),height=dp(30),pos_hint={"center_x":.5,"center_y":.735},halign="center")
         school.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(school)
 
@@ -122,7 +122,7 @@ class LoginScreen(Screen):
             card._line.rounded_rectangle=(card.x,card.y,card.width,card.height,dp(28))
         card.bind(pos=card_sync,size=card_sync)
 
-        welcome=Label(text=rtl_text("ورود به حساب کاربری"),font_name=font_name(),font_size="18sp",
+        welcome=Label(text=fa_display("ورود به حساب کاربری"),font_name=font_name(),font_size="18sp",
                       color=WHITE,bold=True,size_hint_y=None,height=dp(38),halign="center")
         welcome.bind(size=lambda o,v:setattr(o,"text_size",v)); card.add_widget(welcome)
         self.identifier=self._field(LOGIN_USERNAME_HINT or "نام کاربری / کد ملی / ایمیل",False)
@@ -132,21 +132,21 @@ class LoginScreen(Screen):
         row=BoxLayout(size_hint_y=None,height=dp(36),spacing=dp(5))
         self.remember_checkbox=CheckBox(active=False,size_hint=(None,None),size=(dp(30),dp(30)),color=CYAN)
         self.remember_checkbox.bind(active=self._remember_changed); row.add_widget(self.remember_checkbox)
-        remember=Button(text=rtl_text("مرا به خاطر بسپار"),font_name=font_name(),font_size="10sp",color=WHITE,background_normal="",background_color=(0,0,0,0))
-        remember.bind(on_release=self._toggle_remember); row.add_widget(remember)
-        forgot=Button(text=rtl_text("فراموشی رمز"),font_name=font_name(),font_size="10sp",color=GOLD,background_normal="",background_color=(0,0,0,0))
-        forgot.bind(on_release=self.forgot_password); row.add_widget(forgot)
+        remember=Button(text=fa_display("مرا به خاطر بسپار"),font_name=font_name(),font_size="10sp",color=WHITE,background_normal="",background_color=(0,0,0,0))
+        remember.bind(on_press=self._toggle_remember); row.add_widget(remember)
+        forgot=Button(text=fa_display("فراموشی رمز"),font_name=font_name(),font_size="10sp",color=GOLD,background_normal="",background_color=(0,0,0,0))
+        forgot.bind(on_press=self.forgot_password); row.add_widget(forgot)
         card.add_widget(row)
 
-        self.login_button=Button(text=rtl_text("ورود به فراهوش"),font_name=font_name(),font_size="16sp",bold=True,
+        self.login_button=Button(text=fa_display("ورود به فراهوش"),font_name=font_name(),font_size="16sp",bold=True,
                                  background_normal="",background_color=CYAN,color=(0.01,0.06,0.12,1),
                                  size_hint_y=None,height=dp(52))
-        self.login_button.bind(on_release=self.login); card.add_widget(self.login_button)
+        self.login_button.bind(on_press=self.login); card.add_widget(self.login_button)
         self.status=self.label("", "9sp", MUTED, False, "center")
         self.status.size_hint_y=None; self.status.height=dp(26); card.add_widget(self.status)
         root.add_widget(card)
 
-        footer=Label(text=rtl_text(f"{SCHOOL_NAME} • سال تحصیلی ۱۴۰۵–۱۴۰۶"),font_name=font_name(),font_size="8sp",
+        footer=Label(text=fa_display(f"{SCHOOL_NAME} • سال تحصیلی ۱۴۰۵–۱۴۰۶"),font_name=font_name(),font_size="8sp",
                      color=(.60,.78,.92,1),size_hint=(.92,None),height=dp(28),pos_hint={"center_x":.5,"y":.035},halign="center")
         footer.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(footer)
         self.add_widget(root)
@@ -160,7 +160,7 @@ class LoginScreen(Screen):
         self.remember_checkbox.active = not self.remember_checkbox.active
 
     def _set_status(self, text, color=WHITE):
-        self.status.text = rtl_text(text)
+        self.status.text = fa_display(text)
         self.status.color = color
 
     @staticmethod
