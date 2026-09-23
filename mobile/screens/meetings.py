@@ -15,8 +15,10 @@ from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 def role_of(state):
     profile = getattr(state, "profile", {}) or {}
     candidates = [
-        getattr(state, "role", None),
         profile.get("role"),
+        profile.get("user_role"),
+        profile.get("school_role"),
+        getattr(state, "role", None),
         profile.get("user_role"),
         profile.get("school_role"),
         profile.get("user_type"),
