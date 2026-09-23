@@ -8,7 +8,7 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.spinner import Spinner
-from mobile.ui import font_name, rtl_text, fa_display
+from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, SCHOOL_NAME, SCHOOL_YEAR
 
 def role_of(state):
@@ -30,7 +30,7 @@ class BaseWorkflow(Screen):
         w=Label(text=fa_display(str(t)),font_name=font_name(),font_size=s,color=c,bold=b,halign="right",valign="middle",size_hint_y=None,height=dp(h)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); return w
     def btn(self,t,cb,c=PRIMARY,h=44):
         b=Button(text=fa_display(t),font_name=font_name(),font_size="11sp",background_normal="",background_color=c,color=WHITE,size_hint_y=None,height=dp(h)); b.bind(on_press=cb); return b
-    def field(self,h,m=False): return TextInput(hint_text=fa_display(h),font_name=font_name(),font_size="12sp",halign="right",multiline=m,size_hint_y=None,height=dp(70 if m else 46))
+    def field(self,h,m=False): return PersianTextInput(hint_text=fa_display(h),font_name=font_name(),font_size="12sp",halign="right",multiline=m,size_hint_y=None,height=dp(70 if m else 46))
     def api(self): return getattr(self.app_state,"api",None)
     def username(self):
         p=getattr(self.app_state,"profile",{}) or {}; u=getattr(self.app_state,"user",{}) or {}
