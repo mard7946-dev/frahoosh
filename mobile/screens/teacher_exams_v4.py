@@ -276,6 +276,8 @@ class TeacherExamsV4Screen(Screen):
                     h,m=[int(x) for x in st.split(":")[:2]]; t=h*60+m+dur; en=f"{(t//60)%24:02d}:{t%60:02d}"
                 starts[name]=st
                 self.app_state.api.table_insert("teacher_exam_slots",{"quiz_id":eid,"class_name":name,"exam_date_shamsi":date.text.strip(),"start_time_shamsi":st,"end_time_shamsi":en,"duration":dur,"coordinated":1 if len(set(starts.values()))==1 and len(starts)==len(classes) else 0,"secure_mode":1,"active":True})
+            # The exam becomes visible only after at least one valid class window exists.
+            self.app_state.api.table_update("teacher_exams",{"id":f"eq.{eid}"},{"published":True})
             self._ok(f"زمان‌بندی {len(classes)} کلاس ثبت شد؛ زمان مشترک یا متفاوت قابل استفاده است.")
         except Exception as exc:self._error("ثبت زمان‌بندی انجام نشد: "+str(exc))
 
