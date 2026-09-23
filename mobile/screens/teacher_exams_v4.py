@@ -27,6 +27,17 @@ TYPE_TO_LABEL = dict(TYPES)
 LABEL_TO_TYPE = {v: k for k, v in TYPES}
 
 
+def question_kind(widget):
+    """Resolve a question type from logical Persian text or its RTL display form."""
+    raw = str(getattr(widget, "text", "") or "").strip()
+    if raw in LABEL_TO_TYPE:
+        return LABEL_TO_TYPE[raw]
+    for kind, label in TYPES:
+        if raw == fa_display(label) or raw == rtl_text(label):
+            return kind
+    return "multiple_choice"
+
+
 def role_of(state):
     # Resolve the role from the authenticated profile as well as app_state.
     # This keeps the teacher exam authoring controls visible after login.
@@ -183,7 +194,7 @@ class TeacherExamsV4Screen(Screen):
                 pass
 
     def _body_refresh_question_visibility(self,item):
-        kind=LABEL_TO_TYPE.get(item["typ"].text, "multiple_choice")
+        kind=question_kind(item["typ"])
         mc=kind=="multiple_choice"; tf=kind=="true_false"; needs_text=kind in ("fill_blank","short_answer")
         for w in item["opts"]: w.opacity=1 if mc or tf else 0; w.disabled=not (mc or tf)
         item["correct"].opacity=1 if mc or tf else 0; item["correct"].disabled=not (mc or tf)
@@ -220,7 +231,7 @@ class TeacherExamsV4Screen(Screen):
         try:
             created=self.app_state.api.table_insert("teacher_exams",payload); row=created[0] if isinstance(created,list) else created; eid=int(row["id"])
             for item in self.questions:
-                kind=LABEL_TO_TYPE.get(item["typ"].text,"multiple_choice")
+                kind=question_kind(item["typ"])
                 values=[w.text.strip() for w in item["opts"]]
                 if kind=="true_false": values=["صحیح","غلط"]
                 correct=item["correct"].text.strip() if kind in ("multiple_choice","true_false") else ""
@@ -228,7 +239,7 @@ class TeacherExamsV4Screen(Screen):
                 except Exception: pts=1; neg=0
                 payload_q={"quiz_id":eid,"question":item["q"].text.strip(),"option1":values[0] if values else "","option2":values[1] if len(values)>1 else "","option3":values[2] if len(values)>2 else "","option4":values[3] if len(values)>3 else "","correct_answer":correct,"points":pts,"question_type":kind,"options_json":json.dumps(values,ensure_ascii=False),"accepted_answers":item["accepted"].text.strip(),"difficulty":item["difficulty"].text,"cognitive_level":item["cognitive"].text,"auto_grade":kind!="essay","negative_score":neg}
                 self.app_state.api.table_insert("quiz_questions",payload_q)
-            self.app_state.api.table_update("teacher_exams",{"id":f"eq.{eid}"},{"published":True})
+            # Publication is finalized after the teacher saves the class/time window.
             Clock.schedule_once(lambda *_:self._schedule(eid,dur),0)
         except Exception as exc: Clock.schedule_once(lambda *_:self._error("ذخیره آزمون انجام نشد: "+str(exc)),0)
 
