@@ -235,7 +235,7 @@ class TeacherExamsV4Screen(Screen):
             created=self.app_state.api.table_insert("teacher_exams",payload); row=created[0] if isinstance(created,list) else created; eid=int(row["id"])
             for item in self.questions:
                 kind=question_kind(item["typ"])
-                values=[self._value(w) for w in item["opts"]
+                values=[self._value(w) for w in item["opts"]]
                 if kind=="true_false": values=["صحیح","غلط"]
                 correct=self._value(item["correct"]) if kind in ("multiple_choice","true_false") else ""
                 try: pts=float(self._value(item["points"]) or 1); neg=float(self._value(item["negative"]) or 0)
@@ -263,11 +263,11 @@ class TeacherExamsV4Screen(Screen):
             if common and not common_end:
                 h,m=[int(x) for x in common.split(":")[:2]]; t=h*60+m+dur; common_end=f"{(t//60)%24:02d}:{t%60:02d}"
             mapping={}
-            for part in (per.text or "").replace("،",",").replace("؛",";").split(";"):
+            for part in (self._value(per) or "").replace("،",",").replace("؛",";").split(";"):
                 part=part.strip()
                 if not part or "=" not in part:continue
                 name,window=part.split("=",1); bits=window.strip().split("-",1); mapping[name.strip()]=(bits[0].strip(),bits[1].strip() if len(bits)>1 else "")
-            classes=[x.strip() for x in (cls.text or "").replace("،",",").split(",") if x.strip()]
+            classes=[x.strip() for x in (self._value(cls) or "").replace("،",",").split(",") if x.strip()]
             classes += [x for x in mapping if x not in classes]
             if not classes:classes=list(mapping)
             if not classes:raise RuntimeError("حداقل یک کلاس لازم است.")
