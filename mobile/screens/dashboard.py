@@ -557,6 +557,21 @@ class DashboardScreen(Screen):
         if app is None or app.sm is None:
             return
         try:
+            # Online class and online exam are first-class operational
+            # workspaces. Do not route the teacher through a generic/empty
+            # panel hub: open the real creation center directly.
+            if route == "online":
+                screen=app.ensure_online_workflow()
+                if screen is None:
+                    raise RuntimeError("مرکز کلاس آنلاین آماده نشد.")
+                app.sm.current=screen.name
+                return
+            if route == "teacher_exams":
+                screen=app.ensure_exam_authoring()
+                if screen is None:
+                    raise RuntimeError("مرکز آزمون آنلاین آماده نشد.")
+                app.sm.current=screen.name
+                return
             if str(route).startswith("panelhub:"):
                 key=str(route).split(":",1)[1]
                 name="panelhub_"+key
