@@ -641,15 +641,17 @@ class ModuleWorkspaceScreen(Screen):
             b.size_hint_x=None
             b.width=width
         def _invoke(instance, *_touch):
-            try:
-                Clock.schedule_once(lambda *_: cb(instance), 0)
-            except Exception as exc:
-                print("MODULE BUTTON CALLBACK ERROR:", repr(exc))
+            def _run(_dt):
                 try:
-                    self.status.text=rtl_text("اجرای عملیات با خطا روبه‌رو شد: "+str(exc))
-                    self.status.color=(.8,.15,.15,1)
-                except Exception:
-                    pass
+                    cb(instance)
+                except Exception as exc:
+                    print("MODULE BUTTON CALLBACK ERROR:", repr(exc))
+                    try:
+                        self.status.text=rtl_text("اجرای عملیات با خطا روبه‌رو شد: "+str(exc))
+                        self.status.color=(.8,.15,.15,1)
+                    except Exception:
+                        pass
+            Clock.schedule_once(_run, 0)
         b.bind(on_release=_invoke)
         return b
 
