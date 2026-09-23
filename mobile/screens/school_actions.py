@@ -138,7 +138,8 @@ class TeacherAttendanceScreen(_Base):
     def render(self):
         self.list_box.clear_widgets()
         selected = str(self.class_spinner.text or "").strip()
-        rows = [s for s in self.students if selected in ("انتخاب کلاس", "همه کلاس‌ها") or str(s.get("class_name") or "").strip() == selected]
+        selected_logical = next((x for x in {str(s.get("class_name") or "").strip() for s in self.students} if fa_display(x) == selected), selected)
+        rows = [s for s in self.students if selected_logical in ("انتخاب کلاس", "همه کلاس‌ها") or str(s.get("class_name") or "").strip() == selected_logical]
         self.values = {}
         for s in rows:
             sid = s.get("id")
@@ -192,7 +193,8 @@ class DisciplineScreen(_Base):
                                        height=dp(45), font_name=font_name(), font_size="12sp")
         self.type_spinner = Spinner(text=fa_display("نوع مشکل انضباطی"), values=tuple(fa_display(x) for x in DISCIPLINE_TYPES),
                                     size_hint_y=None, height=dp(45), font_name=font_name(), font_size="12sp")
-        self.discipline_type_map = {fa_display(x): x for x in DISCIPLINE_TYPES}\n        self.note = self.label("پس از انتخاب دانش‌آموز، نوع مورد را از منوی کشویی انتخاب کنید.", "10sp", SECONDARY, 42)
+        self.discipline_type_map = {fa_display(x): x for x in DISCIPLINE_TYPES}
+        self.note = self.label("پس از انتخاب دانش‌آموز، نوع مورد را از منوی کشویی انتخاب کنید.", "10sp", SECONDARY, 42)
         self.body.add_widget(self.student_spinner); self.body.add_widget(self.type_spinner); self.body.add_widget(self.note)
         self.body.add_widget(self.button("ثبت مورد انضباطی → معاون آموزشی → اولیا", self.save, SUCCESS, 48))
         self._load_students(self.loaded)
@@ -212,7 +214,8 @@ class DisciplineScreen(_Base):
     def save(self, *_):
         selected = str(self.student_spinner.text or "").strip()
         student = self.student_map.get(selected)
-        kind_display = str(self.type_spinner.text or "").strip()\n        kind = self.discipline_type_map.get(kind_display, kind_display)
+        kind_display = str(self.type_spinner.text or "").strip()
+        kind = self.discipline_type_map.get(kind_display, kind_display)
         if not student or selected == fa_display("انتخاب دانش‌آموز") or kind == fa_display("نوع مشکل انضباطی"):
             self.status.text = rtl_text("دانش‌آموز و نوع مشکل انضباطی را انتخاب کنید."); self.status.color = ERROR; return
         try:
