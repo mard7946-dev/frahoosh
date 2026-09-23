@@ -623,9 +623,8 @@ class ModuleWorkspaceScreen(Screen):
         # overrides here: with some BTitr builds those overrides select a missing
         # glyph path and render Persian letters as □. rtl_text() keeps the logical
         # Persian string normalized and Kivy handles the visual direction.
-        w=Label(text=rtl_text(str(text)),font_name=font_name(),font_size=size,color=color,bold=bold,
-                 halign="center" if center else "right",valign="middle",
-                 text_language="fa",base_direction="rtl")
+        w=Label(text=fa_display(str(text)),font_name=font_name(),font_size=size,color=color,bold=bold,
+                 halign="center" if center else "right",valign="middle")
         w.bind(size=lambda o,v:setattr(o,"text_size",v))
         return w
 
@@ -638,10 +637,10 @@ class ModuleWorkspaceScreen(Screen):
         reaches the button first executes the operation; the second event is
         ignored.  This does not duplicate CRUD/Excel/PDF actions.
         """
-        b=Button(text=rtl_text(str(text)),font_name=font_name(),font_size="10sp",
+        b=Button(text=fa_display(str(text)),font_name=font_name(),font_size="10sp",
                  background_normal="",background_color=color,color=WHITE,
                  size_hint_y=None,height=h,
-                 text_language="fa",base_direction="rtl")
+                 halign="center",valign="middle")
         b.always_release=True
         b.min_state_time=0
         if width is not None:
