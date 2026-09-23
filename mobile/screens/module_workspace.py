@@ -1014,7 +1014,8 @@ class ModuleWorkspaceScreen(Screen):
             bar.add_widget(self.btn("ویرایش",lambda *_:self._edit_selected_row(),PRIMARY,dp(38)))
             bar.add_widget(self.btn("حذف",lambda *_:self._delete_selected_row(),(0.72,.16,.18,1),dp(38)))
             bar.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
-            bar.add_widget(self.btn("ورودی Excel",lambda *_:self.import_excel(),(0.42,.30,.62,1),dp(38)))
+            bar.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
+            bar.add_widget(self.btn("ورودی Excel / ثبت گروهی",lambda *_:self.import_excel(),(0.42,.30,.62,1),dp(38)))
             bar.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
             self.body.add_widget(bar)
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
@@ -1051,6 +1052,28 @@ class ModuleWorkspaceScreen(Screen):
                 Clock.schedule_once(lambda *_: self._excel_done(msg),0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self.write_error("خروجی Excel انجام نشد: "+str(exc)),0)
+        Thread(target=work,daemon=True).start()
+
+    def export_excel_template(self):
+        """Create a ready-to-fill Excel template using the exact module field contract."""
+        table=str(self.table or "").strip()
+        if not table:
+            return
+        self.status.text=rtl_text("در حال ساخت قالب Excel…")
+        def work():
+            try:
+                from openpyxl import Workbook
+                fields=[f for f in (_module_fields(table) or []) if f not in HIDDEN]
+                if not fields:
+                    raise RuntimeError("برای این ماژول قرارداد فیلد قابل ورود تعریف نشده است.")
+                wb=Workbook(); ws=wb.active; ws.title="فراهوش"
+                ws.append([COLUMNS.get(f,f) for f in fields])
+                ws.append(["" for _ in fields])
+                path=self._excel_path(); template=path.with_name(path.stem+"_template.xlsx")
+                wb.save(str(template))
+                Clock.schedule_once(lambda *_: self._excel_done("قالب Excel آماده شد: "+str(template)),0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_: self.write_error("ساخت قالب Excel انجام نشد: "+str(exc)),0)
         Thread(target=work,daemon=True).start()
 
     def export_pdf(self):
