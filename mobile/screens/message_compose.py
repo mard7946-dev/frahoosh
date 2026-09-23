@@ -124,7 +124,8 @@ class MessageComposeScreen(Screen):
             "educational", "معاون آموزشی",
             "executive", "معاون اجرایی",
             "cultural", "معاون پرورشی",
-            "advisor", "counselor", "مشاور",            "teacher", "دبیر", "معلم",
+            "advisor", "counselor", "مشاور",
+            "teacher", "دبیر", "معلم",
             "student", "دانش‌آموز", "دانش آموز",
             "parent", "parents", "ولی", "اولیا", "والد"
         }
