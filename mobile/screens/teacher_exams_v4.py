@@ -343,8 +343,7 @@ class TeacherExamsV4Screen(Screen):
         if not rows:self._label("هنوز آزمونی ثبت نشده است.",color=SECONDARY,height=65)
         for row in rows:
             eid=int(row["id"]); dur=int(row.get("duration") or 45)
-            self._label(f"{row.get('title','آزمون')}
-{row.get('subject','')}  •  {dur} دقیقه  •  {'منتشر شده' if row.get('published') else 'پیش‌نویس'}","15sp",PRIMARY,65,True)
+            self._label(f"{row.get('title','آزمون')}\n{row.get('subject','')}  •  {dur} دقیقه  •  {'منتشر شده' if row.get('published') else 'پیش‌نویس'}","15sp",PRIMARY,65,True)
             self._button("زمان‌بندی / ساخت لینک اشتراک",lambda *_ ,i=eid,d=dur:self._schedule(i,d),PRIMARY,45)
 
     def _open_shared(self,code):
@@ -395,8 +394,7 @@ class TeacherExamsV4Screen(Screen):
     def _render_attempt(self,exam,attempt):
         self._clear(); self._attempt_id=int(attempt["attempt_id"]); self._answers={}
         self._label(exam.get("title","آزمون"),"22sp",PRIMARY,55,True)
-        self._label(f"{exam.get('subject','')}  •  مدت {attempt.get('duration') or exam.get('duration',45)} دقیقه
-ترتیب سؤال‌ها برای شما اختصاصی است و پاسخ صحیح نمایش داده نمی‌شود.",height=72)
+        self._label(f"{exam.get('subject','')}  •  مدت {attempt.get('duration') or exam.get('duration',45)} دقیقه\nترتیب سؤال‌ها برای شما اختصاصی است و پاسخ صحیح نمایش داده نمی‌شود.",height=72)
         qs=self.app_state.api.rpc("get_shared_attempt_questions",{"p_attempt_id":self._attempt_id}) or []
         for i,q in enumerate(qs,1):
             self._label(f"{i}. {q.get('question','')}","16sp",PRIMARY,82,True)
