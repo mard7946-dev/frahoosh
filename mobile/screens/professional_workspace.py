@@ -11,7 +11,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 
 from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, WHITE
-from mobile.ui import font_name, rtl_text
+from mobile.ui import font_name, rtl_text, fa_display
 from mobile.screens.module_workspace import ModuleWorkspaceScreen, SUBMENUS, FRIENDLY
 
 
@@ -63,7 +63,7 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
     def render(self):
         self.body.clear_widgets()
         items = SUBMENUS.get(self.route, [])
-        self.title.text = rtl_text(FRIENDLY.get(items[0][1], items[0][0]) if items else APP_NAME)
+        self.title.text = fa_display(FRIENDLY.get(items[0][1], items[0][0]) if items else APP_NAME)
 
         intro = self._surface(dp(84))
         intro.add_widget(self.label(FRIENDLY.get(self.route, self.route), "20sp", PRIMARY, True, "center"))
@@ -88,7 +88,7 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
 
     def _accordion(self, text, table, index):
         holder = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(52), spacing=dp(3))
-        header = Button(text=rtl_text("باز کردن: " + text), font_name=font_name(), font_size="12sp", background_normal="", background_color=PRIMARY, color=WHITE, size_hint_y=None, height=dp(48))
+        header = Button(text=fa_display("باز کردن: " + text), font_name=font_name(), font_size="12sp", background_normal="", background_color=PRIMARY, color=WHITE, size_hint_y=None, height=dp(48), halign="center", valign="middle")
         content = BoxLayout(orientation="vertical", size_hint_y=None, height=0, padding=dp(8), spacing=dp(5))
         header.bind(on_release=lambda *_: self._toggle(holder, header, content, table, text))
         holder.add_widget(header)
@@ -100,10 +100,10 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
             content.clear_widgets()
             content.height = 0
             holder.height = dp(52)
-            header.text = rtl_text("باز کردن: " + text)
+            header.text = fa_display("باز کردن: " + text)
             return
         content.clear_widgets()
-        header.text = rtl_text("بستن: " + text)
+        header.text = fa_display("بستن: " + text)
         if table in ("teacher_exams", "quiz_questions", "online_classes", "online_class_sessions"):
             self._special_content(content, table)
         elif table in ("messages", "message_targets", "message_reads"):
