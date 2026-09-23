@@ -27,38 +27,36 @@ def register_fonts():
     if _FONT_REGISTERED:
         return "FrahooshBTitr"
 
-    regular = Path(FONT_REGULAR)
-    bold = Path(FONT_BOLD)
-    if not regular.is_file():
-        packaged = Path(__file__).resolve().parent / "assets" / "BTitrBd.ttf"
-        if packaged.is_file():
-            regular = packaged
-    if not bold.is_file():
-        bold = regular
+    # BTitrBd.ttf is the required Frahoosh typeface. Do not replace it.
+    # Resolve it through both the normal filesystem path and Kivy's packaged
+    # resource path so the APK never silently falls back to Roboto (which
+    # produces □ for Persian glyphs).
+    candidates = [
+        Path(FONT_REGULAR),
+        Path(__file__).resolve().parent / "assets" / "BTitrBd.ttf",
+    ]
+    try:
+        packaged = resource_find("mobile/assets/BTitrBd.ttf") or resource_find("assets/BTitrBd.ttf")
+        if packaged:
+            candidates.insert(0, Path(packaged))
+    except Exception as exc:
+        print("FONT RESOURCE LOOKUP ERROR:", repr(exc))
 
-    if not regular.is_file():
-
-        print(
-            "FONT FILE NOT FOUND:",
-            regular
-        )
-
+    regular = next((p for p in candidates if p.is_file()), None)
+    if regular is None:
+        print("FONT FILE NOT FOUND:", [str(p) for p in candidates])
         return ""
 
     try:
-
+        # Keep BTitr for both weights. The important fix is deterministic APK
+        # resolution; never substitute another typeface for the module UI.
         LabelBase.register(
             name="FrahooshBTitr",
             fn_regular=str(regular),
-            # Use the same known-complete Arabic/Persian glyph set for
-            # bold labels as regular text. A separate bold face was producing
-            # missing-glyph boxes (□) for Persian characters on some Android
-            # builds.
             fn_bold=str(regular),
         )
-
         _FONT_REGISTERED = True
-
+        print("FRAHOOSH BTITR REGISTERED:", str(regular))
         return "FrahooshBTitr"
 
 
