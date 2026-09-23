@@ -96,19 +96,53 @@ class OnlineClassScreen(Screen):
         title=self._field("عنوان کلاس"); subject=self._field("درس / موضوع"); teacher=self._field("نام دبیر"); grade=self._field("پایه"); cls=self._field("نام کلاس"); duration=self._field("مدت به دقیقه"); duration.text="60"; start=self._field("تاریخ و ساعت شروع؛ اختیاری (مثال 1405/07/01 10:00)"); end=self._field("تاریخ و ساعت پایان؛ اختیاری"); join=self._field("لینک جلسه واقعی؛ اختیاری")
         self._button("＋ ساخت کلاس",lambda *_:self._create(title,subject,teacher,grade,cls,duration,start,end,join),SUCCESS)
     def _create(self,title,subject,teacher,grade,cls,duration,start,end,join):
-        try:d=max(1,int(duration.text.strip() or 60))
-        except Exception:return self._error("مدت کلاس باید عدد باشد.")
-        if not title.text.strip():return self._error("عنوان کلاس الزامی است.")
+        # This is the only write path for creating an online class. Keep the
+        # response from Supabase and verify that a row was actually returned;
+        # a silent/empty response must never be presented as a successful save.
+        api=getattr(self.app_state,"api",None)
+        if api is None:
+            return self._error("سرویس اتصال به پایگاه داده آماده نیست.")
+        role=role_of(self.app_state)
+        if role in {"student","parent"}:
+            return self._error("این نقش اجازه ساخت کلاس آنلاین ندارد.")
+        if not getattr(api,"access_token",""):
+            return self._error("نشست ورود معتبر نیست؛ دوباره وارد فراهوش شوید.")
         try:
-            join_url=join.text.strip()
+            d=max(1,int((duration.text or "").strip() or 60))
+        except Exception:
+            return self._error("مدت کلاس باید عدد باشد.")
+        title_value=(title.text or "").strip()
+        if not title_value:
+            return self._error("عنوان کلاس الزامی است.")
+        try:
+            join_url=(join.text or "").strip()
             if not join_url:
-                # Create a real browser-based video room automatically when the
-                # school does not provide its own meeting provider URL.
                 import secrets
-                slug="frahoosh-"+str(cls.text.strip() or "class").replace(" ","-")+"-"+secrets.token_hex(5)
-                join_url="https://meet.jit.si/"+slug
-            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":d,"start_time_shamsi":start.text.strip(),"end_time_shamsi":end.text.strip(),"status":"inactive","join_url":join_url,"meeting_url":join_url}); self._ok("کلاس ثبت شد و لینک جلسه واقعی ساخته شد."); self.show_home()
-        except Exception as exc:self._error("ساخت کلاس انجام نشد: "+str(exc))
+                safe_class=str((cls.text or "").strip() or "class").replace(" ","-")
+                join_url="https://meet.jit.si/frahoosh-"+safe_class+"-"+secrets.token_hex(5)
+            payload={
+                "title":title_value,
+                "subject":(subject.text or "").strip(),
+                "lesson":(subject.text or "").strip(),
+                "teacher":(teacher.text or "").strip(),
+                "grade":(grade.text or "").strip(),
+                "class_name":(cls.text or "").strip(),
+                "duration":d,
+                "start_time_shamsi":(start.text or "").strip(),
+                "end_time_shamsi":(end.text or "").strip(),
+                "status":"inactive",
+                "join_url":join_url,
+                "meeting_url":join_url,
+            }
+            result=api.table_insert("online_classes",payload,return_representation=True)
+            rows=result if isinstance(result,list) else ([result] if isinstance(result,dict) else [])
+            if not rows or not rows[0].get("id"):
+                return self._error("پاسخ ثبت کلاس از Supabase معتبر نبود؛ کلاس ذخیره نشد.")
+            created=rows[0]
+            self._ok("کلاس با موفقیت ثبت شد. کد کلاس: "+str(created.get("id")))
+            self.show_home()
+        except Exception as exc:
+            self._error("ثبت کلاس در Supabase انجام نشد: "+str(exc))
     def _load_classes(self):
         try:rows=self.app_state.api.table_select("online_classes",{"order":"id.desc","limit":"50"})
         except Exception as exc:return self._error("خواندن کلاس‌ها انجام نشد: "+str(exc))
