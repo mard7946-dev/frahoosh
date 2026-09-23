@@ -245,7 +245,7 @@ def PersianSpinner(**kwargs):
     """Factory so every CRUD dropdown gets a Persian-safe option class."""
     kwargs.setdefault("option_cls", PersianSpinnerOption)
     kwargs.setdefault("font_name", font_name())
-        kwargs.setdefault("font_size", "11sp")
+    kwargs.setdefault("font_size", "11sp")
     return Spinner(**kwargs)
 
 
