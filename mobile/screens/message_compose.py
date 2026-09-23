@@ -25,7 +25,8 @@ class MessageComposeScreen(Screen):
         w = Label(
             text=rtl_text(str(text)), font_name=font_name(), font_size=size,
             color=color, bold=bold, halign="center" if center else "right",
-            valign="middle", size_hint_y=None, height=dp(height)
+            valign="middle", size_hint_y=None, height=dp(height),
+            text_language="fa", base_direction="rtl"
         )
         w.bind(size=lambda o, v: setattr(o, "text_size", v))
         return w
@@ -34,7 +35,8 @@ class MessageComposeScreen(Screen):
         b = Button(
             text=rtl_text(text), font_name=font_name(), font_size="10sp",
             background_normal="", background_color=color, color=WHITE,
-            size_hint_y=None, height=dp(h)
+            size_hint_y=None, height=dp(h),
+            text_language="fa", base_direction="rtl"
         )
         b.bind(on_release=cb)
         return b
@@ -122,8 +124,9 @@ class MessageComposeScreen(Screen):
             "educational", "معاون آموزشی",
             "executive", "معاون اجرایی",
             "cultural", "معاون پرورشی",
-            "advisor", "counselor", "مشاور",
-            "teacher", "دبیر", "معلم"
+            "advisor", "counselor", "مشاور",            "teacher", "دبیر", "معلم",
+            "student", "دانش‌آموز", "دانش آموز",
+            "parent", "parents", "ولی", "اولیا", "والد"
         }
         current_role = self._role()
         result = []
