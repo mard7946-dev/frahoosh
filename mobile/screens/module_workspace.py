@@ -1037,17 +1037,24 @@ class ModuleWorkspaceScreen(Screen):
         bar=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(82),spacing=dp(4))
         row1=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
         row2=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
-        create_btn=self.btn("ساخت / ثبت جدید",lambda *_:self.editor(table,None),SUCCESS,dp(38))
-        edit_btn=self.btn("ویرایش",lambda *_:self._edit_selected_row(),PRIMARY,dp(38))
-        delete_btn=self.btn("حذف",lambda *_:self._delete_selected_row(),(0.72,.16,.18,1),dp(38))
-        create_btn.disabled = not can_write
-        edit_btn.disabled = not can_write
-        delete_btn.disabled = not can_write
+        # Keep the controls tappable even when a role is read-only.  A disabled
+        # Android button looks like a dead UI and hides the real permission reason.
+        # The guard below gives an explicit message while the backend remains the
+        # final security boundary.
+        def _guard_write(action):
+            def _run(*_args):
+                if not self.can_write(table):
+                    self.message("دسترسی ثبت اطلاعات", "این نقش اجازه ثبت، ویرایش یا حذف این جدول را ندارد.")
+                    return
+                action()
+            return _run
+        create_btn=self.btn("ساخت / ثبت جدید",_guard_write(lambda: self.editor(table,None)),SUCCESS,dp(38))
+        edit_btn=self.btn("ویرایش",_guard_write(self._edit_selected_row),PRIMARY,dp(38))
+        delete_btn=self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1),dp(38))
         row1.add_widget(create_btn); row1.add_widget(edit_btn); row1.add_widget(delete_btn)
         row1.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
         row2.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
-        import_btn=self.btn("ورودی Excel / ثبت گروهی",lambda *_:self.import_excel(),(0.42,.30,.62,1),dp(38))
-        import_btn.disabled = not can_write
+        import_btn=self.btn("ورودی Excel / ثبت گروهی",_guard_write(self.import_excel),(0.42,.30,.62,1),dp(38))
         row2.add_widget(import_btn)
         row2.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
         bar.add_widget(row1); bar.add_widget(row2)
