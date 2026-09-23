@@ -13,7 +13,7 @@ from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, SCHOOL_NAME
 
 def role_of(state):
     profile=getattr(state,"profile",{}) or {}
-    candidates=[getattr(state,"role",None),profile.get("role"),profile.get("user_role"),profile.get("school_role"),profile.get("user_type"),profile.get("account_type")]
+    candidates=[profile.get("role"),profile.get("user_role"),profile.get("school_role"),profile.get("user_type"),profile.get("account_type"),getattr(state,"role",None)]
     raw=next((str(v).strip().lower() for v in candidates if str(v or "").strip()),"student")
     return {
         "admin":"manager","administrator":"manager","principal":"manager","manager":"manager","management":"manager","school_management":"manager","مدیر":"manager","مدیریت":"manager","مدیریت مدرسه":"manager",
@@ -29,7 +29,7 @@ class BaseWorkflow(Screen):
     def lab(self,t,h=42,s="11sp",c=SECONDARY,b=False):
         w=Label(text=fa_display(str(t)),font_name=font_name(),font_size=s,color=c,bold=b,halign="right",valign="middle",size_hint_y=None,height=dp(h)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); return w
     def btn(self,t,cb,c=PRIMARY,h=44):
-        b=Button(text=fa_display(t),font_name=font_name(),font_size="11sp",background_normal="",background_color=c,color=WHITE,size_hint_y=None,height=dp(h)); b.bind(on_release=cb); return b
+        b=Button(text=fa_display(t),font_name=font_name(),font_size="11sp",background_normal="",background_color=c,color=WHITE,size_hint_y=None,height=dp(h)); b.bind(on_press=cb); return b
     def field(self,h,m=False): return TextInput(hint_text=fa_display(h),font_name=font_name(),font_size="12sp",halign="right",multiline=m,size_hint_y=None,height=dp(70 if m else 46))
     def api(self): return getattr(self.app_state,"api",None)
     def username(self):
@@ -60,7 +60,7 @@ class CertificateWorkflowScreen(BaseWorkflow):
                 sid=(getattr(self.app_state,"profile",{}) or {}).get("linked_student_id"); students=api.table_select("students",{"id":f"eq.{sid}","limit":"1"}) if sid else []
         except Exception: students=[]
         self.students=students; names=[f"{s.get('first_name','')} {s.get('last_name','')}".strip() for s in students] or ["پرونده‌ای پیدا نشد"]
-        self.student=Spinner(text=fa_display(names[0]),values=tuple(rtl_text(x) for x in names),font_name=font_name(),size_hint_y=None,height=dp(46))
+        self.student=Spinner(text=fa_display(names[0]),values=tuple(fa_display(x) for x in names),font_name=font_name(),size_hint_y=None,height=dp(46))
         self.dest=self.field("فقط به منظور ارائه به")
         root.add_widget(self.lab("دانش‌آموز",30)); root.add_widget(self.student); root.add_widget(self.dest); root.add_widget(self.btn("ثبت درخواست",self.submit,SUCCESS))
         try:
@@ -347,8 +347,8 @@ class PanelIOWorkflowScreen(BaseWorkflow):
                 for j,k in enumerate(fields,1):ws.cell(1,j,k)
                 for i,row in enumerate(rows,2):
                     for j,k in enumerate(fields,1):ws.cell(i,j,str(row.get(k,"")))
-            wb.save(path); self.status.text=rtl_text("Excel: "+str(path))
-        except Exception as e:self.status.text=rtl_text("Excel ناموفق: "+str(e))
+            wb.save(path); self.status.text = fa_display("Excel: "+str(path))
+        except Exception as e:self.status.text = fa_display("Excel ناموفق: "+str(e))
     def pdf(self,*_):
         from reportlab.lib.pagesizes import A4,landscape
         from reportlab.pdfgen import canvas
@@ -361,8 +361,8 @@ class PanelIOWorkflowScreen(BaseWorkflow):
                 for row in rows[:20]:
                     if y<25:c.showPage();y=h-30
                     c.drawString(45,y,str(row)[:150]); y-=10
-            c.save(); self.status.text=rtl_text("PDF: "+str(path))
-        except Exception as e:self.status.text=rtl_text("PDF ناموفق: "+str(e))
+            c.save(); self.status.text = fa_display("PDF: "+str(path))
+        except Exception as e:self.status.text = fa_display("PDF ناموفق: "+str(e))
     def imp(self,*_):
         try:
             from mobile.services.export_service import import_excel
@@ -370,5 +370,5 @@ class PanelIOWorkflowScreen(BaseWorkflow):
             for row in rows:
                 try:self.api().table_insert(table,row); count+=1
                 except Exception: pass
-            self.status.text=rtl_text(f"{count} ردیف وارد شد.")
-        except Exception as e:self.status.text=rtl_text("ورود Excel ناموفق: "+str(e))
+            self.status.text = fa_display(f"{count} ردیف وارد شد.")
+        except Exception as e:self.status.text = fa_display("ورود Excel ناموفق: "+str(e))
