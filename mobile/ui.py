@@ -176,55 +176,59 @@ def rtl_text(value):
 
 
 class PersianTextInput(TextInput):
-    """Persian-aware editor.
-
-    Kivy TextInput can show isolated Arabic glyphs while the user is typing.
-    Keep the stored value in normal logical Persian, and shape it only when the
-    field loses focus. This keeps CRUD payloads clean while making completed
-    fields readable on Android.
-    """
+    """RTL-safe Persian editor with canonical logical text."""
     def __init__(self, **kwargs):
         register_fonts()
-        self.logical_text = unicodedata.normalize("NFKC", str(kwargs.get("text", "") or ""))
-        self._shaping = False
+        initial = unicodedata.normalize("NFKC", str(kwargs.pop("text", "") or ""))
+        self.logical_text = initial
+        self._rendering_persian = False
         kwargs.setdefault("font_name", font_name())
         kwargs.setdefault("halign", "right")
         kwargs.setdefault("multiline", False)
         kwargs.setdefault("cursor_width", 2)
         super().__init__(**kwargs)
-        self.bind(text=self._capture_text, focus=self._focus_changed)
+        self._render_visual()
+        self.bind(focus=self._focus_changed)
 
-    def _capture_text(self, *_):
-        if not self._shaping:
-            self.logical_text = unicodedata.normalize("NFKC", str(self.text or ""))
+    def _visual(self, logical):
+        if getattr(self, "password", False):
+            return logical
+        return fa_display(logical)
+
+    def _render_visual(self):
+        if self._rendering_persian:
+            return
+        self._rendering_persian = True
+        try:
+            visual = self._visual(self.logical_text)
+            self.text = visual
+            self.cursor = (len(visual), 0)
+        finally:
+            self._rendering_persian = False
+
+    def insert_text(self, substring, from_undo=False):
+        if self._rendering_persian:
+            return super().insert_text(substring, from_undo=from_undo)
+        raw = unicodedata.normalize("NFKC", str(substring or ""))
+        if raw:
+            self.logical_text += raw
+            self._render_visual()
+
+    def do_backspace(self, from_undo=False, mode="bkspc"):
+        if self._rendering_persian or not self.logical_text:
+            return
+        self.logical_text = self.logical_text[:-1]
+        self._render_visual()
 
     def _focus_changed(self, _widget, focused):
-        if self._shaping:
-            return
-        # Password fields must never pass through Arabic reshaping.  Kivy
-        # masks their logical value with password_mask; reshaping the stored
-        # password can turn the visible mask into missing-glyph boxes and can
-        # also change the value sent to authentication.
-        if getattr(self, "password", False):
-            self._shaping = True
-            try:
-                self.text = self.logical_text
-            finally:
-                self._shaping = False
-            return
-        if focused:
-            self._shaping = True
-            try:
-                self.text = self.logical_text
-            finally:
-                self._shaping = False
-        else:
-            # Keep the logical Persian string unchanged. Kivy shapes it at
-            # render time; storing presentation forms corrupts CRUD payloads.
-            self.logical_text = unicodedata.normalize("NFKC", str(self.text or ""))
+        self._render_visual()
+
+    def set_logical_text(self, value):
+        self.logical_text = unicodedata.normalize("NFKC", str(value or ""))
+        self._render_visual()
 
     def get_logical_text(self):
-        return str(self.logical_text if self.logical_text is not None else self.text or "")
+        return str(self.logical_text if self.logical_text is not None else "")
 
 
 class PersianSpinnerOption(Button):
