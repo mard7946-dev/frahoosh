@@ -41,7 +41,13 @@ def question_kind(widget):
 def role_of(state):
     # Resolve the role from the authenticated profile as well as app_state.
     # This keeps the teacher exam authoring controls visible after login.
-    # Respect the active panel when the workflow is opened from a role-specific dashboard.\n    active_panel = str(getattr(state, "panel_role", "") or "").strip().lower()\n    if active_panel:\n        normalized_panel = {"management":"manager","teachers":"teacher"}.get(active_panel, active_panel)\n        if normalized_panel in {"manager","educational","executive","cultural","advisor","teacher","staff","student","parent"}:\n            return normalized_panel\n    profile = getattr(state, "profile", {}) or {}
+    # Respect the active panel when the workflow is opened from a role-specific dashboard.
+    active_panel = str(getattr(state, "panel_role", "") or "").strip().lower()
+    if active_panel:
+        normalized_panel = {"management":"manager","teachers":"teacher"}.get(active_panel, active_panel)
+        if normalized_panel in {"manager","educational","executive","cultural","advisor","teacher","staff","student","parent"}:
+            return normalized_panel
+    profile = getattr(state, "profile", {}) or {}
     user = getattr(state, "user", {}) or {}
     metadata = user.get("user_metadata", {}) if isinstance(user, dict) else {}
     candidates = [
@@ -309,7 +315,10 @@ class TeacherExamsV4Screen(Screen):
             self._label("لینک زیر برای شما کپی شد. می‌توانید آن را برای دانش‌آموزان یا دبیران مدرسه مقصد ارسال کنید.",height=65)
             self._field("لینک اشتراک")
             self.body.children[0].text=link
-            self._label(f"کد اشتراک: {code}\nمدت: {minutes} دقیقه\nمدرسه مقصد: {school.text.strip() or 'بدون محدودیت'}\nکلاس مقصد: {cls.text.strip() or 'بدون محدودیت'}",height=100)
+            self._label(f"کد اشتراک: {code}
+مدت: {minutes} دقیقه
+مدرسه مقصد: {school.text.strip() or 'بدون محدودیت'}
+کلاس مقصد: {cls.text.strip() or 'بدون محدودیت'}",height=100)
             self._button("کپی دوباره لینک",lambda *_:Clipboard.copy(link),PRIMARY)
             self._button("ساخت اشتراک جدید با زمان دیگر",lambda *_:self._share_form(eid,minutes),SUCCESS)
             self._button("بازگشت",lambda *_:self._load_exams())
@@ -337,7 +346,8 @@ class TeacherExamsV4Screen(Screen):
         if not rows:self._label("هنوز آزمونی ثبت نشده است.",color=SECONDARY,height=65)
         for row in rows:
             eid=int(row["id"]); dur=int(row.get("duration") or 45)
-            self._label(f"{row.get('title','آزمون')}\n{row.get('subject','')}  •  {dur} دقیقه  •  {'منتشر شده' if row.get('published') else 'پیش‌نویس'}","15sp",PRIMARY,65,True)
+            self._label(f"{row.get('title','آزمون')}
+{row.get('subject','')}  •  {dur} دقیقه  •  {'منتشر شده' if row.get('published') else 'پیش‌نویس'}","15sp",PRIMARY,65,True)
             self._button("زمان‌بندی / ساخت لینک اشتراک",lambda *_ ,i=eid,d=dur:self._schedule(i,d),PRIMARY,45)
 
     def _open_shared(self,code):
@@ -388,7 +398,8 @@ class TeacherExamsV4Screen(Screen):
     def _render_attempt(self,exam,attempt):
         self._clear(); self._attempt_id=int(attempt["attempt_id"]); self._answers={}
         self._label(exam.get("title","آزمون"),"22sp",PRIMARY,55,True)
-        self._label(f"{exam.get('subject','')}  •  مدت {attempt.get('duration') or exam.get('duration',45)} دقیقه\nترتیب سؤال‌ها برای شما اختصاصی است و پاسخ صحیح نمایش داده نمی‌شود.",height=72)
+        self._label(f"{exam.get('subject','')}  •  مدت {attempt.get('duration') or exam.get('duration',45)} دقیقه
+ترتیب سؤال‌ها برای شما اختصاصی است و پاسخ صحیح نمایش داده نمی‌شود.",height=72)
         qs=self.app_state.api.rpc("get_shared_attempt_questions",{"p_attempt_id":self._attempt_id}) or []
         for i,q in enumerate(qs,1):
             self._label(f"{i}. {q.get('question','')}","16sp",PRIMARY,82,True)
