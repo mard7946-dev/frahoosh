@@ -7,7 +7,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
-from mobile.ui import font_name, rtl_text, PersianTextInput
+from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, SCHOOL_NAME
 
 
@@ -23,20 +23,18 @@ class MessageComposeScreen(Screen):
 
     def label(self, text, size="11sp", color=SECONDARY, bold=False, center=False, height=34):
         w = Label(
-            text=rtl_text(str(text)), font_name=font_name(), font_size=size,
+            text=fa_display(str(text)), font_name=font_name(), font_size=size,
             color=color, bold=bold, halign="center" if center else "right",
             valign="middle", size_hint_y=None, height=dp(height),
-            text_language="fa", base_direction="rtl"
         )
         w.bind(size=lambda o, v: setattr(o, "text_size", v))
         return w
 
     def btn(self, text, cb, color=PRIMARY, h=44):
         b = Button(
-            text=rtl_text(text), font_name=font_name(), font_size="10sp",
+            text=fa_display(text), font_name=font_name(), font_size="10sp",
             background_normal="", background_color=color, color=WHITE,
             size_hint_y=None, height=dp(h),
-            text_language="fa", base_direction="rtl"
         )
         b.bind(on_release=cb)
         return b
