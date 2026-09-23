@@ -15,7 +15,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.scrollview import ScrollView
 
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, WEB_URL
-from mobile.ui import font_name, rtl_text
+from mobile.ui import font_name, rtl_text, fa_display
 
 TYPES = [
     ("multiple_choice", "تستی چهارگزینه‌ای"),
@@ -59,7 +59,7 @@ class _SecurityNote(BoxLayout):
             Color(0.94, 0.95, 0.97, 1)
             self.bg = RoundedRectangle(radius=[dp(9)])
         self.bind(pos=lambda o,v:setattr(self.bg,"pos",v), size=lambda o,v:setattr(self.bg,"size",v))
-        label=Label(text=rtl_text(text), font_name=font_name(), font_size="9sp", color=SECONDARY,
+        label=Label(text=fa_display(text), font_name=font_name(), font_size="9sp", color=SECONDARY,
                     halign="right", valign="middle")
         label.bind(size=lambda o,v:setattr(o,"text_size",v)); self.add_widget(label)
 
@@ -73,9 +73,9 @@ class TeacherExamsV4Screen(Screen):
     def _build(self):
         root=BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(8))
         head=BoxLayout(size_hint_y=None,height=dp(54),spacing=dp(8))
-        back=Button(text=rtl_text("‹ داشبورد"),font_name=font_name(),font_size="13sp",background_normal="",background_color=PRIMARY,color=WHITE,size_hint_x=None,width=dp(105))
+        back=Button(text=fa_display("‹ داشبورد"),font_name=font_name(),font_size="13sp",background_normal="",background_color=PRIMARY,color=WHITE,size_hint_x=None,width=dp(105))
         back.bind(on_release=lambda *_:self._back()); head.add_widget(back)
-        self.title=Label(text=rtl_text("مرکز آزمون آنلاین"),font_name=font_name(),font_size="21sp",bold=True,color=PRIMARY,halign="right",valign="middle")
+        self.title=Label(text=fa_display("مرکز آزمون آنلاین"),font_name=font_name(),font_size="21sp",bold=True,color=PRIMARY,halign="right",valign="middle")
         self.title.bind(size=lambda o,v:setattr(o,"text_size",v)); head.add_widget(self.title); root.add_widget(head)
         self.status=Label(text="",font_name=font_name(),font_size="11sp",color=SECONDARY,halign="center",valign="middle",size_hint_y=None,height=dp(38))
         self.status.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(self.status)
@@ -84,21 +84,21 @@ class TeacherExamsV4Screen(Screen):
 
     def _clear(self): self.body.clear_widgets()
     def _label(self,text,size="14sp",color=SECONDARY,height=52,bold=False):
-        w=Label(text=rtl_text(text),font_name=font_name(),font_size=size,color=color,bold=bold,halign="right",valign="middle",size_hint_y=None,height=dp(height)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); self.body.add_widget(w); return w
+        w=Label(text=fa_display(text),font_name=font_name(),font_size=size,color=color,bold=bold,halign="right",valign="middle",size_hint_y=None,height=dp(height)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); self.body.add_widget(w); return w
     def _button(self,text,cb,color=PRIMARY,height=48):
-        b=Button(text=rtl_text(text),font_name=font_name(),font_size="13sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=dp(height)); b.bind(on_release=cb); self.body.add_widget(b); return b
+        b=Button(text=fa_display(text),font_name=font_name(),font_size="13sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=dp(height)); b.bind(on_press=cb); self.body.add_widget(b); return b
     def _field(self,hint,height=50,multiline=False):
-        f=TextInput(hint_text=rtl_text(hint),font_name=font_name(),font_size="13sp",multiline=multiline,size_hint_y=None,height=dp(height),halign="right",padding=[dp(12),dp(12)]); self.body.add_widget(f); return f
+        f=TextInput(hint_text=fa_display(hint),font_name=font_name(),font_size="13sp",multiline=multiline,size_hint_y=None,height=dp(height),halign="right",padding=[dp(12),dp(12)]); self.body.add_widget(f); return f
     def _spinner(self,text,values):
-        s=Spinner(text=rtl_text(text),values=tuple(rtl_text(x) for x in values),font_name=font_name(),font_size="13sp",size_hint_y=None,height=dp(50)); self.body.add_widget(s); return s
-    def _error(self,text): self.status.text=rtl_text(text); self.status.color=ERROR
-    def _ok(self,text): self.status.text=rtl_text(text); self.status.color=SUCCESS
+        s=Spinner(text=fa_display(text),values=tuple(fa_display(x) for x in values),font_name=font_name(),font_size="13sp",size_hint_y=None,height=dp(50)); self.body.add_widget(s); return s
+    def _error(self,text): self.status.text=fa_display(text); self.status.color=ERROR
+    def _ok(self,text): self.status.text=fa_display(text); self.status.color=SUCCESS
     def _back(self):
         if self.manager:self.manager.current="dashboard"
     def on_pre_enter(self,*args): self.show_home()
 
     def show_home(self):
-        self._clear(); self.title.text=rtl_text("مرکز آزمون آنلاین")
+        self._clear(); self.title.text=fa_display("مرکز آزمون آنلاین")
         if role_of(self.app_state)=="teacher":
             self._label("مرکز طراحی و مدیریت آزمون","22sp",PRIMARY,54,True)
             self._label("آزمون را یک‌بار استاندارد طراحی کنید، سپس برای هر کلاس زمان متفاوت بدهید یا همان آزمون را با لینک امن برای دانش‌آموزان مدرسه دیگر به اشتراک بگذارید.",height=78)
@@ -175,10 +175,10 @@ class TeacherExamsV4Screen(Screen):
         item["negative"].opacity=1; item["negative"].disabled=False
         if tf:
             item["opts"][0].text="صحیح"; item["opts"][1].text="غلط"; item["opts"][2].text=""; item["opts"][3].text=""
-            item["correct"].values=(rtl_text("صحیح"),rtl_text("غلط")); item["correct"].text=rtl_text("صحیح")
+            item["correct"].values=(rtl_text("صحیح"),rtl_text("غلط")); item["correct"].text=fa_display("صحیح")
         elif mc:
-            item["correct"].values=(rtl_text("گزینه ۱"),rtl_text("گزینه ۲"),rtl_text("گزینه ۳"),rtl_text("گزینه ۴"))
-            if not item["correct"].text.startswith("گزینه"): item["correct"].text=rtl_text("گزینه ۱")
+            item["correct"].values=(fa_display("گزینه ۱"),fa_display("گزینه ۲"),fa_display("گزینه ۳"),fa_display("گزینه ۴"))
+            if not item["correct"].text.startswith("گزینه"): item["correct"].text=fa_display("گزینه ۱")
 
     def _teacher_id(self):
         p=getattr(self.app_state,"profile",{}) or {}
@@ -196,8 +196,8 @@ class TeacherExamsV4Screen(Screen):
         except Exception:self._error("مدت، تعداد دفعات و نمره قبولی باید عدد باشند.");return
         tid=self._teacher_id()
         if not tid:self._error("حساب دبیر به پرونده دبیر متصل نشده است.");return
-        self.status.text=rtl_text("در حال ذخیره آزمون…"); self.status.color=SECONDARY
-        payload={"teacher_id":tid,"title":title.text.strip(),"subject":subject.text,"grade":grade.text.strip(),"class_name":grade.text.strip(),"exam_type":"آزمون آنلاین","duration":dur,"description":desc.text.strip(),"published":False,"secure_mode":True,"standard_mode":mode.text==rtl_text("استاندارد"),"max_attempts":mx,"passing_score":ps}
+        self.status.text=fa_display("در حال ذخیره آزمون…"); self.status.color=SECONDARY
+        payload={"teacher_id":tid,"title":title.text.strip(),"subject":subject.text,"grade":grade.text.strip(),"class_name":grade.text.strip(),"exam_type":"آزمون آنلاین","duration":dur,"description":desc.text.strip(),"published":False,"secure_mode":True,"standard_mode":mode.text==fa_display("استاندارد"),"max_attempts":mx,"passing_score":ps}
         Thread(target=self._save_worker,args=(payload,dur),daemon=True).start()
 
     def _save_worker(self,payload,dur):
