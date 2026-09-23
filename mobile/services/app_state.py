@@ -107,12 +107,18 @@ class AppState:
                 current_profile = self.session.get("profile")
                 if not isinstance(current_profile, dict):
                     current_profile = {}
-                if not current_profile.get("role"):
+                # Always refresh the school profile after authentication.
+                # A cached student/parent role must never override the current
+                # staff/manager role and hide CRUD controls.
+                try:
                     refreshed = self.api._profile(user)
-                    if isinstance(refreshed, dict):
-                        merged = dict(current_profile)
-                        merged.update(refreshed)
-                        current_profile = merged
+                except Exception as profile_exc:
+                    print("PROFILE REFRESH ERROR:", repr(profile_exc))
+                    refreshed = None
+                if isinstance(refreshed, dict):
+                    merged = dict(current_profile)
+                    merged.update(refreshed)
+                    current_profile = merged
                 self.session["profile"] = current_profile
             except Exception as exc:
                 print("PROFILE ENRICHMENT ERROR:", repr(exc))
