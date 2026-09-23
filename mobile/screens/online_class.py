@@ -71,8 +71,21 @@ class OnlineClassScreen(Screen):
         f=PersianTextInput(hint_text=fa_display(hint),font_name=font_name(),font_size="13sp",multiline=multiline,size_hint_y=None,height=dp(height),halign="right",padding=[dp(10),dp(10)]); self.body.add_widget(f); return f
     def show_home(self):
         self._clear(); role=role_of(self.app_state); self._label("کلاس آنلاین واقعی","21sp",PRIMARY,52,True); self._label("ساخت کلاس، شروع/پایان جلسه، حضور و غیاب، گفت‌وگو، تخته مشترک، کنترل دوربین/میکروفون و اطلاع غیبت به ولی در همین پنل ثبت می‌شود.",height=82)
-        if role not in {"student","parent"}:self._create_form()
+        if role not in {"student","parent"}:
+            # Keep the creation action above the class list so it is visible
+            # immediately on a phone-sized screen.
+            self._button("＋ ساخت و تولید کلاس جدید",lambda *_:self._open_create_form(),SUCCESS,52)
+            self._create_form()
         self._load_classes()
+
+    def _open_create_form(self):
+        self._clear()
+        role=role_of(self.app_state)
+        if role in {"student","parent"}:
+            return self._error("این نقش اجازه ساخت کلاس آنلاین ندارد.")
+        self._label("ساخت و تولید کلاس آنلاین","21sp",PRIMARY,52,True)
+        self._create_form()
+        self._button("بازگشت به فهرست کلاس‌ها",lambda *_:self.show_home(),SECONDARY,46)
     def _create_form(self):
         title=self._field("عنوان کلاس"); subject=self._field("درس / موضوع"); teacher=self._field("نام دبیر"); grade=self._field("پایه"); cls=self._field("نام کلاس"); duration=self._field("مدت به دقیقه"); duration.text="60"; join=self._field("لینک جلسه واقعی؛ اختیاری")
         self._button("＋ ساخت کلاس",lambda *_:self._create(title,subject,teacher,grade,cls,duration,join),SUCCESS)
