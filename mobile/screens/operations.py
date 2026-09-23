@@ -11,7 +11,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.scrollview import ScrollView
 
 from mobile.config import APP_NAME, SCHOOL_ID, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
-from mobile.ui import font_name, rtl_text
+from mobile.ui import font_name, rtl_text, fa_display
 
 PAYMENT_MANAGERS={"manager","educational","cultural"}
 CLASS_MANAGERS={"manager","educational","executive"}
@@ -29,7 +29,7 @@ class OperationsScreen(Screen):
         super().__init__(**kwargs); self.app_state=app_state; self.route="messages"; self._build()
     def _build(self):
         root=BoxLayout(orientation="vertical",padding=dp(14),spacing=dp(8)); head=BoxLayout(size_hint_y=None,height=dp(54),spacing=dp(8))
-        back=Button(text=rtl_text("‹ بازگشت"),font_name=font_name(),background_normal="",background_color=PRIMARY,color=WHITE,size_hint_x=None,width=dp(100)); back.bind(on_release=lambda *_:self._back()); head.add_widget(back)
+        back=Button(text=fa_display("‹ بازگشت"),font_name=font_name(),background_normal="",background_color=PRIMARY,color=WHITE,size_hint_x=None,width=dp(100)); back.bind(on_release=lambda *_:self._back()); head.add_widget(back)
         self.title=Label(text=rtl_text(APP_NAME),font_name=font_name(),font_size="21sp",bold=True,color=PRIMARY,halign="right",valign="middle"); self.title.bind(size=lambda o,v:setattr(o,"text_size",v)); head.add_widget(self.title); root.add_widget(head)
         self.status=Label(text="",font_name=font_name(),font_size="12sp",color=SECONDARY,halign="right",valign="middle",size_hint_y=None,height=dp(42)); self.status.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(self.status)
         scroll=ScrollView(do_scroll_x=False); self.body=BoxLayout(orientation="vertical",spacing=dp(9),padding=dp(4),size_hint_y=None); self.body.bind(minimum_height=self.body.setter("height")); scroll.add_widget(self.body); root.add_widget(scroll); self.add_widget(root)
