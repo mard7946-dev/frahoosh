@@ -130,23 +130,11 @@ def rtl_text(value):
 
     try:
 
-        import arabic_reshaper
-
-        from bidi.algorithm import (
-            get_display
-        )
-
-
-        reshaped = (
-            arabic_reshaper.reshape(
-                text
-            )
-        )
-
-
-        return get_display(
-            reshaped
-        )
+        # Kivy/SDL2 performs Arabic shaping at render time when the
+        # widget is configured for Persian/Arabic. Pre-shaping creates Arabic
+        # presentation-form codepoints that BTitrBd.ttf may not contain,
+        # producing square glyphs on Android. Keep the logical Persian text.
+        return text
 
 
     except Exception as exc:
@@ -206,14 +194,9 @@ class PersianTextInput(TextInput):
             finally:
                 self._shaping = False
         else:
+            # Keep the logical Persian string unchanged. Kivy shapes it at
+            # render time; storing presentation forms corrupts CRUD payloads.
             self.logical_text = str(self.text or "")
-            shaped = rtl_text(self.logical_text)
-            if shaped and shaped != self.text:
-                self._shaping = True
-                try:
-                    self.text = shaped
-                finally:
-                    self._shaping = False
 
     def get_logical_text(self):
         return str(self.logical_text if self.logical_text is not None else self.text or "")
