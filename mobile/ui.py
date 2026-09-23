@@ -80,23 +80,14 @@ def register_fonts():
 
 
 def fa_display(value):
-    """Return Android-safe visual Persian text for normal LTR Kivy widgets.
+    """Return normalized logical Persian text for BTitr/Kivy rendering.
 
-    Widgets using this helper intentionally do not set Kivy's RTL text engine;
-    BTitr stays the active font and python-bidi performs the visual ordering.
-    Widgets that explicitly use text_language/base_direction must use rtl_text().
+    Kivy's text renderer already performs bidi ordering. The previous
+    implementation pre-applied python-bidi and then handed the result to
+    Kivy, which caused reversed words in the online-class and meeting screens.
+    Keep BTitr, but pass logical normalized text so bidi is performed once.
     """
-    text = rtl_text(value)
-    if not text:
-        return text
-    try:
-        if arabic_reshaper is None or get_display is None:
-            print("PERSIAN DISPLAY SHAPER MISSING:", repr(text))
-            return text
-        return get_display(arabic_reshaper.reshape(text))
-    except Exception as exc:
-        print("PERSIAN DISPLAY SHAPE ERROR:", repr(exc))
-        return text
+    return rtl_text(value)
 
 def font_name():
     # Use the bundled Arabic/Persian-capable face. Roboto in the Android
