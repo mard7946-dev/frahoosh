@@ -13,7 +13,9 @@ from mobile.ui import font_name, rtl_text, fa_display
 
 
 def role_of(state):
-    profile = getattr(state, "profile", {}) or {}\n    candidates = [getattr(state, "role", None), profile.get("role"), profile.get("user_role"), profile.get("school_role"), profile.get("user_type"), profile.get("account_type")]\n    raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
+    profile = getattr(state, "profile", {}) or {}
+    candidates = [getattr(state, "role", None), profile.get("role"), profile.get("user_role"), profile.get("school_role"), profile.get("user_type"), profile.get("account_type")]
+    raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
     return {
         "admin": "manager", "administrator": "manager", "principal": "manager", "manager": "manager", "management": "manager", "school_management": "manager", "مدیر": "manager", "مدیریت": "manager",
         "معاون آموزشی": "educational", "educational": "educational", "educational_deputy": "educational",
@@ -66,7 +68,7 @@ class MeetingsScreen(Screen):
     def _spinner(self, text, values, height=48):
         s = Spinner(
             text=fa_display(text),
-            values=[rtl_text(v) for v in values],
+            values=[fa_display(v) for v in values],
             font_name=font_name(), font_size="12sp",
             size_hint_y=None, height=dp(height),
             background_normal="", background_color=(0.05, 0.18, 0.34, 1),
@@ -176,10 +178,10 @@ class MeetingsScreen(Screen):
             self.target_role = role
             rows = self._load_targets(role)
             names = [self._person_name(r) for r in rows if self._person_name(r)]
-            target_name.values = [rtl_text(n) for n in (names or ["فردی برای این نقش پیدا نشد"])]
+            target_name.values = [fa_display(n) for n in (names or ["فردی برای این نقش پیدا نشد"])]
             target_name.text = target_name.values[0]
         target_type.bind(text=refresh_targets)
-        target_type.text = rtl_text("دبیر")
+        target_type.text = fa_display("دبیر")
         refresh_targets(target_type, "دبیر")
 
         date = self._field("تاریخ ملاقات")
@@ -275,11 +277,11 @@ class MeetingsScreen(Screen):
             row = self._selected_student(spinner)
             rows = self._load_parents_for_student(row.get("id") if row else None)
             names = [self._person_name(r) for r in rows]
-            parent.values = [rtl_text(n) for n in (names or ["نام ولی در پرونده ثبت نشده است"])]
+            parent.values = [fa_display(n) for n in (names or ["نام ولی در پرونده ثبت نشده است"])]
             parent.text = parent.values[0]
         student.bind(text=refresh_parents)
         if students:
-            student.text = rtl_text(student_labels[0])
+            student.text = fa_display(student_labels[0])
             refresh_parents(student, student_labels[0])
 
         date = self._field("تاریخ ملاقات")
@@ -351,9 +353,12 @@ class MeetingsScreen(Screen):
             card = BoxLayout(orientation="vertical", padding=dp(9), spacing=dp(4),
                              size_hint_y=None, height=dp(190))
             card.add_widget(self._label(
-                f"#{row.get('id')} | {row.get('requester_name') or row.get('requester_username')} → {row.get('target_name') or 'مخاطب'}\n"
-                f"دانش‌آموز: {row.get('student_name') or '-'} | تاریخ: {row.get('requested_date')} | ساعت: {row.get('requested_time')}\n"
-                f"علت: {row.get('reason') or '-'}\nوضعیت: {status}",
+                f"#{row.get('id')} | {row.get('requester_name') or row.get('requester_username')} → {row.get('target_name') or 'مخاطب'}
+"
+                f"دانش‌آموز: {row.get('student_name') or '-'} | تاریخ: {row.get('requested_date')} | ساعت: {row.get('requested_time')}
+"
+                f"علت: {row.get('reason') or '-'}
+وضعیت: {status}",
                 "10sp", SECONDARY, 108, True))
             actions = BoxLayout(size_hint_y=None, height=dp(45), spacing=dp(5))
             if role == "manager" and row.get("status") == "pending_manager":
