@@ -54,15 +54,15 @@ class MessageComposeScreen(Screen):
         form = BoxLayout(orientation="vertical", spacing=dp(6))
         form.add_widget(self.label("نوع پیام", "10sp", PRIMARY, True, False, 28))
         self.type_spinner = Spinner(
-            text=rtl_text(self.MESSAGE_TYPES[0]),
-            values=tuple(rtl_text(x) for x in self.MESSAGE_TYPES),
+            text=fa_display(self.MESSAGE_TYPES[0]),
+            values=tuple(fa_display(x) for x in self.MESSAGE_TYPES),
             font_name=font_name(), size_hint_y=None, height=dp(46)
         )
         form.add_widget(self.type_spinner)
 
         form.add_widget(self.label("نام مخاطب", "10sp", PRIMARY, True, False, 28))
         self.target_spinner = Spinner(
-            text=rtl_text("در حال دریافت مخاطبان…"), values=(),
+            text=fa_display("در حال دریافت مخاطبان…"), values=(),
             font_name=font_name(), size_hint_y=None, height=dp(46)
         )
         form.add_widget(self.target_spinner)
@@ -157,9 +157,9 @@ class MessageComposeScreen(Screen):
         values = []
         for t in self.targets:
             role = (" • " + t["role"]) if t.get("role") else ""
-            values.append(rtl_text(t["name"] + role))
+            values.append(fa_display(t["name"] + role))
         self.target_spinner.values = tuple(values)
-        self.target_spinner.text = values[0] if values else rtl_text("مخاطب مجاز یافت نشد")
+        self.target_spinner.text = values[0] if values else fa_display("مخاطب مجاز یافت نشد")
         self.status.text = rtl_text(str(len(self.targets)) + " مخاطب برای ارسال پیام آماده است.")
         self.status.color = SUCCESS if self.targets else ERROR
 
@@ -167,7 +167,7 @@ class MessageComposeScreen(Screen):
         value = str(self.target_spinner.text or "")
         for t in self.targets:
             role = (" • " + t["role"]) if t.get("role") else ""
-            if value == t["name"] + role or value == rtl_text(t["name"] + role):
+            if value == t["name"] + role or value == fa_display(t["name"] + role):
                 return t
         return self.targets[0] if self.targets else None
 
