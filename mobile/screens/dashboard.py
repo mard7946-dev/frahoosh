@@ -17,7 +17,7 @@ from threading import Thread
 import json
 
 from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, BACKGROUND_PATH, PRIMARY, SECONDARY, SUCCESS, WHITE
-from mobile.ui import font_name, rtl_text, bundled_login_background
+from mobile.ui import font_name, rtl_text, fa_display, bundled_login_background
 
 ROLE_ALIASES = {
     "admin":"manager","administrator":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager",
@@ -128,18 +128,15 @@ class PanelCard(BoxLayout):
             self.bg = RoundedRectangle(radius=[dp(18)])
         self.bind(pos=self._sync, size=self._sync)
         self.add_widget(PanelIcon(route or "about"))
-        self.add_widget(Label(text=rtl_text(title),font_name=font_name(),font_size="17sp",color=WHITE,bold=True,
-                              halign="center",valign="middle",size_hint_y=None,height=dp(52),
-                              text_language="fa",base_direction="rtl"))
-        self.add_widget(Label(text=rtl_text(f"پنل {index} از {total}"),font_name=font_name(),font_size="10sp",color=(0.55,0.85,1,1),
-                              halign="center",valign="middle",size_hint_y=None,height=dp(26),
-                              text_language="fa",base_direction="rtl"))
-        self.add_widget(Label(text=rtl_text(desc),font_name=font_name(),font_size="9sp",color=WHITE,
-                              halign="center",valign="middle",
-                              text_language="fa",base_direction="rtl"))
-        b=Button(text=rtl_text("ورود به پنل"),font_name=font_name(),font_size="14sp",background_normal="",
+        self.add_widget(Label(text=fa_display(title),font_name=font_name(),font_size="17sp",color=WHITE,bold=True,
+                              halign="center",valign="middle",size_hint_y=None,height=dp(52)))
+        self.add_widget(Label(text=fa_display(f"پنل {index} از {total}"),font_name=font_name(),font_size="10sp",color=(0.55,0.85,1,1),
+                              halign="center",valign="middle",size_hint_y=None,height=dp(26)))
+        self.add_widget(Label(text=fa_display(desc),font_name=font_name(),font_size="9sp",color=WHITE,
+                              halign="center",valign="middle"))
+        b=Button(text=fa_display("ورود به پنل"),font_name=font_name(),font_size="14sp",background_normal="",
                  background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(50),
-                 text_language="fa",base_direction="rtl")
+                 halign="center",valign="middle")
         b.bind(on_release=enter)
         self.add_widget(b)
     def _sync(self,*_):
