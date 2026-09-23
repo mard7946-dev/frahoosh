@@ -188,9 +188,7 @@ class PersianTextInput(TextInput):
         self._shaping = False
         kwargs.setdefault("font_name", font_name())
         kwargs.setdefault("halign", "right")
-        kwargs.setdefault("base_direction", "rtl")
-        kwargs.setdefault("text_language", "fa")
-        kwargs.setdefault("multiline", False)
+                kwargs.setdefault("multiline", False)
         kwargs.setdefault("cursor_width", 2)
         super().__init__(**kwargs)
         self.bind(text=self._capture_text, focus=self._focus_changed)
@@ -233,9 +231,7 @@ class PersianSpinnerOption(Button):
     def __init__(self, **kwargs):
         register_fonts()
         kwargs.setdefault("font_name", font_name())
-        kwargs.setdefault("font_script_name", "Arab")
-        kwargs.setdefault("text_language", "fa")
-        kwargs.setdefault("font_size", "12sp")
+                kwargs.setdefault("font_size", "12sp")
         kwargs.setdefault("halign", "right")
         kwargs.setdefault("text_size", (None, None))
         kwargs.setdefault("color", (1, 1, 1, 1))
@@ -249,9 +245,7 @@ def PersianSpinner(**kwargs):
     """Factory so every CRUD dropdown gets a Persian-safe option class."""
     kwargs.setdefault("option_cls", PersianSpinnerOption)
     kwargs.setdefault("font_name", font_name())
-    kwargs.setdefault("font_script_name", "Arab")
-    kwargs.setdefault("text_language", "fa")
-    kwargs.setdefault("font_size", "11sp")
+        kwargs.setdefault("font_size", "11sp")
     return Spinner(**kwargs)
 
 
