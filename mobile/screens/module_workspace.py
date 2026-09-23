@@ -797,11 +797,11 @@ class ModuleWorkspaceScreen(Screen):
             "cultural_deputy":"cultural",
             "counseling":"advisor","counselor":"advisor",
             "مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager","management":"manager","school_management":"manager",
-            "معاون آموزشی":"educational","educational":"educational",
-            "معاون اجرایی":"executive","اجرایی":"executive","executive":"executive",
-            "معاون پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural",
-            "مشاور":"advisor","مشاوره":"advisor","counselor":"advisor","counseling":"advisor","advisor":"advisor",
-            "دبیر":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher",
+            "معاون آموزشی":"educational","معاونت آموزشی":"educational","آموزشی":"educational","educational":"educational",
+            "معاون اجرایی":"executive","معاونت اجرایی":"executive","کادر اجرایی":"executive","اجرایی":"executive","executive":"executive",
+            "معاون پرورشی":"cultural","معاونت پرورشی":"cultural","کادر پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural",
+            "مشاور":"advisor","مشاوره":"advisor","مشاوره":"advisor","counselor":"advisor","counseling":"advisor","advisor":"advisor",
+            "دبیر":"teacher","کادر آموزشی":"teacher","staff":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher",
             "دانش‌آموز":"student","دانش آموز":"student","student":"student",
             "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parents":"parent"
         }.get(raw,raw)
@@ -835,6 +835,11 @@ class ModuleWorkspaceScreen(Screen):
         # A manager is the owner of the school data contract.  Do not let a
         # stale/partial module permission set hide CRUD controls from the manager.
         if role == "manager":
+            return True
+        # The Android panel catalog is the school's internal workspace.
+        # Unknown-but-authenticated staff roles must not get a decorative
+        # module with dead CRUD controls. Students/parents remain read-only.
+        if role not in {"student", "parent"}:
             return True
         return resolved in EDITABLE.get(role,set())
 
