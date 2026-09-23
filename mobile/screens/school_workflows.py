@@ -120,7 +120,18 @@ class MeetingWorkflowScreen(BaseWorkflow):
         root.add_widget(self.btn("ثبت درخواست",self.create,SUCCESS))
     def create(self,*_):
         if not all(x.text.strip() for x in [self.target,self.reason,self.date,self.time]): return
-        p={"student_id":(getattr(self.app_state,"profile",{}) or {}).get("linked_student_id"),"teacher_id":None,"parent_phone":(getattr(self.app_state,"profile",{}) or {}).get("phone") or "","target_type":role_of(self.app_state),"target_person":self.target.text.strip(),"requested_date":self.date.text.strip(),"reason":self.reason.text.strip(),"status":"pending_responsible"}
+        role=role_of(self.app_state)
+        profile=getattr(self.app_state,"profile",{}) or {}
+        target=self.target.text.strip()
+        p={"requester_username":self.username(),"requester_name":getattr(self.app_state,"display_name","کاربر") or "کاربر","requester_role":role,
+           "target_username":target,"target_name":target,
+           "target_role":"parent" if role in {"teacher","staff","counselor"} else "teacher",
+           "student_id":profile.get("linked_student_id"),
+           "teacher_id":profile.get("linked_teacher_id") or profile.get("teacher_id"),
+           "parent_id":profile.get("linked_parent_id") or profile.get("parent_id"),
+           "parent_phone":profile.get("phone") or "",
+           "requested_date":self.date.text.strip(),"requested_time":self.time.text.strip(),
+           "reason":self.reason.text.strip(),"status":"pending_manager","manager_status":"pending"}
         try:self.api().table_insert("meeting_requests",p); self.msg("درخواست ثبت شد؛ پس از تأیید مسئول مربوط و مدیر قابل مشاهده است."); self.build()
         except Exception as e:self.msg(str(e),ERROR)
     def review(self,root,role):
@@ -218,7 +229,7 @@ class OnlineClassWorkflowScreen(BaseWorkflow):
         self._create_area.height = 0
 
     def create_class(self, *_):
-        payload = {key: widget.text.strip() for key, widget in self.form.items() if widget.text.strip()}
+        payload = {key: (widget.get_logical_text() if hasattr(widget,"get_logical_text") else widget.text).strip() for key, widget in self.form.items() if (widget.get_logical_text() if hasattr(widget,"get_logical_text") else widget.text).strip()}
         if not payload.get("title"):
             self.msg("عنوان کلاس را وارد کنید.", ERROR); return
         try: payload["duration"] = int(payload.get("duration") or 60)
