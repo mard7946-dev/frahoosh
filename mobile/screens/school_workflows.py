@@ -60,7 +60,7 @@ class CertificateWorkflowScreen(BaseWorkflow):
                 sid=(getattr(self.app_state,"profile",{}) or {}).get("linked_student_id"); students=api.table_select("students",{"id":f"eq.{sid}","limit":"1"}) if sid else []
         except Exception: students=[]
         self.students=students; names=[f"{s.get('first_name','')} {s.get('last_name','')}".strip() for s in students] or ["پرونده‌ای پیدا نشد"]
-        self.student=Spinner(text=rtl_text(names[0]),values=tuple(rtl_text(x) for x in names),font_name=font_name(),size_hint_y=None,height=dp(46))
+        self.student=Spinner(text=fa_display(names[0]),values=tuple(rtl_text(x) for x in names),font_name=font_name(),size_hint_y=None,height=dp(46))
         self.dest=self.field("فقط به منظور ارائه به")
         root.add_widget(self.lab("دانش‌آموز",30)); root.add_widget(self.student); root.add_widget(self.dest); root.add_widget(self.btn("ثبت درخواست",self.submit,SUCCESS))
         try:
