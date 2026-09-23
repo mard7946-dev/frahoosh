@@ -315,10 +315,7 @@ class TeacherExamsV4Screen(Screen):
             self._label("لینک زیر برای شما کپی شد. می‌توانید آن را برای دانش‌آموزان یا دبیران مدرسه مقصد ارسال کنید.",height=65)
             self._field("لینک اشتراک")
             self.body.children[0].text=link
-            self._label(f"کد اشتراک: {code}
-مدت: {minutes} دقیقه
-مدرسه مقصد: {school.text.strip() or 'بدون محدودیت'}
-کلاس مقصد: {cls.text.strip() or 'بدون محدودیت'}",height=100)
+            self._label(f"کد اشتراک: {code}\nمدت: {minutes} دقیقه\nمدرسه مقصد: {school.text.strip() or 'بدون محدودیت'}\nکلاس مقصد: {cls.text.strip() or 'بدون محدودیت'}",height=100)
             self._button("کپی دوباره لینک",lambda *_:Clipboard.copy(link),PRIMARY)
             self._button("ساخت اشتراک جدید با زمان دیگر",lambda *_:self._share_form(eid,minutes),SUCCESS)
             self._button("بازگشت",lambda *_:self._load_exams())
