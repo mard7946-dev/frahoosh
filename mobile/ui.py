@@ -188,7 +188,7 @@ class PersianTextInput(TextInput):
         kwargs.setdefault("cursor_width", 2)
         super().__init__(**kwargs)
         self._render_visual()
-        self.bind(focus=self._focus_changed)
+        self.bind(text=self._capture_external_text, focus=self._focus_changed)
 
     def _visual(self, logical):
         if getattr(self, "password", False):
@@ -219,6 +219,10 @@ class PersianTextInput(TextInput):
             return
         self.logical_text = self.logical_text[:-1]
         self._render_visual()
+
+    def _capture_external_text(self, _widget, value):
+        if not self._rendering_persian:
+            self.logical_text = unicodedata.normalize("NFKC", str(value or ""))
 
     def _focus_changed(self, _widget, focused):
         self._render_visual()
