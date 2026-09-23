@@ -1007,17 +1007,33 @@ class ModuleWorkspaceScreen(Screen):
         line.add_widget(self.btn("زیرپنل‌ها",lambda *_:self._back_to_submenus(),PRIMARY,dp(40),dp(82)))
         line.add_widget(self.label(FRIENDLY.get(table,table),"16sp",PRIMARY,True,"center"))
         hero.add_widget(line); self.body.add_widget(hero)
-        if self.can_write(table):
-            # The module has exactly three data operations.
-            bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
-            bar.add_widget(self.btn("ثبت جدید",lambda *_:self.editor(table,None),SUCCESS,dp(38)))
-            bar.add_widget(self.btn("ویرایش",lambda *_:self._edit_selected_row(),PRIMARY,dp(38)))
-            bar.add_widget(self.btn("حذف",lambda *_:self._delete_selected_row(),(0.72,.16,.18,1),dp(38)))
-            bar.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
-            bar.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
-            bar.add_widget(self.btn("ورودی Excel / ثبت گروهی",lambda *_:self.import_excel(),(0.42,.30,.62,1),dp(38)))
-            bar.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
-            self.body.add_widget(bar)
+        # Every operational module gets the same visible CRUD toolbar.
+        # Write permission only controls whether the actions are enabled; it
+        # must never make the buttons disappear and make a real module look
+        # decorative. Manager/authorized roles get live Supabase actions.
+        can_write = self.can_write(table)
+        bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
+        create_btn=self.btn("ساخت / ثبت جدید",lambda *_:self.editor(table,None),SUCCESS,dp(38))
+        edit_btn=self.btn("ویرایش",lambda *_:self._edit_selected_row(),PRIMARY,dp(38))
+        delete_btn=self.btn("حذف",lambda *_:self._delete_selected_row(),(0.72,.16,.18,1),dp(38))
+        create_btn.disabled = not can_write
+        edit_btn.disabled = not can_write
+        delete_btn.disabled = not can_write
+        bar.add_widget(create_btn)
+        bar.add_widget(edit_btn)
+        bar.add_widget(delete_btn)
+        bar.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+        bar.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
+        import_btn=self.btn("ورودی Excel / ثبت گروهی",lambda *_:self.import_excel(),(0.42,.30,.62,1),dp(38))
+        import_btn.disabled = not can_write
+        bar.add_widget(import_btn)
+        bar.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
+        self.body.add_widget(bar)
+        self.status.text = rtl_text(
+            "عملیات واقعی فعال است • ساخت، ویرایش و حذف به جدول Supabase متصل است"
+            if can_write else
+            "فقط مشاهده • برای ساخت، ویرایش یا حذف نیاز به دسترسی ثبت اطلاعات دارید"
+        )
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
 
     def _excel_path(self):
