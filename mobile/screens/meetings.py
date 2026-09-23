@@ -9,7 +9,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import Spinner
 
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
-from mobile.ui import font_name, rtl_text, fa_display
+from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 
 
 def role_of(state):
@@ -59,11 +59,11 @@ class MeetingsScreen(Screen):
         b = Button(text=fa_display(text), font_name=font_name(), font_size="11sp",
                    background_normal="", background_color=color, color=WHITE,
                    size_hint_y=None, height=dp(height))
-        b.bind(on_release=cb)
+        b.bind(on_press=cb)
         return b
 
     def _field(self, hint, height=46):
-        return TextInput(hint_text=fa_display(hint), font_name=font_name(), font_size="12sp",
+        return PersianTextInput(hint_text=fa_display(hint), font_name=font_name(), font_size="12sp",
                          halign="right", multiline=False, size_hint_y=None, height=dp(height),
                          padding=[dp(10), dp(8)])
 
