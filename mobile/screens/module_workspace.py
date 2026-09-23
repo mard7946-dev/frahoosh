@@ -619,16 +619,18 @@ class ModuleWorkspaceScreen(Screen):
         # Keep the operational workspace on the smallest Kivy text contract
         # supported by every Android build. Persian shaping is already handled
         # by rtl_text() and the bundled Frahoosh font.
+        # BTitr remains the module font. Do not pass Android/SDL text-script
+        # overrides here: with some BTitr builds those overrides select a missing
+        # glyph path and render Persian letters as □. rtl_text() keeps the logical
+        # Persian string normalized and Kivy handles the visual direction.
         w=Label(text=str(text),font_name=font_name(),font_size=size,color=color,bold=bold,
-                halign="center" if center else "right",valign="middle",
-                text_language="fa",font_script_name="Arab",base_direction="rtl")
+                halign="center" if center else "right",valign="middle")
         w.bind(size=lambda o,v:setattr(o,"text_size",v))
         return w
 
     def btn(self,text,cb,color=PRIMARY,h=dp(40),width=None):
         b=Button(text=str(text),font_name=font_name(),font_size="10sp",
                  background_normal="",background_color=color,color=WHITE,
-                 text_language="fa",font_script_name="Arab",base_direction="rtl",
                  size_hint_y=None,height=h)
         if width is not None:
             b.size_hint_x=None
