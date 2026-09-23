@@ -36,7 +36,7 @@ class MessageComposeScreen(Screen):
             background_normal="", background_color=color, color=WHITE,
             size_hint_y=None, height=dp(h),
         )
-        b.bind(on_release=cb)
+        b.bind(on_press=cb)
         return b
 
     def _build(self):
