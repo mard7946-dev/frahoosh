@@ -836,7 +836,7 @@ class ModuleWorkspaceScreen(Screen):
             "معاون اجرایی":"executive","معاونت اجرایی":"executive","کادر اجرایی":"executive","اجرایی":"executive","executive":"executive",
             "معاون پرورشی":"cultural","معاونت پرورشی":"cultural","کادر پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural",
             "مشاور":"advisor","مشاوره":"advisor","مشاوره":"advisor","counselor":"advisor","counseling":"advisor","advisor":"advisor",
-            "دبیر":"teacher","کادر آموزشی":"teacher","staff":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher",
+            "دبیر":"teacher","کادر آموزشی":"teacher","staff":"staff","staff_member":"staff","employee":"staff","school_staff":"staff","school_admin":"manager","school_manager":"manager","کادر":"staff","کادر اجرایی":"executive","کادر آموزشی":"teacher","کادر پرورشی":"cultural","معلم":"teacher","teacher":"teacher","teachers":"teacher",
             "دانش‌آموز":"student","دانش آموز":"student","student":"student",
             "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parents":"parent"
         }.get(raw,raw)
@@ -875,6 +875,12 @@ class ModuleWorkspaceScreen(Screen):
         # Unknown-but-authenticated staff roles must not get a decorative
         # module with dead CRUD controls. Students/parents remain read-only.
         if role not in {"student", "parent"}:
+            return True
+        # Staff panels are never rendered for ordinary students/parents. If a
+        # legacy session reaches one with an unrecognized role label, keep its
+        # operational controls available; Supabase remains the backend gate.
+        panel_routes = {"management", "executive", "educational", "cultural", "advisor"}
+        if str(getattr(self, "route", "") or "") in panel_routes:
             return True
         return resolved in EDITABLE.get(role,set())
 
@@ -1020,7 +1026,7 @@ class ModuleWorkspaceScreen(Screen):
     def open_table(self,table,refresh_subbar=True):
         # Student/parent messaging has a dedicated composer with a recipient
         # dropdown; do not downgrade it to a generic CRUD table.
-        if table in ("online_classes", "virtual", "online_class_sessions"):
+        if table in ("online", "online_classes", "virtual", "online_class_sessions"):
             try:
                 from kivy.app import App
                 app = App.get_running_app()
