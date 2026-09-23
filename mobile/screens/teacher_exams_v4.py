@@ -343,7 +343,7 @@ class TeacherExamsV4Screen(Screen):
         if not rows:self._label("هنوز آزمونی ثبت نشده است.",color=SECONDARY,height=65)
         for row in rows:
             eid=int(row["id"]); dur=int(row.get("duration") or 45)
-            self._label(f"{row.get('title','آزمون')}\n{row.get('subject','')}  •  {dur} دقیقه  •  {'منتشر شده' if row.get('published') else 'پیش‌نویس'}","15sp",PRIMARY,65,True)
+            self._label(f"{row.get('title','آزمون')}\\n{row.get('subject','')}  •  {dur} دقیقه  •  {'منتشر شده' if row.get('published') else 'پیش‌نویس'}","15sp",PRIMARY,65,True)
             self._button("زمان‌بندی / ساخت لینک اشتراک",lambda *_ ,i=eid,d=dur:self._schedule(i,d),PRIMARY,45)
 
     def _open_shared(self,code):
