@@ -10,12 +10,11 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
-from kivy.uix.textinput import TextInput
 from kivy.uix.spinner import Spinner
 from kivy.uix.scrollview import ScrollView
 
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, WEB_URL
-from mobile.ui import font_name, rtl_text, fa_display
+from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 
 TYPES = [
     ("multiple_choice", "تستی چهارگزینه‌ای"),
@@ -32,13 +31,30 @@ def role_of(state):
     # Resolve the role from the authenticated profile as well as app_state.
     # This keeps the teacher exam authoring controls visible after login.
     profile = getattr(state, "profile", {}) or {}
+    user = getattr(state, "user", {}) or {}
+    metadata = user.get("user_metadata", {}) if isinstance(user, dict) else {}
     candidates = [
-        getattr(state, "role", None),
         profile.get("role"),
         profile.get("user_role"),
+        profile.get("school_role"),
+        metadata.get("role"),
+        metadata.get("user_role"),
+        metadata.get("school_role"),
+        getattr(state, "role", None),
         profile.get("permissions", {}).get("role") if isinstance(profile.get("permissions"), dict) else None,
     ]
     raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
+    raw = raw.replace("\u200c", " ").replace("\u200f", "").replace("ي", "ی").replace("ك", "ک")
+    raw = " ".join(raw.split())
+    for fragment, canonical in (
+        ("مدیر", "manager"), ("مدیریت", "manager"),
+        ("معاون آموزشی", "educational"), ("معاونت آموزشی", "educational"),
+        ("معاون اجرایی", "executive"), ("معاونت اجرایی", "executive"),
+        ("معاون پرورشی", "cultural"), ("معاونت پرورشی", "cultural"),
+        ("مشاور", "advisor"), ("مشاوره", "advisor"),
+    ):
+        if fragment in raw:
+            return canonical
     return {
         "admin":"manager", "administrator":"manager", "principal":"manager",
         "manager":"manager", "مدیر":"manager", "مدیریت":"manager",
@@ -88,7 +104,7 @@ class TeacherExamsV4Screen(Screen):
     def _button(self,text,cb,color=PRIMARY,height=48):
         b=Button(text=fa_display(text),font_name=font_name(),font_size="13sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=dp(height)); b.bind(on_press=cb); self.body.add_widget(b); return b
     def _field(self,hint,height=50,multiline=False):
-        f=TextInput(hint_text=fa_display(hint),font_name=font_name(),font_size="13sp",multiline=multiline,size_hint_y=None,height=dp(height),halign="right",padding=[dp(12),dp(12)]); self.body.add_widget(f); return f
+        f=PersianTextInput(hint_text=fa_display(hint),font_name=font_name(),font_size="13sp",multiline=multiline,size_hint_y=None,height=dp(height),halign="right",padding=[dp(12),dp(12)]); self.body.add_widget(f); return f
     def _spinner(self,text,values):
         s=Spinner(text=fa_display(text),values=tuple(fa_display(x) for x in values),font_name=font_name(),font_size="13sp",size_hint_y=None,height=dp(50)); self.body.add_widget(s); return s
     def _error(self,text): self.status.text=fa_display(text); self.status.color=ERROR
