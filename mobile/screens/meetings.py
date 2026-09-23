@@ -224,14 +224,14 @@ class MeetingsScreen(Screen):
             label = self._person_name(row)
             if row.get("class_name"):
                 label += f" • {row.get('class_name')}"
-            if text == label:
+            if text == label or text == fa_display(label):
                 return row
         return self._student_rows[0] if self._student_rows else None
 
     def _selected_target(self, spinner):
         text = str(spinner.text or "").strip()
         for row in self._target_rows:
-            if text == self._person_name(row):
+            if text == self._person_name(row) or text == fa_display(self._person_name(row)):
                 return row
         return self._target_rows[0] if self._target_rows else None
 
