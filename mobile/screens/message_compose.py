@@ -69,7 +69,7 @@ class MessageComposeScreen(Screen):
 
         form.add_widget(self.label("متن پیام", "10sp", PRIMARY, True, False, 28))
         self.body_input = PersianTextInput(
-            hint_text=rtl_text("متن پیام را وارد کنید"),
+            hint_text=fa_display("متن پیام را وارد کنید"),
             font_size="12sp", multiline=True, size_hint_y=None, height=dp(180)
         )
         form.add_widget(self.body_input)
@@ -111,7 +111,7 @@ class MessageComposeScreen(Screen):
         Thread(target=run, daemon=True).start()
 
     def load_targets(self):
-        self.status.text = rtl_text("در حال دریافت فهرست مخاطبان مجاز…")
+        self.status.text = fa_display("در حال دریافت فهرست مخاطبان مجاز…")
         self._async(self._fetch_targets, self._targets_loaded)
 
     def _fetch_targets(self):
@@ -150,7 +150,7 @@ class MessageComposeScreen(Screen):
 
     def _targets_loaded(self, targets, error):
         if error:
-            self.status.text = rtl_text("دریافت مخاطبان ناموفق بود: " + error)
+            self.status.text = fa_display("دریافت مخاطبان ناموفق بود: " + error)
             self.status.color = ERROR
             return
         self.targets = targets or []
@@ -160,7 +160,7 @@ class MessageComposeScreen(Screen):
             values.append(fa_display(t["name"] + role))
         self.target_spinner.values = tuple(values)
         self.target_spinner.text = values[0] if values else fa_display("مخاطب مجاز یافت نشد")
-        self.status.text = rtl_text(str(len(self.targets)) + " مخاطب برای ارسال پیام آماده است.")
+        self.status.text = fa_display(str(len(self.targets)) + " مخاطب برای ارسال پیام آماده است.")
         self.status.color = SUCCESS if self.targets else ERROR
 
     def _selected_target(self):
@@ -175,17 +175,17 @@ class MessageComposeScreen(Screen):
         target = self._selected_target()
         body = str(self.body_input.text or "").strip()
         if not target:
-            self.status.text = rtl_text("ابتدا نام مخاطب را از فهرست انتخاب کنید.")
+            self.status.text = fa_display("ابتدا نام مخاطب را از فهرست انتخاب کنید.")
             self.status.color = ERROR
             return
         if not body:
-            self.status.text = rtl_text("متن پیام را وارد کنید.")
+            self.status.text = fa_display("متن پیام را وارد کنید.")
             self.status.color = ERROR
             return
         title = str(self.type_spinner.text or self.MESSAGE_TYPES[0]).strip()
         sender = self._username()
         if not sender:
-            self.status.text = rtl_text("هویت فرستنده مشخص نیست؛ دوباره وارد حساب شوید.")
+            self.status.text = fa_display("هویت فرستنده مشخص نیست؛ دوباره وارد حساب شوید.")
             self.status.color = ERROR
             return
         sender_name = str((getattr(self.app_state, "profile", {}) or {}).get("display_name") or sender)
@@ -203,7 +203,7 @@ class MessageComposeScreen(Screen):
             "target_name": target.get("name"),
             "target_class_name": None,
         }
-        self.status.text = rtl_text("در حال ارسال پیام واقعی…")
+        self.status.text = fa_display("در حال ارسال پیام واقعی…")
         self.status.color = SECONDARY
 
         def work():
@@ -223,11 +223,11 @@ class MessageComposeScreen(Screen):
 
     def _sent(self, message_id, error):
         if error:
-            self.status.text = rtl_text("ارسال پیام ناموفق بود: " + error)
+            self.status.text = fa_display("ارسال پیام ناموفق بود: " + error)
             self.status.color = ERROR
             return
         self.body_input.text = ""
-        self.status.text = rtl_text("پیام با موفقیت ارسال شد.")
+        self.status.text = fa_display("پیام با موفقیت ارسال شد.")
         self.status.color = SUCCESS
 
     def inbox(self, *_):
@@ -240,7 +240,7 @@ class MessageComposeScreen(Screen):
             panel = self.manager.get_screen("panel")
             panel.set_module("messages", return_to="dashboard")
         except Exception as exc:
-            self.status.text = rtl_text("باز کردن صندوق ورودی انجام نشد: " + str(exc))
+            self.status.text = fa_display("باز کردن صندوق ورودی انجام نشد: " + str(exc))
             self.status.color = ERROR
 
     def back(self, *_):
