@@ -10,7 +10,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
-from mobile.ui import font_name, rtl_text, fa_display
+from mobile.ui import font_name, rtl_text, fa_display, fa_display
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, WHITE
 
 SUBMENUS.setdefault("participation", [
@@ -75,7 +75,7 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                     existing = ""
                 ti = TextInput(
                     text=existing,
-                    hint_text=rtl_text(label_text),
+                    hint_text=fa_display(label_text),
                     font_name=font_name(), font_size="12sp", halign="right",
                     multiline=field in {"description", "content", "body", "question", "note", "decision"},
                     size_hint_y=None,
