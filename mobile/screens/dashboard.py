@@ -311,6 +311,8 @@ class PanelHubScreen(Screen):
                 panel=app.ensure_panel()
                 if panel is None:
                     raise RuntimeError("پنل عملیاتی آماده نشد؛ ساخت ModuleWorkspaceScreen شکست خورد.")
+                if hasattr(panel, "set_panel_role"):
+                    panel.set_panel_role(self.panel_key)
                 panel.set_route(route)
                 if app.sm.current != "panel":
                     app.sm.current="panel"
