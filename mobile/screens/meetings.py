@@ -65,7 +65,7 @@ class MeetingsScreen(Screen):
 
     def _spinner(self, text, values, height=48):
         s = Spinner(
-            text=rtl_text(text),
+            text=fa_display(text),
             values=[rtl_text(v) for v in values],
             font_name=font_name(), font_size="12sp",
             size_hint_y=None, height=dp(height),
