@@ -679,7 +679,7 @@ class ModuleWorkspaceScreen(Screen):
                 return
             fired["value"] = True
             try:
-                self.status.text = rtl_text("در حال اجرای عملیات…")
+                self.status.text = fa_display("در حال اجرای عملیات…")
                 self.status.color = SECONDARY
             except Exception:
                 pass
@@ -690,7 +690,7 @@ class ModuleWorkspaceScreen(Screen):
                 except Exception as exc:
                     print("MODULE BUTTON CALLBACK ERROR:", repr(exc))
                     try:
-                        self.status.text=rtl_text("اجرای عملیات با خطا روبه‌رو شد: "+str(exc))
+                        self.status.text=fa_display("اجرای عملیات با خطا روبه‌رو شد: "+str(exc))
                         self.status.color=(.8,.15,.15,1)
                     except Exception:
                         pass
@@ -1094,7 +1094,7 @@ class ModuleWorkspaceScreen(Screen):
         self.selected_row=None
         if refresh_subbar:
             self.render(); return
-        self.body.clear_widgets(); self.title.text=rtl_text(FRIENDLY.get(table,table))
+        self.body.clear_widgets(); self.title.text=fa_display(FRIENDLY.get(table,table))
         hero=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(58),padding=dp(6),spacing=dp(4))
         line=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5))
         line.add_widget(self.btn("زیرپنل‌ها",lambda *_:self._back_to_submenus(),PRIMARY,dp(40),dp(82)))
@@ -1571,7 +1571,7 @@ class ModuleWorkspaceScreen(Screen):
         b=SelectableRow(owner=self,record=r,size_hint=(None,None),width=totalw,height=dp(100),spacing=dp(3),padding=[dp(5),dp(5)])
         for k in keys:
             raw = r.get(k, "")
-            s = rtl_text(str(raw).strip())
+            s = fa_display(str(raw).strip())
             if not s or all(ch in "□�▯" for ch in s):
                 s = "ثبت نشده"
             cell=self.label(s,"17sp",SECONDARY,False,'center')
@@ -1629,7 +1629,7 @@ class ModuleWorkspaceScreen(Screen):
             else:
                 ti = PersianTextInput(
                     text=existing,
-                    hint_text=rtl_text(label_text),
+                    hint_text=fa_display(label_text),
                     font_name=font_name(),
                     font_size="12sp",
                     halign="right",
@@ -1640,7 +1640,7 @@ class ModuleWorkspaceScreen(Screen):
                 )
             inputs[f] = ti
             form.add_widget(ti)
-        sc.add_widget(form); root.add_widget(sc); actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5)); p=Popup(title=rtl_text(('ویرایش' if row else 'ثبت جدید')+' • '+FRIENDLY.get(table,table)),content=root,size_hint=(.94,.88),auto_dismiss=False); actions.add_widget(self.btn('انصراف',lambda *_:p.dismiss(),SECONDARY,dp(40))); actions.add_widget(self.btn('ذخیره',lambda *_:self.save(table,row,inputs,p),SUCCESS,dp(40))); root.add_widget(actions); p.open()
+        sc.add_widget(form); root.add_widget(sc); actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5)); p=Popup(title=fa_display(('ویرایش' if row else 'ثبت جدید')+' • '+FRIENDLY.get(table,table)),content=root,size_hint=(.94,.88),auto_dismiss=False); actions.add_widget(self.btn('انصراف',lambda *_:p.dismiss(),SECONDARY,dp(40))); actions.add_widget(self.btn('ذخیره',lambda *_:self.save(table,row,inputs,p),SUCCESS,dp(40))); root.add_widget(actions); p.open()
 
     def _infer(self,row): return [k for k in (row or {}).keys() if k not in HIDDEN] or ['title','description','status']
 
@@ -1822,7 +1822,7 @@ class ModuleWorkspaceScreen(Screen):
     def confirm_delete(self,table,row):
         rid=row.get('id');
         if rid is None: self.message('حذف رکورد','شناسه رکورد موجود نیست.'); return
-        root=BoxLayout(orientation='vertical',padding=dp(12),spacing=dp(8)); root.add_widget(self.label('آیا از حذف این رکورد مطمئن هستید؟','14sp',PRIMARY,True,'center')); root.add_widget(self.label('این عملیات روی اطلاعات واقعی سامانه انجام می‌شود.','9sp',SECONDARY,False,'center')); actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5)); p=Popup(title=rtl_text('تأیید حذف'),content=root,size_hint=(.88,.36),auto_dismiss=False); actions.add_widget(self.btn('انصراف',lambda *_:p.dismiss(),SECONDARY,dp(40))); actions.add_widget(self.btn('حذف قطعی',lambda *_:self.delete(table,rid,p),(0.72,.16,.18,1),dp(40))); root.add_widget(actions); p.open()
+        root=BoxLayout(orientation='vertical',padding=dp(12),spacing=dp(8)); root.add_widget(self.label('آیا از حذف این رکورد مطمئن هستید؟','14sp',PRIMARY,True,'center')); root.add_widget(self.label('این عملیات روی اطلاعات واقعی سامانه انجام می‌شود.','9sp',SECONDARY,False,'center')); actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5)); p=Popup(title=fa_display('تأیید حذف'),content=root,size_hint=(.88,.36),auto_dismiss=False); actions.add_widget(self.btn('انصراف',lambda *_:p.dismiss(),SECONDARY,dp(40))); actions.add_widget(self.btn('حذف قطعی',lambda *_:self.delete(table,rid,p),(0.72,.16,.18,1),dp(40))); root.add_widget(actions); p.open()
 
     def delete(self,table,rid,p):
         p.dismiss(); self.status.text=rtl_text('در حال حذف اطلاعات واقعی…')
@@ -1832,7 +1832,7 @@ class ModuleWorkspaceScreen(Screen):
         Thread(target=work,daemon=True).start()
 
     def message(self,title,text):
-        root=BoxLayout(orientation='vertical',padding=dp(12),spacing=dp(8)); root.add_widget(self.label(text,'10sp',SECONDARY,False,'center')); p=Popup(title=rtl_text(title),content=root,size_hint=(.88,.34)); root.add_widget(self.btn('متوجه شدم',lambda *_:p.dismiss(),PRIMARY,dp(40))); p.open()
+        root=BoxLayout(orientation='vertical',padding=dp(12),spacing=dp(8)); root.add_widget(self.label(text,'10sp',SECONDARY,False,'center')); p=Popup(title=fa_display(title),content=root,size_hint=(.88,.34)); root.add_widget(self.btn('متوجه شدم',lambda *_:p.dismiss(),PRIMARY,dp(40))); p.open()
 
     def go_dashboard(self,*_):
         if self.manager: self.manager.current=self.return_to or 'dashboard'
