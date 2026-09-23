@@ -436,6 +436,20 @@ EDITABLE.setdefault("manager", set()).update(_MOTHER_TABLE_ALIASES.values())
 # guarantees that the actions are visible for every module in the five
 # administrative panels instead of silently disappearing because a new module
 # was added to the catalog.
+# Accept canonical role ids plus labels emitted by older login/profile records.
+for _role_alias, _role_target in {
+    "management": "manager",
+    "admin": "manager",
+    "administrator": "manager",
+    "educational_deputy": "educational",
+    "executive_deputy": "executive",
+    "cultural_deputy": "cultural",
+    "counseling": "advisor",
+    "counselor": "advisor",
+}.items():
+    if _role_target in EDITABLE:
+        EDITABLE[_role_alias] = EDITABLE[_role_target]
+
 for _panel_role in ("executive", "educational", "cultural", "advisor"):
     _panel_tables = set()
     for _label, _module_id in SUBMENUS.get(_panel_role, []):
@@ -777,11 +791,11 @@ class ModuleWorkspaceScreen(Screen):
         raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
         return {
             "admin":"manager","administrator":"manager","principal":"manager","manager":"manager",
-            "مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager",
+            "مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager","management":"manager","school_management":"manager",
             "معاون آموزشی":"educational","educational":"educational",
             "معاون اجرایی":"executive","اجرایی":"executive","executive":"executive",
             "معاون پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural",
-            "مشاور":"advisor","مشاوره":"advisor","counselor":"advisor","advisor":"advisor",
+            "مشاور":"advisor","مشاوره":"advisor","counselor":"advisor","counseling":"advisor","advisor":"advisor",
             "دبیر":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher",
             "دانش‌آموز":"student","دانش آموز":"student","student":"student",
             "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parents":"parent"
