@@ -627,6 +627,7 @@ class ModuleWorkspaceScreen(Screen):
         super().__init__(**kwargs)
         self.app_state=app_state
         self.route="management"
+        self.panel_role=""
         self.return_to="dashboard"
         self.table=None
         self.rows=[]
@@ -789,6 +790,13 @@ class ModuleWorkspaceScreen(Screen):
             metadata.get("user_role"),
             metadata.get("school_role"),
             getattr(self.app_state, "role", None),
+            getattr(self.app_state, "user_role", None),
+            getattr(self.app_state, "active_role", None),
+            getattr(self.app_state, "panel_role", None),
+            getattr(self.app_state, "current_role", None),
+            profile.get("panel_role"),
+            profile.get("active_role"),
+            profile.get("account_role"),
             profile.get("user_type"),
             profile.get("account_type"),
             profile.get("permissions", {}).get("role") if isinstance(profile.get("permissions"), dict) else None,
@@ -867,6 +875,14 @@ class ModuleWorkspaceScreen(Screen):
         if resolved == "smart_class_preview":
             return False
         role = self.role()
+        panel_role = str(getattr(self, "panel_role", "") or "").strip().lower()
+        panel_role = {
+            "management":"manager", "manager":"manager", "educational":"educational",
+            "executive":"executive", "cultural":"cultural", "advisor":"advisor",
+            "teachers":"teacher", "teacher":"teacher", "staff":"staff"
+        }.get(panel_role, panel_role)
+        if panel_role in {"manager","educational","executive","cultural","advisor","teacher","staff"}:
+            role = panel_role
         # A manager is the owner of the school data contract.  Do not let a
         # stale/partial module permission set hide CRUD controls from the manager.
         if role in {"manager","educational","executive","cultural","advisor","teacher","staff","counselor"}:
@@ -931,6 +947,14 @@ class ModuleWorkspaceScreen(Screen):
         resolver so every mother-panel button reaches its operational backend.
         """
         return self.set_module(route, return_to=return_to)
+
+    def set_panel_role(self, role):
+        value = str(role or "").strip().lower()
+        self.panel_role = {
+            "management":"manager", "manager":"manager", "educational":"educational",
+            "executive":"executive", "cultural":"cultural", "advisor":"advisor",
+            "teachers":"teacher", "teacher":"teacher", "staff":"staff"
+        }.get(value, value)
 
     def render(self):
         self._ensure_built()
