@@ -157,7 +157,7 @@ class MeetingsScreen(Screen):
                 rows = api.table_select("staff", {"order": "id.asc", "limit": "100"})
                 rows = [r for r in rows if "مشاور" in str(r.get("role", "")) or "counsel" in str(r.get("role", "")).lower()]
             elif role == "manager":
-                rows = api.table_select("account_settings", {"role": "eq.manager", "limit": "20"})
+                rows = api.table_select("staff", {"order": "id.asc", "limit": "100"}) or []
             else:
                 rows = []
             self._target_rows = rows or []
@@ -183,10 +183,12 @@ class MeetingsScreen(Screen):
         self.target_role = "teacher"
         target_type = self._spinner("نوع فرد مورد ملاقات", ["دبیر", "کادر", "مشاور", "مدیریت"])
         target_map = {"دبیر": "teacher", "کادر": "staff", "مشاور": "counselor", "مدیریت": "manager"}
+        target_map_visual = {fa_display(k): v for k, v in target_map.items()}
         target_name = self._spinner("نام فرد مورد ملاقات", ["ابتدا نوع فرد را انتخاب کنید"])
 
         def refresh_targets(spinner, value):
-            role = target_map.get(str(value).replace("ي", "ی"), "teacher")
+            logical_value = str(value).replace("ي", "ی").replace("ك", "ک")
+            role = target_map.get(logical_value) or target_map_visual.get(str(value)) or "teacher"
             self.target_role = role
             rows = self._load_targets(role)
             names = [self._person_name(r) for r in rows if self._person_name(r)]
