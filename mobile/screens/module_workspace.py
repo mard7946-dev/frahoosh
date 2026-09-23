@@ -790,7 +790,12 @@ class ModuleWorkspaceScreen(Screen):
         ]
         raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
         return {
-            "admin":"manager","administrator":"manager","principal":"manager","manager":"manager",
+            "admin":"manager","administrator":"manager","principal":"manager","manager":"manager","management":"manager","school_management":"manager",
+            "مدیریت":"manager","مدیریت مدرسه":"manager",
+            "educational_deputy":"educational","education_deputy":"educational",
+            "executive_deputy":"executive",
+            "cultural_deputy":"cultural",
+            "counseling":"advisor","counselor":"advisor",
             "مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager","management":"manager","school_management":"manager",
             "معاون آموزشی":"educational","educational":"educational",
             "معاون اجرایی":"executive","اجرایی":"executive","executive":"executive",
