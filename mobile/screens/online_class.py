@@ -18,7 +18,7 @@ MANAGERS={"manager","educational","executive","cultural","advisor","teacher","st
 def role_of(state):
     # Login may keep the canonical role in profile while app_state.role is empty.
     # Resolve both sources so operational create/manage controls are not hidden.
-    profile = getattr(state, "profile", {}) or {}
+    # A live workflow can be opened from a specific school panel. Prefer that active panel role over a stale profile role.\n    active_panel = str(getattr(state, "panel_role", "") or "").strip().lower()\n    if active_panel:\n        normalized_panel = {"management":"manager","teachers":"teacher"}.get(active_panel, active_panel)\n        if normalized_panel in {"manager","educational","executive","cultural","advisor","teacher","staff","student","parent"}:\n            return normalized_panel\n    profile = getattr(state, "profile", {}) or {}
     user = getattr(state, "user", {}) or {}
     metadata = user.get("user_metadata", {}) if isinstance(user, dict) else {}
     candidates = [
