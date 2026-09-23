@@ -331,10 +331,8 @@ class MeetingsScreen(Screen):
             "requested_date": str(date).strip(),
             "requested_time": str(time).strip(),
             "reason": str(reason).strip(),
-            "description": str(description or "").strip(),
             "status": "pending_manager",
             "manager_status": "pending",
-            "educational_status": "pending",
         }
         payload.update(extra)
         try:
