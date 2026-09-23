@@ -129,7 +129,7 @@ class TeacherExamsV4Screen(Screen):
 
     def show_home(self):
         self._clear(); self.title.text=fa_display("مرکز آزمون آنلاین")
-        if role_of(self.app_state)=="teacher":
+        if role_of(self.app_state) in {"teacher","manager","educational","executive"}:
             self._label("مرکز طراحی و مدیریت آزمون","22sp",PRIMARY,54,True)
             self._label("آزمون را یک‌بار استاندارد طراحی کنید، سپس برای هر کلاس زمان متفاوت بدهید یا همان آزمون را با لینک امن برای دانش‌آموزان مدرسه دیگر به اشتراک بگذارید.",height=78)
             self._button("＋ ساخت آزمون جدید",lambda *_:self._new_exam(),SUCCESS)
@@ -225,9 +225,9 @@ class TeacherExamsV4Screen(Screen):
         try: dur=max(1,min(600,int(self._value(duration) or 45))); mx=max(1,int(self._value(attempts) or 1)); ps=max(0,float(self._value(passing) or 0))
         except Exception:self._error("مدت، تعداد دفعات و نمره قبولی باید عدد باشند.");return
         tid=self._teacher_id()
-        if not tid:self._error("حساب دبیر به پرونده دبیر متصل نشده است.");return
+        
         self.status.text=fa_display("در حال ذخیره آزمون…"); self.status.color=SECONDARY
-        payload={"teacher_id":tid,"title":self._value(title),"subject":subject.text,"grade":self._value(grade),"class_name":self._value(grade),"exam_type":"آزمون آنلاین","duration":dur,"description":self._value(desc),"published":False,"secure_mode":True,"standard_mode":mode.text==fa_display("استاندارد"),"max_attempts":mx,"passing_score":ps}
+        payload={"teacher_id":tid,"title":self._value(title),"subject":self._value(subject),"grade":self._value(grade),"class_name":self._value(grade),"exam_type":"آزمون آنلاین","duration":dur,"description":self._value(desc),"published":False,"secure_mode":True,"standard_mode":mode.text==fa_display("استاندارد"),"max_attempts":mx,"passing_score":ps}
         Thread(target=self._save_worker,args=(payload,dur),daemon=True).start()
 
     def _save_worker(self,payload,dur):
