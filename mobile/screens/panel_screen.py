@@ -6,7 +6,7 @@ from kivy.uix.button import Button
 from mobile.screens.module import FinalModuleScreen
 from mobile.screens.module_workspace import SUBMENUS, FRIENDLY
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, WHITE
-from mobile.ui import font_name, rtl_text
+from mobile.ui import font_name, rtl_text, fa_display
 
 
 class PanelScreen(FinalModuleScreen):
@@ -37,8 +37,8 @@ class PanelScreen(FinalModuleScreen):
         self.body.clear_widgets()
         items = SUBMENUS.get(self.route, [])
         title = FRIENDLY.get(self.route, self.route)
-        self.title.text = rtl_text(title)
-        self.status.text = rtl_text("پنل باز شد؛ زیرپنل‌ها آماده هستند")
+        self.title.text = fa_display(title)
+        self.status.text = fa_display("پنل باز شد؛ زیرپنل‌ها آماده هستند")
         self.status.color = SUCCESS
 
         scroll = __import__("kivy.uix.scrollview", fromlist=["ScrollView"]).ScrollView(
@@ -54,7 +54,7 @@ class PanelScreen(FinalModuleScreen):
 
         for index, (caption, table) in enumerate(items, 1):
             btn = Button(
-                text=rtl_text(f"{index:02d}  {caption}"),
+                text=fa_display(f"{index:02d}  {caption}"),
                 font_name=font_name(),
                 font_size="12sp",
                 background_normal="",
