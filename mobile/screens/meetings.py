@@ -363,12 +363,9 @@ class MeetingsScreen(Screen):
             card = BoxLayout(orientation="vertical", padding=dp(9), spacing=dp(4),
                              size_hint_y=None, height=dp(190))
             card.add_widget(self._label(
-                f"#{row.get('id')} | {row.get('requester_name') or row.get('requester_username')} → {row.get('target_name') or 'مخاطب'}
-"
-                f"دانش‌آموز: {row.get('student_name') or '-'} | تاریخ: {row.get('requested_date')} | ساعت: {row.get('requested_time')}
-"
-                f"علت: {row.get('reason') or '-'}
-وضعیت: {status}",
+                f"#{row.get('id')} | {row.get('requester_name') or row.get('requester_username')} → {row.get('target_name') or 'مخاطب'}\n"
+                f"دانش‌آموز: {row.get('student_name') or '-'} | تاریخ: {row.get('requested_date')} | ساعت: {row.get('requested_time')}\n"
+                f"علت: {row.get('reason') or '-'}\nوضعیت: {status}",
                 "10sp", SECONDARY, 108, True))
             actions = BoxLayout(size_hint_y=None, height=dp(45), spacing=dp(5))
             if role == "manager" and row.get("status") == "pending_manager":
