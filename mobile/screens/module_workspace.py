@@ -619,14 +619,16 @@ class ModuleWorkspaceScreen(Screen):
         # Keep the operational workspace on the smallest Kivy text contract
         # supported by every Android build. Persian shaping is already handled
         # by rtl_text() and the bundled Frahoosh font.
-        w=Label(text=rtl_text(str(text)),font_name=font_name(),font_size=size,color=color,bold=bold,
-                halign="center" if center else "right",valign="middle")
+        w=Label(text=str(text),font_name=font_name(),font_size=size,color=color,bold=bold,
+                halign="center" if center else "right",valign="middle",
+                text_language="fa",font_script_name="Arab",base_direction="rtl")
         w.bind(size=lambda o,v:setattr(o,"text_size",v))
         return w
 
     def btn(self,text,cb,color=PRIMARY,h=dp(40),width=None):
-        b=Button(text=rtl_text(text),font_name=font_name(),font_size="10sp",
+        b=Button(text=str(text),font_name=font_name(),font_size="10sp",
                  background_normal="",background_color=color,color=WHITE,
+                 text_language="fa",font_script_name="Arab",base_direction="rtl",
                  size_hint_y=None,height=h)
         if width is not None:
             b.size_hint_x=None
@@ -1012,22 +1014,24 @@ class ModuleWorkspaceScreen(Screen):
         # must never make the buttons disappear and make a real module look
         # decorative. Manager/authorized roles get live Supabase actions.
         can_write = self.can_write(table)
-        bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
+        # Seven real module actions. Two rows keep every action readable on portrait Android.
+        bar=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(82),spacing=dp(4))
+        row1=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
+        row2=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
         create_btn=self.btn("ساخت / ثبت جدید",lambda *_:self.editor(table,None),SUCCESS,dp(38))
         edit_btn=self.btn("ویرایش",lambda *_:self._edit_selected_row(),PRIMARY,dp(38))
         delete_btn=self.btn("حذف",lambda *_:self._delete_selected_row(),(0.72,.16,.18,1),dp(38))
         create_btn.disabled = not can_write
         edit_btn.disabled = not can_write
         delete_btn.disabled = not can_write
-        bar.add_widget(create_btn)
-        bar.add_widget(edit_btn)
-        bar.add_widget(delete_btn)
-        bar.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
-        bar.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
+        row1.add_widget(create_btn); row1.add_widget(edit_btn); row1.add_widget(delete_btn)
+        row1.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+        row2.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
         import_btn=self.btn("ورودی Excel / ثبت گروهی",lambda *_:self.import_excel(),(0.42,.30,.62,1),dp(38))
         import_btn.disabled = not can_write
-        bar.add_widget(import_btn)
-        bar.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
+        row2.add_widget(import_btn)
+        row2.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
+        bar.add_widget(row1); bar.add_widget(row2)
         self.body.add_widget(bar)
         self.status.text = rtl_text(
             "عملیات واقعی فعال است • ساخت، ویرایش و حذف به جدول Supabase متصل است"
@@ -1121,7 +1125,12 @@ class ModuleWorkspaceScreen(Screen):
             return
         path=self._excel_path()
         if not path.is_file():
-            self.message("ورودی Excel",f"فایل مورد انتظار پیدا نشد.\nفایل {path.name} را در پوشه Download گوشی قرار دهید و دوباره بزنید.")
+            template=path.with_name(path.stem+"_template.xlsx")
+            if template.is_file():
+                path=template
+            else:
+                self.message("ورودی Excel",f"فایل مورد انتظار پیدا نشد.\nفایل {path.name} را در پوشه Download گوشی قرار دهید و دوباره بزنید.")
+                return
             return
         self.status.text=rtl_text("در حال خواندن فایل Excel…")
         def work():
