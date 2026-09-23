@@ -1193,19 +1193,77 @@ class ModuleWorkspaceScreen(Screen):
                 Clock.schedule_once(lambda *_: self.write_error("گزارش PDF انجام نشد: "+str(exc)),0)
         Thread(target=work,daemon=True).start()
 
-    def import_excel(self):
+    def _pick_excel_android(self):
+        """Use Android's system document picker instead of guessing a Download path."""
+        try:
+            from android import activity
+            from jnius import autoclass, cast
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            Intent = autoclass("android.content.Intent")
+            Activity = autoclass("android.app.Activity")
+            current = cast("android.app.Activity", PythonActivity.mActivity)
+            request_code = 4817
+
+            def on_result(request_code_value, result_code, intent):
+                if request_code_value != request_code:
+                    return
+                try:
+                    activity.unbind(on_activity_result=on_result)
+                except Exception:
+                    pass
+                if result_code != Activity.RESULT_OK or intent is None:
+                    Clock.schedule_once(lambda *_: self.write_error("انتخاب فایل Excel لغو شد."), 0)
+                    return
+                try:
+                    uri = intent.getData()
+                    if uri is None:
+                        raise RuntimeError("فایل انتخاب‌شده قابل دسترسی نیست.")
+                    resolver = current.getContentResolver()
+                    stream = resolver.openInputStream(uri)
+                    if stream is None:
+                        raise RuntimeError("امکان خواندن فایل انتخاب‌شده وجود ندارد.")
+                    from java.io import ByteArrayOutputStream
+                    out = ByteArrayOutputStream()
+                    while True:
+                        value = stream.read()
+                        if value == -1:
+                            break
+                        out.write(value)
+                    stream.close()
+                    data = bytes(out.toByteArray())
+                    target = Path(getattr(self.app_state, "user_data_dir", "") or ".") / "frahoosh_selected_import.xlsx"
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(data)
+                    Clock.schedule_once(lambda *_: self._import_excel_path(target), 0)
+                except Exception as exc:
+                    print("ANDROID EXCEL PICKER ERROR:", repr(exc))
+                    Clock.schedule_once(
+                        lambda *_: self.write_error("خواندن فایل Excel انجام نشد: " + str(exc)), 0
+                    )
+
+            activity.bind(on_activity_result=on_result)
+            intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+            intent.addCategory(Intent.CATEGORY_OPENABLE)
+            intent.setType("*/*")
+            intent.putExtra(
+                Intent.EXTRA_MIME_TYPES,
+                [
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "application/vnd.ms-excel",
+                    "application/octet-stream",
+                ],
+            )
+            current.startActivityForResult(intent, request_code)
+            return True
+        except Exception as exc:
+            print("ANDROID EXCEL PICKER START ERROR:", repr(exc))
+            return False
+
+    def _import_excel_path(self, path):
         table=str(self.table or "").strip()
         if not table:
             return
-        path=self._excel_path()
-        if not path.is_file():
-            template=path.with_name(path.stem+"_template.xlsx")
-            if template.is_file():
-                path=template
-            else:
-                self.message("ورودی Excel",f"فایل مورد انتظار پیدا نشد.\nفایل {path.name} را در پوشه Download گوشی قرار دهید و دوباره بزنید.")
-                return
-        self.status.text=rtl_text("در حال خواندن فایل Excel…")
+        self.status.text=rtl_text("در حال خواندن فایل Excel و ثبت گروهی…")
         def work():
             try:
                 from openpyxl import load_workbook
@@ -1230,10 +1288,44 @@ class ModuleWorkspaceScreen(Screen):
                         self.app_state.api.table_insert(table,payload,return_representation=False)
                         inserted+=1
                 wb.close()
+                try:
+                    Path(path).unlink(missing_ok=True)
+                except Exception:
+                    pass
                 Clock.schedule_once(lambda *_: self._excel_done(f"{inserted} رکورد از Excel وارد شد."),0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self.write_error("ورودی Excel انجام نشد: "+str(exc)),0)
+
         Thread(target=work,daemon=True).start()
+
+    def import_excel(self):
+        table=str(self.table or "").strip()
+        if not table:
+            return
+        # On Android, let the system file picker grant access to the selected
+        # document. This works with Android 10+ scoped storage and does not
+        # depend on direct /storage/emulated/0/Download access.
+        try:
+            from kivy.utils import platform
+            if platform == "android" and self._pick_excel_android():
+                self.status.text=rtl_text("فایل Excel را انتخاب کنید…")
+                return
+        except Exception as exc:
+            print("EXCEL PICKER FALLBACK:", repr(exc))
+
+        path=self._excel_path()
+        if not path.is_file():
+            template=path.with_name(path.stem+"_template.xlsx")
+            if template.is_file():
+                path=template
+            else:
+                self.message(
+                    "ورودی Excel",
+                    f"برای ثبت گروهی، فایل Excel را انتخاب کنید.\n"
+                    f"در نسخه دسکتاپ مسیر پیش‌فرض: {path.name}"
+                )
+                return
+        self._import_excel_path(path)
 
     def _excel_done(self,message):
         self.status.text=rtl_text(message)
