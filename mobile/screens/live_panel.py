@@ -9,7 +9,7 @@ from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 
 from mobile.config import APP_NAME, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
-from mobile.ui import font_name, rtl_text
+from mobile.ui import font_name, rtl_text, fa_display
 from mobile.services.live_data import LiveSchoolData
 
 TITLES = {
@@ -62,7 +62,7 @@ class LivePanelScreen(Screen):
     def _build(self):
         root = BoxLayout(orientation="vertical", padding=dp(14), spacing=dp(9))
         header = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(54), spacing=dp(8))
-        back = Button(text=rtl_text("‹ داشبورد"), font_name=font_name(), font_size="14sp", background_normal="", background_color=PRIMARY, color=WHITE, size_hint_x=None, width=dp(100))
+        back = Button(text=fa_display("‹ داشبورد"), font_name=font_name(), font_size="14sp", background_normal="", background_color=PRIMARY, color=WHITE, size_hint_x=None, width=dp(100))
         back.bind(on_release=lambda *_: self._back())
         header.add_widget(back)
         self.title = Label(text=rtl_text(APP_NAME), font_name=font_name(), font_size="21sp", bold=True, color=PRIMARY, halign="right", valign="middle")
