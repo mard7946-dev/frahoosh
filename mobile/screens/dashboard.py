@@ -501,7 +501,7 @@ class DashboardScreen(Screen):
             common = {
                 "گزارش عملکرد": "ai_smart_reports",
                 "پرداخت آنلاین": "payment",
-                "کلاس آنلاین": "online_classes",
+                "کلاس آنلاین": "online",
                 "بانک سؤال": "teacher_exams",
                 "هدایت تحصیلی": "counseling_followups",
                 "گزارش‌های آموزشی": "ai_smart_reports",
