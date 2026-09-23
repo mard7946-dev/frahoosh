@@ -139,10 +139,10 @@ class MeetingWorkflowScreen(BaseWorkflow):
         except Exception: rows=[]
         for r in rows:
             root.add_widget(self.lab(f"#{r.get('id')} | {r.get('requester_name') or r.get('requester_username')} → {r.get('target_name')} | {r.get('requested_date')} {r.get('requested_time')} | {r.get('status')}",52))
-            if role=="manager" and r.get("status") in {"pending_responsible","responsible_approved"}: root.add_widget(self.btn("تأیید نهایی مدیر",lambda *_a,row=r:self.final(row),SUCCESS))
-            elif role!="manager" and r.get("status")=="pending_responsible": root.add_widget(self.btn("تأیید مسئول مربوط",lambda *_a,row=r:self.responsible(row),PRIMARY))
+            if role=="manager" and r.get("status") in {"pending_manager","responsible_approved"}: root.add_widget(self.btn("تأیید نهایی مدیر",lambda *_a,row=r:self.final(row),SUCCESS))
+            elif role!="manager" and r.get("status")=="pending_manager": root.add_widget(self.btn("تأیید مسئول مربوط",lambda *_a,row=r:self.responsible(row),PRIMARY))
     def responsible(self,row):
-        try:self.api().table_update("meeting_requests",{"id":f"eq.{row['id']}"},{"status":"responsible_approved"}); self.build()
+        try:self.api().table_update("meeting_requests",{"id":f"eq.{row['id']}"},{"status":"responsible_approved","responsible_status":"approved"}); self.build()
         except Exception: pass
     def final(self,row):
         try:self.api().table_update("meeting_requests",{"id":f"eq.{row['id']}"},{"status":"approved"}); self.build()
