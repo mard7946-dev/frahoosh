@@ -12,7 +12,7 @@ from kivy.uix.scrollview import ScrollView
 from mobile.config import APP_NAME, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text, fa_display
 
-MANAGERS={"manager","educational","executive","teacher"}
+MANAGERS={"manager","educational","executive","cultural","advisor","teacher"}
 
 
 def role_of(state):
@@ -30,12 +30,12 @@ def role_of(state):
     ]
     raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
     return {
-        "admin":"manager","administrator":"manager","principal":"manager","manager":"manager",
+        "admin":"manager","administrator":"manager","principal":"manager","manager":"manager","management":"manager","school_management":"manager",
         "مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager",
-        "معاون آموزشی":"educational","educational":"educational",
-        "معاون اجرایی":"executive","اجرایی":"executive","executive":"executive",
-        "معاون پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural",
-        "مشاور":"advisor","مشاوره":"advisor","counselor":"advisor","advisor":"advisor",
+        "معاون آموزشی":"educational","educational":"educational","educational_deputy":"educational",
+        "معاون اجرایی":"executive","اجرایی":"executive","executive":"executive","executive_deputy":"executive",
+        "معاون پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural","cultural_deputy":"cultural",
+        "مشاور":"advisor","مشاوره":"advisor","counselor":"advisor","counseling":"advisor","advisor":"advisor",
         "دبیر":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher",
         "دانش‌آموز":"student","دانش آموز":"student","student":"student",
         "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parents":"parent",
@@ -47,18 +47,18 @@ class OnlineClassScreen(Screen):
         super().__init__(**kwargs); self.app_state=app_state; self.current_id=None; self.selected_class=None; self.mic=True; self.camera=True; self._build()
     def _build(self):
         root=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(7)); head=BoxLayout(size_hint_y=None,height=dp(52),spacing=dp(7))
-        back=Button(text=rtl_text("‹ داشبورد"),font_name=font_name(),background_normal="",background_color=PRIMARY,color=WHITE,size_hint_x=None,width=dp(100)); back.bind(on_release=lambda *_:self._back()); head.add_widget(back)
-        self.title=Label(text=rtl_text("کلاس‌های آنلاین"),font_name=font_name(),font_size="20sp",bold=True,color=PRIMARY,halign="right",valign="middle"); self.title.bind(size=lambda o,v:setattr(o,"text_size",v)); head.add_widget(self.title); root.add_widget(head)
+        back=Button(text=fa_display("‹ داشبورد"),font_name=font_name(),background_normal="",background_color=PRIMARY,color=WHITE,size_hint_x=None,width=dp(100)); back.bind(on_release=lambda *_:self._back()); head.add_widget(back)
+        self.title=Label(text=fa_display("کلاس‌های آنلاین"),font_name=font_name(),font_size="20sp",bold=True,color=PRIMARY,halign="right",valign="middle"); self.title.bind(size=lambda o,v:setattr(o,"text_size",v)); head.add_widget(self.title); root.add_widget(head)
         self.status=Label(text="",font_name=font_name(),font_size="11sp",color=SECONDARY,halign="center",valign="middle",size_hint_y=None,height=dp(38)); self.status.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(self.status)
         scroll=ScrollView(do_scroll_x=False); self.body=BoxLayout(orientation="vertical",spacing=dp(8),padding=dp(4),size_hint_y=None); self.body.bind(minimum_height=self.body.setter("height")); scroll.add_widget(self.body); root.add_widget(scroll); self.add_widget(root)
     def on_pre_enter(self,*args): self.show_home()
     def _clear(self): self.body.clear_widgets(); self.current_id=None; self.selected_class=None
     def _label(self,text,size="13sp",color=SECONDARY,height=58,bold=False):
-        w=Label(text=rtl_text(text),font_name=font_name(),font_size=size,color=color,bold=bold,halign="right",valign="middle",size_hint_y=None,height=dp(height)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); self.body.add_widget(w); return w
+        w=Label(text=fa_display(text),font_name=font_name(),font_size=size,color=color,bold=bold,halign="right",valign="middle",size_hint_y=None,height=dp(height)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); self.body.add_widget(w); return w
     def _button(self,text,cb,color=PRIMARY,height=46):
         b=Button(text=fa_display(text),font_name=font_name(),font_size="13sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=dp(height)); b.bind(on_release=cb); self.body.add_widget(b); return b
     def _field(self,hint,height=48,multiline=False):
-        f=TextInput(hint_text=rtl_text(hint),font_name=font_name(),font_size="13sp",multiline=multiline,size_hint_y=None,height=dp(height),halign="right",padding=[dp(10),dp(10)]); self.body.add_widget(f); return f
+        f=TextInput(hint_text=fa_display(hint),font_name=font_name(),font_size="13sp",multiline=multiline,size_hint_y=None,height=dp(height),halign="right",padding=[dp(10),dp(10)]); self.body.add_widget(f); return f
     def show_home(self):
         self._clear(); role=role_of(self.app_state); self._label("کلاس آنلاین واقعی","21sp",PRIMARY,52,True); self._label("ساخت کلاس، شروع/پایان جلسه، حضور و غیاب، گفت‌وگو، تخته مشترک، کنترل دوربین/میکروفون و اطلاع غیبت به ولی در همین پنل ثبت می‌شود.",height=82)
         if role in MANAGERS:self._create_form()
