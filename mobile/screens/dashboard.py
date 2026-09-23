@@ -129,13 +129,17 @@ class PanelCard(BoxLayout):
         self.bind(pos=self._sync, size=self._sync)
         self.add_widget(PanelIcon(route or "about"))
         self.add_widget(Label(text=rtl_text(title),font_name=font_name(),font_size="17sp",color=WHITE,bold=True,
-                              halign="center",valign="middle",size_hint_y=None,height=dp(52)))
+                              halign="center",valign="middle",size_hint_y=None,height=dp(52),
+                              text_language="fa",base_direction="rtl"))
         self.add_widget(Label(text=rtl_text(f"پنل {index} از {total}"),font_name=font_name(),font_size="10sp",color=(0.55,0.85,1,1),
-                              halign="center",valign="middle",size_hint_y=None,height=dp(26)))
+                              halign="center",valign="middle",size_hint_y=None,height=dp(26),
+                              text_language="fa",base_direction="rtl"))
         self.add_widget(Label(text=rtl_text(desc),font_name=font_name(),font_size="9sp",color=WHITE,
-                              halign="center",valign="middle"))
+                              halign="center",valign="middle",
+                              text_language="fa",base_direction="rtl"))
         b=Button(text=rtl_text("ورود به پنل"),font_name=font_name(),font_size="14sp",background_normal="",
-                 background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(50))
+                 background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(50),
+                 text_language="fa",base_direction="rtl")
         b.bind(on_release=enter)
         self.add_widget(b)
     def _sync(self,*_):
@@ -238,9 +242,11 @@ class PanelHubScreen(Screen):
                 card_bg=RoundedRectangle(radius=[dp(14)])
             card.bind(pos=lambda o,v,bg=card_bg:setattr(bg,"pos",v),size=lambda o,v,bg=card_bg:setattr(bg,"size",v))
             card.add_widget(Label(text=rtl_text(label),font_name=font_name(),font_size="13sp",bold=True,color=WHITE,
-                                  halign="center",valign="middle",size_hint_y=None,height=dp(34)))
+                                  halign="center",valign="middle",size_hint_y=None,height=dp(34),
+                                  text_language="fa",base_direction="rtl"))
             card.add_widget(Label(text=rtl_text(self._module_purpose(label,route)),font_name=font_name(),font_size="8sp",
-                                  color=(0.75,0.9,1,1),halign="center",valign="middle"))
+                                  color=(0.75,0.9,1,1),halign="center",valign="middle",
+                                  text_language="fa",base_direction="rtl"))
             actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(4))
             # Every mother module has one operational entry point.  Excel/PDF
             # is an export/import utility, not the module itself, and showing it
@@ -248,7 +254,8 @@ class PanelHubScreen(Screen):
             # page being mistaken for the real module workspace.
             enter=Button(text=rtl_text("ورود به جدول تخصصی و عملیات"),
                          font_name=font_name(),font_size="10sp",
-                         background_normal="",background_color=SUCCESS,color=WHITE)
+                         background_normal="",background_color=SUCCESS,color=WHITE,
+                         text_language="fa",base_direction="rtl")
             enter.bind(on_release=lambda *_a,r=route:self._open(r))
             actions.add_widget(enter); card.add_widget(actions)
             self.grid.add_widget(card)
