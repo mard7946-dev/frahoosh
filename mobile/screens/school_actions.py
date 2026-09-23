@@ -10,7 +10,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.spinner import Spinner
 from kivy.uix.scrollview import ScrollView
 
-from mobile.ui import font_name, rtl_text
+from mobile.ui import font_name, rtl_text, fa_display
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 
 
@@ -45,14 +45,14 @@ class _Base(Screen):
         self._build()
 
     def label(self, text, size="12sp", color=SECONDARY, height=42, bold=False):
-        w = Label(text=rtl_text(str(text)), font_name=font_name(), font_script_name="Arab", text_language="fa", font_size=size,
+        w = Label(text=fa_display(str(text)), font_name=font_name(), font_size=size,
                   color=color, bold=bold, halign="right", valign="middle",
                   size_hint_y=None, height=dp(height))
         w.bind(size=lambda o, v: setattr(o, "text_size", v))
         return w
 
     def button(self, text, cb, color=PRIMARY, height=44):
-        b = Button(text=rtl_text(text), font_name=font_name(), font_size="12sp",
+        b = Button(text=fa_display(text), font_name=font_name(), font_size="12sp",
                    background_normal="", background_color=color, color=WHITE,
                    size_hint_y=None, height=dp(height))
         b.bind(on_release=cb)
