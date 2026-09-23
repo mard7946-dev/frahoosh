@@ -238,21 +238,19 @@ class PanelHubScreen(Screen):
                 Color(0.03,0.14,0.25,0.96)
                 card_bg=RoundedRectangle(radius=[dp(14)])
             card.bind(pos=lambda o,v,bg=card_bg:setattr(bg,"pos",v),size=lambda o,v,bg=card_bg:setattr(bg,"size",v))
-            card.add_widget(Label(text=rtl_text(label),font_name=font_name(),font_size="13sp",bold=True,color=WHITE,
-                                  halign="center",valign="middle",size_hint_y=None,height=dp(34),
-                                  text_language="fa",base_direction="rtl"))
-            card.add_widget(Label(text=rtl_text(self._module_purpose(label,route)),font_name=font_name(),font_size="8sp",
-                                  color=(0.75,0.9,1,1),halign="center",valign="middle",
-                                  text_language="fa",base_direction="rtl"))
+            card.add_widget(Label(text=fa_display(label),font_name=font_name(),font_size="13sp",bold=True,color=WHITE,
+                                  halign="center",valign="middle",size_hint_y=None,height=dp(34)))
+            card.add_widget(Label(text=fa_display(self._module_purpose(label,route)),font_name=font_name(),font_size="8sp",
+                                  color=(0.75,0.9,1,1),halign="center",valign="middle"))
             actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(4))
             # Every mother module has one operational entry point.  Excel/PDF
             # is an export/import utility, not the module itself, and showing it
             # beside every module was the source of the generic "ورودی و خروجی"
             # page being mistaken for the real module workspace.
-            enter=Button(text=rtl_text("ورود به جدول تخصصی و عملیات"),
+            enter=Button(text=fa_display("ورود به جدول تخصصی و عملیات"),
                          font_name=font_name(),font_size="10sp",
                          background_normal="",background_color=SUCCESS,color=WHITE,
-                         text_language="fa",base_direction="rtl")
+                         halign="center",valign="middle")
             enter.bind(on_release=lambda *_a,r=route:self._open(r))
             actions.add_widget(enter); card.add_widget(actions)
             self.grid.add_widget(card)
