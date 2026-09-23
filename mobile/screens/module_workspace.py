@@ -779,18 +779,29 @@ class ModuleWorkspaceScreen(Screen):
         # Some sessions populate app_state.profile but leave app_state.role empty;
         # that previously downgraded a real manager to the student/read-only path.
         profile = getattr(self.app_state, "profile", {}) or {}
+        user = getattr(self.app_state, "user", {}) or {}
+        metadata = user.get("user_metadata", {}) if isinstance(user, dict) else {}
         candidates = [
             profile.get("role"),
             profile.get("user_role"),
             profile.get("school_role"),
+            metadata.get("role"),
+            metadata.get("user_role"),
+            metadata.get("school_role"),
             getattr(self.app_state, "role", None),
-            profile.get("user_role"),
-            profile.get("school_role"),
             profile.get("user_type"),
             profile.get("account_type"),
             profile.get("permissions", {}).get("role") if isinstance(profile.get("permissions"), dict) else None,
         ]
-        raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
+        raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "")
+        # Normalize common Arabic/Persian spelling variants and invisible separators
+        raw = raw.replace("\u200c", " ").replace("\u200f", "").replace("ي", "ی").replace("ك", "ک")
+        raw = " ".join(raw.split())
+        if not raw:
+            # An authenticated account with no explicit role must not be silently
+            # downgraded to student/read-only in the internal school workspace.
+            token = str(getattr(getattr(self.app_state, "api", None), "access_token", "") or "")
+            raw = "staff" if token else "student"
         return {
             "admin":"manager","administrator":"manager","principal":"manager","manager":"manager","management":"manager","school_management":"manager",
             "مدیریت":"manager","مدیریت مدرسه":"manager",
