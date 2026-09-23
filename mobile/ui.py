@@ -1,4 +1,5 @@
 from pathlib import Path
+import unicodedata
 
 from kivy.core.text import LabelBase
 from kivy.graphics import Color, RoundedRectangle, Line
@@ -99,7 +100,7 @@ def bundled_login_background():
 
 def rtl_text(value):
 
-    text = str(value or "")
+    text = unicodedata.normalize("NFKC", str(value or ""))
 
 
     text = text.replace(
@@ -158,7 +159,7 @@ class PersianTextInput(TextInput):
     """
     def __init__(self, **kwargs):
         register_fonts()
-        self.logical_text = str(kwargs.get("text", "") or "")
+        self.logical_text = unicodedata.normalize("NFKC", str(kwargs.get("text", "") or ""))
         self._shaping = False
         kwargs.setdefault("font_name", font_name())
         kwargs.setdefault("halign", "right")
@@ -171,7 +172,7 @@ class PersianTextInput(TextInput):
 
     def _capture_text(self, *_):
         if not self._shaping:
-            self.logical_text = str(self.text or "")
+            self.logical_text = unicodedata.normalize("NFKC", str(self.text or ""))
 
     def _focus_changed(self, _widget, focused):
         if self._shaping:
@@ -196,7 +197,7 @@ class PersianTextInput(TextInput):
         else:
             # Keep the logical Persian string unchanged. Kivy shapes it at
             # render time; storing presentation forms corrupts CRUD payloads.
-            self.logical_text = str(self.text or "")
+            self.logical_text = unicodedata.normalize("NFKC", str(self.text or ""))
 
     def get_logical_text(self):
         return str(self.logical_text if self.logical_text is not None else self.text or "")
