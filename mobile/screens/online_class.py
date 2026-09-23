@@ -318,7 +318,7 @@ class OnlineClassScreen(Screen):
             self._error("ورود به جلسه انجام نشد: "+str(exc))
     def _toggle_mic(self):self.mic=not self.mic; self.show_home()
     def _toggle_camera(self):self.camera=not self.camera; self.show_home()
-    def _ok(self,text):self.status.color=SUCCESS;self.status.text=rtl_text(text)
+    def _ok(self,text):self.status.color=SUCCESS;self.status.text=fa_display(text)
     def _error(self,text):self.status.color=ERROR;self.status.text=rtl_text(text)
     def _back(self):
         if self.manager:self.manager.current="dashboard"
