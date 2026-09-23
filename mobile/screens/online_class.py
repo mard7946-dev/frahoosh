@@ -12,7 +12,7 @@ from kivy.uix.scrollview import ScrollView
 from mobile.config import APP_NAME, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text, fa_display
 
-MANAGERS={"manager","educational","executive","cultural","advisor","teacher"}
+MANAGERS={"manager","educational","executive","cultural","advisor","teacher","staff","counselor"}
 
 
 def role_of(state):
@@ -32,10 +32,10 @@ def role_of(state):
     return {
         "admin":"manager","administrator":"manager","principal":"manager","manager":"manager","management":"manager","school_management":"manager",
         "مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager",
-        "معاون آموزشی":"educational","educational":"educational","educational_deputy":"educational",
-        "معاون اجرایی":"executive","اجرایی":"executive","executive":"executive","executive_deputy":"executive",
-        "معاون پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural","cultural_deputy":"cultural",
-        "مشاور":"advisor","مشاوره":"advisor","counselor":"advisor","counseling":"advisor","advisor":"advisor",
+        "معاون آموزشی":"educational","معاونت آموزشی":"educational","educational":"educational","educational_deputy":"educational",
+        "معاون اجرایی":"executive","معاونت اجرایی":"executive","اجرایی":"executive","executive":"executive","executive_deputy":"executive","کادر اجرایی":"executive",
+        "معاون پرورشی":"cultural","معاونت پرورشی":"cultural","پرورشی":"cultural","cultural":"cultural","cultural_deputy":"cultural","کادر پرورشی":"cultural",
+        "مشاور":"advisor","مشاوره":"advisor","counselor":"counselor","counseling":"counselor","advisor":"advisor",
         "دبیر":"teacher","معلم":"teacher","teacher":"teacher","teachers":"teacher",
         "دانش‌آموز":"student","دانش آموز":"student","student":"student",
         "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parents":"parent",
