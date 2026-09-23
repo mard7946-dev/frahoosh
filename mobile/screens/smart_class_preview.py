@@ -39,7 +39,7 @@ class SmartClassPreviewScreen(Screen):
         self.return_to = "dashboard"
 
     def label(self, text, size="10sp", color=SECONDARY, height=34, bold=False, center=False):
-        w = Label(text=rtl_text(str(text)), font_name=font_name(), font_script_name="Arab", text_language="fa", font_size=size,
+        w = Label(text=fa_display(str(text)), font_name=font_name(), font_size=size,
                   color=color, bold=bold,
                   halign="center" if center else "right", valign="middle",
                   size_hint_y=None, height=dp(height), padding=[dp(4), dp(2)])
@@ -47,10 +47,10 @@ class SmartClassPreviewScreen(Screen):
         return w
 
     def btn(self, text, callback, color=PRIMARY, height=40):
-        b = Button(text=rtl_text(text), font_name=font_name(), font_size="9sp",
+        b = Button(text=fa_display(text), font_name=font_name(), font_size="9sp",
                    background_normal="", background_color=color, color=WHITE,
                    size_hint_y=None, height=dp(height))
-        b.bind(on_release=callback)
+        b.bind(on_press=callback)
         return b
 
     def on_pre_enter(self, *_):
@@ -167,7 +167,7 @@ class SmartClassPreviewScreen(Screen):
         students = bundle.get("students") or []
         teachers = bundle.get("teachers") or []
         attendance = bundle.get("attendance") or []
-        self.live_count.text = rtl_text(f"{len(teachers)+len(students)} شرکت‌کننده • {len(attendance)} حضور آنلاین")
+        self.live_count.text = fa_display(f"{len(teachers)+len(students)} شرکت‌کننده • {len(attendance)} حضور آنلاین")
         self.participants_area.clear_widgets()
         for row in teachers:
             name=str(row.get("teacher_name") or "دبیر کلاس")
@@ -183,7 +183,7 @@ class SmartClassPreviewScreen(Screen):
 
     def set_status(self, text, color=SUCCESS):
         try:
-            self.status.text = rtl_text(text)
+            self.status.text = fa_display(text)
             self.status.color = color
         except Exception:
             pass
@@ -192,7 +192,7 @@ class SmartClassPreviewScreen(Screen):
         self.set_status("ابزار انتخاب شد؛ آماده قرار دادن محتوا روی تخته است.", SUCCESS)
 
     def toggle(self, button):
-        button.text = rtl_text("✓ " + button.text)
+        button.text = fa_display("✓ " + button.text)
         self.set_status("کنترل کلاس تغییر کرد.", SUCCESS)
 
     def chat(self, *_):
