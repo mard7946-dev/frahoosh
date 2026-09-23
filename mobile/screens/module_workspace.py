@@ -1634,8 +1634,8 @@ class ModuleWorkspaceScreen(Screen):
             if existing and all(ch in "□�▯" for ch in existing.strip()):
                 existing = ""
             if f in spinner_values:
-                values = tuple(fa_display(v) for v in spinner_values[f])
-                selected = fa_display(existing) if existing and existing in spinner_values[f] else values[0]
+                values = tuple(spinner_values[f])
+                selected = existing if existing and existing in spinner_values[f] else values[0]
                 ti = PersianSpinner(
                     text=selected,
                     values=values,
