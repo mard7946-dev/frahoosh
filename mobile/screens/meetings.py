@@ -9,15 +9,15 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import Spinner
 
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
-from mobile.ui import font_name, rtl_text
+from mobile.ui import font_name, rtl_text, fa_display
 
 
 def role_of(state):
-    raw = str(getattr(state, "role", "student") or "student").strip().lower()
+    profile = getattr(state, "profile", {}) or {}\n    candidates = [getattr(state, "role", None), profile.get("role"), profile.get("user_role"), profile.get("school_role"), profile.get("user_type"), profile.get("account_type")]\n    raw = next((str(v).strip().lower() for v in candidates if str(v or "").strip()), "student")
     return {
-        "admin": "manager", "administrator": "manager", "مدیر": "manager", "مدیریت": "manager",
-        "معاون آموزشی": "educational", "educational": "educational",
-        "دبیر": "teacher", "teacher": "teacher",
+        "admin": "manager", "administrator": "manager", "principal": "manager", "manager": "manager", "management": "manager", "school_management": "manager", "مدیر": "manager", "مدیریت": "manager",
+        "معاون آموزشی": "educational", "educational": "educational", "educational_deputy": "educational",
+        "معاون اجرایی": "executive", "executive": "executive", "executive_deputy": "executive", "معاون پرورشی": "cultural", "cultural": "cultural", "cultural_deputy": "cultural", "دبیر": "teacher", "teacher": "teacher",
         "کادر": "staff", "staff": "staff",
         "مشاور": "counselor", "مشاوره": "counselor", "counselor": "counselor",
         "ولی": "parent", "اولیا": "parent", "parent": "parent",
@@ -37,21 +37,21 @@ class MeetingsScreen(Screen):
         self._build()
 
     def _label(self, text, size="12sp", color=SECONDARY, height=42, bold=False, center=False):
-        w = Label(text=rtl_text(text), font_name=font_name(), font_size=size, color=color,
+        w = Label(text=fa_display(text), font_name=font_name(), font_size=size, color=color,
                   bold=bold, halign="center" if center else "right", valign="middle",
                   size_hint_y=None, height=dp(height))
         w.bind(size=lambda o, v: setattr(o, "text_size", v))
         return w
 
     def _button(self, text, cb, color=PRIMARY, height=44):
-        b = Button(text=rtl_text(text), font_name=font_name(), font_size="11sp",
+        b = Button(text=fa_display(text), font_name=font_name(), font_size="11sp",
                    background_normal="", background_color=color, color=WHITE,
                    size_hint_y=None, height=dp(height))
         b.bind(on_release=cb)
         return b
 
     def _field(self, hint, height=46):
-        return TextInput(hint_text=rtl_text(hint), font_name=font_name(), font_size="12sp",
+        return TextInput(hint_text=fa_display(hint), font_name=font_name(), font_size="12sp",
                          halign="right", multiline=False, size_hint_y=None, height=dp(height),
                          padding=[dp(10), dp(8)])
 
