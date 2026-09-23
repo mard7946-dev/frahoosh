@@ -1067,13 +1067,30 @@ class ModuleWorkspaceScreen(Screen):
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
 
     def _excel_path(self):
+        # Android 10+ uses scoped storage.  Direct writes to the public Download
+        # directory can fail even when the directory exists, so verify a real
+        # write first and fall back to the app's persistent files directory.
         table=str(self.table or "table")
+        filename="frahoosh_"+table+".xlsx"
         try:
             download=Path("/storage/emulated/0/Download")
             download.mkdir(parents=True,exist_ok=True)
-            return download / ("frahoosh_"+table+".xlsx")
-        except Exception:
-            return Path(self.app_state.api.local.root if hasattr(getattr(self.app_state,"api",None),"local") else ".") / ("frahoosh_"+table+".xlsx")
+            probe=download/(".frahoosh_write_test_"+table)
+            probe.write_bytes(b"1")
+            probe.unlink(missing_ok=True)
+            return download/filename
+        except Exception as exc:
+            print("PUBLIC DOWNLOAD NOT WRITABLE:", repr(exc))
+            try:
+                app_dir=Path(getattr(self.app_state, "user_data_dir", "") or "")
+                if not str(app_dir):
+                    from kivy.app import App
+                    app=App.get_running_app()
+                    app_dir=Path(getattr(app, "user_data_dir", ".") or ".")
+                app_dir.mkdir(parents=True,exist_ok=True)
+                return app_dir/filename
+            except Exception:
+                return Path(".")/filename
 
     def export_excel(self):
         table=str(self.table or "").strip()
