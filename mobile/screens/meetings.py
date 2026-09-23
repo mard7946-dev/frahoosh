@@ -246,10 +246,7 @@ class MeetingsScreen(Screen):
             date=date.text, time=time.text, reason=reason.text, description=desc.text,
             requester_role="parent",
             student_id=srow.get("id"),
-            target_user_id=trow.get("id"),
             target_username=trow.get("username") or trow.get("email"),
-            parent_username=self._username(),
-            parent_name=self.app_state.display_name,
         )
 
     def _load_parents_for_student(self, student_id):
@@ -315,7 +312,7 @@ class MeetingsScreen(Screen):
         self._create(
             student_name=self._person_name(srow), target_name=str(parent.text),
             date=date.text, time=time.text, reason=reason.text, description=desc.text,
-            requester_role=role, student_id=srow.get("id"), parent_name=str(parent.text),
+            requester_role=role, student_id=srow.get("id"),
         )
 
     def _create(self, student_name, target_name, date, time, reason, description, requester_role, **extra):
@@ -325,7 +322,6 @@ class MeetingsScreen(Screen):
             "requester_username": self._username(),
             "requester_role": requester_role,
             "requester_name": getattr(self.app_state, "display_name", "کاربر"),
-            "student_name": str(student_name).strip(),
             "target_role": self.target_role if requester_role == "parent" else "parent",
             "target_name": str(target_name).strip(),
             "requested_date": str(date).strip(),
@@ -389,8 +385,7 @@ class MeetingsScreen(Screen):
         try:
             self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
                 "manager_status": "approved",
-                "manager_approved_at": "now()",
-                "status": "manager_approved",
+                    "status": "manager_approved",
             })
             self._message("درخواست تأیید و برای معاون آموزشی ارجاع شد.", SUCCESS)
         except Exception as exc:
@@ -399,9 +394,6 @@ class MeetingsScreen(Screen):
     def _educational_approve(self, rid, date, time):
         try:
             self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
-                "educational_status": "approved",
-                "final_date": date,
-                "final_time": time,
                 "status": "confirmed",
             })
             self._message("ملاقات نهایی شد و برای طرفین قابل پیگیری است.", SUCCESS)
