@@ -87,9 +87,9 @@ class OnlineClassScreen(Screen):
         self._create_form()
         self._button("بازگشت به فهرست کلاس‌ها",lambda *_:self.show_home(),SECONDARY,46)
     def _create_form(self):
-        title=self._field("عنوان کلاس"); subject=self._field("درس / موضوع"); teacher=self._field("نام دبیر"); grade=self._field("پایه"); cls=self._field("نام کلاس"); duration=self._field("مدت به دقیقه"); duration.text="60"; join=self._field("لینک جلسه واقعی؛ اختیاری")
-        self._button("＋ ساخت کلاس",lambda *_:self._create(title,subject,teacher,grade,cls,duration,join),SUCCESS)
-    def _create(self,title,subject,teacher,grade,cls,duration,join):
+        title=self._field("عنوان کلاس"); subject=self._field("درس / موضوع"); teacher=self._field("نام دبیر"); grade=self._field("پایه"); cls=self._field("نام کلاس"); duration=self._field("مدت به دقیقه"); duration.text="60"; start=self._field("تاریخ و ساعت شروع؛ اختیاری (مثال 1405/07/01 10:00)"); end=self._field("تاریخ و ساعت پایان؛ اختیاری"); join=self._field("لینک جلسه واقعی؛ اختیاری")
+        self._button("＋ ساخت کلاس",lambda *_:self._create(title,subject,teacher,grade,cls,duration,start,end,join),SUCCESS)
+    def _create(self,title,subject,teacher,grade,cls,duration,start,end,join):
         try:d=max(1,int(duration.text.strip() or 60))
         except Exception:return self._error("مدت کلاس باید عدد باشد.")
         if not title.text.strip():return self._error("عنوان کلاس الزامی است.")
@@ -101,7 +101,7 @@ class OnlineClassScreen(Screen):
                 import secrets
                 slug="frahoosh-"+str(cls.text.strip() or "class").replace(" ","-")+"-"+secrets.token_hex(5)
                 join_url="https://meet.jit.si/"+slug
-            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":d,"status":"inactive","join_url":join_url,"meeting_url":join_url}); self._ok("کلاس ثبت شد و لینک جلسه واقعی ساخته شد."); self.show_home()
+            self.app_state.api.table_insert("online_classes",{"title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),"teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),"duration":d,"start_time_shamsi":start.text.strip(),"end_time_shamsi":end.text.strip(),"status":"inactive","join_url":join_url,"meeting_url":join_url}); self._ok("کلاس ثبت شد و لینک جلسه واقعی ساخته شد."); self.show_home()
         except Exception as exc:self._error("ساخت کلاس انجام نشد: "+str(exc))
     def _load_classes(self):
         try:rows=self.app_state.api.table_select("online_classes",{"order":"id.desc","limit":"50"})
@@ -137,18 +137,21 @@ class OnlineClassScreen(Screen):
         grade=self._field("پایه"); grade.text=str(row.get("grade") or "")
         cls=self._field("نام کلاس"); cls.text=str(row.get("class_name") or "")
         duration=self._field("مدت به دقیقه"); duration.text=str(row.get("duration") or 60)
+        start=self._field("تاریخ و ساعت شروع؛ اختیاری"); start.text=str(row.get("start_time_shamsi") or "")
+        end=self._field("تاریخ و ساعت پایان؛ اختیاری"); end.text=str(row.get("end_time_shamsi") or "")
         join=self._field("لینک جلسه واقعی؛ اختیاری"); join.text=str(row.get("join_url") or row.get("meeting_url") or "")
-        self._button("ذخیره ویرایش",lambda *_:self._save_class_edit(row.get("id"),title,subject,teacher,grade,cls,duration,join),SUCCESS)
+        self._button("ذخیره ویرایش",lambda *_:self._save_class_edit(row.get("id"),title,subject,teacher,grade,cls,duration,start,end,join),SUCCESS)
         self._button("بازگشت",lambda *_:self.show_home())
 
-    def _save_class_edit(self,cid,title,subject,teacher,grade,cls,duration,join):
+    def _save_class_edit(self,cid,title,subject,teacher,grade,cls,duration,start,end,join):
         try:
             d=max(1,int(duration.text.strip() or 60))
             if not title.text.strip(): return self._error("عنوان کلاس الزامی است.")
             self.app_state.api.table_update("online_classes",{"id":f"eq.{cid}"},{
                 "title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),
                 "teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),
-                "duration":d,"join_url":join.text.strip(),"meeting_url":join.text.strip()
+                "duration":d,"start_time_shamsi":start.text.strip(),"end_time_shamsi":end.text.strip(),
+                "join_url":join.text.strip(),"meeting_url":join.text.strip()
             })
             self._ok("کلاس با موفقیت ویرایش شد."); self.show_home()
         except Exception as exc:
