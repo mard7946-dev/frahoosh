@@ -416,7 +416,7 @@ class PanelHubScreen(Screen):
                 print("DASHBOARD NOTIFICATION POLL START ERROR:",repr(exc))
 
 class DashboardScreen(Screen):
-    """Mobile dashboard: animated swipeable panels inside a half-screen frame over the agreed artwork."""
+    """Mobile dashboard: static, professional multi-column panel hub. No swipe/carousel animation is used."""
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
         self.app_state=app_state
@@ -447,7 +447,7 @@ class DashboardScreen(Screen):
         root.add_widget(self.role_text)
         root.add_widget(self.parent_alert)
         scroll=ScrollView(do_scroll_x=False,do_scroll_y=True)
-        self.grid=GridLayout(cols=2,spacing=dp(7),padding=dp(3),size_hint_y=None)
+        self.grid=GridLayout(cols=2,spacing=dp(8),padding=dp(4),size_hint_y=None)
         self.grid.bind(minimum_height=self.grid.setter("height"))
         scroll.add_widget(self.grid)
         root.add_widget(scroll)
