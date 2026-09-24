@@ -162,8 +162,8 @@ PANEL_HUBS = [
     ("صندوق پیام","messages"),
 ]
 
-STUDENT_ALLOWED_PANELS = {key for _, key in PANEL_HUBS if key != "finance"}
-PARENT_ALLOWED_PANELS = {key for _, key in PANEL_HUBS if key not in {"finance","online","teacher_exams"}}
+STUDENT_ALLOWED_PANELS = {"students"}
+PARENT_ALLOWED_PANELS = {"parents"}
 
 PANEL_MODULE_SOURCE = {
     "management":"management", "educational":"educational", "executive":"executive",
