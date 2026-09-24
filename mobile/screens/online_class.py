@@ -149,7 +149,20 @@ class OnlineClassScreen(Screen):
             if not rows or not rows[0].get("id"):
                 return self._error("پاسخ ثبت کلاس از Supabase معتبر نبود؛ کلاس ذخیره نشد.")
             created=rows[0]
-            self._ok("کلاس با موفقیت ثبت شد. کد کلاس: "+str(created.get("id")))
+            class_id=int(created.get("id"))
+            # Persist the real teacher relationship, not only the typed teacher name.
+            teacher_name=(teacher.text or "").strip()
+            if teacher_name:
+                teachers=api.table_select("teachers",{"limit":"500"}) or []
+                match=next((t for t in teachers if str(t.get("email") or "").strip().lower()==teacher_name.lower()
+                            or f"{t.get('first_name','')} {t.get('last_name','')}".strip()==teacher_name
+                            or str(t.get("first_name") or "").strip()==teacher_name),None)
+                if match and match.get("id"):
+                    api.table_insert("online_class_teachers",{
+                        "class_id":class_id,"teacher_id":int(match["id"]),
+                        "teacher_name":f"{match.get('first_name','')} {match.get('last_name','')}".strip() or teacher_name
+                    },return_representation=False)
+            self._ok("کلاس با موفقیت ثبت شد و ارتباط دبیر در سامانه ذخیره شد. کد کلاس: "+str(class_id))
             self.show_home()
         except Exception as exc:
             self._error("ثبت کلاس در Supabase انجام نشد: "+str(exc))
