@@ -396,11 +396,11 @@ class PanelHubScreen(Screen):
                 self.role_text.text=rtl_text("پنل‌ها در حال آماده‌سازی هستند...")
             except Exception:
                 pass
-        if self.role()=="parent":
+        if self.role() in {"parent","student","teacher","manager","educational","executive","cultural","advisor","counselor"}:
             try:
                 self._start_parent_poll()
             except Exception as exc:
-                print("DASHBOARD PARENT POLL START ERROR:",repr(exc))
+                print("DASHBOARD NOTIFICATION POLL START ERROR:",repr(exc))
 
 class DashboardScreen(Screen):
     """Mobile dashboard: animated swipeable panels inside a half-screen frame over the agreed artwork."""
@@ -673,7 +673,7 @@ class DashboardScreen(Screen):
         Clock.schedule_once(self._poll_parent_notifications, 0)
 
     def _poll_parent_notifications(self, *_):
-        if self._parent_poll_busy or self.app_state is None or self.role() != "parent":
+        if self._parent_poll_busy or self.app_state is None:
             return
         self._parent_poll_busy=True
         def worker():
@@ -686,7 +686,7 @@ class DashboardScreen(Screen):
                     latest=events[0]
                     title=latest.get("title","اعلان جدید")
                     count=len(events)
-                    msg=f"{title} • {count} مورد جدید"
+                    msg=f"صندوق پیام • {title} • {count} مورد جدید"
                 else:
                     total=sum(len(feed.get(k,[])) for k in ("attendance","discipline","grades","activities","messages"))
                     msg=f"اعلان‌های لحظه‌ای فعال • {total} رویداد مدرسه"
@@ -722,7 +722,7 @@ class DashboardScreen(Screen):
                 if ids:
                     self._parent_seen.update(ids)
                     latest=events[0]
-                    msg=f'{latest.get("title","اعلان جدید")} • {len(events)} مورد جدید'
+                    msg=f'صندوق پیام • {latest.get("title","اعلان جدید")} • {len(events)} مورد جدید'
                 else:
                     total=sum(len(feed.get(k,[])) for k in ("attendance","discipline","grades","activities","messages"))
                     msg=f"اعلان‌های لحظه‌ای فعال • {total} رویداد مدرسه"
