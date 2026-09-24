@@ -199,11 +199,18 @@ class PanelHubScreen(Screen):
         # Dedicated creation actions for the two first-class teaching workspaces.
         # Keep them visible at the top of their panel, before the module list.
         if self.panel_key == "online":
-            create=Button(text=fa_display("＋ تشکیل کلاس جدید"),font_name=font_name(),font_size="14sp",
-                           background_normal="",background_color=SUCCESS,color=WHITE,
-                           size_hint_y=None,height=dp(52))
-            create.bind(on_release=lambda *_: self._open_online_create())
-            root.add_widget(create)
+            active_role = str(getattr(self.app_state, "role", "") or "").strip().lower()
+            active_role = {
+                "admin":"manager","administrator":"manager","management":"manager",
+                "معاون آموزشی":"educational","educational_deputy":"educational",
+                "معاون اجرایی":"executive","executive_deputy":"executive",
+            }.get(active_role, active_role)
+            if active_role in {"manager","educational","executive"}:
+                create=Button(text=fa_display("＋ تشکیل کلاس جدید"),font_name=font_name(),font_size="14sp",
+                               background_normal="",background_color=SUCCESS,color=WHITE,
+                               size_hint_y=None,height=dp(52))
+                create.bind(on_release=lambda *_: self._open_online_create())
+                root.add_widget(create)
         elif self.panel_key == "teacher_exams":
             create=Button(text=fa_display("＋ ساخت آزمون جدید"),font_name=font_name(),font_size="14sp",
                            background_normal="",background_color=SUCCESS,color=WHITE,
