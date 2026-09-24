@@ -418,150 +418,22 @@
     ],
     "students": [
       [
-        "پروفایل",
-        "students"
-      ],
-      [
-        "پایه و کلاس",
-        "student_class_info"
-      ],
-      [
-        "حضور و غیاب",
-        "attendance"
-      ],
-      [
-        "نمرات",
-        "student_grades"
-      ],
-      [
         "تکالیف",
-        "assignments"
+        "assignment_submissions"
       ],
       [
         "صندوق پیام",
         "messages"
-      ],
-      [
-        "مسابقات و فعالیت‌ها",
-        "activity_registrations"
-      ],
-      [
-        "انتخابات شورای دانش‌آموزی",
-        "student_council"
-      ],
-      [
-        "بسیج دانش‌آموزی",
-        "basij_registration"
-      ],
-      [
-        "همیار مدرسه",
-        "school_ally"
-      ],
-      [
-        "شهردار مدرسه",
-        "school_mayor"
-      ],
-      [
-        "ارسال تکالیف",
-        "assignment_submissions"
-      ],
-      [
-        "برنامه هفتگی",
-        "weekly_schedule"
-      ],
-      [
-        "برنامه امتحانی",
-        "exam_schedule"
-      ],
-      [
-        "شماره صندلی کلاسی",
-        "class_seat_assignments"
-      ],
-      [
-        "شماره صندلی امتحانی",
-        "exam_seat_assignments"
-      ],
-      [
-        "درخواست گواهی",
-        "certificate_requests"
-      ],
-      [
-        "کلاس آنلاین",
-        "online_classes"
-      ],
-      [
-        "پرداخت آنلاین",
-        "payment_offers"
       ]
     ],
     "parents": [
       [
-        "انتخاب یک یا چند دانش‌آموز",
-        "parent_children"
-      ],
-      [
-        "اطلاعات دانش‌آموز",
-        "students"
-      ],
-      [
-        "نمرات کلاسی و امتحانی",
-        "student_grades"
-      ],
-      [
-        "حضور و غیاب",
-        "attendance"
-      ],
-      [
-        "کارنامه ماهیانه",
-        "monthly_report_cards"
-      ],
-      [
-        "کارنامه مستمر و پایان ترم",
-        "report_cards"
-      ],
-      [
-        "وضعیت انضباطی",
-        "discipline_records"
-      ],
-      [
-        "عملکرد",
-        "ai_smart_reports"
-      ],
-      [
-        "صندوق پیام",
-        "messages"
-      ],
-      [
-        "درخواست ملاقات",
-        "parent_meeting_requests"
-      ],
-      [
-        "نظرسنجی",
-        "survey_responses"
-      ],
-      [
-        "برنامه هفتگی",
-        "weekly_schedule"
-      ],
-      [
-        "برنامه امتحانات",
-        "exam_schedule"
-      ],
-      [
-        "پرداخت‌های ثبت‌شده",
-        "payment_records"
-      ],
-      [
         "پرداخت آنلاین",
         "payment_offers"
       ],
       [
-        "سرویس مدرسه",
-        "transport_requests"
-      ],
-      [
-        "فعالیت‌های اولیا",
-        "parent_activities"
+        "صندوق پیام",
+        "messages"
       ]
     ],
     "finance": [
