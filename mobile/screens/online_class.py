@@ -310,22 +310,6 @@ class OnlineClassScreen(Screen):
                 self.app_state.api.table_insert("online_class_teachers",{"class_id":cid,"teacher_id":tid,"teacher_name":name})
             self._ok("دبیر به کلاس متصل شد."); self._members(cid)
         except Exception as exc:self._error("اتصال دبیر انجام نشد: "+str(exc))
-    def _save_teacher(self,cid,tid,name):
-        if not tid.text.strip() or not name.text.strip():
-            return self._error("شناسه و نام دبیر الزامی است.")
-        try:
-            existing=self.app_state.api.table_select("online_class_teachers",{
-                "class_id":f"eq.{cid}","teacher_id":f"eq.{tid.text.strip()}","limit":"1"
-            }) or []
-            if not existing:
-                self.app_state.api.table_insert("online_class_teachers",{
-                    "class_id":cid,"teacher_id":int(tid.text.strip()),"teacher_name":name.text.strip()
-                })
-            self._ok("دبیر به کلاس متصل شد.")
-            self.show_home()
-        except Exception as exc:
-            self._error("اتصال دبیر انجام نشد: "+str(exc))
-
     def _members(self,cid):
         self._clear()
         self._label("اعضای کلاس #"+str(cid),"21sp",PRIMARY,50,True)
