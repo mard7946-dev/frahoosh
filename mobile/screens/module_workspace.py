@@ -434,6 +434,23 @@ for _role_key in tuple(EDITABLE):
     EDITABLE[_role_key] = _expanded
 EDITABLE.setdefault("manager", set()).update(_MOTHER_TABLE_ALIASES.values())
 
+# Consumer-role write policy: these modules are intentionally view-only.
+# The UI may open the real table and export its data, but create/update/delete/import
+# controls are guarded and the Supabase RLS remains the final authorization boundary.
+READ_ONLY = {
+    "parent": {
+        "students", "student_grades", "attendance", "monthly_report_cards",
+        "report_cards", "discipline_records", "ai_smart_reports", "messages",
+        "weekly_schedule", "exam_schedule", "payment_records"
+    },
+    "student": {
+        "students", "student_class_info", "attendance", "student_grades",
+        "assignments", "messages", "weekly_schedule", "exam_schedule",
+        "class_seat_assignments", "exam_seat_assignments", "online_classes",
+        "school_ally", "school_mayor"
+    },
+}
+
 # Every operational panel receives the same CRUD/Excel/PDF toolbar.
 # The backend/RLS remains the final security boundary; this client-side map
 # guarantees that the actions are visible for every module in the five
@@ -890,18 +907,15 @@ class ModuleWorkspaceScreen(Screen):
         # stale/partial module permission set hide CRUD controls from the manager.
         if role in {"manager","educational","executive","cultural","advisor","teacher","staff","counselor"}:
             return True
-        # The Android panel catalog is the school's internal workspace.
-        # Unknown-but-authenticated staff roles must not get a decorative
-        # module with dead CRUD controls. Students/parents remain read-only.
+        # Consumer roles are explicitly read-only except for the small set of
+        # workflows declared in EDITABLE (meeting/payment/selection/etc.).
+        # This keeps informational modules useful without exposing edit/delete UI.
+        if role in {"student", "parent"}:
+            return resolved not in READ_ONLY.get(role, set()) and resolved in EDITABLE.get(role, set())
+        # Staff panels are never decorative: their backend roles control access.
         if role not in {"student", "parent"}:
             return True
-        # Staff panels are never rendered for ordinary students/parents. If a
-        # legacy session reaches one with an unrecognized role label, keep its
-        # operational controls available; Supabase remains the backend gate.
-        panel_routes = {"management", "executive", "educational", "cultural", "advisor"}
-        if str(getattr(self, "route", "") or "") in panel_routes:
-            return True
-        return resolved in EDITABLE.get(role,set())
+        return False
 
     def set_module(self,route,return_to="dashboard"):
         self._ensure_built()
@@ -1286,10 +1300,8 @@ class ModuleWorkspaceScreen(Screen):
         bar=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(82),spacing=dp(4))
         row1=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
         row2=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
-        # Keep the controls tappable even when a role is read-only.  A disabled
-        # Android button looks like a dead UI and hides the real permission reason.
-        # The guard below gives an explicit message while the backend remains the
-        # final security boundary.
+        # Keep read-only modules clearly usable: they remain visible and exportable,
+        # while write actions explain the permission instead of silently failing.
         def _guard_write(action):
             def _run(*_args):
                 if not self.can_write(table):
@@ -1297,13 +1309,13 @@ class ModuleWorkspaceScreen(Screen):
                     return
                 action()
             return _run
-        create_btn=self.btn("ساخت / ثبت جدید",_guard_write(lambda: self.editor(table,None)),SUCCESS,dp(38))
-        edit_btn=self.btn("ویرایش",_guard_write(self._edit_selected_row),PRIMARY,dp(38))
-        delete_btn=self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1),dp(38))
+        create_btn=self.btn("ثبت جدید",_guard_write(lambda: self.editor(table,None)),SUCCESS if can_write else (0.22,.32,.40,1),dp(38))
+        edit_btn=self.btn("ویرایش",_guard_write(self._edit_selected_row),PRIMARY if can_write else (0.22,.32,.40,1),dp(38))
+        delete_btn=self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1) if can_write else (0.22,.32,.40,1),dp(38))
         row1.add_widget(create_btn); row1.add_widget(edit_btn); row1.add_widget(delete_btn)
         row1.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
         row2.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
-        import_btn=self.btn("ورودی Excel / ثبت گروهی",_guard_write(self.import_excel),(0.42,.30,.62,1),dp(38))
+        import_btn=self.btn("ورودی Excel / ثبت گروهی",_guard_write(self.import_excel),(0.42,.30,.62,1) if can_write else (0.22,.32,.40,1),dp(38))
         row2.add_widget(import_btn)
         row2.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
         bar.add_widget(row1); bar.add_widget(row2)
