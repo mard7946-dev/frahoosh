@@ -42,6 +42,8 @@ MOTHER_PANEL_CATALOG = {
     "parent": {"title":"اولیا","items":[["انتخاب دانش‌آموز","parent_children"],["اطلاعات دانش‌آموز","students"],["کارنامه و نمرات","student_grades"],["حضور و غیاب","attendance"],["تکالیف و فعالیت‌های آموزشی","assignments"],["پیام‌ها و اطلاعیه‌ها","messages"],["برنامه هفتگی و امتحانات","weekly_schedule"],["جلسات با دبیران","meeting_requests"],["پرداخت‌ها و امور مالی","payment_records"],["پرداخت آنلاین","payment"],["فعالیت‌های فرهنگی و پرورشی","cultural_activity_registrations"]]},
     "finance": {"title":"مالی","items":[["پرداخت‌ها","payment_records"],["تراکنش‌ها","finance_transactions"],["حساب‌ها","finance_accounts"],["گزارش مالی","reports"],["تنظیمات پرداخت آنلاین","payment_offers"]]},
     "smart_board": {"title":"تابلو هوشمند","items":[["تخته آموزشی","smart_board_whiteboards"],["فایل‌ها","smart_board_content"],["تصاویر و ویدئوها","smart_board_media"],["ابزارهای تعاملی","smart_board_activities"]]},
+    "online": {"title":"کلاس آنلاین","items":[["کلاس‌های آنلاین","online_classes"],["جلسات","online_class_sessions"],["دانش‌آموزان کلاس","online_class_students"],["دبیران کلاس","online_class_teachers"],["حضور آنلاین","online_attendance"],["تخته کلاس","smart_board_whiteboards"]]},
+    "teacher_exams": {"title":"آزمون آنلاین","items":[["آزمون‌های آنلاین","teacher_exams"],["بانک سؤال","quiz_questions"],["زمان‌بندی آزمون","exam_schedule"]]},
     "ai": {"title":"هوش مصنوعی","items":[["دستیار هوشمند","ai_assistant_sessions"],["تحلیل آموزشی","ai_smart_reports"],["گزارش هوشمند","ai_smart_reports"],["پرسش و پاسخ","ai_questions"]]},
     "settings": {"title":"تنظیمات","items":[["تنظیمات حساب","account_settings"],["تنظیمات مدرسه","school_profile"],["پشتیبان‌گیری","account_settings"]]}
 }
@@ -331,7 +333,7 @@ class PanelHubScreen(Screen):
                     if route == "certificate_requests":
                         target=app.ensure_certificate_workflow()
                     elif route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
-                        target=app.ensure_meeting_workflow()
+                        target=app.ensure_meetings()
                     elif route in {"online_classes","virtual"}:
                         target=app.ensure_online_workflow()
                     elif route in {"teacher_exams","exams","questions","quiz_questions"}:
