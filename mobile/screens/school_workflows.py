@@ -355,7 +355,7 @@ class PanelIOWorkflowScreen(BaseWorkflow):
     def build(self):
         self.clear_widgets(); root=BoxLayout(orientation="vertical",padding=dp(9),spacing=dp(6)); root.add_widget(self.lab(f"ورودی و خروجی اطلاعات • {self.panel_key}",48,"19sp",PRIMARY,True)); root.add_widget(self.lab("خروجی Excel/PDF از داده زنده و ورود Excel به جدول انتخاب‌شده.",48))
         self.path=self.field("برای ورود Excel مسیر فایل را وارد کنید"); self.table=self.field("نام جدول مقصد مثل students")
-        root.add_widget(self.path); root.add_widget(self.table); root.add_widget(self.btn("خروجی Excel کل پنل",self.excel,SUCCESS)); root.add_widget(self.btn("خروجی PDF کل پنل",self.pdf,PRIMARY)); root.add_widget(self.btn("ورود Excel",self.imp,SECONDARY)); root.add_widget(self.btn("بازگشت",self.back,SECONDARY)); self.status=self.lab("",55); root.add_widget(self.status); self.add_widget(root)
+        root.add_widget(self.path); root.add_widget(self.table); root.add_widget(self.btn("خروجی اکسل کل پنل",self.excel,SUCCESS)); root.add_widget(self.btn("خروجی پی‌دی‌اف کل پنل",self.pdf,PRIMARY)); root.add_widget(self.btn("ورود اکسل",self.imp,SECONDARY)); root.add_widget(self.btn("بازگشت",self.back,SECONDARY)); self.status=self.lab("",55); root.add_widget(self.status); self.add_widget(root)
     def modules(self):
         try:
             from mobile.screens.dashboard import MOTHER_PANEL_CATALOG
@@ -373,8 +373,8 @@ class PanelIOWorkflowScreen(BaseWorkflow):
                 for j,k in enumerate(fields,1):ws.cell(1,j,k)
                 for i,row in enumerate(rows,2):
                     for j,k in enumerate(fields,1):ws.cell(i,j,str(row.get(k,"")))
-            wb.save(path); self.status.text = fa_display("Excel: "+str(path))
-        except Exception as e:self.status.text = fa_display("Excel ناموفق: "+str(e))
+            wb.save(path); self.status.text = fa_display("فایل اکسل ساخته شد: "+str(path))
+        except Exception as e:self.status.text = fa_display("ساخت فایل اکسل ناموفق بود: "+str(e))
     def pdf(self,*_):
         from reportlab.lib.pagesizes import A4,landscape
         from reportlab.pdfgen import canvas
@@ -387,8 +387,8 @@ class PanelIOWorkflowScreen(BaseWorkflow):
                 for row in rows[:20]:
                     if y<25:c.showPage();y=h-30
                     c.drawString(45,y,str(row)[:150]); y-=10
-            c.save(); self.status.text = fa_display("PDF: "+str(path))
-        except Exception as e:self.status.text = fa_display("PDF ناموفق: "+str(e))
+            c.save(); self.status.text = fa_display("فایل پی‌دی‌اف ساخته شد: "+str(path))
+        except Exception as e:self.status.text = fa_display("ساخت فایل پی‌دی‌اف ناموفق بود: "+str(e))
     def imp(self,*_):
         try:
             from mobile.services.export_service import import_excel
@@ -397,4 +397,4 @@ class PanelIOWorkflowScreen(BaseWorkflow):
                 try:self.api().table_insert(table,row); count+=1
                 except Exception: pass
             self.status.text = fa_display(f"{count} ردیف وارد شد.")
-        except Exception as e:self.status.text = fa_display("ورود Excel ناموفق: "+str(e))
+        except Exception as e:self.status.text = fa_display("ورود اکسل ناموفق بود: "+str(e))
