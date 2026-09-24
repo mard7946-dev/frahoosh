@@ -409,8 +409,8 @@ class MeetingsScreen(Screen):
         )
 
     def _create(self, student_name, target_name, title, day, date, time, reason, description, requester_role, **extra):
-        if not all(str(x or "").strip() for x in [student_name, target_name, title, date, time]):
-            return self._message("عنوان، مخاطب، تاریخ و ساعت ملاقات الزامی است.", ERROR)
+        if not all(str(x or "").strip() for x in [student_name, target_name, title, day, date, time, reason]):
+            return self._message("عنوان، مخاطب، روز، تاریخ، ساعت و علت ملاقات الزامی است.", ERROR)
         payload = {
             "requester_username": self._username(),
             "requester_role": requester_role,
