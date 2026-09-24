@@ -7,6 +7,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
+from kivy.uix.spinner import Spinner
 from kivy.uix.scrollview import ScrollView
 
 from mobile.config import APP_NAME, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
@@ -14,6 +15,7 @@ from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 
 MANAGERS={"manager","educational","executive"}
 CLASS_CREATORS={"manager","educational","executive"}
+CLASS_MANAGERS={"manager","educational","executive"}
 
 
 def role_of(state):
@@ -153,13 +155,14 @@ class OnlineClassScreen(Screen):
         for r in rows:
             cid=r.get("id"); state=str(r.get("status") or "inactive")
             self._label(f"#{cid} | {r.get('title') or 'کلاس آنلاین'}\n{r.get('subject','')} | پایه {r.get('grade','')} | کلاس {r.get('class_name','')} | دبیر {r.get('teacher','')}\nوضعیت: {'فعال' if state=='active' else ('پایان‌یافته' if state=='ended' else 'غیرفعال')}",height=92,bold=True)
-            if role_of(self.app_state) in MANAGERS:
+            if role_of(self.app_state) in CLASS_MANAGERS:
                 self._button("✎ ویرایش کلاس",lambda *_ ,row=dict(r):self._edit_class(row),PRIMARY)
                 self._button("حذف کلاس",lambda *_ ,x=cid:self._delete_class(x),ERROR)
                 self._button("خروجی اکسل کلاس‌ها",lambda *_:self._export_excel(),PRIMARY)
                 self._button("ورودی اکسل کلاس‌ها",lambda *_:self._import_excel(),PRIMARY)
                 self._button("＋ اتصال دانش‌آموز به کلاس",lambda *_ ,x=cid:self._add_student(x),SUCCESS)
                 self._button("＋ اتصال دبیر به کلاس",lambda *_ ,x=cid:self._add_teacher(x),SUCCESS)
+                self._button("اعضای کلاس",lambda *_ ,x=cid:self._members(x),PRIMARY)
                 if state!="active": self._button("▶ شروع جلسه",lambda *_ ,x=cid:self._start(x),SUCCESS)
                 if state=="active": self._button("■ پایان جلسه",lambda *_ ,x=cid:self._end(x),ERROR)
                 self._button("حضور و غیاب",lambda *_ ,x=cid:self._attendance(x),PRIMARY)
@@ -303,6 +306,34 @@ class OnlineClassScreen(Screen):
         except Exception as exc:
             self._error("اتصال دبیر انجام نشد: "+str(exc))
 
+    def _members(self,cid):
+        self._clear()
+        self._label("اعضای کلاس #"+str(cid),"21sp",PRIMARY,50,True)
+        try:
+            teachers=self.app_state.api.table_select("online_class_teachers",{"class_id":f"eq.{cid}","limit":"100"}) or []
+            students=self.app_state.api.table_select("online_class_students",{"class_id":f"eq.{cid}","limit":"200"}) or []
+        except Exception as exc:
+            return self._error("خواندن اعضای کلاس انجام نشد: "+str(exc))
+        self._label("دبیران متصل","15sp",SUCCESS,35,True)
+        if not teachers:self._label("هنوز دبیری متصل نشده است.",38)
+        for row in teachers:
+            self._label(str(row.get("teacher_id"))+" | "+str(row.get("teacher_name") or "-"),"10sp",SECONDARY,40,True)
+            self._button("حذف اتصال دبیر",lambda *_a,r=dict(row):self._delete_member("online_class_teachers",r),ERROR,38)
+        self._label("دانش‌آموزان متصل","15sp",SUCCESS,35,True)
+        if not students:self._label("هنوز دانش‌آموزی متصل نشده است.",38)
+        for row in students:
+            self._label(str(row.get("student_id"))+" | "+str(row.get("student_name") or "-"),"10sp",SECONDARY,40,True)
+            self._button("حذف اتصال دانش‌آموز",lambda *_a,r=dict(row):self._delete_member("online_class_students",r),ERROR,38)
+        self._button("＋ اتصال دانش‌آموز",lambda *_:self._add_student(cid),SUCCESS,42)
+        self._button("＋ اتصال دبیر",lambda *_:self._add_teacher(cid),SUCCESS,42)
+        self._button("بازگشت به کلاس‌ها",lambda *_:self.show_home(),SECONDARY,42)
+
+    def _delete_member(self,table,row):
+        try:
+            self.app_state.api.table_delete(table,{"id":f"eq.{row.get("id")}"})
+            self._members(row.get("class_id"))
+        except Exception as exc:
+            self._error("حذف اتصال انجام نشد: "+str(exc))
     def _start(self,cid):
         try:self.app_state.api.table_insert("online_class_sessions",{"class_id":cid,"started_at":datetime.now(timezone.utc).isoformat()}); self.app_state.api.table_update("online_classes",{"id":f"eq.{cid}"},{"status":"active"}); self._ok("جلسه شروع شد و در سامانه ثبت گردید."); self.show_home()
         except Exception as exc:self._error("شروع جلسه انجام نشد: "+str(exc))
