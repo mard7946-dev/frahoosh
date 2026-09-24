@@ -227,6 +227,59 @@ class MeetingsScreen(Screen):
             student, target_name, title, day, date, time, reason, desc), SUCCESS, 48)
         form.add_widget(submit)
         root.add_widget(self._scroll(form))
+        self._my_requests(root)
+
+    def _my_requests(self, root):
+        api=getattr(self.app_state,"api",None)
+        if api is None:return
+        try:
+            rows=api.table_select("meeting_requests",{"requester_username":"eq."+self._username(),"order":"id.desc","limit":"50"}) or []
+        except Exception as exc:
+            root.add_widget(self._label("خواندن درخواست‌های قبلی انجام نشد: "+str(exc),color=ERROR,height=50)); return
+        root.add_widget(self._label("درخواست‌های ثبت‌شده من","15sp",PRIMARY,38,True,True))
+        if not rows:
+            root.add_widget(self._label("هنوز درخواست ملاقاتی ثبت نشده است.",height=45,center=True)); return
+        for row in rows:
+            box=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(145),spacing=dp(3))
+            summary="#"+str(row.get("id"))+" | "+str(row.get("title") or "ملاقات")+" | "+str(row.get("target_name") or "-")+"\n"+str(row.get("requested_day") or "-")+" | "+str(row.get("requested_date") or "-")+" | "+str(row.get("requested_time") or "-")+"\nموضوع: "+str(row.get("reason") or "-")+" | وضعیت: "+self._status_text(row.get("status"))
+            box.add_widget(self._label(summary,"10sp",SECONDARY,82,True))
+            actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5))
+            if row.get("status") in {"pending_manager","manager_approved"}:
+                actions.add_widget(self._button("ویرایش",lambda *_a,r=dict(row):self._edit_request(r),PRIMARY,40))
+            if row.get("status") in {"pending_manager","rejected"}:
+                actions.add_widget(self._button("حذف",lambda *_a,r=dict(row):self._delete_request(r),ERROR,40))
+            box.add_widget(actions); root.add_widget(box)
+
+    def _edit_request(self,row):
+        self.clear_widgets()
+        root=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(7))
+        root.add_widget(self._label("ویرایش درخواست ملاقات","20sp",PRIMARY,48,True,True))
+        form=BoxLayout(orientation="vertical",spacing=dp(6),size_hint_y=None); form.bind(minimum_height=form.setter("height"))
+        title=self._field("عنوان ملاقات"); title.text=str(row.get("title") or "")
+        day=self._spinner("روز هفته",["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"]); day.text=fa_display(str(row.get("requested_day") or "شنبه"))
+        date=self._field("تاریخ ملاقات"); date.text=str(row.get("requested_date") or "")
+        time=self._field("ساعت ملاقات"); time.text=str(row.get("requested_time") or "")
+        reason=self._field("علت ملاقات"); reason.text=str(row.get("reason") or "")
+        desc=self._field("توضیحات تکمیلی",72); desc.multiline=True; desc.text=str(row.get("description") or "")
+        for w in [title,day,date,time,reason,desc]: form.add_widget(w)
+        form.add_widget(self._button("ذخیره ویرایش",lambda *_:self._save_edit(row.get("id"),title,day,date,time,reason,desc),SUCCESS,48))
+        form.add_widget(self._button("حذف درخواست",lambda *_:self._delete_request(row),ERROR,44))
+        form.add_widget(self._button("بازگشت",self.show_home,SECONDARY,44))
+        root.add_widget(self._scroll(form)); self.add_widget(root)
+
+    def _save_edit(self,rid,title,day,date,time,reason,desc):
+        if not all(str(x.text or "").strip() for x in [title,date,time,reason]):
+            return self._message("عنوان، تاریخ، ساعت و موضوع الزامی است.",ERROR)
+        try:
+            self.app_state.api.table_update("meeting_requests",{"id":"eq."+str(rid),"requester_username":"eq."+self._username()},{"title":title.text.strip(),"requested_day":str(day.text).strip(),"requested_date":date.text.strip(),"requested_time":time.text.strip(),"reason":reason.text.strip(),"description":desc.text.strip(),"status":"pending_manager","manager_status":"pending"})
+            self._message("درخواست ویرایش و دوباره برای بررسی مدیر ارسال شد.",SUCCESS)
+        except Exception as exc:self._message("ویرایش انجام نشد: "+str(exc),ERROR)
+
+    def _delete_request(self,row):
+        try:
+            self.app_state.api.table_delete("meeting_requests",{"id":"eq."+str(row.get("id")),"requester_username":"eq."+self._username()})
+            self._message("درخواست ملاقات حذف شد.",SUCCESS)
+        except Exception as exc:self._message("حذف انجام نشد: "+str(exc),ERROR)
 
     def _person_name(self, row):
         display = row.get("display_name") or row.get("full_name")
@@ -330,6 +383,7 @@ class MeetingsScreen(Screen):
         form.add_widget(self._button("ثبت درخواست ملاقات با اولیا", lambda *_: self._create_staff(
             student, parent, title, day, date, time, reason, desc, role), SUCCESS, 48))
         root.add_widget(self._scroll(form))
+        self._my_requests(root)
 
     def _create_staff(self, student, parent, title, day, date, time, reason, desc, role):
         srow = self._selected_student(student)
