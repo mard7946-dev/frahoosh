@@ -300,6 +300,7 @@ class MeetingsScreen(Screen):
             student.text = fa_display(student_labels[0])
             refresh_parents(student, student_labels[0])
 
+        day = self._spinner("روز هفته", ["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"])
         date = self._field("تاریخ ملاقات")
         time = self._field("ساعت ملاقات")
         reason = self._field("علت ملاقات")
