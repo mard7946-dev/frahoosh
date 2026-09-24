@@ -117,24 +117,26 @@ class MessageComposeScreen(Screen):
     def _fetch_targets(self):
         api = self._api()
         users = api.table_select("users", {"limit": "500"}) or []
-        allowed_roles = {
-            "manager", "admin", "مدیر", "مدیریت",
-            "educational", "معاون آموزشی",
-            "executive", "معاون اجرایی",
-            "cultural", "معاون پرورشی",
-            "advisor", "counselor", "مشاور",
-            "teacher", "دبیر", "معلم",
-            "student", "دانش‌آموز", "دانش آموز",
-            "parent", "parents", "ولی", "اولیا", "والد"
+        role_targets = {
+            "student": {"teacher", "educational", "executive", "cultural", "advisor", "counselor", "manager", "admin", "administrator", "management"},
+            "parent": {"teacher", "educational", "executive", "cultural", "advisor", "counselor", "manager", "admin", "administrator", "management", "student"},
+            "teacher": {"student", "parent", "educational", "executive", "cultural", "advisor", "counselor", "manager", "admin", "administrator", "management"},
+            "manager": {"student", "parent", "teacher", "educational", "executive", "cultural", "advisor", "counselor"},
         }
         current_role = self._role()
+        allowed_roles = role_targets.get(current_role, {
+            "manager", "admin", "administrator", "management",
+            "educational", "executive", "cultural",
+            "advisor", "counselor", "teacher", "student", "parent"
+        })
+        allowed_roles = {str(x).lower() for x in allowed_roles}
         result = []
         seen = set()
         for row in users:
             role = str(row.get("role") or "").strip()
             username = str(row.get("username") or "").strip()
             name = str(row.get("display_name") or "").strip()
-            if role.lower() not in {x.lower() for x in allowed_roles} or not username:
+            if role.lower() not in allowed_roles or not username:
                 continue
             if username == self._username() or username in seen:
                 continue
