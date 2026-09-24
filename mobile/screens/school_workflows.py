@@ -12,6 +12,10 @@ from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, SCHOOL_NAME, SCHOOL_YEAR
 
 def role_of(state):
+    active_panel=str(getattr(state,"panel_role","") or "").strip().lower()
+    aliases={"management":"manager","teachers":"teacher","teacher_panel":"teacher","teacher_dashboard":"teacher","دبیران":"teacher","کادر و دبیران":"teacher","educational_panel":"educational","executive_panel":"executive"}
+    if active_panel:
+        return aliases.get(active_panel,active_panel)
     profile=getattr(state,"profile",{}) or {}
     candidates=[profile.get("role"),profile.get("user_role"),profile.get("school_role"),profile.get("user_type"),profile.get("account_type"),getattr(state,"role",None)]
     raw=next((str(v).strip().lower() for v in candidates if str(v or "").strip()),"student")
@@ -108,45 +112,56 @@ class CertificateWorkflowScreen(BaseWorkflow):
 
 class MeetingWorkflowScreen(BaseWorkflow):
     def on_pre_enter(self,*_): self.build()
+
     def build(self):
-        self.clear_widgets(); root=BoxLayout(orientation="vertical",padding=dp(10),spacing=dp(6)); root.add_widget(self.lab("تعیین وقت ملاقات",50,"21sp",PRIMARY,True))
+        self.clear_widgets()
+        root=BoxLayout(orientation="vertical",padding=dp(10),spacing=dp(6))
+        root.add_widget(self.lab("تعیین وقت ملاقات",50,"21sp",PRIMARY,True))
         role=role_of(self.app_state)
-        if role in {"parent","teacher","staff","counselor","educational","executive","cultural","manager"}: self.request(root)
-        if role in {"manager","educational","executive","cultural"}: self.review(root,role)
-        root.add_widget(self.lab("درخواست تا تأیید نهایی مدیر برای درخواست‌کننده و مخاطب نمایش داده نمی‌شود.",55)); root.add_widget(self.btn("بازگشت",self.back,SECONDARY)); self.add_widget(root)
+        if role in {"parent","teacher","staff","counselor","educational","executive","cultural","manager","student"}:
+            self.request(root)
+        if role in {"manager","educational","executive","cultural"}:
+            self.review(root,role)
+        root.add_widget(self.lab("درخواست پس از ثبت برای بررسی مسئول مربوط و تأیید نهایی مدیر ارسال می‌شود.",55))
+        root.add_widget(self.btn("بازگشت",self.back,SECONDARY))
+        self.add_widget(root)
+
     def request(self,root):
-        self.target=self.field("مخاطب مورد ملاقات"); self.reason=self.field("علت ملاقات"); self.date=self.field("روز ملاقات"); self.time=self.field("ساعت ملاقات")
-        for label,w in [("مخاطب",self.target),("علت",self.reason),("روز",self.date),("ساعت",self.time)]: root.add_widget(self.lab(label,28)); root.add_widget(w)
-        root.add_widget(self.btn("ثبت درخواست",self.create,SUCCESS))
+        self.target_role=self._spinner("نوع مخاطب",["دبیر","کادر اجرایی","مشاور","مدیریت","ولی"])
+        self.target=self.field("نام یا نام کاربری مخاطب")
+        self.reason=self.field("علت ملاقات")
+        self.day=self._spinner("روز هفته",["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"])
+        self.date=self.field("تاریخ ملاقات؛ مثال ۱۴۰۵/۰۷/۰۱")
+        self.time=self.field("ساعت ملاقات؛ مثال ۱۰:۳۰")
+        self.details=self.field("توضیحات تکمیلی",70); self.details.multiline=True
+        for label,w in [("مخاطب",self.target),("علت ملاقات",self.reason),("روز",self.day),("تاریخ",self.date),("ساعت",self.time),("توضیحات",self.details)]:
+            root.add_widget(self.lab(label,28)); root.add_widget(w)
+        root.add_widget(self.btn("ثبت درخواست ملاقات",self.create,SUCCESS))
+
     def create(self,*_):
-        if not all(x.text.strip() for x in [self.target,self.reason,self.date,self.time]): return
+        values=[self.target,self.reason,self.date,self.time]
+        if not all(x.text.strip() for x in values):
+            self.msg("مخاطب، علت، تاریخ و ساعت الزامی است.",ERROR); return
         role=role_of(self.app_state)
         profile=getattr(self.app_state,"profile",{}) or {}
         target=self.target.text.strip()
+        target_type=str(self.target_role.text).strip()
+        target_role={"دبیر":"teacher","کادر اجرایی":"staff","مشاور":"counselor","مدیریت":"manager","ولی":"parent"}.get(target_type,"teacher")
         p={"requester_username":self.username(),"requester_name":getattr(self.app_state,"display_name","کاربر") or "کاربر","requester_role":role,
-           "target_username":target,"target_name":target,
-           "target_role":"parent" if role in {"teacher","staff","counselor"} else "teacher",
+           "target_username":target,"target_name":target,"target_role":target_role,
            "student_id":profile.get("linked_student_id"),
            "teacher_id":profile.get("linked_teacher_id") or profile.get("teacher_id"),
            "parent_id":profile.get("linked_parent_id") or profile.get("parent_id"),
            "parent_phone":profile.get("phone") or "",
-           "requested_date":self.date.text.strip(),"requested_time":self.time.text.strip(),
-           "reason":self.reason.text.strip(),"status":"pending_manager","manager_status":"pending"}
-        try:self.api().table_insert("meeting_requests",p); self.msg("درخواست ثبت شد؛ پس از تأیید مسئول مربوط و مدیر قابل مشاهده است."); self.build()
-        except Exception as e:self.msg(str(e),ERROR)
-    def review(self,root,role):
-        try: rows=self.api().table_select("meeting_requests",{"order":"id.desc","limit":"100"}) or []
-        except Exception: rows=[]
-        for r in rows:
-            root.add_widget(self.lab(f"#{r.get('id')} | {r.get('requester_name') or r.get('requester_username')} → {r.get('target_name')} | {r.get('requested_date')} {r.get('requested_time')} | {r.get('status')}",52))
-            if role=="manager" and r.get("status") in {"pending_manager","responsible_approved"}: root.add_widget(self.btn("تأیید نهایی مدیر",lambda *_a,row=r:self.final(row),SUCCESS))
-            elif role!="manager" and r.get("status")=="pending_manager": root.add_widget(self.btn("تأیید مسئول مربوط",lambda *_a,row=r:self.responsible(row),PRIMARY))
-    def responsible(self,row):
-        try:self.api().table_update("meeting_requests",{"id":f"eq.{row['id']}"},{"status":"responsible_approved","responsible_status":"approved"}); self.build()
-        except Exception: pass
-    def final(self,row):
-        try:self.api().table_update("meeting_requests",{"id":f"eq.{row['id']}"},{"status":"approved"}); self.build()
-        except Exception: pass
+           "requested_day":str(self.day.text).strip(),"requested_date":self.date.text.strip(),
+           "requested_time":self.time.text.strip(),"reason":self.reason.text.strip(),
+           "description":self.details.text.strip(),"status":"pending_manager","manager_status":"pending"}
+        try:
+            self.api().table_insert("meeting_requests",p)
+            self.msg("درخواست ملاقات ثبت شد و برای بررسی مسئول مربوط و مدیر ارسال شد.")
+            self.build()
+        except Exception as e:
+            self.msg("ثبت درخواست ملاقات انجام نشد: "+str(e),ERROR)
 
 class OnlineClassWorkflowScreen(BaseWorkflow):
     """Operational online-class lifecycle shared by manager, deputies, teachers and students."""
