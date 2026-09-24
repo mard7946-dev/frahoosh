@@ -446,8 +446,15 @@ class TeacherExamsV4Screen(Screen):
             for w in [q,o1,o2,o3,o4,ans,pts]: pass
             self._question_editors.append((row.get("id"),q,o1,o2,o3,o4,ans,pts))
             self._button("ذخیره سؤال #"+str(row.get("id")),lambda *_a,rid=row.get("id"),q=q,o1=o1,o2=o2,o3=o3,o4=o4,ans=ans,pts=pts:self._save_question_edit(rid,q,o1,o2,o3,o4,ans,pts),SUCCESS,42)
+            self._button("حذف سؤال #"+str(row.get("id")),lambda *_a,rid=row.get("id"):self._delete_question_edit(rid),ERROR,40)
         self._button("بازگشت به آزمون‌ها",lambda *_:self._load_exams(),SECONDARY)
 
+    def _delete_question_edit(self,rid):
+        try:
+            self.app_state.api.table_delete("quiz_questions",{"id":"eq."+str(rid)})
+            self._ok("سؤال حذف شد.")
+            self._edit_questions(self._edit_exam_id)
+        except Exception as exc:self._error("حذف سؤال انجام نشد: "+str(exc))
     def _save_question_edit(self,rid,q,o1,o2,o3,o4,ans,pts):
         try:
             self.app_state.api.table_update("quiz_questions",{"id":"eq."+str(rid)},{
