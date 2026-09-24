@@ -128,7 +128,7 @@ _MOTHER_TABLE_ALIASES = {
     "referrals":"student_referrals","meetings":"meeting_requests","notifications":"school_events","exams":"teacher_exams","questions":"quiz_questions",
     "cultural_activities":"educational_activities","competitions":"competitions","educational_programs":"school_events","activity_registrations":"cultural_activity_registrations","cultural_reports":"cultural_reports",
     "counseling_records":"counseling_records","student_followup":"counseling_followups","academic_guidance":"counseling_followups","counseling_reports":"ai_smart_reports",
-    "classes":"teacher_classes","grades":"grades","teacher_activities":"teacher_activities","assignments":"assignments","lesson":"lesson_plans","student_profile":"students","activities":"activity_registrations","performance_report":"ai_smart_reports","weekly_schedule":"weekly_schedule","online_payment":"payment_offers",
+    "classes":"teacher_classes","grades":"grades","teacher_activities":"teacher_activities","assignments":"assignments","lesson":"lesson_plans","student_profile":"students","activities":"activity_registrations","performance_report":"ai_smart_reports","weekly_schedule":"weekly_schedule","online_payment":"payment_offers","payment":"payment_offers",
     "children":"parent_children","student_info":"students","educational_activities":"educational_activities","schedule_exams":"weekly_schedule","teacher_meetings":"teacher_meetings","payments_finance":"payment_records",
     "payments":"payment_records","transactions":"finance_transactions","accounts":"finance_accounts","financial_reports":"finance_transactions","payment_settings":"payment_offers",
     "whiteboard":"smart_board_whiteboards","files":"smart_board_files","media":"smart_board_media","interactive_tools":"smart_board_interactive_tools",
@@ -1048,6 +1048,21 @@ class ModuleWorkspaceScreen(Screen):
         w.bind(pos=lambda o,v:setattr(bg,"pos",v),size=lambda o,v:setattr(bg,"size",v))
 
     def open_table(self,table,refresh_subbar=True):
+        # Student and parent accounts are consumer/read-only roles. Their
+        # dashboard exposes only assignments/messages (student) and
+        # messages/online-payment (parent). Block legacy/deep links to staff
+        # workflows so they can never reach a staff CRUD screen.
+        role = self.role()
+        logical_table = str(table or "").strip()
+        if role in {"student", "parent"}:
+            allowed = (
+                {"assignments", "messages"} if role == "student"
+                else {"messages", "online_payment", "payment", "payment_offers"}
+            )
+            if logical_table not in allowed:
+                self.message("دسترسی محدود", "این بخش برای دانش‌آموز/ولی فعال نیست.")
+                return None
+
         # Student/parent messaging has a dedicated composer with a recipient
         # dropdown; do not downgrade it to a generic CRUD table.
         if table in ("online", "online_classes", "virtual", "online_class_sessions"):
@@ -1095,7 +1110,7 @@ class ModuleWorkspaceScreen(Screen):
             try:
                 from kivy.app import App
                 app = App.get_running_app()
-                screen = app.ensure_meeting_workflow() if app is not None else None
+                screen = app.ensure_meetings() if app is not None else None
                 if screen is None:
                     raise RuntimeError("محیط ملاقات‌ها آماده نشد.")
                 screen.return_to = "panel"
