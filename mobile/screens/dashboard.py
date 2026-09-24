@@ -669,7 +669,7 @@ class DashboardScreen(Screen):
 
     def _start_parent_poll(self):
         if self._parent_poll_event is None:
-            self._parent_poll_event = Clock.schedule_interval(self._poll_parent_notifications, 5.0)
+            self._parent_poll_event = Clock.schedule_interval(self._poll_parent_notifications, 2.0)
         Clock.schedule_once(self._poll_parent_notifications, 0)
 
     def _poll_parent_notifications(self, *_):
