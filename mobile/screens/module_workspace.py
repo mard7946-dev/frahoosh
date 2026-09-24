@@ -417,6 +417,9 @@ EDITABLE = {
     "finance": {
         "finance_accounts","finance_transactions","finance_donations","payment_offers","payment_attempts","payment_records"
     },
+    # Consumer roles have only the explicitly approved operational writes.
+    "student": {"assignment_submissions"},
+    "parent": {"payment_attempts"},
 }
 # Normalize write permissions to the canonical backend table ids used by the
 # mother contract.  Without this step an alias such as "virtual" would render
