@@ -203,7 +203,6 @@ class MeetingsScreen(Screen):
         refresh_targets(target_type, "دبیر")
 
         day = self._spinner("روز هفته", ["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"])
-        day = self._spinner("روز هفته", ["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"])
         date = self._field("تاریخ ملاقات")
         time = self._field("ساعت ملاقات")
         reason = self._field("علت ملاقات")
