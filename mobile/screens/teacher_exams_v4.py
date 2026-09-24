@@ -44,7 +44,7 @@ def role_of(state):
     # Respect the active panel when the workflow is opened from a role-specific dashboard.
     active_panel = str(getattr(state, "panel_role", "") or "").strip().lower()
     if active_panel:
-        normalized_panel = {"management":"manager","teachers":"teacher"}.get(active_panel, active_panel)
+        normalized_panel = {"management":"manager","teachers":"teacher","teacher_panel":"teacher","teacher_dashboard":"teacher","دبیران":"teacher","کادر و دبیران":"teacher"}.get(active_panel, active_panel)
         if normalized_panel in {"manager","educational","executive","cultural","advisor","teacher","staff","student","parent"}:
             return normalized_panel
     profile = getattr(state, "profile", {}) or {}
@@ -178,6 +178,12 @@ class TeacherExamsV4Screen(Screen):
             b.bind(on_release=lambda *_a,s=symbol:self._insert_formula(q,s))
             toolbar.add_widget(b)
         self.body.add_widget(toolbar)
+        paste_row=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(5))
+        paste_btn=Button(text=fa_display("چسباندن سؤال از حافظه گوشی"),font_name=font_name(),font_size="11sp",background_normal="",background_color=SECONDARY,color=WHITE)
+        replace_btn=Button(text=fa_display("جایگزینی متن با متن کپی‌شده"),font_name=font_name(),font_size="11sp",background_normal="",background_color=PRIMARY,color=WHITE)
+        paste_btn.bind(on_release=lambda *_:self._paste_question(q))
+        replace_btn.bind(on_release=lambda *_:self._replace_question(q))
+        paste_row.add_widget(paste_btn); paste_row.add_widget(replace_btn); self.body.add_widget(paste_row)
         difficulty=self._spinner("متوسط",["آسان","متوسط","سخت","چالشی"])
         cognitive=self._spinner("دانش",["دانش","درک","کاربرد","تحلیل","ارزیابی"])
         points=self._field("نمره سؤال"); points.text="1"
@@ -190,6 +196,35 @@ class TeacherExamsV4Screen(Screen):
         self._label("راهنما: برای تستی چهار گزینه را پر کنید؛ برای صحیح/غلط سیستم گزینه‌ها را تنظیم می‌کند؛ برای جای خالی و پاسخ کوتاه، پاسخ‌های پذیرفته‌شده را با | جدا کنید.","10sp",SECONDARY,54)
         self.body.add_widget(_SecurityNote("این سؤال بخشی از یک آزمون تشخیصی/ارزیابی است؛ لطفاً درباره پاسخ آن در هیچ چتی گفتگو نکنید."))
         typ.bind(text=lambda *_:self._body_refresh_question_visibility(self.questions[-1]))
+
+    @staticmethod
+    def _clipboard_text():
+        try:
+            return str(Clipboard.paste() or "").strip()
+        except Exception:
+            return ""
+
+    def _replace_question(self, field):
+        value=self._clipboard_text()
+        if not value:
+            return self._error("متنی در حافظه گوشی برای جایگزینی وجود ندارد.")
+        if hasattr(field, "set_logical_text"):
+            field.set_logical_text(value)
+        else:
+            field.text=value
+        self._ok("متن سؤال با متن کپی‌شده جایگزین شد.")
+
+    def _paste_question(self, field):
+        value=self._clipboard_text()
+        if not value:
+            return self._error("متنی در حافظه گوشی برای چسباندن وجود ندارد.")
+        current=self._value(field)
+        merged=(current+"\n"+value).strip() if current else value
+        if hasattr(field, "set_logical_text"):
+            field.set_logical_text(merged)
+        else:
+            field.text=merged
+        self._ok("متن سؤال از حافظه گوشی اضافه شد.")
 
     @staticmethod
     def _insert_formula(field, symbol):
