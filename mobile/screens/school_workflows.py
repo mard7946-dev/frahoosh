@@ -146,7 +146,7 @@ class MeetingWorkflowScreen(BaseWorkflow):
         self.date=self.field("تاریخ ملاقات؛ مثال ۱۴۰۵/۰۷/۰۱")
         self.time=self.field("ساعت ملاقات؛ مثال ۱۰:۳۰")
         self.reason=self.field("موضوع / علت ملاقات")
-        self.details=self.field("توضیحات تکمیلی",75,True)
+        self.details=self.field("توضیحات تکمیلی",True)
         for label,w in [
             ("عنوان ملاقات",self.title_field),("نوع مخاطب",self.target_role),("نام شخص",self.target),
             ("روز",self.day),("تاریخ",self.date),("ساعت",self.time),("موضوع",self.reason),("توضیحات",self.details)
@@ -239,7 +239,7 @@ class MeetingWorkflowScreen(BaseWorkflow):
         self.date=self.field("تاریخ"); self.date.text=str(row.get("requested_date") or "")
         self.time=self.field("ساعت"); self.time.text=str(row.get("requested_time") or "")
         self.reason=self.field("موضوع"); self.reason.text=str(row.get("reason") or "")
-        self.details=self.field("توضیحات",75,True); self.details.text=str(row.get("description") or "")
+        self.details=self.field("توضیحات",True); self.details.text=str(row.get("description") or "")
         for w in [self.title_field,self.target,self.day,self.date,self.time,self.reason,self.details]: body.add_widget(w)
         body.add_widget(self.btn("ذخیره ویرایش",self.save_edit,SUCCESS,48))
         body.add_widget(self.btn("حذف درخواست",lambda *_:self.delete_request(row),ERROR,45))
