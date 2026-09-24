@@ -236,6 +236,13 @@ class SupabaseClient:
                 if rows and isinstance(rows[0], dict):
                     merged = dict(profile)
                     merged.update(rows[0])
+                    # account_settings keeps extensible role/link metadata in preferences.
+                    # Promote canonical values so AppState.role does not silently fall back to student.
+                    prefs = rows[0].get("preferences")
+                    if isinstance(prefs, dict):
+                        for key in ("role", "linked_student_id", "linked_teacher_id", "linked_staff_id"):
+                            if prefs.get(key) not in (None, ""):
+                                merged[key] = prefs.get(key)
                     return merged
         except Exception:
             pass
