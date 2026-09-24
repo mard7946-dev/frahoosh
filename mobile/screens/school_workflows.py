@@ -35,6 +35,11 @@ class BaseWorkflow(Screen):
     def btn(self,t,cb,c=PRIMARY,h=44):
         b=Button(text=fa_display(t),font_name=font_name(),font_size="11sp",background_normal="",background_color=c,color=WHITE,size_hint_y=None,height=dp(h)); b.bind(on_press=cb); return b
     def field(self,h,m=False): return PersianTextInput(hint_text=fa_display(h),font_name=font_name(),font_size="12sp",halign="right",multiline=m,size_hint_y=None,height=dp(70 if m else 46))
+    def _spinner(self,text,values,height=46):
+        s=Spinner(text=fa_display(text),values=tuple(fa_display(v) for v in values),
+                  font_name=font_name(),font_size="12sp",size_hint_y=None,height=dp(height),
+                  background_normal="",background_color=(0.05,0.18,0.34,1),color=WHITE)
+        return s
     def api(self): return getattr(self.app_state,"api",None)
     def username(self):
         p=getattr(self.app_state,"profile",{}) or {}; u=getattr(self.app_state,"user",{}) or {}
