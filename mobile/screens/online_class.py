@@ -98,9 +98,10 @@ class OnlineClassScreen(Screen):
         self._create_form()
         self._button("بازگشت به فهرست کلاس‌ها",lambda *_:self.show_home(),SECONDARY,46)
     def _create_form(self):
-        title=self._field("عنوان کلاس"); subject=self._field("درس / موضوع"); teacher=self._field("نام دبیر"); grade=self._field("پایه"); cls=self._field("نام کلاس"); duration=self._field("مدت به دقیقه"); duration.text="60"; start=self._field("تاریخ و ساعت شروع؛ اختیاری (مثال 1405/07/01 10:00)"); end=self._field("تاریخ و ساعت پایان؛ اختیاری"); join=self._field("لینک جلسه واقعی؛ اختیاری")
-        self._button("＋ ساخت کلاس",lambda *_:self._create(title,subject,teacher,grade,cls,duration,start,end,join),SUCCESS)
-    def _create(self,title,subject,teacher,grade,cls,duration,start,end,join):
+        title=self._field("عنوان کلاس"); subject=self._field("درس / موضوع"); teacher=self._field("نام دبیر"); grade=self._field("پایه"); cls=self._field("نام کلاس")
+        day=self._field("روز هفته"); date=self._field("تاریخ شروع شمسی"); start=self._field("ساعت شروع"); end=self._field("ساعت پایان"); duration=self._field("مدت به دقیقه"); duration.text="60"; join=self._field("لینک جلسه واقعی؛ اختیاری")
+        self._button("＋ ساخت کلاس",lambda *_:self._create(title,subject,teacher,grade,cls,day,date,start,end,duration,join),SUCCESS)
+    def _create(self,title,subject,teacher,grade,cls,day,date,start,end,duration,join):
         # This is the only write path for creating an online class. Keep the
         # response from Supabase and verify that a row was actually returned;
         # a silent/empty response must never be presented as a successful save.
@@ -133,8 +134,12 @@ class OnlineClassScreen(Screen):
                 "grade":(grade.text or "").strip(),
                 "class_name":(cls.text or "").strip(),
                 "duration":d,
-                "start_time_shamsi":(start.text or "").strip(),
-                "end_time_shamsi":(end.text or "").strip(),
+                "class_day":(day.text or "").strip(),
+                "start_date_shamsi":(date.text or "").strip(),
+                "start_clock":(start.text or "").strip(),
+                "end_clock":(end.text or "").strip(),
+                "start_time_shamsi":((date.text or "").strip()+" "+(start.text or "").strip()).strip(),
+                "end_time_shamsi":((date.text or "").strip()+" "+(end.text or "").strip()).strip(),
                 "status":"inactive",
                 "join_url":join_url,
                 "meeting_url":join_url,
@@ -176,27 +181,29 @@ class OnlineClassScreen(Screen):
                 self._button(f"دوربین: {'روشن' if self.camera else 'خاموش'}",lambda *_:self._toggle_camera(),SECONDARY)
     def _edit_class(self,row):
         self._clear()
-        self._label(f"ویرایش کلاس #{row.get('id')}","21sp",PRIMARY,52,True)
+        self._label("ویرایش کلاس #"+str(row.get("id")),"21sp",PRIMARY,52,True)
         title=self._field("عنوان کلاس"); title.text=str(row.get("title") or "")
         subject=self._field("درس / موضوع"); subject.text=str(row.get("subject") or row.get("lesson") or "")
         teacher=self._field("نام دبیر"); teacher.text=str(row.get("teacher") or "")
         grade=self._field("پایه"); grade.text=str(row.get("grade") or "")
         cls=self._field("نام کلاس"); cls.text=str(row.get("class_name") or "")
+        day=self._field("روز هفته"); day.text=str(row.get("class_day") or "")
+        date=self._field("تاریخ شروع شمسی"); date.text=str(row.get("start_date_shamsi") or "")
+        start=self._field("ساعت شروع"); start.text=str(row.get("start_clock") or "")
+        end=self._field("ساعت پایان"); end.text=str(row.get("end_clock") or "")
         duration=self._field("مدت به دقیقه"); duration.text=str(row.get("duration") or 60)
-        start=self._field("تاریخ و ساعت شروع؛ اختیاری"); start.text=str(row.get("start_time_shamsi") or "")
-        end=self._field("تاریخ و ساعت پایان؛ اختیاری"); end.text=str(row.get("end_time_shamsi") or "")
         join=self._field("لینک جلسه واقعی؛ اختیاری"); join.text=str(row.get("join_url") or row.get("meeting_url") or "")
-        self._button("ذخیره ویرایش",lambda *_:self._save_class_edit(row.get("id"),title,subject,teacher,grade,cls,duration,start,end,join),SUCCESS)
-        self._button("بازگشت",lambda *_:self.show_home())
-
-    def _save_class_edit(self,cid,title,subject,teacher,grade,cls,duration,start,end,join):
+        self._button("ذخیره ویرایش",lambda *_:self._save_class_edit(row.get("id"),title,subject,teacher,grade,cls,day,date,duration,start,end,join),SUCCESS)
+        self._button("بازگشت",lambda *_:self.show_home(),SECONDARY)
+    def _save_class_edit(self,cid,title,subject,teacher,grade,cls,day,date,duration,start,end,join):
         try:
             d=max(1,int(duration.text.strip() or 60))
             if not title.text.strip(): return self._error("عنوان کلاس الزامی است.")
             self.app_state.api.table_update("online_classes",{"id":f"eq.{cid}"},{
                 "title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),
                 "teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),
-                "duration":d,"start_time_shamsi":start.text.strip(),"end_time_shamsi":end.text.strip(),
+                "duration":d,"class_day":day.text.strip(),"start_date_shamsi":date.text.strip(),"start_clock":start.text.strip(),"end_clock":end.text.strip(),
+                "start_time_shamsi":(date.text.strip()+" "+start.text.strip()).strip(),"end_time_shamsi":(date.text.strip()+" "+end.text.strip()).strip(),
                 "join_url":join.text.strip(),"meeting_url":join.text.strip()
             })
             self._ok("کلاس با موفقیت ویرایش شد."); self.show_home()
@@ -223,7 +230,7 @@ class OnlineClassScreen(Screen):
         try:
             from openpyxl import Workbook
             rows=self.app_state.api.table_select("online_classes",{"limit":"1000"}) or []
-            fields=["id","title","subject","lesson","teacher","grade","class_name","duration","status","join_url","meeting_url"]
+            fields=["id","title","subject","lesson","teacher","grade","class_name","class_day","start_date_shamsi","start_clock","end_clock","duration","status","join_url","meeting_url"]
             wb=Workbook(); ws=wb.active; ws.title="کلاس‌های آنلاین"
             ws.append(fields)
             for r in rows: ws.append([r.get(k,"") for k in fields])
@@ -243,7 +250,7 @@ class OnlineClassScreen(Screen):
             rows=list(ws.iter_rows(values_only=True))
             if not rows: return self._error("فایل Excel خالی است.")
             headers=[str(x or "").strip() for x in rows[0]]
-            allowed={"title","subject","lesson","teacher","grade","class_name","duration","status","join_url","meeting_url"}
+            allowed={"title","subject","lesson","teacher","grade","class_name","class_day","start_date_shamsi","start_clock","end_clock","duration","status","join_url","meeting_url"}
             inserted=0
             for values in rows[1:]:
                 payload={}
