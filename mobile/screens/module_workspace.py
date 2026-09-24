@@ -267,7 +267,7 @@ TABLE_FIELDS = {
 "generated_weekly_schedule":["teacher","subject","grade","class_name","weekday","bell","week_index"],"exam_schedule":["subject","grade","start_date","end_date","weight","exam_date","duration","exam_start_time","exam_end_time"],
 "report_cards":["student_id","term","average","description","grade_level","academic_year","report_date"],"report_card_snapshots":["student_id","term","academic_year","average","generated_date_shamsi"],
 "finance_accounts":["title","balance"],"finance_transactions":["transaction_type","title","amount","category","description","transaction_date"],"finance_donations":["donor_name","amount","description","donation_date"],
-"payment_offers":["title","amount","target_type","target_value","description","active","manual_amount","payment_reason","gateway_enabled"],"payment_attempts":["offer_id","student_id","payer_username","payer_role","amount","status","gateway_ref","description"],"payment_records":["student_id","parent_username","title","amount","payment_type","gateway","authority","reference","status","payment_date","description"],
+"payment_offers":["title","amount","target_type","target_value","description","status","payment_url","gateway","gateway_enabled","manual_amount","payment_reason"],"payment_attempts":["offer_id","student_id","payer_username","payer_role","amount","status","gateway_ref","description"],"payment_records":["student_id","parent_username","title","amount","payment_type","gateway","authority","reference","status","payment_date","description"],
 "online_classes":["title","subject","lesson","teacher","grade","class_name","duration","pages","record","smart_board","quiz","camera","microphone","start_time","end_time","status","activated_by","join_url","meeting_url"],"online_class_sessions":["class_id","started_at","ended_at"],"online_class_students":["class_id","student_id","student_name"],"online_class_teachers":["class_id","teacher_id","teacher_name"],"online_attendance":["class_id","student_id","join_time","leave_time","status","last_activity"],
 "smart_board_content":["title","content","class_id","teacher_id","content_date_shamsi"],"smart_board_activities":["title","activity_text","class_id","teacher_id","activity_date_shamsi"],"smart_board_quizzes":["title","question","option_a","option_b","option_c","option_d","correct_option","class_id","teacher_id","quiz_date_shamsi"],"smart_board_whiteboards":["title","content","class_id","teacher_id","board_date"],
 "educational_activities":["title","subject","grade","class_name","teacher_id","student_id","description","activity_date","status"],"counseling_records":["student_name","visit_reason","recommendations","next_visit","reason_summary"],"counseling_followups":["student_id","subject","description","status"],
@@ -1050,6 +1050,79 @@ class ModuleWorkspaceScreen(Screen):
             Color(*PRIMARY); bg=RoundedRectangle(radius=[dp(9)])
         w.bind(pos=lambda o,v:setattr(bg,"pos",v),size=lambda o,v:setattr(bg,"size",v))
 
+    def _open_consumer_payment(self):
+        self.body.clear_widgets()
+        self.table = None
+        self.title.text = fa_display("پرداخت آنلاین")
+        role = self.role()
+        profile = getattr(self.app_state, "profile", {}) or {}
+        username = str(profile.get("username") or getattr(self.app_state, "username", "") or "").strip()
+        student_id = profile.get("linked_student_id") or profile.get("student_id")
+        if role == "parent" and not student_id:
+            try:
+                links = self.app_state.api.table_select("parent_children", {"parent_username": "eq."+username, "limit": "50"}) or []
+                if links:
+                    student_id = links[0].get("student_id")
+            except Exception:
+                pass
+        head = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(78), padding=dp(5))
+        head.add_widget(self.label("پرداخت آنلاین", "20sp", PRIMARY, True, "center"))
+        head.add_widget(self.label("فقط گزینه‌های پرداخت فعال مدرسه در این بخش نمایش داده می‌شوند.", "9sp", SECONDARY, False, "center"))
+        self.body.add_widget(head)
+        try:
+            offers = self.app_state.api.table_select("payment_offers", {"order":"id.desc", "limit":"100"}) or []
+            offers = [x for x in offers if str(x.get("status") or "active").lower() not in {"inactive","disabled","غیرفعال"}]
+        except Exception as exc:
+            self.body.add_widget(self.label("خواندن گزینه‌های پرداخت انجام نشد: "+str(exc), "10sp", ERROR, True, "center"))
+            return
+        if not offers:
+            self.body.add_widget(self.label("در حال حاضر گزینه پرداخت فعالی از طرف مدرسه تعریف نشده است.", "11sp", SECONDARY, False, "center"))
+            return
+        for offer in offers:
+            amount = offer.get("amount") or 0
+            card = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(150), padding=dp(10), spacing=dp(4))
+            with card.canvas.before:
+                Color(0.02,0.10,0.20,0.92)
+                bg = RoundedRectangle(radius=[dp(14)])
+            card.bind(pos=lambda o,v,bg=bg:setattr(bg,"pos",v), size=lambda o,v,bg=bg:setattr(bg,"size",v))
+            card.add_widget(self.label(str(offer.get("title") or "گزینه پرداخت"), "13sp", WHITE, True, "center"))
+            card.add_widget(self.label("مبلغ: "+str(amount)+" تومان", "11sp", SECONDARY, True, "center"))
+            desc = str(offer.get("description") or "").strip()
+            if desc:
+                card.add_widget(self.label(desc, "8sp", SECONDARY, False, "center"))
+            b = self.btn("ادامه پرداخت آنلاین", lambda *_a, o=dict(offer), sid=student_id, u=username: self._submit_payment_offer(o,sid,u), SUCCESS, dp(42))
+            card.add_widget(b)
+            self.body.add_widget(card)
+        self.body.add_widget(self.btn("بازگشت به پنل", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
+
+    def _submit_payment_offer(self, offer, student_id, username):
+        if not student_id:
+            self.message("پرداخت آنلاین", "برای انجام پرداخت، ابتدا دانش‌آموز مرتبط با حساب مشخص شود.")
+            return
+        amount = offer.get("amount") or 0
+        payload = {
+            "offer_id": offer.get("id"),
+            "student_id": student_id,
+            "payer_username": username or None,
+            "payer_role": self.role(),
+            "amount": amount,
+            "status": "pending",
+            "description": offer.get("description") or offer.get("title") or "پرداخت آنلاین",
+        }
+        try:
+            rows = self.app_state.api.table_insert("payment_attempts", payload, return_representation=True) or []
+            rid = rows[0].get("id") if isinstance(rows,list) and rows else None
+            payment_url = str(offer.get("payment_url") or "").strip()
+            if payment_url:
+                import webbrowser
+                webbrowser.open(payment_url)
+                self.message("پرداخت آنلاین", "درخواست پرداخت ثبت شد و درگاه پرداخت باز شد.")
+            else:
+                self.message("پرداخت آنلاین", "درخواست پرداخت ثبت شد و در انتظار تکمیل پرداخت است.")
+            print("PAYMENT ATTEMPT CREATED:", rid)
+        except Exception as exc:
+            self.message("پرداخت آنلاین", "ثبت درخواست پرداخت انجام نشد: "+str(exc))
+
     def open_table(self,table,refresh_subbar=True):
         # Student and parent accounts are consumer/read-only roles. Their
         # dashboard exposes only assignments/messages (student) and
@@ -1057,15 +1130,6 @@ class ModuleWorkspaceScreen(Screen):
         # workflows so they can never reach a staff CRUD screen.
         role = self.role()
         logical_table = str(table or "").strip()
-        if role in {"student", "parent"}:
-            allowed = (
-                {"assignment_submissions", "assignments", "messages"} if role == "student"
-                else {"messages", "payment", "payment_offers", "online_payment"}
-            )
-            if logical_table not in allowed:
-                self.message("دسترسی محدود", "این بخش برای دانش‌آموز/ولی فعال نیست.")
-                return None
-
         # Student/parent messaging has a dedicated composer with a recipient
         # dropdown; do not downgrade it to a generic CRUD table.
         if table in ("online", "online_classes", "virtual", "online_class_sessions"):
@@ -1191,6 +1255,13 @@ class ModuleWorkspaceScreen(Screen):
                 self.status.text = fa_display("محیط کلاس هوشمند باز نشد: " + str(exc))
                 self.status.color = (.8, .15, .15, 1)
                 return
+
+        # Student/parent online payment is a real operational workflow.
+        # The offer is configured by school management; the consumer can submit
+        # a payment request and, when a payment URL is configured, continue to it.
+        if table in ("payment", "payment_offers") and self.role() in {"student", "parent"}:
+            self._open_consumer_payment()
+            return
 
         # Mother/ZIP module buttons carry logical ids; all operational paths use the canonical Supabase table.
         table = self._resolve_backend_route(table)
