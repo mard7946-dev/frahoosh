@@ -13,6 +13,10 @@ from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 
 
 def role_of(state):
+    active_panel=str(getattr(state,"panel_role","") or "").strip().lower()
+    aliases={"management":"manager","teachers":"teacher","teacher_panel":"teacher","teacher_dashboard":"teacher","دبیران":"teacher","کادر و دبیران":"teacher"}
+    if active_panel:
+        return aliases.get(active_panel,active_panel)
     profile = getattr(state, "profile", {}) or {}
     candidates = [
         profile.get("role"),
@@ -198,16 +202,18 @@ class MeetingsScreen(Screen):
         target_type.text = fa_display("دبیر")
         refresh_targets(target_type, "دبیر")
 
+        day = self._spinner("روز هفته", ["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"])
+        day = self._spinner("روز هفته", ["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"])
         date = self._field("تاریخ ملاقات")
         time = self._field("ساعت ملاقات")
         reason = self._field("علت ملاقات")
         desc = self._field("توضیحات تکمیلی", 72)
         desc.multiline = True
-        for w in [student, target_type, target_name, date, time, reason, desc]:
+        for w in [student, target_type, target_name, day, date, time, reason, desc]:
             form.add_widget(w)
 
         submit = self._button("ثبت درخواست ملاقات", lambda *_: self._create_parent(
-            student, target_name, date, time, reason, desc), SUCCESS, 48)
+            student, target_name, day, date, time, reason, desc), SUCCESS, 48)
         form.add_widget(submit)
         root.add_widget(self._scroll(form))
 
@@ -237,7 +243,7 @@ class MeetingsScreen(Screen):
                 return row
         return self._target_rows[0] if self._target_rows else None
 
-    def _create_parent(self, student, target, date, time, reason, desc):
+    def _create_parent(self, student, target, day, date, time, reason, desc):
         srow = self._selected_student(student)
         trow = self._selected_target(target)
         if not srow or not trow:
@@ -245,7 +251,7 @@ class MeetingsScreen(Screen):
         self._create(
             student_name=f"{srow.get('first_name','')} {srow.get('last_name','')}".strip(),
             target_name=self._person_name(trow),
-            date=date.text, time=time.text, reason=reason.text, description=desc.text,
+            day=day.text, day=day.text, date=date.text, time=time.text, reason=reason.text, description=desc.text,
             requester_role="parent",
             student_id=srow.get("id"),
             target_username=trow.get("username") or trow.get("email"),
@@ -300,14 +306,14 @@ class MeetingsScreen(Screen):
         reason = self._field("علت ملاقات")
         desc = self._field("توضیحات تکمیلی", 72)
         desc.multiline = True
-        for w in [student, parent, date, time, reason, desc]:
+        for w in [student, parent, day, date, time, reason, desc]:
             form.add_widget(w)
 
         form.add_widget(self._button("ثبت درخواست ملاقات با اولیا", lambda *_: self._create_staff(
-            student, parent, date, time, reason, desc, role), SUCCESS, 48))
+            student, parent, day, date, time, reason, desc, role), SUCCESS, 48))
         root.add_widget(self._scroll(form))
 
-    def _create_staff(self, student, parent, date, time, reason, desc, role):
+    def _create_staff(self, student, parent, day, date, time, reason, desc, role):
         srow = self._selected_student(student)
         if not srow or not parent.text or "ثبت نشده" in str(parent.text):
             return self._message("دانش‌آموز و ولی او را از فهرست انتخاب کنید.", ERROR)
@@ -317,7 +323,7 @@ class MeetingsScreen(Screen):
             requester_role=role, student_id=srow.get("id"),
         )
 
-    def _create(self, student_name, target_name, date, time, reason, description, requester_role, **extra):
+    def _create(self, student_name, target_name, day, date, time, reason, description, requester_role, **extra):
         if not all(str(x or "").strip() for x in [student_name, target_name, date, time, reason]):
             return self._message("همه فیلدهای اصلی ملاقات را تکمیل کنید.", ERROR)
         payload = {
@@ -326,6 +332,7 @@ class MeetingsScreen(Screen):
             "requester_name": getattr(self.app_state, "display_name", "کاربر"),
             "target_role": self.target_role if requester_role == "parent" else "parent",
             "target_name": str(target_name).strip(),
+            "requested_day": str(day).strip(),
             "requested_date": str(date).strip(),
             "requested_time": str(time).strip(),
             "reason": str(reason).strip(),
