@@ -204,7 +204,6 @@ class MeetingsScreen(Screen):
 
         day = self._spinner("روز هفته", ["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"])
         title = self._field("عنوان ملاقات")
-        title = self._field("عنوان ملاقات")
         date = self._field("تاریخ ملاقات")
         time = self._field("ساعت ملاقات")
         reason = self._field("علت ملاقات")
@@ -303,6 +302,7 @@ class MeetingsScreen(Screen):
             refresh_parents(student, student_labels[0])
 
         day = self._spinner("روز هفته", ["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"])
+        title = self._field("عنوان ملاقات")
         date = self._field("تاریخ ملاقات")
         time = self._field("ساعت ملاقات")
         reason = self._field("علت ملاقات")
