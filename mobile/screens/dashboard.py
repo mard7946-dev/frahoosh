@@ -766,11 +766,11 @@ class DashboardScreen(Screen):
                 self.role_text.text = rtl_text("در حال آماده‌سازی پنل‌ها...")
             except Exception:
                 pass
-        if self.role() == "parent":
+        if self.role() in {"parent","student","teacher","manager","educational","executive","cultural","advisor","counselor"}:
             try:
                 self._start_parent_poll()
             except Exception as exc:
-                print("DASHBOARD PARENT POLL START ERROR:", repr(exc))
+                print("DASHBOARD NOTIFICATION POLL START ERROR:", repr(exc))
 
     def logout(self,*_):
         try:
