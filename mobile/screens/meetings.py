@@ -319,7 +319,7 @@ class MeetingsScreen(Screen):
             return self._message("دانش‌آموز و ولی او را از فهرست انتخاب کنید.", ERROR)
         self._create(
             student_name=self._person_name(srow), target_name=str(parent.text),
-            date=date.text, time=time.text, reason=reason.text, description=desc.text,
+            day=day.text, date=date.text, time=time.text, reason=reason.text, description=desc.text,
             requester_role=role, student_id=srow.get("id"),
         )
 
