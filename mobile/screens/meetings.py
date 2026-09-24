@@ -318,6 +318,7 @@ class MeetingsScreen(Screen):
             title=title.text, day=day.text, date=date.text, time=time.text,
             reason=reason.text, description=desc.text, requester_role="parent",
             student_id=srow.get("id"), target_username=trow.get("username"),
+            teacher_id=trow.get("id") if self.target_role in {"teacher","teachers"} else None,
         )
 
     def _load_parents_for_student(self, student_id):
@@ -387,7 +388,9 @@ class MeetingsScreen(Screen):
 
     def _create_staff(self, student, parent, title, day, date, time, reason, desc, role):
         srow = self._selected_student(student)
-        prow = self._parent_rows[0] if self._parent_rows else None
+        ptext = str(parent.text or "").strip()
+        prow = next((p for p in self._parent_rows if ptext in (self._person_name(p), fa_display(self._person_name(p)))), None)
+        prow = prow or (self._parent_rows[0] if self._parent_rows else None)
         if not srow or not prow:
             return self._message("دانش‌آموز و ولی او را از فهرست انتخاب کنید.", ERROR)
         self._create(
@@ -395,6 +398,7 @@ class MeetingsScreen(Screen):
             title=title.text, day=day.text, date=date.text, time=time.text,
             reason=reason.text, description=desc.text, requester_role=role,
             student_id=srow.get("id"), target_username=prow.get("username"),
+            parent_id=prow.get("id"),
         )
 
     def _create(self, student_name, target_name, title, day, date, time, reason, description, requester_role, **extra):
