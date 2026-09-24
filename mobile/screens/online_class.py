@@ -341,7 +341,11 @@ class OnlineClassScreen(Screen):
 
     def _delete_member(self,table,row):
         try:
-            self.app_state.api.table_delete(table,{"id":"eq."+str(row.get("id"))})
+            row_id = row.get("id")
+            if row_id is None:
+                return self._error("شناسه اتصال کلاس پیدا نشد.")
+            filters = {"id": "eq." + str(row_id)}
+            self.app_state.api.table_delete(table, filters)
             self._members(row.get("class_id"))
         except Exception as exc:
             self._error("حذف اتصال انجام نشد: "+str(exc))
