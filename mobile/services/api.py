@@ -96,14 +96,28 @@ class SupabaseClient:
             raise ApiError("تنظیمات اتصال سرور در برنامه وجود ندارد.")
 
         if "@" in identifier:
-            email = identifier
-        else:
-            if not identifier.isdigit() or len(identifier) != 10:
-                raise ApiError("کد ملی باید ۱۰ رقم باشد.")
-            email = self.resolve_email_by_national_code(identifier)
-            if not email:
-                raise ApiError("برای این کد ملی، حساب کاربری در سامانه پیدا نشد.")
-        return self._password_auth(email, password)
+            return self._password_auth(identifier, password)
+
+        if not identifier.isdigit() or len(identifier) != 10:
+            raise ApiError("کد ملی باید ۱۰ رقم باشد.")
+
+        # A national code is normally unique. During onboarding it can
+        # temporarily collide (for example when several test accounts share
+        # one placeholder code). Try every matching Auth email so the password
+        # identifies the intended account instead of arbitrary LIMIT 1 order.
+        emails = self.resolve_emails_by_national_code(identifier)
+        if not emails:
+            raise ApiError("برای این کد ملی، حساب کاربری در سامانه پیدا نشد.")
+
+        last_error = None
+        for email in emails:
+            try:
+                return self._password_auth(email, password)
+            except ApiError as exc:
+                last_error = exc
+                if "کد ملی یا رمز عبور صحیح نیست" not in str(exc):
+                    raise
+        raise last_error or ApiError("کد ملی یا رمز عبور صحیح نیست.")
 
     def _password_auth(self, email, password):
         response = _request(
@@ -134,46 +148,72 @@ class SupabaseClient:
             "token_type": self.token_type,
         }
 
-    def resolve_email_by_national_code(self, national_code):
+    def resolve_emails_by_national_code(self, national_code):
         if not self.configured:
             raise ApiError("تنظیمات اتصال به سرور وجود ندارد.")
         national_code = self._normalize_digits(national_code).strip()
         if not national_code:
-            return None
+            return []
+
         response = _request(
-            "POST", f"{self.url}/rest/v1/rpc/lookup_auth_email_by_national_code",
+            "POST", f"{self.url}/rest/v1/rpc/lookup_auth_emails_by_national_code",
             headers=self._headers(False), payload={"p_national_code": national_code},
             timeout=API_TIMEOUT,
         )
         if response.ok:
-            data = response.json()
+            data = response.json() or []
+            emails = []
             if isinstance(data, str):
-                return data.strip() or None
-            if isinstance(data, list) and data and isinstance(data[0], str):
-                return data[0].strip() or None
-            return None
+                emails = [data]
+            elif isinstance(data, list):
+                for row in data:
+                    if isinstance(row, str):
+                        emails.append(row)
+                    elif isinstance(row, dict):
+                        value = row.get("email") or row.get("auth_email")
+                        if value:
+                            emails.append(str(value))
+            return list(dict.fromkeys(x.strip() for x in emails if str(x).strip()))
 
-        # Older Supabase projects may not yet have the RPC. If the canonical
-        # account_settings table is readable to anon, use it as a compatibility
-        # path instead of turning a missing function into a login failure.
         if response.status_code in (400, 404, 406):
             fallback = _request(
                 "GET", f"{self.url}/rest/v1/account_settings",
                 headers=self._headers(False),
-                params={
-                    "select": "email",
-                    "national_code": f"eq.{national_code}",
-                    "limit": "1",
-                },
+                params={"select": "email", "national_code": f"eq.{national_code}"},
                 timeout=API_TIMEOUT,
             )
             if fallback.ok:
                 rows = fallback.json() or []
-                if rows and isinstance(rows[0], dict):
-                    email = str(rows[0].get("email") or "").strip()
-                    if email:
-                        return email
+                emails = [str(row.get("email") or "").strip() for row in rows if isinstance(row, dict)]
+                emails = list(dict.fromkeys(x for x in emails if x))
+                if emails:
+                    return emails
+
+            single = _request(
+                "POST", f"{self.url}/rest/v1/rpc/lookup_auth_email_by_national_code",
+                headers=self._headers(False), payload={"p_national_code": national_code},
+                timeout=API_TIMEOUT,
+            )
+            if single.ok:
+                data = single.json()
+                if isinstance(data, str) and data.strip():
+                    return [data.strip()]
+                if isinstance(data, list):
+                    values = []
+                    for row in data:
+                        if isinstance(row, str) and row.strip():
+                            values.append(row.strip())
+                        elif isinstance(row, dict):
+                            value = row.get("email") or row.get("auth_email")
+                            if value:
+                                values.append(str(value).strip())
+                    return list(dict.fromkeys(x for x in values if x))
+
         raise ApiError(self._error(response, "حساب کاربری برای این کد ملی پیدا نشد."))
+
+    def resolve_email_by_national_code(self, national_code):
+        emails = self.resolve_emails_by_national_code(national_code)
+        return emails[0] if emails else None
 
     def send_password_recovery(self, identifier):
         identifier = self._normalize_digits(identifier).strip()
