@@ -578,8 +578,8 @@ class DashboardScreen(Screen):
     def refresh(self):
         if self.app_state is None or not getattr(self.app_state,"logged_in",False): return False
         role=self.role(); items=self.items()
-        self.welcome.text=rtl_text(f"خوش آمدید، {getattr(self.app_state,'display_name','کاربر فراهوش')}")
-        self.role_text.text=rtl_text(f"پنل {ROLE_TITLES.get(role,'کاربر')} • دسترسی فعال")
+        self.welcome.text=fa_display(f"خوش آمدید، {getattr(self.app_state,'display_name','کاربر فراهوش')}")
+        self.role_text.text=fa_display(f"پنل {ROLE_TITLES.get(role,'کاربر')} • دسترسی فعال")
         self.grid.clear_widgets()
         total=len(items)
         for i,(title,route) in enumerate(items,1):
@@ -599,12 +599,14 @@ class DashboardScreen(Screen):
             # workspaces. Do not route the teacher through a generic/empty
             # panel hub: open the real creation center directly.
             if route == "online":
+                self.app_state.panel_role = self.role()
                 screen=app.ensure_online_workflow()
                 if screen is None:
                     raise RuntimeError("مرکز کلاس آنلاین آماده نشد.")
                 app.sm.current=screen.name
                 return
             if route == "teacher_exams":
+                self.app_state.panel_role = self.role()
                 screen=app.ensure_exam_authoring()
                 if screen is None:
                     raise RuntimeError("مرکز آزمون آنلاین آماده نشد.")
@@ -612,6 +614,7 @@ class DashboardScreen(Screen):
                 return
             if str(route).startswith("panelhub:"):
                 key=str(route).split(":",1)[1]
+                self.app_state.panel_role = self.role()
                 name="panelhub_"+key
                 try:
                     screen=app.sm.get_screen(name)
