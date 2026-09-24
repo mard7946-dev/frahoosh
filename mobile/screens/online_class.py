@@ -260,36 +260,56 @@ class OnlineClassScreen(Screen):
 
     def _add_student(self,cid):
         self._clear()
-        self._label(f"اتصال دانش‌آموز به کلاس #{cid}","21sp",PRIMARY,50,True)
-        sid=self._field("شناسه دانش‌آموز")
-        name=self._field("نام دانش‌آموز")
-        self._button("ثبت اتصال دانش‌آموز",lambda *_:self._save_student(cid,sid,name),SUCCESS)
-        self._button("بازگشت به کلاس‌ها",lambda *_:self.show_home())
-
-    def _save_student(self,cid,sid,name):
-        if not sid.text.strip() or not name.text.strip():
-            return self._error("شناسه و نام دانش‌آموز الزامی است.")
+        self._label("اتصال دانش‌آموز به کلاس #"+str(cid),"21sp",PRIMARY,50,True)
         try:
-            existing=self.app_state.api.table_select("online_class_students",{
-                "class_id":f"eq.{cid}","student_id":f"eq.{sid.text.strip()}","limit":"1"
-            }) or []
-            if not existing:
-                self.app_state.api.table_insert("online_class_students",{
-                    "class_id":cid,"student_id":int(sid.text.strip()),"student_name":name.text.strip()
-                })
-            self._ok("دانش‌آموز به کلاس متصل شد.")
-            self.show_home()
+            rows=self.app_state.api.table_select("students",{"order":"id.asc","limit":"200"}) or []
         except Exception as exc:
-            self._error("اتصال دانش‌آموز انجام نشد: "+str(exc))
+            return self._error("فهرست دانش‌آموزان خوانده نشد: "+str(exc))
+        self._student_rows=rows
+        labels=[str(x.get("id"))+" | "+str(x.get("first_name") or "")+" "+str(x.get("last_name") or "")+" | "+str(x.get("class_name") or "") for x in rows]
+        if not labels: return self._error("هیچ دانش‌آموزی در سامانه ثبت نشده است.")
+        spin=Spinner(text=fa_display(labels[0]),values=tuple(fa_display(x) for x in labels),font_name=font_name(),font_size="12sp",size_hint_y=None,height=dp(50))
+        self.body.add_widget(spin)
+        self._button("ثبت اتصال دانش‌آموز",lambda *_:self._save_student(cid,spin),SUCCESS)
+        self._button("بازگشت",lambda *_:self.show_home(),SECONDARY)
 
+    def _save_student(self,cid,spin):
+        try:
+            sid=int(str(spin.text).split("|",1)[0].strip())
+            row=next((x for x in self._student_rows if int(x.get("id"))==sid),None)
+            if not row: return self._error("دانش‌آموز انتخاب‌شده پیدا نشد.")
+            existing=self.app_state.api.table_select("online_class_students",{"class_id":"eq."+str(cid),"student_id":"eq."+str(sid),"limit":"1"}) or []
+            if not existing:
+                name=(str(row.get("first_name") or "")+" "+str(row.get("last_name") or "")).strip()
+                self.app_state.api.table_insert("online_class_students",{"class_id":cid,"student_id":sid,"student_name":name})
+            self._ok("دانش‌آموز به کلاس متصل شد."); self._members(cid)
+        except Exception as exc:self._error("اتصال دانش‌آموز انجام نشد: "+str(exc))
     def _add_teacher(self,cid):
         self._clear()
-        self._label(f"اتصال دبیر به کلاس #{cid}","21sp",PRIMARY,50,True)
-        tid=self._field("شناسه دبیر")
-        name=self._field("نام دبیر")
-        self._button("ثبت اتصال دبیر",lambda *_:self._save_teacher(cid,tid,name),SUCCESS)
-        self._button("بازگشت به کلاس‌ها",lambda *_:self.show_home())
+        self._label("اتصال دبیر به کلاس #"+str(cid),"21sp",PRIMARY,50,True)
+        try:
+            rows=self.app_state.api.table_select("teachers",{"order":"id.asc","limit":"100"}) or []
+        except Exception as exc:
+            return self._error("فهرست دبیران خوانده نشد: "+str(exc))
+        self._teacher_rows=rows
+        labels=[str(x.get("id"))+" | "+str(x.get("first_name") or "")+" "+str(x.get("last_name") or "")+" | "+str(x.get("subject") or "") for x in rows]
+        if not labels: return self._error("هیچ دبیری در سامانه ثبت نشده است.")
+        spin=Spinner(text=fa_display(labels[0]),values=tuple(fa_display(x) for x in labels),font_name=font_name(),font_size="12sp",size_hint_y=None,height=dp(50))
+        self.body.add_widget(spin)
+        self._button("ثبت اتصال دبیر",lambda *_:self._save_teacher(cid,spin),SUCCESS)
+        self._button("بازگشت",lambda *_:self.show_home(),SECONDARY)
 
+    def _save_teacher(self,cid,spin):
+        try:
+            tid=int(str(spin.text).split("|",1)[0].strip())
+            row=next((x for x in self._teacher_rows if int(x.get("id"))==tid),None)
+            if not row: return self._error("دبیر انتخاب‌شده پیدا نشد.")
+            existing=self.app_state.api.table_select("online_class_teachers",{"class_id":"eq."+str(cid),"teacher_id":"eq."+str(tid),"limit":"1"}) or []
+            if not existing:
+                name=(str(row.get("first_name") or "")+" "+str(row.get("last_name") or "")).strip()
+                self.app_state.api.table_insert("online_class_teachers",{"class_id":cid,"teacher_id":tid,"teacher_name":name})
+            self._ok("دبیر به کلاس متصل شد."); self._members(cid)
+        except Exception as exc:self._error("اتصال دبیر انجام نشد: "+str(exc))
     def _save_teacher(self,cid,tid,name):
         if not tid.text.strip() or not name.text.strip():
             return self._error("شناسه و نام دبیر الزامی است.")
