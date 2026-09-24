@@ -21,7 +21,7 @@ def role_of(state):
     # A live workflow can be opened from a specific school panel. Prefer that active panel role over a stale profile role.
     active_panel = str(getattr(state, "panel_role", "") or "").strip().lower()
     if active_panel:
-        normalized_panel = {"management":"manager","teachers":"teacher"}.get(active_panel, active_panel)
+        normalized_panel = {"management":"manager","teachers":"teacher","teacher_panel":"teacher","teacher_dashboard":"teacher","دبیران":"teacher","کادر و دبیران":"teacher"}.get(active_panel, active_panel)
         if normalized_panel in {"manager","educational","executive","cultural","advisor","teacher","staff","student","parent"}:
             return normalized_panel
     profile = getattr(state, "profile", {}) or {}
@@ -153,8 +153,8 @@ class OnlineClassScreen(Screen):
             if role_of(self.app_state) in MANAGERS:
                 self._button("✎ ویرایش کلاس",lambda *_ ,row=dict(r):self._edit_class(row),PRIMARY)
                 self._button("حذف کلاس",lambda *_ ,x=cid:self._delete_class(x),ERROR)
-                self._button("خروجی Excel کلاس‌ها",lambda *_:self._export_excel(),PRIMARY)
-                self._button("ورودی Excel کلاس‌ها",lambda *_:self._import_excel(),PRIMARY)
+                self._button("خروجی اکسل کلاس‌ها",lambda *_:self._export_excel(),PRIMARY)
+                self._button("ورودی اکسل کلاس‌ها",lambda *_:self._import_excel(),PRIMARY)
                 self._button("＋ اتصال دانش‌آموز به کلاس",lambda *_ ,x=cid:self._add_student(x),SUCCESS)
                 self._button("＋ اتصال دبیر به کلاس",lambda *_ ,x=cid:self._add_teacher(x),SUCCESS)
                 if state!="active": self._button("▶ شروع جلسه",lambda *_ ,x=cid:self._start(x),SUCCESS)
