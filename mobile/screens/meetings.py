@@ -251,7 +251,7 @@ class MeetingsScreen(Screen):
         self._create(
             student_name=f"{srow.get('first_name','')} {srow.get('last_name','')}".strip(),
             target_name=self._person_name(trow),
-            day=day.text, day=day.text, date=date.text, time=time.text, reason=reason.text, description=desc.text,
+            day=day.text, date=date.text, time=time.text, reason=reason.text, description=desc.text,
             requester_role="parent",
             student_id=srow.get("id"),
             target_username=trow.get("username") or trow.get("email"),
