@@ -379,8 +379,82 @@ class TeacherExamsV4Screen(Screen):
         for row in rows:
             eid=int(row["id"]); dur=int(row.get("duration") or 45)
             self._label(f"{row.get('title','آزمون')}\\n{row.get('subject','')}  •  {dur} دقیقه  •  {'منتشر شده' if row.get('published') else 'پیش‌نویس'}","15sp",PRIMARY,65,True)
-            self._button("زمان‌بندی / ساخت لینک اشتراک",lambda *_ ,i=eid,d=dur:self._schedule(i,d),PRIMARY,45)
+            self._button("ویرایش مشخصات آزمون",lambda *_ ,row=dict(row):self._edit_exam(row),PRIMARY,45)
+            self._button("ویرایش زمان‌بندی / کلاس‌ها",lambda *_ ,i=eid,d=dur:self._schedule(i,d),PRIMARY,45)
+            self._button("حذف کامل آزمون",lambda *_ ,i=eid:self._delete_exam(i),ERROR,45)
 
+    def _edit_exam(self,row):
+        self._clear(); self._label("ویرایش آزمون","22sp",PRIMARY,52,True)
+        self._edit_exam_id=int(row.get("id"))
+        self._edit_title=self._field("عنوان آزمون"); self._edit_title.text=str(row.get("title") or "")
+        self._edit_subject=self._field("درس"); self._edit_subject.text=str(row.get("subject") or "")
+        self._edit_grade=self._field("پایه / رشته"); self._edit_grade.text=str(row.get("grade") or "")
+        self._edit_class=self._field("کلاس مقصد (در صورت نیاز)"); self._edit_class.text=str(row.get("class_name") or "")
+        self._edit_duration=self._field("مدت آزمون"); self._edit_duration.text=str(row.get("duration") or 45)
+        self._edit_attempts=self._field("حداکثر دفعات شرکت"); self._edit_attempts.text=str(row.get("max_attempts") or 1)
+        self._edit_passing=self._field("نمره قبولی"); self._edit_passing.text=str(row.get("passing_score") or 0)
+        self._edit_desc=self._field("دستورالعمل",90,True); self._edit_desc.text=str(row.get("description") or "")
+        for w in [self._edit_title,self._edit_subject,self._edit_grade,self._edit_class,self._edit_duration,self._edit_attempts,self._edit_passing,self._edit_desc]: pass
+        self._button("ذخیره ویرایش",self._save_exam_edit,SUCCESS)
+        self._button("ویرایش سؤالات این آزمون",lambda *_:self._edit_questions(self._edit_exam_id),PRIMARY)
+        self._button("ویرایش زمان‌بندی",lambda *_:self._schedule(self._edit_exam_id,int(self._edit_duration.text or 45)),SECONDARY)
+        self._button("بازگشت",lambda *_:self._load_exams(),SECONDARY)
+
+    def _save_exam_edit(self,*_):
+        try:
+            duration=max(1,min(600,int(self._edit_duration.text.strip() or 45)))
+            attempts=max(1,int(self._edit_attempts.text.strip() or 1))
+            passing=max(0,float(self._edit_passing.text.strip() or 0))
+            if not self._edit_title.text.strip(): return self._error("عنوان آزمون الزامی است.")
+            self.app_state.api.table_update("teacher_exams",{"id":"eq."+str(self._edit_exam_id)},{
+                "title":self._edit_title.text.strip(),"subject":self._edit_subject.text.strip(),"grade":self._edit_grade.text.strip(),
+                "class_name":self._edit_class.text.strip(),"duration":duration,"max_attempts":attempts,
+                "passing_score":passing,"description":self._edit_desc.text.strip()})
+            self._ok("مشخصات آزمون ویرایش شد."); self._load_exams()
+        except Exception as exc:self._error("ویرایش آزمون انجام نشد: "+str(exc))
+
+    def _delete_exam(self,eid):
+        try:
+            api=self.app_state.api
+            # Remove dependent rows first because these tables reference the exam.
+            for table,field in [("teacher_exam_answers","attempt_id"),("teacher_exam_attempts","quiz_id"),("teacher_exam_slots","quiz_id"),("teacher_exam_shares","quiz_id"),("quiz_questions","quiz_id")]:
+                if table=="teacher_exam_answers":
+                    attempts=api.table_select("teacher_exam_attempts",{"quiz_id":"eq."+str(eid),"limit":"1000"}) or []
+                    for a in attempts: api.table_delete(table,{"attempt_id":"eq."+str(a.get("id"))})
+                else:
+                    try: api.table_delete(table,{field:"eq."+str(eid)})
+                    except Exception as child_exc: print("EXAM CHILD DELETE:",table,repr(child_exc))
+            api.table_delete("teacher_exams",{"id":"eq."+str(eid)})
+            self._ok("آزمون و وابستگی‌های آن حذف شد."); self._load_exams()
+        except Exception as exc:self._error("حذف آزمون انجام نشد: "+str(exc))
+
+    def _edit_questions(self,eid):
+        self._clear(); self._label("ویرایش سؤالات آزمون","22sp",PRIMARY,52,True)
+        try: rows=self.app_state.api.table_select("quiz_questions",{"quiz_id":"eq."+str(eid),"order":"id.asc","limit":"200"}) or []
+        except Exception as exc:return self._error("خواندن سؤالات انجام نشد: "+str(exc))
+        self._question_editors=[]
+        if not rows:self._label("این آزمون هنوز سؤال ندارد.",50); self._button("افزودن سؤال جدید",lambda *_:self._new_exam(),SUCCESS); return
+        for row in rows:
+            self._label("سؤال #"+str(row.get("id")),"15sp",PRIMARY,34,True)
+            q=self._field("متن سؤال",78,True); q.text=str(row.get("question") or "")
+            o1=self._field("گزینه ۱"); o1.text=str(row.get("option1") or "")
+            o2=self._field("گزینه ۲"); o2.text=str(row.get("option2") or "")
+            o3=self._field("گزینه ۳"); o3.text=str(row.get("option3") or "")
+            o4=self._field("گزینه ۴"); o4.text=str(row.get("option4") or "")
+            ans=self._field("پاسخ صحیح"); ans.text=str(row.get("correct_answer") or "")
+            pts=self._field("بارم"); pts.text=str(row.get("points") or 1)
+            for w in [q,o1,o2,o3,o4,ans,pts]: pass
+            self._question_editors.append((row.get("id"),q,o1,o2,o3,o4,ans,pts))
+            self._button("ذخیره سؤال #"+str(row.get("id")),lambda *_a,rid=row.get("id"),q=q,o1=o1,o2=o2,o3=o3,o4=o4,ans=ans,pts=pts:self._save_question_edit(rid,q,o1,o2,o3,o4,ans,pts),SUCCESS,42)
+        self._button("بازگشت به آزمون‌ها",lambda *_:self._load_exams(),SECONDARY)
+
+    def _save_question_edit(self,rid,q,o1,o2,o3,o4,ans,pts):
+        try:
+            self.app_state.api.table_update("quiz_questions",{"id":"eq."+str(rid)},{
+                "question":q.text.strip(),"option1":o1.text.strip(),"option2":o2.text.strip(),"option3":o3.text.strip(),
+                "option4":o4.text.strip(),"correct_answer":ans.text.strip(),"points":float(pts.text.strip() or 1)})
+            self._ok("سؤال ویرایش شد.")
+        except Exception as exc:self._error("ویرایش سؤال انجام نشد: "+str(exc))
     def _open_shared(self,code):
         code=(code or "").strip().rstrip("/").split("/")[-1]
         if not code:self._error("کد یا لینک آزمون را وارد کنید.");return
