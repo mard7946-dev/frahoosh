@@ -203,16 +203,18 @@ class MeetingsScreen(Screen):
         refresh_targets(target_type, "دبیر")
 
         day = self._spinner("روز هفته", ["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"])
+        title = self._field("عنوان ملاقات")
+        title = self._field("عنوان ملاقات")
         date = self._field("تاریخ ملاقات")
         time = self._field("ساعت ملاقات")
         reason = self._field("علت ملاقات")
         desc = self._field("توضیحات تکمیلی", 72)
         desc.multiline = True
-        for w in [student, target_type, target_name, day, date, time, reason, desc]:
+        for w in [student, target_type, target_name, title, day, date, time, reason, desc]:
             form.add_widget(w)
 
         submit = self._button("ثبت درخواست ملاقات", lambda *_: self._create_parent(
-            student, target_name, day, date, time, reason, desc), SUCCESS, 48)
+            student, target_name, title, day, date, time, reason, desc), SUCCESS, 48)
         form.add_widget(submit)
         root.add_widget(self._scroll(form))
 
@@ -242,7 +244,7 @@ class MeetingsScreen(Screen):
                 return row
         return self._target_rows[0] if self._target_rows else None
 
-    def _create_parent(self, student, target, day, date, time, reason, desc):
+    def _create_parent(self, student, target, title, day, date, time, reason, desc):
         srow = self._selected_student(student)
         trow = self._selected_target(target)
         if not srow or not trow:
@@ -250,7 +252,7 @@ class MeetingsScreen(Screen):
         self._create(
             student_name=f"{srow.get('first_name','')} {srow.get('last_name','')}".strip(),
             target_name=self._person_name(trow),
-            day=day.text, date=date.text, time=time.text, reason=reason.text, description=desc.text,
+            title=title.text, day=day.text, date=date.text, time=time.text, reason=reason.text, description=desc.text,
             requester_role="parent",
             student_id=srow.get("id"),
             target_username=trow.get("username") or trow.get("email"),
@@ -306,32 +308,33 @@ class MeetingsScreen(Screen):
         reason = self._field("علت ملاقات")
         desc = self._field("توضیحات تکمیلی", 72)
         desc.multiline = True
-        for w in [student, parent, day, date, time, reason, desc]:
+        for w in [student, parent, title, day, date, time, reason, desc]:
             form.add_widget(w)
 
         form.add_widget(self._button("ثبت درخواست ملاقات با اولیا", lambda *_: self._create_staff(
-            student, parent, day, date, time, reason, desc, role), SUCCESS, 48))
+            student, parent, title, day, date, time, reason, desc, role), SUCCESS, 48))
         root.add_widget(self._scroll(form))
 
-    def _create_staff(self, student, parent, day, date, time, reason, desc, role):
+    def _create_staff(self, student, parent, title, day, date, time, reason, desc, role):
         srow = self._selected_student(student)
         if not srow or not parent.text or "ثبت نشده" in str(parent.text):
             return self._message("دانش‌آموز و ولی او را از فهرست انتخاب کنید.", ERROR)
         self._create(
             student_name=self._person_name(srow), target_name=str(parent.text),
-            day=day.text, date=date.text, time=time.text, reason=reason.text, description=desc.text,
+            title=title.text, day=day.text, date=date.text, time=time.text, reason=reason.text, description=desc.text,
             requester_role=role, student_id=srow.get("id"),
         )
 
-    def _create(self, student_name, target_name, day, date, time, reason, description, requester_role, **extra):
-        if not all(str(x or "").strip() for x in [student_name, target_name, date, time, reason]):
-            return self._message("همه فیلدهای اصلی ملاقات را تکمیل کنید.", ERROR)
+    def _create(self, student_name, target_name, title, day, date, time, reason, description, requester_role, **extra):
+        if not all(str(x or "").strip() for x in [student_name, target_name, title, date, time]):
+            return self._message("عنوان، مخاطب، تاریخ و ساعت ملاقات الزامی است.", ERROR)
         payload = {
             "requester_username": self._username(),
             "requester_role": requester_role,
             "requester_name": getattr(self.app_state, "display_name", "کاربر"),
             "target_role": self.target_role if requester_role == "parent" else "parent",
             "target_name": str(target_name).strip(),
+            "title": str(title).strip(),
             "requested_day": str(day).strip(),
             "requested_date": str(date).strip(),
             "requested_time": str(time).strip(),
@@ -368,8 +371,8 @@ class MeetingsScreen(Screen):
             card = BoxLayout(orientation="vertical", padding=dp(9), spacing=dp(4),
                              size_hint_y=None, height=dp(190))
             card.add_widget(self._label(
-                f"#{row.get('id')} | {row.get('requester_name') or row.get('requester_username')} → {row.get('target_name') or 'مخاطب'}\n"
-                f"دانش‌آموز: {row.get('student_name') or '-'} | تاریخ: {row.get('requested_date')} | ساعت: {row.get('requested_time')}\n"
+                f"#{row.get('id')} | {row.get('title') or 'ملاقات'} | {row.get('requester_name') or row.get('requester_username')} → {row.get('target_name') or 'مخاطب'}\n"
+                f"دانش‌آموز: {row.get('student_name') or '-'} | روز: {row.get('requested_day') or '-'} | تاریخ: {row.get('requested_date')} | ساعت: {row.get('requested_time')}\n"
                 f"علت: {row.get('reason') or '-'}\nوضعیت: {status}",
                 "10sp", SECONDARY, 108, True))
             actions = BoxLayout(size_hint_y=None, height=dp(45), spacing=dp(5))
