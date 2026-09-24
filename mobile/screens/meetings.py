@@ -76,7 +76,8 @@ class MeetingsScreen(Screen):
     def _username(self):
         p = self.app_state.profile if self.app_state else {}
         u = self.app_state.user if self.app_state else {}
-        return str(u.get("email") or p.get("email") or p.get("username") or "").strip()
+        # All school messaging uses public.users.username, not the Supabase Auth email.
+        return str(p.get("username") or u.get("username") or p.get("email") or u.get("email") or "").strip()
 
     def _role(self):
         return role_of(self.app_state)
@@ -153,19 +154,29 @@ class MeetingsScreen(Screen):
         if api is None:
             return []
         try:
-            if role == "teacher":
-                rows = api.table_select("teachers", {"order": "id.asc", "limit": "100"})
-            elif role == "staff":
-                rows = api.table_select("staff", {"order": "id.asc", "limit": "100"})
-            elif role == "counselor":
-                rows = api.table_select("staff", {"order": "id.asc", "limit": "100"})
-                rows = [r for r in rows if "مشاور" in str(r.get("role", "")) or "counsel" in str(r.get("role", "")).lower()]
-            elif role == "manager":
-                rows = api.table_select("staff", {"order": "id.asc", "limit": "100"}) or []
-            else:
-                rows = []
-            self._target_rows = rows or []
-            return self._target_rows
+            role_map = {
+                "teacher": {"teacher","teachers"},
+                "staff": {"staff"},
+                "counselor": {"counselor","advisor","مشاور"},
+                "manager": {"manager","admin","administrator","management"},
+            }
+            allowed = role_map.get(role, {role})
+            rows = api.table_select("users", {"limit":"500"}) or []
+            result=[]
+            for row in rows:
+                r=str(row.get("role") or "").strip().lower()
+                if r not in {str(x).lower() for x in allowed}: continue
+                if not row.get("username"): continue
+                result.append({
+                    "username":row.get("username"),
+                    "display_name":row.get("display_name") or row.get("username"),
+                    "first_name":row.get("display_name") or "",
+                    "last_name":"",
+                    "role":row.get("role"),
+                    "id":row.get("id"),
+                })
+            self._target_rows=result
+            return result
         except Exception as exc:
             print("MEETING TARGET LOAD ERROR:", repr(exc))
             return []
@@ -249,12 +260,11 @@ class MeetingsScreen(Screen):
         if not srow or not trow:
             return self._message("دانش‌آموز و فرد مورد ملاقات را از فهرست انتخاب کنید.", ERROR)
         self._create(
-            student_name=f"{srow.get('first_name','')} {srow.get('last_name','')}".strip(),
+            student_name=self._person_name(srow),
             target_name=self._person_name(trow),
-            title=title.text, day=day.text, date=date.text, time=time.text, reason=reason.text, description=desc.text,
-            requester_role="parent",
-            student_id=srow.get("id"),
-            target_username=trow.get("username") or trow.get("email"),
+            title=title.text, day=day.text, date=date.text, time=time.text,
+            reason=reason.text, description=desc.text, requester_role="parent",
+            student_id=srow.get("id"), target_username=trow.get("username"),
         )
 
     def _load_parents_for_student(self, student_id):
@@ -262,17 +272,23 @@ class MeetingsScreen(Screen):
         if api is None or student_id is None:
             return []
         try:
-            student = api.table_select("students", {"id": f"eq.{student_id}", "limit": "1"})
-            if not student:
-                return []
-            s = student[0]
-            rows = []
-            for key in ("father_name", "mother_name"):
-                if s.get(key):
-                    rows.append({"display_name": str(s[key]), "student_id": student_id})
-            self._parent_rows = rows
-            return rows
-        except Exception:
+            links = api.table_select("parent_children", {"student_id":f"eq.{student_id}","limit":"100"}) or []
+            result=[]
+            for link in links:
+                username=str(link.get("parent_username") or "").strip()
+                if not username: continue
+                users=api.table_select("users", {"username":f"eq.{username}","limit":"1"}) or []
+                u=users[0] if users else {}
+                result.append({
+                    "username":username,
+                    "display_name":u.get("display_name") or username,
+                    "role":"parent",
+                    "student_id":student_id,
+                })
+            self._parent_rows=result
+            return result
+        except Exception as exc:
+            print("MEETING PARENT LOAD ERROR:", repr(exc))
             return []
 
     def _staff_form(self, root, role):
@@ -317,12 +333,14 @@ class MeetingsScreen(Screen):
 
     def _create_staff(self, student, parent, title, day, date, time, reason, desc, role):
         srow = self._selected_student(student)
-        if not srow or not parent.text or "ثبت نشده" in str(parent.text):
+        prow = self._parent_rows[0] if self._parent_rows else None
+        if not srow or not prow:
             return self._message("دانش‌آموز و ولی او را از فهرست انتخاب کنید.", ERROR)
         self._create(
-            student_name=self._person_name(srow), target_name=str(parent.text),
-            title=title.text, day=day.text, date=date.text, time=time.text, reason=reason.text, description=desc.text,
-            requester_role=role, student_id=srow.get("id"),
+            student_name=self._person_name(srow), target_name=self._person_name(prow),
+            title=title.text, day=day.text, date=date.text, time=time.text,
+            reason=reason.text, description=desc.text, requester_role=role,
+            student_id=srow.get("id"), target_username=prow.get("username"),
         )
 
     def _create(self, student_name, target_name, title, day, date, time, reason, description, requester_role, **extra):
@@ -331,7 +349,8 @@ class MeetingsScreen(Screen):
         payload = {
             "requester_username": self._username(),
             "requester_role": requester_role,
-            "requester_name": getattr(self.app_state, "display_name", "کاربر"),
+            "requester_name": getattr(self.app_state, "display_name", None) or ((getattr(self.app_state,"profile",{}) or {}).get("display_name") or self._username() or "کاربر"),
+            "target_username": str(extra.get("target_username") or "").strip() or None,
             "target_role": self.target_role if requester_role == "parent" else "parent",
             "target_name": str(target_name).strip(),
             "title": str(title).strip(),
@@ -339,6 +358,7 @@ class MeetingsScreen(Screen):
             "requested_date": str(date).strip(),
             "requested_time": str(time).strip(),
             "reason": str(reason).strip(),
+            "description": str(description or "").strip(),
             "status": "pending_manager",
             "manager_status": "pending",
         }
