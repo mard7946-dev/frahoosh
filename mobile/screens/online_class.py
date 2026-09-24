@@ -12,7 +12,8 @@ from kivy.uix.scrollview import ScrollView
 from mobile.config import APP_NAME, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 
-MANAGERS={"manager","educational","executive","cultural","advisor","teacher","staff","counselor","teacher_staff","educational_deputy","executive_deputy","cultural_deputy"}
+MANAGERS={"manager","educational","executive"}
+CLASS_CREATORS={"manager","educational","executive"}
 
 
 def role_of(state):
@@ -77,7 +78,9 @@ class OnlineClassScreen(Screen):
         f=PersianTextInput(hint_text=fa_display(hint),font_name=font_name(),font_size="13sp",multiline=multiline,size_hint_y=None,height=dp(height),halign="right",padding=[dp(10),dp(10)]); self.body.add_widget(f); return f
     def show_home(self):
         self._clear(); role=role_of(self.app_state); self._label("کلاس آنلاین واقعی","21sp",PRIMARY,52,True); self._label("ساخت کلاس، شروع/پایان جلسه، حضور و غیاب، گفت‌وگو، تخته مشترک، کنترل دوربین/میکروفون و اطلاع غیبت به ولی در همین پنل ثبت می‌شود.",height=82)
-        if role not in {"student","parent"}:
+        if role in CLASS_CREATORS:
+            # Only manager, executive deputy and educational deputy can form classes.
+            # Teachers/students/parents may use the classes but cannot create them.
             # Keep the creation action above the class list so it is visible
             # immediately on a phone-sized screen.
             self._button("ساخت و تولید کلاس جدید",lambda *_:self._open_create_form(),SUCCESS,56)
@@ -87,8 +90,8 @@ class OnlineClassScreen(Screen):
     def _open_create_form(self):
         self._clear()
         role=role_of(self.app_state)
-        if role in {"student","parent"}:
-            return self._error("این نقش اجازه ساخت کلاس آنلاین ندارد.")
+        if role not in CLASS_CREATORS:
+            return self._error("فقط مدیر، معاون اجرایی و معاون آموزشی اجازه تشکیل کلاس آنلاین دارند.")
         self._label("ساخت و تولید کلاس آنلاین","21sp",PRIMARY,52,True)
         self._create_form()
         self._button("بازگشت به فهرست کلاس‌ها",lambda *_:self.show_home(),SECONDARY,46)
