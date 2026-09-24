@@ -161,15 +161,18 @@ PANEL_HUBS = [
     ("معاون پرورشی","cultural"),
     ("مشاوره","advisor"),
     ("دبیران","teachers"),
-    ("اولیا","parents"),
     ("دانش‌آموزان","students"),
+    ("اولیا","parents"),
     ("مالی","finance"),
-    ("تابلوی هوشمند","smart_board"),
-    ("آزمون آنلاین","teacher_exams"),
-    ("کلاس آنلاین","online"),
-    ("پرداخت آنلاین","payment"),
+    ("کلاس‌های آنلاین","online"),
+    ("تابلو هوشمند","smart_board"),
     ("هوش مصنوعی","ai"),
-    ("صندوق پیام","messages"),
+    ("صندوق پیام‌ها","messages"),
+    ("گزارش‌ها","reports"),
+    ("برنامه‌ریزی / زمان‌بندی","schedule"),
+    ("تنظیمات","settings"),
+    ("اطلاعات دانش‌آموز","student_info"),
+    ("مشارکت","participation"),
 ]
 
 STUDENT_ALLOWED_PANELS = {"students"}
@@ -476,16 +479,11 @@ class DashboardScreen(Screen):
 
     def items(self):
         role=self.role()
-        # The dashboard is the 15-panel front door. The ZIP/mother module list
+        # The dashboard front door follows the exact 18-panel contract. The ZIP/mother module list
         # is opened only after entering a panel; it must never replace the panel
         # cards themselves with a handful of unrelated modules.
         if role=="manager":
-            # Finance is a first-class main panel. Keep the canonical 15-panel
-            # dashboard even if a stale catalog/filter omits it.
-            hubs=list(PANEL_HUBS)
-            if not any(key=="finance" for _,key in hubs):
-                hubs.insert(8,("مالی","finance"))
-            return [(title,"panelhub:"+key) for title,key in hubs]
+            return [(title,"panelhub:"+key) for title,key in PANEL_HUBS]
         if role=="student":
             return [(title,"panelhub:"+key) for title,key in PANEL_HUBS if key in STUDENT_ALLOWED_PANELS]
         if role=="parent":
