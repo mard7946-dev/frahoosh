@@ -92,13 +92,43 @@ class LiveSchoolData:
         return True, "اتصال واقعی سامانه فعال است."
 
     def inbox(self, limit=50):
-        params = {
-            "select": "*",
-            "order": "created_at.desc",
-            "limit": str(limit),
-        }
-        _, messages = self._try_select(("messages",), params)
-        return messages
+        """Return only messages addressed to the currently authenticated school user."""
+        p = self.profile
+        u = self.user
+        candidates = []
+        for value in (
+            p.get("username"), p.get("email"),
+            u.get("username"), u.get("email"),
+        ):
+            value = str(value or "").strip()
+            if value and value not in candidates:
+                candidates.append(value)
+        if not candidates:
+            return []
+        messages = []
+        for receiver in candidates:
+            try:
+                _, rows = self._try_select(
+                    ("messages",),
+                    {
+                        "select": "*",
+                        "receiver": f"eq.{receiver}",
+                        "order": "created_at.desc",
+                        "limit": str(limit),
+                    },
+                )
+                messages.extend(rows)
+            except Exception:
+                continue
+        seen = set()
+        result = []
+        for row in messages:
+            key = str(self._first(row, "id", "created_at"))
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(row)
+        return sorted(result, key=lambda x: str(x.get("created_at") or ""), reverse=True)[:limit]
 
     def current_student(self):
         national = str(self._first(self.profile, "national_code", "national_id", "username"))
@@ -195,7 +225,7 @@ class LiveSchoolData:
         discipline=self._child_events("discipline_records",student_ids,limit)
         grades=self._child_events("grades",student_ids,limit)
         assignments=self._child_events("assignments",student_ids,limit)
-        messages=[]
+        messages=self.inbox(limit)
         p=self.profile; u=self.user
         for field,value in (("recipient_id",u.get("id")),("user_id",u.get("id")),("parent_id",p.get("id") or u.get("id")),("email",p.get("email") or u.get("email"))):
             if not value: continue
