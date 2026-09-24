@@ -44,8 +44,8 @@ SUBMENUS = {
 "cultural":[("ملاقات با اولیا","meeting_requests"),("پیام‌های پرورشی","messages"),("ایجاد مسابقات","activity_offers"),("مسابقات فرهنگی","cultural_competitions"),("مسابقات هنری","art_competitions"),("مسابقات ورزشی","sport_competitions"),("فعالیت‌ها و مراسمات","educational_activities"),("انتخابات شورای دانش‌آموزی","student_council"),("بسیج دانش‌آموزی","basij_registration"),("شهردار مدرسه","school_mayor"),("مکبر","morning_leaders"),("قاری برنامه ظهرگاهی","qari_registration"),("جدول مراسم ظهرگاهی","morning_ceremony"),("ثبت انضباطی","discipline_records"),("صندوق پیام","messages")],
 "advisor":[("ملاقات با اولیا","meeting_requests"),("پرونده‌های مشاوره","counseling_records"),("پیگیری جلسات","counseling_followups"),("دانش‌آموزان","students"),("اولیا","parent_children"),("ملاقات و درخواست جلسه","meeting_requests"),("گزارش‌های مشاوره","report_cards"),("صندوق پیام","messages")],
 "teachers":[("کلاس‌های من","teacher_classes"),("طرح درس","lesson_plans"),("برنامه هفتگی","weekly_schedule"),("کلاس‌های آنلاین فعال","online_classes"),("آزمون آنلاین","teacher_exams"),("حضور و غیاب","attendance"),("نمرات درسی","grades"),("تکالیف","assignments"),("موارد انضباطی","discipline_records"),("ارجاع دانش‌آموز","student_referrals"),("ملاقات با اولیا","meeting_requests"),("صندوق پیام","messages")],
-"students":[("اطلاعات شخصی","students"),("پایه و کلاس","student_class_info"),("نمرات","student_grades"),("وضعیت حضور و غیاب","attendance"),("کلاس‌های آنلاین فعال","online_classes"),("شرکت در فعالیت‌ها","activity_registrations"),("انتخابات شورای دانش‌آموزی","student_council"),("بسیج دانش‌آموزی","basij_registration"),("همیار مدرسه","school_ally"),("شهردار مدرسه","school_mayor"),("ارسال تکالیف","assignment_submissions"),("برنامه هفتگی","weekly_schedule"),("برنامه امتحانی","exam_schedule"),("شماره صندلی کلاسی","class_seat_assignments"),("شماره صندلی امتحانی","exam_seat_assignments"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("صندوق پیام","messages"),("کمک‌های داوطلبانه / پرداخت آنلاین","payment_offers")],
-"parents":[("انتخاب یک یا چند دانش‌آموز","parent_children"),("اطلاعات دانش‌آموز","students"),("نمرات کلاسی و امتحانی","student_grades"),("حضور و غیاب","attendance"),("کارنامه ماهیانه","monthly_report_cards"),("کارنامه مستمر و پایان ترم","report_cards"),("ملاقات با دبیر","meeting_requests"),("ملاقات با کادر","meeting_requests"),("ملاقات با مشاور","meeting_requests"),("ملاقات با مدیریت","meeting_requests"),("انتخابات و مراسمات انجمن اولیا","parent_activities"),("کلاس آموزش خانواده","parent_activities"),("بهداشت روان","parent_activities"),("کمک‌های داوطلبانه / پرداخت آنلاین","payment"),("صندوق پیام","messages")],
+"students":[("تکالیف","assignment_submissions"),("صندوق پیام","messages")],
+"parents":[("پرداخت آنلاین","payment"),("صندوق پیام","messages")],
 "finance":[("حساب‌ها","finance_accounts"),("تراکنش‌ها","finance_transactions"),("کمک‌های داوطلبانه","finance_donations"),("تعریف گزینه پرداخت","payment_offers"),("درخواست‌های پرداخت","payment_attempts"),("سوابق پرداخت","payment_records")],
 "online":[("کلاس‌های آنلاین","online_classes"),("جلسات","online_class_sessions"),("دانش‌آموزان کلاس","online_class_students"),("دبیران کلاس","online_class_teachers"),("حضور آنلاین","online_attendance"),("تخته کلاس","smart_board_whiteboards")],
 "smart_board":[("محتوای آموزشی","smart_board_content"),("فعالیت‌ها","smart_board_activities"),("آزمون‌های کوتاه","smart_board_quizzes"),("تخته‌های آموزشی","smart_board_whiteboards")],
@@ -1056,8 +1056,8 @@ class ModuleWorkspaceScreen(Screen):
         logical_table = str(table or "").strip()
         if role in {"student", "parent"}:
             allowed = (
-                {"assignments", "messages"} if role == "student"
-                else {"messages", "online_payment", "payment", "payment_offers"}
+                {"assignment_submissions", "assignments", "messages"} if role == "student"
+                else {"messages", "payment", "payment_offers", "online_payment"}
             )
             if logical_table not in allowed:
                 self.message("دسترسی محدود", "این بخش برای دانش‌آموز/ولی فعال نیست.")
