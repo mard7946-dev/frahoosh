@@ -116,57 +116,191 @@ class CertificateWorkflowScreen(BaseWorkflow):
         except Exception as e:self.msg("ساخت PDF ناموفق: "+str(e),ERROR)
 
 class MeetingWorkflowScreen(BaseWorkflow):
-    def on_pre_enter(self,*_): self.build()
+    """Real meeting request workflow: requester, subject, target, day/date/time, CRUD and approval."""
+    def on_pre_enter(self,*_):
+        self.build()
 
     def build(self):
         self.clear_widgets()
-        root=BoxLayout(orientation="vertical",padding=dp(10),spacing=dp(6))
-        root.add_widget(self.lab("تعیین وقت ملاقات",50,"21sp",PRIMARY,True))
+        root=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(5))
+        root.add_widget(self.lab("تعیین وقت ملاقات",48,"21sp",PRIMARY,True))
+        scroll=ScrollView(do_scroll_x=False,do_scroll_y=True)
+        body=BoxLayout(orientation="vertical",spacing=dp(5),padding=[dp(3),dp(8)],size_hint_y=None)
+        body.bind(minimum_height=body.setter("height"))
+        scroll.add_widget(body); root.add_widget(scroll)
         role=role_of(self.app_state)
-        if role in {"parent","teacher","staff","counselor","educational","executive","cultural","manager","student"}:
-            self.request(root)
-        if role in {"manager","educational","executive","cultural"}:
-            self.review(root,role)
-        root.add_widget(self.lab("درخواست پس از ثبت برای بررسی مسئول مربوط و تأیید نهایی مدیر ارسال می‌شود.",55))
+        if role in {"parent","teacher","staff","counselor","advisor","educational","executive","cultural","manager","student"}:
+            self.request(body)
+        if role in {"manager","educational","executive","cultural","advisor"}:
+            self.review(body,role)
+        body.add_widget(self.lab("تاریخ ثبت درخواست به‌صورت خودکار ثبت می‌شود. پس از ثبت، درخواست در صندوق پیام مخاطب نیز اطلاع‌رسانی می‌شود.",58,"10sp",SECONDARY))
         root.add_widget(self.btn("بازگشت",self.back,SECONDARY))
         self.add_widget(root)
 
-    def request(self,root):
-        self.target_role=self._spinner("نوع مخاطب",["دبیر","کادر اجرایی","مشاور","مدیریت","ولی"])
-        self.target=self.field("نام یا نام کاربری مخاطب")
-        self.reason=self.field("علت ملاقات")
+    def request(self,body):
+        self._body=body
+        self.title_field=self.field("عنوان / موضوع ملاقات")
+        self.target_role=self._spinner("نوع مخاطب",["دبیر","معاون آموزشی","معاون اجرایی","معاون پرورشی","مشاور","مدیریت","ولی","دانش‌آموز"])
+        self.target=self.field("نام شخص مورد ملاقات")
         self.day=self._spinner("روز هفته",["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"])
         self.date=self.field("تاریخ ملاقات؛ مثال ۱۴۰۵/۰۷/۰۱")
         self.time=self.field("ساعت ملاقات؛ مثال ۱۰:۳۰")
-        self.details=self.field("توضیحات تکمیلی",70); self.details.multiline=True
-        for label,w in [("مخاطب",self.target),("علت ملاقات",self.reason),("روز",self.day),("تاریخ",self.date),("ساعت",self.time),("توضیحات",self.details)]:
-            root.add_widget(self.lab(label,28)); root.add_widget(w)
-        root.add_widget(self.btn("ثبت درخواست ملاقات",self.create,SUCCESS))
+        self.reason=self.field("موضوع / علت ملاقات")
+        self.details=self.field("توضیحات تکمیلی",75,True)
+        for label,w in [
+            ("عنوان ملاقات",self.title_field),("نوع مخاطب",self.target_role),("نام شخص",self.target),
+            ("روز",self.day),("تاریخ",self.date),("ساعت",self.time),("موضوع",self.reason),("توضیحات",self.details)
+        ]:
+            body.add_widget(self.lab(label,24,"10sp",SECONDARY,True)); body.add_widget(w)
+        body.add_widget(self.btn("ثبت درخواست ملاقات",self.create,SUCCESS,48))
+        body.add_widget(self.btn("پاک کردن فرم",lambda *_:self._clear_request_form(),SECONDARY,42))
+        body.add_widget(self.lab("درخواست‌های ثبت‌شده من",35,"13sp",PRIMARY,True))
+        self._load_my_requests(body)
+
+    def _clear_request_form(self):
+        for w in [self.title_field,self.target,self.date,self.time,self.reason,self.details]:
+            w.text=""
+        self._ok_msg("فرم پاک شد.")
+
+    def _ok_msg(self,text):
+        self.msg(text,SUCCESS)
+
+    def _value(self,w):
+        return (w.get_logical_text() if hasattr(w,"get_logical_text") else str(getattr(w,"text","") or "")).strip()
+
+    def _load_my_requests(self,body):
+        try:
+            username=self.username()
+            rows=self.api().table_select("meeting_requests",{"requester_username":f"eq.{username}","order":"id.desc","limit":"50"}) or []
+        except Exception as exc:
+            body.add_widget(self.lab("خواندن درخواست‌های قبلی ناموفق بود: "+str(exc),42,"9sp",ERROR)); return
+        if not rows:
+            body.add_widget(self.lab("هنوز درخواست ملاقاتی ثبت نشده است.",40,"10sp",SECONDARY)); return
+        for row in rows:
+            title=row.get("title") or row.get("reason") or "ملاقات"
+            meta=f"#{row.get('id')} | {title} | {row.get('target_name') or '-'} | {row.get('requested_day') or '-'} | {row.get('requested_date') or '-'} | {row.get('requested_time') or '-'} | {row.get('status') or '-'}"
+            body.add_widget(self.lab(meta,58,"9sp",WHITE,True))
+            actions=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(4))
+            b1=self.btn("ویرایش",lambda *_a,r=dict(row):self.edit_request(r),PRIMARY,40)
+            b2=self.btn("حذف",lambda *_a,r=dict(row):self.delete_request(r),ERROR,40)
+            actions.add_widget(b1); actions.add_widget(b2); body.add_widget(actions)
 
     def create(self,*_):
-        values=[self.target,self.reason,self.date,self.time]
-        if not all(x.text.strip() for x in values):
-            self.msg("مخاطب، علت، تاریخ و ساعت الزامی است.",ERROR); return
-        role=role_of(self.app_state)
-        profile=getattr(self.app_state,"profile",{}) or {}
-        target=self.target.text.strip()
-        target_type=str(self.target_role.text).strip()
-        target_role={"دبیر":"teacher","کادر اجرایی":"staff","مشاور":"counselor","مدیریت":"manager","ولی":"parent"}.get(target_type,"teacher")
-        p={"requester_username":self.username(),"requester_name":getattr(self.app_state,"display_name","کاربر") or "کاربر","requester_role":role,
-           "target_username":target,"target_name":target,"target_role":target_role,
-           "student_id":profile.get("linked_student_id"),
-           "teacher_id":profile.get("linked_teacher_id") or profile.get("teacher_id"),
-           "parent_id":profile.get("linked_parent_id") or profile.get("parent_id"),
-           "parent_phone":profile.get("phone") or "",
-           "requested_day":str(self.day.text).strip(),"requested_date":self.date.text.strip(),
-           "requested_time":self.time.text.strip(),"reason":self.reason.text.strip(),
-           "description":self.details.text.strip(),"status":"pending_manager","manager_status":"pending"}
+        vals=[self._value(self.title_field),self._value(self.target),self._value(self.date),self._value(self.time),self._value(self.reason)]
+        if not all(vals):
+            self.msg("عنوان، نام مخاطب، تاریخ، ساعت و موضوع ملاقات الزامی است.",ERROR); return
+        role=role_of(self.app_state); profile=getattr(self.app_state,"profile",{}) or {}
+        label=self._value(self.target_role)
+        target_role={"دبیر":"teacher","معاون آموزشی":"educational","معاون اجرایی":"executive","معاون پرورشی":"cultural","مشاور":"advisor","مدیریت":"manager","ولی":"parent","دانش‌آموز":"student"}.get(label,"staff")
+        now=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        payload={
+            "title":vals[0],"requester_username":self.username(),
+            "requester_name":getattr(self.app_state,"display_name","کاربر") or "کاربر",
+            "requester_role":role,"target_username":self._value(self.target),"target_name":self._value(self.target),
+            "target_role":target_role,"student_id":profile.get("linked_student_id"),
+            "teacher_id":profile.get("linked_teacher_id") or profile.get("teacher_id"),
+            "parent_id":profile.get("linked_parent_id") or profile.get("parent_id"),
+            "parent_phone":profile.get("phone") or "","requested_day":self._value(self.day),
+            "requested_date":self._value(self.date),"requested_time":self._value(self.time),
+            "reason":self._value(self.reason),"description":self._value(self.details),
+            "status":"pending_manager","manager_status":"pending"
+        }
         try:
-            self.api().table_insert("meeting_requests",p)
-            self.msg("درخواست ملاقات ثبت شد و برای بررسی مسئول مربوط و مدیر ارسال شد.")
+            created=self.api().table_insert("meeting_requests",payload,return_representation=True)
+            row=created[0] if isinstance(created,list) and created else (created if isinstance(created,dict) else {})
+            # Immediate inbox delivery when the target is a known username.
+            target_username=self._value(self.target)
+            try:
+                if target_username:
+                    self.api().table_insert("messages",{
+                        "sender":self.username(),"sender_name":getattr(self.app_state,"display_name","کاربر") or "کاربر",
+                        "receiver":target_username,"title":"درخواست جدید ملاقات",
+                        "body":f"درخواست ملاقات «{vals[0]}» برای {self._value(self.date)} ساعت {self._value(self.time)} ثبت شد.",
+                        "audience_type":"user","audience_value":target_username
+                    })
+            except Exception as notify_exc:
+                print("MEETING TARGET NOTIFICATION ERROR:",repr(notify_exc))
+            self.msg("درخواست ملاقات با موفقیت ثبت شد و اطلاع‌رسانی آن انجام شد.",SUCCESS)
             self.build()
-        except Exception as e:
-            self.msg("ثبت درخواست ملاقات انجام نشد: "+str(e),ERROR)
+        except Exception as exc:
+            self.msg("ثبت درخواست ملاقات انجام نشد: "+str(exc),ERROR)
+
+    def edit_request(self,row):
+        self.clear_widgets()
+        root=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(5))
+        root.add_widget(self.lab("ویرایش درخواست ملاقات",48,"20sp",PRIMARY,True))
+        scroll=ScrollView(do_scroll_x=False)
+        body=BoxLayout(orientation="vertical",spacing=dp(5),padding=[dp(3),dp(8)],size_hint_y=None)
+        body.bind(minimum_height=body.setter("height")); scroll.add_widget(body); root.add_widget(scroll)
+        self.edit_id=row.get("id")
+        self.title_field=self.field("عنوان ملاقات"); self.title_field.text=str(row.get("title") or "")
+        self.target=self.field("نام شخص"); self.target.text=str(row.get("target_name") or row.get("target_username") or "")
+        self.day=self._spinner("روز هفته",["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"]); self.day.text=fa_display(str(row.get("requested_day") or "شنبه"))
+        self.date=self.field("تاریخ"); self.date.text=str(row.get("requested_date") or "")
+        self.time=self.field("ساعت"); self.time.text=str(row.get("requested_time") or "")
+        self.reason=self.field("موضوع"); self.reason.text=str(row.get("reason") or "")
+        self.details=self.field("توضیحات",75,True); self.details.text=str(row.get("description") or "")
+        for w in [self.title_field,self.target,self.day,self.date,self.time,self.reason,self.details]: body.add_widget(w)
+        body.add_widget(self.btn("ذخیره ویرایش",self.save_edit,SUCCESS,48))
+        body.add_widget(self.btn("حذف درخواست",lambda *_:self.delete_request(row),ERROR,45))
+        body.add_widget(self.btn("بازگشت",self.build,SECONDARY,45))
+        self.add_widget(root)
+
+    def save_edit(self,*_):
+        try:
+            if not all(self._value(x) for x in [self.title_field,self.target,self.date,self.time,self.reason]):
+                self.msg("فیلدهای اصلی را کامل کنید.",ERROR); return
+            self.api().table_update("meeting_requests",{"id":f"eq.{self.edit_id}"},{
+                "title":self._value(self.title_field),"target_name":self._value(self.target),"target_username":self._value(self.target),
+                "requested_day":self._value(self.day),"requested_date":self._value(self.date),
+                "requested_time":self._value(self.time),"reason":self._value(self.reason),"description":self._value(self.details)
+            })
+            self.msg("درخواست ملاقات ویرایش شد.",SUCCESS); self.build()
+        except Exception as exc:self.msg("ویرایش انجام نشد: "+str(exc),ERROR)
+
+    def delete_request(self,row):
+        try:
+            self.api().table_delete("meeting_requests",{"id":f"eq.{row.get('id')}"})
+            self.msg("درخواست ملاقات حذف شد.",SUCCESS); self.build()
+        except Exception as exc:self.msg("حذف انجام نشد: "+str(exc),ERROR)
+
+    def review(self,body,role):
+        body.add_widget(self.lab("درخواست‌های ملاقات برای بررسی",40,"15sp",PRIMARY,True))
+        try: rows=self.api().table_select("meeting_requests",{"order":"id.desc","limit":"100"}) or []
+        except Exception as exc:
+            body.add_widget(self.lab("خواندن درخواست‌ها ناموفق بود: "+str(exc),42,"9sp",ERROR)); return
+        for row in rows:
+            body.add_widget(self.lab(
+                f"#{row.get('id')} | {row.get('title') or row.get('reason') or 'ملاقات'} | درخواست‌کننده: {row.get('requester_name') or '-'} | مخاطب: {row.get('target_name') or '-'} | {row.get('requested_day') or '-'} | {row.get('requested_date') or '-'} | {row.get('requested_time') or '-'} | {row.get('status') or '-'}",
+                76,"9sp",WHITE,True))
+            actions=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(4))
+            actions.add_widget(self.btn("تأیید",lambda *_a,r=dict(row):self.approve(r),SUCCESS,40))
+            actions.add_widget(self.btn("رد",lambda *_a,r=dict(row):self.reject(r),ERROR,40))
+            actions.add_widget(self.btn("حذف",lambda *_a,r=dict(row):self.delete_request(r),SECONDARY,40))
+            body.add_widget(actions)
+
+    def approve(self,row):
+        try:
+            self.api().table_update("meeting_requests",{"id":f"eq.{row.get('id')}"},{"status":"approved","manager_status":"approved"})
+            self._notify(row,"درخواست ملاقات شما تأیید شد.")
+            self.msg("درخواست تأیید شد.",SUCCESS); self.build()
+        except Exception as exc:self.msg("تأیید انجام نشد: "+str(exc),ERROR)
+
+    def reject(self,row):
+        try:
+            self.api().table_update("meeting_requests",{"id":f"eq.{row.get('id')}"},{"status":"rejected","manager_status":"rejected"})
+            self._notify(row,"درخواست ملاقات شما رد شد.")
+            self.msg("درخواست رد شد.",SUCCESS); self.build()
+        except Exception as exc:self.msg("رد درخواست انجام نشد: "+str(exc),ERROR)
+
+    def _notify(self,row,text):
+        try:
+            self.api().table_insert("messages",{
+                "sender":"school","sender_name":"مدرسه","receiver":row.get("requester_username"),
+                "title":"وضعیت درخواست ملاقات","body":text,
+                "audience_type":"user","audience_value":row.get("requester_username")
+            })
+        except Exception as exc: print("MEETING STATUS NOTIFICATION ERROR:",repr(exc))
 
 class OnlineClassWorkflowScreen(BaseWorkflow):
     """Operational online-class lifecycle shared by manager, deputies, teachers and students."""
