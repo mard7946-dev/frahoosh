@@ -711,7 +711,7 @@ class DashboardScreen(Screen):
         Clock.schedule_once(self._poll_parent_notifications, 0)
 
     def _poll_parent_notifications(self, *_):
-        if self._parent_poll_busy or self.app_state is None or self.role() != "parent":
+        if self._parent_poll_busy or self.app_state is None:
             return
         self._parent_poll_busy=True
         def worker():
