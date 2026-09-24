@@ -9,7 +9,6 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.widget import Widget
 from kivy.graphics import Color, RoundedRectangle
-from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.app import App
 from pathlib import Path
@@ -49,15 +48,26 @@ MOTHER_PANEL_CATALOG = {
 }
 
 def _load_mother_panel_catalog():
-    path = Path(__file__).resolve().parents[1] / "assets" / "mother_panel_catalog.json"
+    # The shared v16.12 ZIP-backed catalog is the single source of truth.
+    # Do not use the reduced legacy mother_panel_catalog.json for navigation.
+    candidates = [
+        Path(__file__).resolve().parents[2] / "shared" / "module_catalog.json",
+        Path.cwd() / "shared" / "module_catalog.json",
+    ]
     try:
-        if path.is_file():
-            data = json.loads(path.read_text(encoding="utf-8"))
-            panels = data.get("panels") or {}
-            if panels:
-                return panels
+        for path in candidates:
+            if path.is_file():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                panels = data.get("panels") or {}
+                if panels:
+                    aliases = {"manager":"management","teacher":"teachers","student":"students","parent":"parents"}
+                    return {
+                        key: {"title": key, "items": panels.get(source, [])}
+                        for key, source in {**{k:k for k in panels}, **aliases}.items()
+                        if source in panels
+                    }
     except Exception as exc:
-        print("MOTHER PANEL CATALOG ERROR:", repr(exc))
+        print("SHARED MODULE CATALOG ERROR:", repr(exc))
     return MOTHER_PANEL_CATALOG
 
 MOTHER_PANEL_CATALOG = _load_mother_panel_catalog()
@@ -594,7 +604,6 @@ class DashboardScreen(Screen):
             card=PanelCard(title,i,total,self.desc(real_route),lambda *_a,r=real_route:self.open_route(r),
                            route=real_route,size_hint_y=None,height=dp(148))
             self.grid.add_widget(card)
-            Clock.schedule_once(lambda _dt,card=card:Animation(opacity=1,d=.22,t="out_quad").start(card),i*.035)
         return True
 
     def open_route(self,route):
