@@ -8,6 +8,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import NoTransition
+from mobile.ui import font_name, fa_display
 
 # IMPORTANT: LoginScreen is intentionally NOT imported at module import time.
 # A failure in login.py (or one of its optional dependencies) must never kill
@@ -22,15 +23,15 @@ class EmergencyLoginScreen(Screen):
         self.app_state = app_state
         self.import_error = import_error
         root = BoxLayout(orientation="vertical", padding=32, spacing=16)
-        root.add_widget(Label(text="فراهوش", font_size="28sp"))
-        root.add_widget(Label(text="ورود", font_size="22sp"))
-        self.username = TextInput(hint_text="نام کاربری / کد ملی", multiline=False)
-        self.password = TextInput(hint_text="رمز عبور", password=True, multiline=False)
+        root.add_widget(Label(text=fa_display("فراهوش"), font_name=font_name(), font_size="28sp"))
+        root.add_widget(Label(text=fa_display("ورود"), font_name=font_name(), font_size="22sp"))
+        self.username = TextInput(hint_text=fa_display("نام کاربری / کد ملی"), font_name=font_name(), multiline=False)
+        self.password = TextInput(hint_text=fa_display("رمز عبور"), font_name=font_name(), password=True, multiline=False)
         root.add_widget(self.username)
         root.add_widget(self.password)
-        self.status = Label(text="در حال آماده‌سازی صفحه ورود...", font_size="14sp")
+        self.status = Label(text=fa_display("در حال آماده‌سازی صفحه ورود..."), font_name=font_name(), font_size="14sp")
         root.add_widget(self.status)
-        button = Button(text="ورود", size_hint_y=None, height=52)
+        button = Button(text=fa_display("ورود"), font_name=font_name(), size_hint_y=None, height=52)
         button.bind(on_release=self.retry_login)
         root.add_widget(button)
         self.add_widget(root)
@@ -49,7 +50,7 @@ class EmergencyLoginScreen(Screen):
             self.manager.current = "login"
         except Exception as exc:
             print("LOGIN RETRY ERROR:", repr(exc))
-            self.status.text = "صفحه ورود اصلی بارگذاری نشد. خطای داخلی ثبت شد."
+            self.status.text = fa_display("صفحه ورود اصلی بارگذاری نشد. خطای داخلی ثبت شد.")
 
 
 
@@ -134,8 +135,8 @@ class EmergencyDashboardScreen(Screen):
 
     def _build(self):
         root = BoxLayout(orientation="vertical", padding=18, spacing=10)
-        root.add_widget(Label(text="فراهوش", font_size="24sp", size_hint_y=None, height=48))
-        root.add_widget(Label(text="داشبورد مدیریت مدرسه", font_size="16sp", size_hint_y=None, height=40))
+        root.add_widget(Label(text=fa_display("فراهوش"), font_name=font_name(), font_size="24sp", size_hint_y=None, height=48))
+        root.add_widget(Label(text=fa_display("داشبورد مدیریت مدرسه"), font_name=font_name(), font_size="16sp", size_hint_y=None, height=40))
         scroll = ScreenAwareScrollView()
         grid = BoxLayout(orientation="vertical", spacing=8, size_hint_y=None)
         grid.bind(minimum_height=grid.setter("height"))
@@ -180,7 +181,7 @@ class EmergencyDashboardScreen(Screen):
         for title, key in hubs:
             if key not in allowed:
                 continue
-            b = Button(text=title, size_hint_y=None, height=54)
+            b = Button(text=fa_display(title), font_name=font_name(), size_hint_y=None, height=54)
             b.bind(on_release=lambda *_a, k=key: self._open_panel(k))
             self._grid.add_widget(b)
 
