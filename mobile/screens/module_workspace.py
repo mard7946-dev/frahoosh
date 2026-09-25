@@ -1220,7 +1220,7 @@ class ModuleWorkspaceScreen(Screen):
 
     def _save_assignment_submission(self, student_id, assignment_id, widget, existing):
         answer = widget.get_logical_text() if hasattr(widget, "get_logical_text") else str(widget.text or "")
-        payload = {"assignment_id":assignment_id, "student_id":student_id, "answer_text":answer.strip(), "submitted_at":"now()", "status":"submitted"}
+        payload = {"assignment_id":assignment_id, "student_id":student_id, "answer_text":answer.strip(), "status":"submitted"}
         try:
             if existing and existing.get("id"):
                 self.app_state.api.table_update("assignment_submissions", {"id":"eq."+str(existing.get("id")), "student_id":"eq."+str(student_id)}, payload)
