@@ -463,7 +463,7 @@ class DashboardScreen(Screen):
         total=len(items)
         for i,(title,route) in enumerate(items,1):
             card=PanelCard(title,i,total,self.desc(route.replace("panelhub:","")),lambda *_a,r=route:self.open_route(r),
-                           route=route.replace("panelhub:",""),size_hint_y=None,height=dp(148))
+                           route=route.replace("panelhub:",""),size_hint_y=None,height=dp(170))
             self.grid.add_widget(card)
         print("DASHBOARD SAFE FALLBACK ACTIVE:", repr(exc))
 
@@ -500,17 +500,16 @@ class DashboardScreen(Screen):
 
     def _build(self):
         root=FloatLayout()
-        background_source = bundled_login_background()
-        bg=Image(source=background_source or "",size_hint=(1,1),allow_stretch=True,keep_ratio=True,fit_mode="contain",nocache=True)
-        root.add_widget(bg)
-        if background_source:
-            Clock.schedule_once(lambda *_: bg.reload(), 0.20)
-        overlay=FloatLayout(size_hint=(1,1))
-        with overlay.canvas.before:
-            Color(0,0,0,0.22); self.tint=RoundedRectangle()
-        overlay.bind(pos=lambda o,v:setattr(self.tint,"pos",v),size=lambda o,v:setattr(self.tint,"size",v))
-        root.add_widget(overlay)
-        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(8),dp(14),dp(84)],spacing=dp(5))
+        # The dashboard is intentionally independent of the login artwork.
+        # A full-screen image made the panel UI look washed-out/gray on some
+        # Android devices and reduced contrast.  Use a clean professional
+        # surface so the actual panels are the visual focus.
+        with root.canvas.before:
+            Color(0.025,0.07,0.14,1)
+            self.dashboard_bg=RoundedRectangle()
+        root.bind(pos=lambda o,v:setattr(self.dashboard_bg,"pos",v),
+                  size=lambda o,v:setattr(self.dashboard_bg,"size",v))
+        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(12),dp(14),dp(84)],spacing=dp(8))
         head=BoxLayout(size_hint_y=None,height=dp(56))
         head.add_widget(self.label(APP_NAME,"25sp",WHITE,True,True)); content.add_widget(head)
         self.welcome=self.label("خوش آمدید","14sp",WHITE,True,True); content.add_widget(self.welcome)
@@ -521,7 +520,7 @@ class DashboardScreen(Screen):
             Color(0.02,0.08,0.18,0.64); self.frame_bg=RoundedRectangle(radius=[dp(22)])
         frame.bind(pos=lambda o,v:setattr(self.frame_bg,"pos",v),size=lambda o,v:setattr(self.frame_bg,"size",v))
         self.grid_scroll=ScrollView(do_scroll_x=False,do_scroll_y=True,bar_width=dp(3))
-        self.grid=GridLayout(cols=2,spacing=dp(7),padding=dp(3),size_hint_y=None)
+        self.grid=GridLayout(cols=2,spacing=dp(10),padding=dp(4),size_hint_y=None)
         self.grid.bind(minimum_height=self.grid.setter("height"))
         self.grid_scroll.add_widget(self.grid); frame.add_widget(self.grid_scroll); content.add_widget(frame)
         root.add_widget(content)
@@ -529,7 +528,7 @@ class DashboardScreen(Screen):
         with nav.canvas.before:
             Color(0.01,0.08,0.17,0.92); self.nav_bg=RoundedRectangle(radius=[dp(24)])
         nav.bind(pos=lambda o,v:setattr(self.nav_bg,"pos",v),size=lambda o,v:setattr(self.nav_bg,"size",v))
-        for title,route in (("خانه","home"),("ماژول‌ها","modules"),("پیام‌ها","messages"),("پروفایل","profile")):
+        for title,route in (("🏠 خانه","home"),("▦ ماژول‌ها","modules"),("✉ پیام‌ها","messages"),("⚙ پروفایل","profile")):
             b=Button(text=rtl_text(title),font_name=font_name(),font_size="10sp",background_normal="",background_color=(0,0,0,0),color=WHITE)
             b.bind(on_release=lambda *_a,r=route:self._bottom_nav(r)); nav.add_widget(b)
         root.add_widget(nav); self.add_widget(root)
