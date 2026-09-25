@@ -478,24 +478,10 @@ class DashboardScreen(Screen):
         return ROLE_ALIASES.get(raw,raw)
 
     def items(self):
-        role=self.role()
-        # The dashboard front door follows the exact 18-panel contract. The ZIP/mother module list
-        # is opened only after entering a panel; it must never replace the panel
-        # cards themselves with a handful of unrelated modules.
-        if role=="manager":
-            return [(title,"panelhub:"+key) for title,key in PANEL_HUBS]
-        if role=="student":
-            return [(title,"panelhub:"+key) for title,key in PANEL_HUBS if key in STUDENT_ALLOWED_PANELS]
-        if role=="parent":
-            return [(title,"panelhub:"+key) for title,key in PANEL_HUBS if key in PARENT_ALLOWED_PANELS]
-        own = {"executive":"executive","educational":"educational","cultural":"cultural","advisor":"advisor","teacher":"teachers"}.get(role)
-        allowed = []
-        if own:
-            allowed.append(own)
-        for shared in ("online","teacher_exams","smart_board","ai","messages","payment"):
-            if shared not in allowed:
-                allowed.append(shared)
-        return [(title,"panelhub:"+key) for title,key in PANEL_HUBS if key in allowed]
+        # The dashboard is the school-wide panel directory. Every authenticated
+        # account sees the same professional panel cards; the operational/read-only
+        # policy is enforced after entering a panel, at the module level.
+        return [(title, "panelhub:" + key) for title, key in PANEL_HUBS]
 
 
     def _build(self):
@@ -599,7 +585,7 @@ class DashboardScreen(Screen):
         for i,(title,route) in enumerate(items,1):
             real_route = self.resolve_module_route(role, title, route)
             card=PanelCard(title,i,total,self.desc(real_route),lambda *_a,r=real_route:self.open_route(r),
-                           route=real_route,size_hint_y=None,height=dp(148))
+                           route=real_route,size_hint_y=None,height=dp(170))
             self.grid.add_widget(card)
         return True
 
