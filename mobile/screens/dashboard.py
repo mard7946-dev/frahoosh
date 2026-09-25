@@ -207,7 +207,7 @@ class PanelHubScreen(Screen):
         title={route: title for title, route in PANEL_HUBS}.get(self.panel_key,self.panel_key)
         head=BoxLayout(size_hint_y=None,height=dp(58))
         head.add_widget(Label(text=fa_display(title),font_name=font_name(),font_size="18sp",color=WHITE,bold=True))
-        back=Button(text=rtl_text("بازگشت"),font_name=font_name(),size_hint_x=None,width=dp(78),
+        back=Button(text=fa_display("بازگشت"),font_name=font_name(),size_hint_x=None,width=dp(78),
                     background_normal="",background_color=PRIMARY,color=WHITE)
         back.bind(on_release=lambda *_: setattr(self.manager,"current","dashboard") if self.manager else None)
         head.add_widget(back); root.add_widget(head)
@@ -334,7 +334,7 @@ class PanelHubScreen(Screen):
     def _open_meeting_workflow(self):
         app=App.get_running_app()
         try:
-            target=app.ensure_meetings()
+            target=app.ensure_meeting_workflow()
             if target is None:
                 raise RuntimeError("مرکز ملاقات آماده نشد.")
             app.sm.current=target.name
@@ -392,7 +392,7 @@ class PanelHubScreen(Screen):
                     if route == "certificate_requests":
                         target=app.ensure_certificate_workflow()
                     elif route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
-                        target=app.ensure_meetings()
+                        target=app.ensure_meeting_workflow()
                     elif route in {"online_classes","virtual"}:
                         target=app.ensure_online_workflow()
                     elif route in {"teacher_exams","exams","questions","quiz_questions"}:
@@ -731,7 +731,7 @@ class DashboardScreen(Screen):
 
     def _set_parent_alert(self,message):
         try:
-            self.parent_alert.text=rtl_text(message)
+            self.parent_alert.text=fa_display(message)
             self.parent_alert.color=(0.72,1,0.82,1)
         except Exception:
             pass
