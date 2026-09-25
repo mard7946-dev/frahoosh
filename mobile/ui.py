@@ -93,7 +93,10 @@ def font_name():
     # Use the bundled Arabic/Persian-capable face. Roboto in the Android
     # Kivy package does not contain the required Persian glyphs.
     registered = register_fonts()
-    return registered or "Roboto"
+    # The bundled BTitr file is the required UI face. If registration by name is
+    # unavailable on a device, pass the actual font file path instead of falling
+    # back to Roboto, which has caused Persian square glyphs in Android builds.
+    return registered or str(Path(FONT_REGULAR))
 
 
 def bundled_login_background():
