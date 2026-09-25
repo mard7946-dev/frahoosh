@@ -50,6 +50,6 @@ BORDER = (0.80, 0.84, 0.90, 1)
 # Kivy/Buildozer packages jpg files because buildozer.spec includes jpg/jpeg.
 BACKGROUND_PATH = str(ASSETS_DIR / "frahoosh_login_mobile.jpg")
 API_TIMEOUT = 15
-SUPABASE_URL = str(os.environ.get("FRAHOOSH_SUPABASE_URL") or _RUNTIME.get("supabase_url") or _RUNTIME.get("FRAHOOSH_SUPABASE_URL") or "https://gtmmllcxhdejwjjnyzrh.supabase.co").strip()
+SUPABASE_URL = str(os.environ.get("FRAHOOSH_SUPABASE_URL") or _RUNTIME.get("supabase_url") or _RUNTIME.get("FRAHOOSH_SUPABASE_URL") or "https://wqructnmorlhrjwlvigm.supabase.co").strip()
 SUPABASE_ANON_KEY = str(os.environ.get("FRAHOOSH_SUPABASE_ANON_KEY") or _RUNTIME.get("supabase_anon_key") or _RUNTIME.get("FRAHOOSH_SUPABASE_ANON_KEY") or "sb_publishable_9gf_wPQVUTO6STGZR6JNSw_YduXkxN0").strip()
 PAYMENT_GATEWAY_URL = str(os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL") or _RUNTIME.get("payment_gateway_url") or _RUNTIME.get("FRAHOOSH_PAYMENT_GATEWAY_URL") or "").strip()
