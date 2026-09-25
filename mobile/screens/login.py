@@ -41,7 +41,6 @@ class LoginScreen(Screen):
         w = Label(
             text=fa_display(str(value)),
             font_name=font_name(),
-            text_language="fa",
             font_size=size,
             color=color,
             bold=bold,
