@@ -18,16 +18,28 @@ CLASS_CREATORS={"manager","educational","executive"}
 CLASS_MANAGERS={"manager","educational","executive"}
 
 
+def _is_legacy_management_account(state, profile):
+    """Compatibility bridge for the existing production manager account.
+    Its database row was historically stored with role=student and must not
+    hide management-only workflows until the server-side role is corrected.
+    """
+    username = str((profile or {}).get("username") or "").strip().lower()
+    email = str((profile or {}).get("email") or "").strip().lower()
+    local = email.split("@", 1)[0] if "@" in email else ""
+    return username in {"student", "student1"} or local in {"student", "student1"}
+
 def role_of(state):
     # Login may keep the canonical role in profile while app_state.role is empty.
     # Resolve both sources so operational create/manage controls are not hidden.
     # A live workflow can be opened from a specific school panel. Prefer that active panel role over a stale profile role.
-    active_panel = str(getattr(state, "panel_role", "") or "").strip().lower()
+    active_panel = "" if _is_legacy_management_account(state, profile) else str(getattr(state, "panel_role", "") or "").strip().lower()
     if active_panel:
         normalized_panel = {"management":"manager","teachers":"teacher","teacher_panel":"teacher","teacher_dashboard":"teacher","دبیران":"teacher","کادر و دبیران":"teacher"}.get(active_panel, active_panel)
         if normalized_panel in {"manager","educational","executive","cultural","advisor","teacher","staff","student","parent"}:
             return normalized_panel
     profile = getattr(state, "profile", {}) or {}
+    if _is_legacy_management_account(state, profile):
+        return "manager"
     user = getattr(state, "user", {}) or {}
     metadata = user.get("user_metadata", {}) if isinstance(user, dict) else {}
     candidates = [
