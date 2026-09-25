@@ -23,6 +23,9 @@ def _is_legacy_management_account(state, profile):
     return username in {"student", "student1"} or local in {"student", "student1"}
 
 def role_of(state):
+    profile = getattr(state, "profile", {}) or {}
+    if _is_legacy_management_account(state, profile):
+        return "manager"
     active_panel=str(getattr(state,"panel_role","") or "").strip().lower()
     aliases={"management":"manager","teachers":"teacher","teacher_panel":"teacher","teacher_dashboard":"teacher","دبیران":"teacher","کادر و دبیران":"teacher"}
     if active_panel:
