@@ -80,24 +80,14 @@ def register_fonts():
 
 
 def fa_display(value):
-    """Render Persian once for BTitr widgets that use normal Kivy text layout.
+    """Return logical Persian/Arabic text for Kivy's native text engine.
 
-    TextInput keeps logical Persian text; labels/buttons receive the shaped
-    visual string.  Presentation-form input is returned unchanged so callers
-    can safely pass an already-rendered value through another UI helper.
+    The previous implementation pre-shaped and bidi-reordered the string and
+    then handed that visual string to Kivy.  Android/Kivy could apply RTL
+    handling a second time, producing reversed words such as «شواهوارف» and
+    corrupted glyphs.  All labels/buttons must receive logical Unicode text.
     """
-    text = rtl_text(value)
-    if not text:
-        return text
-    # Do not reshape an already visually shaped Arabic/Persian string.
-    if any("\uFE70" <= ch <= "\uFEFF" for ch in text):
-        return text
-    try:
-        if arabic_reshaper is not None and get_display is not None:
-            return get_display(arabic_reshaper.reshape(text))
-    except Exception as exc:
-        print("PERSIAN DISPLAY SHAPE ERROR:", repr(exc))
-    return text
+    return rtl_text(value)
 
 def font_name():
     # Use the bundled Arabic/Persian-capable face. Roboto in the Android
