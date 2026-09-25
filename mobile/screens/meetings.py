@@ -449,6 +449,8 @@ class MeetingsScreen(Screen):
     def _review(self, root, role):
         title = "مدیریت درخواست‌های ملاقات" if role == "manager" else "ملاقات‌های ارجاع‌شده برای معاون آموزشی"
         root.add_widget(self._label(title, "15sp", PRIMARY, 36, True, True))
+        if role == "manager":
+            root.add_widget(self._button("＋ ایجاد درخواست ملاقات جدید", lambda *_: self._manager_create_form(), SUCCESS, 48))
         try:
             filters = {"order": "id.desc", "limit": "100"}
             if role == "educational":
@@ -489,6 +491,48 @@ class MeetingsScreen(Screen):
             "confirmed": "تأیید نهایی و زمان‌بندی‌شده",
             "rejected": "رد شده",
         }.get(str(status), str(status or "-"))
+
+    def _manager_create_form(self):
+        self._clear()
+        self._label("ایجاد درخواست ملاقات", "21sp", PRIMARY, 52, True, True)
+        students = self.app_state.api.table_select("students", {"order":"id.asc","limit":"200"}) or []
+        self._student_rows = students
+        labels = [self._person_name(r) for r in students]
+        student = self._spinner("انتخاب دانش‌آموز", labels or ["دانش‌آموزی ثبت نشده است"])
+        parent = self._spinner("انتخاب ولی دانش‌آموز", ["ابتدا دانش‌آموز را انتخاب کنید"])
+        def refresh(sp, value):
+            row = self._selected_student(sp)
+            rows = self._load_parents_for_student(row.get("id") if row else None)
+            names = [self._person_name(r) for r in rows]
+            parent.values = [fa_display(n) for n in (names or ["ولی برای این دانش‌آموز ثبت نشده است"])]
+            parent.text = parent.values[0]
+        student.bind(text=refresh)
+        if students:
+            student.text = fa_display(labels[0])
+            refresh(student, labels[0])
+        day=self._spinner("روز هفته", ["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"])
+        title=self._field("عنوان ملاقات")
+        date=self._field("تاریخ ملاقات")
+        time=self._field("ساعت ملاقات")
+        reason=self._field("علت ملاقات")
+        desc=self._field("توضیحات تکمیلی",72); desc.multiline=True
+        for w in [student,parent,day,title,date,time,reason,desc]:
+            self.body.add_widget(w)
+        self._button("ثبت درخواست ملاقات",lambda *_:self._create_manager_meeting(student,parent,title,day,date,time,reason,desc),SUCCESS,48)
+        self._button("بازگشت",lambda *_:self.show_home(),SECONDARY,44)
+
+    def _create_manager_meeting(self, student,parent,title,day,date,time,reason,desc):
+        srow=self._selected_student(student)
+        ptext=str(parent.text or "").strip()
+        prow=next((p for p in getattr(self,"_parent_rows",[]) if ptext in (self._person_name(p),fa_display(self._person_name(p)))),None)
+        if not srow or not prow:
+            return self._message("دانش‌آموز و ولی او را انتخاب کنید.",ERROR)
+        self._create(
+            student_name=self._person_name(srow), target_name=self._person_name(prow),
+            title=title.text,day=day.text,date=date.text,time=time.text,reason=reason.text,
+            description=desc.text,requester_role="manager",student_id=srow.get("id"),
+            target_username=prow.get("username"),parent_id=prow.get("id")
+        )
 
     def _manager_approve(self, rid):
         try:
