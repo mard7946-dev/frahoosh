@@ -1098,6 +1098,147 @@ class ModuleWorkspaceScreen(Screen):
             Color(*PRIMARY); bg=RoundedRectangle(radius=[dp(9)])
         w.bind(pos=lambda o,v:setattr(bg,"pos",v),size=lambda o,v:setattr(bg,"size",v))
 
+    def _current_username(self):
+        profile = getattr(self.app_state, "profile", {}) or {}
+        user = getattr(self.app_state, "user", {}) or {}
+        return str(profile.get("username") or user.get("username") or getattr(self.app_state, "username", "") or "").strip()
+
+    def _current_student_id(self):
+        profile = getattr(self.app_state, "profile", {}) or {}
+        value = profile.get("linked_student_id") or profile.get("student_id") or getattr(self.app_state, "student_id", None)
+        if value:
+            try:
+                return int(value)
+            except Exception:
+                pass
+        national = str(getattr(self.app_state, "national_code", "") or "").strip()
+        if national:
+            try:
+                rows = self.app_state.api.table_select("students", {"national_code":"eq."+national, "select":"id", "limit":"1"}) or []
+                if rows:
+                    return int(rows[0].get("id"))
+            except Exception as exc:
+                print("STUDENT ID RESOLVE ERROR:", repr(exc))
+        return None
+
+    def _open_parent_children(self):
+        self.body.clear_widgets()
+        self.table = None
+        self.title.text = fa_display("انتخاب دانش‌آموزان")
+        username = self._current_username()
+        self.body.add_widget(self.label("یک یا چند دانش‌آموز مرتبط با حساب ولی را انتخاب و مدیریت کنید.", "10sp", SECONDARY, False, "center"))
+        current = self.app_state.api.table_select("parent_children", {"parent_username":"eq."+username, "limit":"200"}) or []
+        linked_ids = {str(x.get("student_id")) for x in current}
+        students = self.app_state.api.table_select("students", {"order":"last_name.asc", "limit":"300"}) or []
+        picker = PersianSpinner(text=fa_display("انتخاب دانش‌آموز برای افزودن"),
+                                values=[fa_display(f"{s.get('first_name','')} {s.get('last_name','')} • {s.get('student_code') or '-'}")
+                                        for s in students],
+                                font_name=font_name(), font_size="11sp", size_hint_y=None, height=dp(44))
+        self.body.add_widget(picker)
+
+        def selected_student():
+            text = str(picker.text or "").strip()
+            for s in students:
+                label = f"{s.get('first_name','')} {s.get('last_name','')} • {s.get('student_code') or '-'}"
+                if text == label or text == fa_display(label):
+                    return s
+            return None
+
+        self.body.add_widget(self.btn("افزودن دانش‌آموز", lambda *_: self._add_parent_child(username, selected_student()), SUCCESS, dp(42)))
+        self.body.add_widget(self.label("دانش‌آموزان مرتبط با این حساب", "14sp", PRIMARY, True, "center"))
+        for link in current:
+            sid = link.get("student_id")
+            student = next((s for s in students if str(s.get("id")) == str(sid)), None)
+            name = f"{student.get('first_name','')} {student.get('last_name','')}" if student else f"دانش‌آموز شماره {sid}"
+            row = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(5))
+            row.add_widget(self.label(name, "10sp", WHITE, True, "center"))
+            row.add_widget(self.btn("حذف", lambda *_a, sid=sid: self._remove_parent_child(username, sid), ERROR, dp(40), dp(78)))
+            self.body.add_widget(row)
+        if not current:
+            self.body.add_widget(self.label("هنوز دانش‌آموزی به این حساب متصل نشده است.", "10sp", SECONDARY, False, "center"))
+        self.body.add_widget(self.btn("بازگشت", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
+
+    def _add_parent_child(self, username, student):
+        if not student or not student.get("id"):
+            return self.message("انتخاب دانش‌آموز", "ابتدا یک دانش‌آموز را انتخاب کنید.")
+        try:
+            self.app_state.api.table_insert("parent_children", {"parent_username":username, "student_id":student.get("id")})
+            self.message("انتخاب دانش‌آموز", "دانش‌آموز به حساب ولی اضافه شد.")
+            self._open_parent_children()
+        except Exception as exc:
+            self.message("انتخاب دانش‌آموز", "ثبت ارتباط انجام نشد: "+str(exc))
+
+    def _remove_parent_child(self, username, student_id):
+        try:
+            self.app_state.api.table_delete("parent_children", {"parent_username":"eq."+username, "student_id":"eq."+str(student_id)})
+            self.message("انتخاب دانش‌آموز", "ارتباط دانش‌آموز حذف شد.")
+            self._open_parent_children()
+        except Exception as exc:
+            self.message("انتخاب دانش‌آموز", "حذف ارتباط انجام نشد: "+str(exc))
+
+    def _open_student_assignments(self):
+        self.body.clear_widgets()
+        self.table = None
+        self.title.text = fa_display("ارسال تکالیف")
+        sid = self._current_student_id()
+        if not sid:
+            self.body.add_widget(self.label("پرونده دانش‌آموزی این حساب هنوز متصل نشده است.", "11sp", ERROR, True, "center"))
+            self.body.add_widget(self.btn("بازگشت", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
+            return
+        student_rows = self.app_state.api.table_select("students", {"id":"eq."+str(sid), "limit":"1"}) or []
+        student = student_rows[0] if student_rows else {}
+        class_name = str(student.get("class_name") or "").strip()
+        assignments = self.app_state.api.table_select("assignments", {"order":"id.desc", "limit":"200"}) or []
+        assignments = [a for a in assignments if str(a.get("student_id") or "") in {str(sid), "", "0"} or (class_name and str(a.get("class_name") or "").strip() == class_name)]
+        submissions = self.app_state.api.table_select("assignment_submissions", {"student_id":"eq."+str(sid), "limit":"500"}) or []
+        by_assignment = {str(x.get("assignment_id")): x for x in submissions}
+        if not assignments:
+            self.body.add_widget(self.label("هنوز تکلیفی برای این دانش‌آموز ثبت نشده است.", "11sp", SECONDARY, False, "center"))
+        for assignment in assignments:
+            aid = assignment.get("id")
+            existing = by_assignment.get(str(aid))
+            card = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(205), padding=dp(8), spacing=dp(4))
+            with card.canvas.before:
+                Color(0.02,0.10,0.20,0.92)
+                bg = RoundedRectangle(radius=[dp(14)])
+            card.bind(pos=lambda o,v,bg=bg:setattr(bg,"pos",v), size=lambda o,v,bg=bg:setattr(bg,"size",v))
+            title = str(assignment.get("title") or "تکلیف")
+            card.add_widget(self.label(title, "13sp", WHITE, True, "center"))
+            card.add_widget(self.label(f"درس: {assignment.get('subject') or '-'} • مهلت: {assignment.get('due_date') or '-'}", "9sp", SECONDARY, False, "center"))
+            answer = PersianTextInput(text=str(existing.get("answer_text") or "") if existing else "",
+                                      hint_text=fa_display("پاسخ یا توضیحات تکلیف"),
+                                      font_name=font_name(), font_size="11sp", multiline=True,
+                                      halign="right", size_hint_y=None, height=dp(70))
+            card.add_widget(answer)
+            actions=BoxLayout(size_hint_y=None,height=dp(38),spacing=dp(4))
+            actions.add_widget(self.btn("ثبت یا ویرایش", lambda *_a,a=aid,w=answer,e=existing: self._save_assignment_submission(sid,a,w,e), SUCCESS, dp(36)))
+            if existing:
+                actions.add_widget(self.btn("حذف ارسال", lambda *_a,e=dict(existing): self._delete_assignment_submission(e), ERROR, dp(36)))
+            card.add_widget(actions)
+            self.body.add_widget(card)
+        self.body.add_widget(self.btn("بازگشت", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
+
+    def _save_assignment_submission(self, student_id, assignment_id, widget, existing):
+        answer = widget.get_logical_text() if hasattr(widget, "get_logical_text") else str(widget.text or "")
+        payload = {"assignment_id":assignment_id, "student_id":student_id, "answer_text":answer.strip(), "submitted_at":"now()", "status":"submitted"}
+        try:
+            if existing and existing.get("id"):
+                self.app_state.api.table_update("assignment_submissions", {"id":"eq."+str(existing.get("id")), "student_id":"eq."+str(student_id)}, payload)
+            else:
+                self.app_state.api.table_insert("assignment_submissions", payload)
+            self.message("ارسال تکلیف", "ارسال تکلیف ثبت شد.")
+            self._open_student_assignments()
+        except Exception as exc:
+            self.message("ارسال تکلیف", "ثبت ارسال تکلیف انجام نشد: "+str(exc))
+
+    def _delete_assignment_submission(self, row):
+        try:
+            self.app_state.api.table_delete("assignment_submissions", {"id":"eq."+str(row.get("id")), "student_id":"eq."+str(self._current_student_id())})
+            self.message("ارسال تکلیف", "ارسال تکلیف حذف شد.")
+            self._open_student_assignments()
+        except Exception as exc:
+            self.message("ارسال تکلیف", "حذف ارسال تکلیف انجام نشد: "+str(exc))
+
     def _open_consumer_payment(self):
         self.body.clear_widgets()
         self.table = None
@@ -1307,6 +1448,14 @@ class ModuleWorkspaceScreen(Screen):
         # Student/parent online payment is a real operational workflow.
         # The offer is configured by school management; the consumer can submit
         # a payment request and, when a payment URL is configured, continue to it.
+        if table == "parent_children" and self.role() == "parent":
+            self._open_parent_children()
+            return
+
+        if table == "assignment_submissions" and self.role() == "student":
+            self._open_student_assignments()
+            return
+
         if table in ("payment", "payment_offers") and self.role() in {"student", "parent"}:
             self._open_consumer_payment()
             return
