@@ -32,6 +32,7 @@ def role_of(state):
     # Login may keep the canonical role in profile while app_state.role is empty.
     # Resolve both sources so operational create/manage controls are not hidden.
     # A live workflow can be opened from a specific school panel. Prefer that active panel role over a stale profile role.
+    profile = getattr(state, "profile", {}) or {}
     active_panel = "" if _is_legacy_management_account(state, profile) else str(getattr(state, "panel_role", "") or "").strip().lower()
     if active_panel:
         normalized_panel = {"management":"manager","teachers":"teacher","teacher_panel":"teacher","teacher_dashboard":"teacher","دبیران":"teacher","کادر و دبیران":"teacher"}.get(active_panel, active_panel)
