@@ -417,9 +417,24 @@ EDITABLE = {
     "finance": {
         "finance_accounts","finance_transactions","finance_donations","payment_offers","payment_attempts","payment_records"
     },
-    # Consumer roles have only the explicitly approved operational writes.
-    "student": {"assignment_submissions"},
-    "parent": {"payment_attempts"},
+    # Consumer roles: only the workflows explicitly requested by the school
+    # are writable. Every other student/parent module is informational.
+    "student": {
+        "certificate_requests",
+        "payment_offers", "payment_attempts",
+        "assignment_submissions",
+        "student_council", "basij_registration",
+        "activity_registrations", "competitions",
+        "cultural_activity_registrations", "khwarizmi_registrations",
+    },
+    "parent": {
+        "parent_children",
+        "parent_meeting_requests", "meeting_requests",
+        "payment_offers", "payment_attempts",
+        "survey_responses",
+        "transport_requests",
+        "parent_activities",
+    },
 }
 # Normalize write permissions to the canonical backend table ids used by the
 # mother contract.  Without this step an alias such as "virtual" would render
@@ -907,11 +922,10 @@ class ModuleWorkspaceScreen(Screen):
         # stale/partial module permission set hide CRUD controls from the manager.
         if role in {"manager","educational","executive","cultural","advisor","teacher","staff","counselor"}:
             return True
-        # Consumer roles are explicitly read-only except for the small set of
-        # workflows declared in EDITABLE (meeting/payment/selection/etc.).
-        # This keeps informational modules useful without exposing edit/delete UI.
+        # Consumer roles are deliberately informational by default. Only the
+        # explicitly approved workflows in EDITABLE expose write controls.
         if role in {"student", "parent"}:
-            return resolved not in READ_ONLY.get(role, set()) and resolved in EDITABLE.get(role, set())
+            return resolved in EDITABLE.get(role, set())
         # Staff panels are never decorative: their backend roles control access.
         if role not in {"student", "parent"}:
             return True
@@ -1291,40 +1305,34 @@ class ModuleWorkspaceScreen(Screen):
         line.add_widget(self.btn("زیرپنل‌ها",lambda *_:self._back_to_submenus(),PRIMARY,dp(40),dp(82)))
         line.add_widget(self.label(FRIENDLY.get(table,table),"16sp",PRIMARY,True,"center"))
         hero.add_widget(line); self.body.add_widget(hero)
-        # Every operational module gets the same visible CRUD toolbar.
-        # Write permission only controls whether the actions are enabled; it
-        # must never make the buttons disappear and make a real module look
-        # decorative. Manager/authorized roles get live Supabase actions.
         can_write = self.can_write(table)
-        # Seven real module actions. Two rows keep every action readable on portrait Android.
-        bar=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(82),spacing=dp(4))
-        row1=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
-        row2=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
-        # Keep read-only modules clearly usable: they remain visible and exportable,
-        # while write actions explain the permission instead of silently failing.
-        def _guard_write(action):
-            def _run(*_args):
-                if not self.can_write(table):
-                    self.message("دسترسی ثبت اطلاعات", "این نقش اجازه ثبت، ویرایش یا حذف این جدول را ندارد.")
-                    return
-                action()
-            return _run
-        create_btn=self.btn("ثبت جدید",_guard_write(lambda: self.editor(table,None)),SUCCESS if can_write else (0.22,.32,.40,1),dp(38))
-        edit_btn=self.btn("ویرایش",_guard_write(self._edit_selected_row),PRIMARY if can_write else (0.22,.32,.40,1),dp(38))
-        delete_btn=self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1) if can_write else (0.22,.32,.40,1),dp(38))
-        row1.add_widget(create_btn); row1.add_widget(edit_btn); row1.add_widget(delete_btn)
-        row1.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
-        row2.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
-        import_btn=self.btn("ورودی Excel / ثبت گروهی",_guard_write(self.import_excel),(0.42,.30,.62,1) if can_write else (0.22,.32,.40,1),dp(38))
-        row2.add_widget(import_btn)
-        row2.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
-        bar.add_widget(row1); bar.add_widget(row2)
-        self.body.add_widget(bar)
-        self.status.text = fa_display(
-            "عملیات واقعی فعال است • ساخت، ویرایش و حذف به جدول Supabase متصل است"
-            if can_write else
-            "فقط مشاهده • برای ساخت، ویرایش یا حذف نیاز به دسترسی ثبت اطلاعات دارید"
-        )
+        if can_write:
+            bar=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(82),spacing=dp(4))
+            row1=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
+            row2=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
+            def _guard_write(action):
+                def _run(*_args):
+                    if not self.can_write(table):
+                        self.message("دسترسی ثبت اطلاعات", "این نقش اجازه ثبت، ویرایش یا حذف این جدول را ندارد.")
+                        return
+                    action()
+                return _run
+            row1.add_widget(self.btn("ثبت جدید",_guard_write(lambda: self.editor(table,None)),SUCCESS,dp(38)))
+            row1.add_widget(self.btn("ویرایش",_guard_write(self._edit_selected_row),PRIMARY,dp(38)))
+            row1.add_widget(self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1),dp(38)))
+            row1.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+            row2.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
+            row2.add_widget(self.btn("ورودی Excel / ثبت گروهی",_guard_write(self.import_excel),(0.42,.30,.62,1),dp(38)))
+            row2.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
+            bar.add_widget(row1); bar.add_widget(row2)
+            self.body.add_widget(bar)
+            self.status.text = fa_display("عملیات واقعی فعال است • ساخت، ویرایش و حذف به جدول Supabase متصل است")
+        else:
+            bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
+            bar.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+            bar.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
+            self.body.add_widget(bar)
+            self.status.text = fa_display("حالت مشاهده‌ای • اطلاعات این بخش برای اطلاع‌رسانی است")
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
 
     def _excel_path(self):
