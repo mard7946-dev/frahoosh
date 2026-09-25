@@ -44,8 +44,27 @@ SUBMENUS = {
 "cultural":[("ملاقات با اولیا","meeting_requests"),("پیام‌های پرورشی","messages"),("ایجاد مسابقات","activity_offers"),("مسابقات فرهنگی","cultural_competitions"),("مسابقات هنری","art_competitions"),("مسابقات ورزشی","sport_competitions"),("فعالیت‌ها و مراسمات","educational_activities"),("انتخابات شورای دانش‌آموزی","student_council"),("بسیج دانش‌آموزی","basij_registration"),("شهردار مدرسه","school_mayor"),("مکبر","morning_leaders"),("قاری برنامه ظهرگاهی","qari_registration"),("جدول مراسم ظهرگاهی","morning_ceremony"),("ثبت انضباطی","discipline_records"),("صندوق پیام","messages")],
 "advisor":[("ملاقات با اولیا","meeting_requests"),("پرونده‌های مشاوره","counseling_records"),("پیگیری جلسات","counseling_followups"),("دانش‌آموزان","students"),("اولیا","parent_children"),("ملاقات و درخواست جلسه","meeting_requests"),("گزارش‌های مشاوره","report_cards"),("صندوق پیام","messages")],
 "teachers":[("کلاس‌های من","teacher_classes"),("طرح درس","lesson_plans"),("برنامه هفتگی","weekly_schedule"),("کلاس‌های آنلاین فعال","online_classes"),("آزمون آنلاین","teacher_exams"),("حضور و غیاب","attendance"),("نمرات درسی","grades"),("تکالیف","assignments"),("موارد انضباطی","discipline_records"),("ارجاع دانش‌آموز","student_referrals"),("ملاقات با اولیا","meeting_requests"),("صندوق پیام","messages")],
-"students":[("تکالیف","assignment_submissions"),("صندوق پیام","messages")],
-"parents":[("پرداخت آنلاین","payment"),("صندوق پیام","messages")],
+"students":[
+("اطلاعات دانش‌آموز","students"),("پایه و کلاس","student_class_info"),("حضور و غیاب","attendance"),
+("نمرات","student_grades"),("تکالیف","assignments"),("صندوق پیام","messages"),
+("مسابقات و فعالیت‌ها","activity_registrations"),("شورای دانش‌آموزی","student_council"),
+("بسیج","basij_registration"),("همیار مدرسه","school_ally"),("شهردار مدرسه","school_mayor"),
+("ارسال تکالیف","assignment_submissions"),("برنامه هفتگی","weekly_schedule"),
+("برنامه امتحانات","exam_schedule"),("صندلی کلاسی","class_seat_assignments"),
+("صندلی امتحان","exam_seat_assignments"),("درخواست گواهی","certificate_requests"),
+("کلاس آنلاین","online_classes"),("پرداخت آنلاین","payment")
+],
+"parents":[
+("انتخاب یک یا چند دانش‌آموز","parent_children"),("اطلاعات دانش‌آموز","students"),
+("کارنامه و نمرات","student_grades"),("حضور و غیاب","attendance"),
+("کارنامه ماهانه","monthly_report_cards"),("کارنامه","report_cards"),
+("انضباط","discipline_records"),("گزارش هوشمند","ai_smart_reports"),
+("پیام‌ها و اطلاعیه‌ها","messages"),("ملاقات‌ها","meeting_requests"),
+("نظرسنجی","survey_responses"),("برنامه هفتگی","weekly_schedule"),
+("برنامه امتحانات","exam_schedule"),("سوابق پرداخت","payment_records"),
+("پرداخت آنلاین","payment"),("سرویس مدرسه","transport_requests"),
+("فعالیت‌های اولیا","parent_activities")
+],
 "finance":[("حساب‌ها","finance_accounts"),("تراکنش‌ها","finance_transactions"),("کمک‌های داوطلبانه","finance_donations"),("تعریف گزینه پرداخت","payment_offers"),("درخواست‌های پرداخت","payment_attempts"),("سوابق پرداخت","payment_records")],
 "online":[("کلاس‌های آنلاین","online_classes"),("جلسات","online_class_sessions"),("دانش‌آموزان کلاس","online_class_students"),("دبیران کلاس","online_class_teachers"),("حضور آنلاین","online_attendance"),("تخته کلاس","smart_board_whiteboards")],
 "smart_board":[("محتوای آموزشی","smart_board_content"),("فعالیت‌ها","smart_board_activities"),("آزمون‌های کوتاه","smart_board_quizzes"),("تخته‌های آموزشی","smart_board_whiteboards")],
@@ -466,7 +485,7 @@ READ_ONLY = {
     },
 }
 
-# Every operational panel receives the same CRUD/Excel/PDF toolbar.
+# Administrative panels receive the full operational toolbar; student and parent panels receive only the three requested CRUD actions.
 # The backend/RLS remains the final security boundary; this client-side map
 # guarantees that the actions are visible for every module in the five
 # administrative panels instead of silently disappearing because a new module
@@ -1307,10 +1326,8 @@ class ModuleWorkspaceScreen(Screen):
         line.add_widget(self.label(FRIENDLY.get(table,table),"16sp",PRIMARY,True,"center"))
         hero.add_widget(line); self.body.add_widget(hero)
         can_write = self.can_write(table)
+        consumer = self.role() in {"student", "parent"}
         if can_write:
-            bar=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(82),spacing=dp(4))
-            row1=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
-            row2=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
             def _guard_write(action):
                 def _run(*_args):
                     if not self.can_write(table):
@@ -1318,22 +1335,37 @@ class ModuleWorkspaceScreen(Screen):
                         return
                     action()
                 return _run
-            row1.add_widget(self.btn("ثبت جدید",_guard_write(lambda: self.editor(table,None)),SUCCESS,dp(38)))
-            row1.add_widget(self.btn("ویرایش",_guard_write(self._edit_selected_row),PRIMARY,dp(38)))
-            row1.add_widget(self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1),dp(38)))
-            row1.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
-            row2.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
-            row2.add_widget(self.btn("ورودی Excel / ثبت گروهی",_guard_write(self.import_excel),(0.42,.30,.62,1),dp(38)))
-            row2.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
-            bar.add_widget(row1); bar.add_widget(row2)
-            self.body.add_widget(bar)
-            self.status.text = fa_display("عملیات واقعی فعال است • ساخت، ویرایش و حذف به جدول Supabase متصل است")
+
+            if consumer:
+                # دانش‌آموز و ولی فقط عملیات واقعی خودشان را می‌بینند:
+                # ثبت، ویرایش و حذف. ابزارهای خروجی برای این دو نقش حذف شده‌اند.
+                bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
+                bar.add_widget(self.btn("ثبت",_guard_write(lambda: self.editor(table,None)),SUCCESS,dp(38)))
+                bar.add_widget(self.btn("ویرایش",_guard_write(self._edit_selected_row),PRIMARY,dp(38)))
+                bar.add_widget(self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1),dp(38)))
+                self.body.add_widget(bar)
+                self.status.text = fa_display("عملیات ثبت، ویرایش و حذف برای این بخش فعال است")
+            else:
+                bar=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(82),spacing=dp(4))
+                row1=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
+                row2=BoxLayout(size_hint_y=None,height=dp(39),spacing=dp(4))
+                row1.add_widget(self.btn("ثبت جدید",_guard_write(lambda: self.editor(table,None)),SUCCESS,dp(38)))
+                row1.add_widget(self.btn("ویرایش",_guard_write(self._edit_selected_row),PRIMARY,dp(38)))
+                row1.add_widget(self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1),dp(38)))
+                row1.add_widget(self.btn("خروجی جدول",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+                row2.add_widget(self.btn("قالب جدول",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
+                row2.add_widget(self.btn("ورودی گروهی",_guard_write(self.import_excel),(0.42,.30,.62,1),dp(38)))
+                row2.add_widget(self.btn("گزارش چاپی",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
+                bar.add_widget(row1); bar.add_widget(row2)
+                self.body.add_widget(bar)
+                self.status.text = fa_display("عملیات واقعی فعال است و به پایگاه داده مدرسه متصل است")
         else:
-            bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
-            bar.add_widget(self.btn("خروجی Excel",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
-            bar.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
-            self.body.add_widget(bar)
-            self.status.text = fa_display("حالت مشاهده‌ای • اطلاعات این بخش برای اطلاع‌رسانی است")
+            if not consumer:
+                bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
+                bar.add_widget(self.btn("خروجی جدول",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+                bar.add_widget(self.btn("گزارش چاپی",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
+                self.body.add_widget(bar)
+            self.status.text = fa_display("حالت مشاهده‌ای؛ این بخش فقط برای مشاهده اطلاعات است")
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
 
     def _excel_path(self):
