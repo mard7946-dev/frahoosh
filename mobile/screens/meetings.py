@@ -12,12 +12,24 @@ from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 
 
+def _is_legacy_management_account(state, profile):
+    """Compatibility bridge for the existing production manager account.
+    Its database row was historically stored with role=student and must not
+    hide management-only workflows until the server-side role is corrected.
+    """
+    username = str((profile or {}).get("username") or "").strip().lower()
+    email = str((profile or {}).get("email") or "").strip().lower()
+    local = email.split("@", 1)[0] if "@" in email else ""
+    return username in {"student", "student1"} or local in {"student", "student1"}
+
 def role_of(state):
     active_panel=str(getattr(state,"panel_role","") or "").strip().lower()
     aliases={"management":"manager","teachers":"teacher","teacher_panel":"teacher","teacher_dashboard":"teacher","دبیران":"teacher","کادر و دبیران":"teacher"}
     if active_panel:
         return aliases.get(active_panel,active_panel)
     profile = getattr(state, "profile", {}) or {}
+    if _is_legacy_management_account(state, profile):
+        return "manager"
     candidates = [
         profile.get("role"),
         profile.get("user_role"),
