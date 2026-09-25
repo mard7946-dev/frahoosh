@@ -161,6 +161,19 @@ class TeacherExamsV4Screen(Screen):
 
     def _new_exam(self):
         self._clear(); self.questions=[]; self._label("ساخت آزمون استاندارد","22sp",PRIMARY,52,True)
+        teacher_picker = None
+        if role_of(self.app_state) == "manager":
+            try:
+                self._manager_teacher_rows = self.app_state.api.table_select("teachers", {"order":"id.asc","limit":"200"}) or []
+            except Exception:
+                self._manager_teacher_rows = []
+            teacher_names = [
+                self._person_name(t) if hasattr(self, "_person_name") else
+                str(t.get("display_name") or ((t.get("first_name") or "") + " " + (t.get("last_name") or "")).strip() or t.get("email") or t.get("username") or "دبیر")
+                for t in self._manager_teacher_rows
+            ]
+            teacher_picker = self._spinner("انتخاب دبیر آزمون", teacher_names or ["هیچ دبیری در سامانه ثبت نشده است"])
+            self._label("مدیریت مدرسه می‌تواند آزمون را به نام دبیر منتخب ایجاد کند.","10sp",SECONDARY,42)
         title=self._field("عنوان آزمون")
         subject=self._spinner("ریاضی",["ریاضی","فیزیک","شیمی","زیست","علوم","فارسی","انگلیسی","عربی","دینی","مطالعات اجتماعی","سایر"])
         grade=self._field("پایه / رشته")
@@ -172,7 +185,9 @@ class TeacherExamsV4Screen(Screen):
         desc=self._field("دستورالعمل آزمون",82,True)
         self._label("انواع سؤال قابل انتخاب: تستی، صحیح و غلط، جای خالی، پاسخ کوتاه و تشریحی. به جز تشریحی، تصحیح خودکار انجام می‌شود.","11sp",PRIMARY,65)
         self._button("＋ افزودن سؤال",lambda *_:self._add_question(),SUCCESS)
-        self._button("ذخیره آزمون و رفتن به زمان‌بندی",lambda *_:self._save_exam(title,subject,grade,class_name,duration,attempts,passing,mode,desc),PRIMARY)
+        if teacher_picker is not None:
+            self._exam_teacher_picker = teacher_picker
+        self._button("ذخیره آزمون و رفتن به زمان‌بندی",lambda *_:self._save_exam(title,subject,grade,class_name,duration,attempts,passing,mode,desc,teacher_picker),PRIMARY)
         self._button("انصراف",lambda *_:self.show_home())
 
     def _add_question(self):
@@ -274,12 +289,21 @@ class TeacherExamsV4Screen(Screen):
             return int(rows[0]["id"]) if rows else None
         except Exception:return None
 
-    def _save_exam(self,title,subject,grade,class_name,duration,attempts,passing,mode,desc):
+    def _save_exam(self,title,subject,grade,class_name,duration,attempts,passing,mode,desc,teacher_picker=None):
         if not self._value(title) or not self.questions:self._error("عنوان آزمون و حداقل یک سؤال لازم است.");return
         try: dur=max(1,min(600,int(self._value(duration) or 45))); mx=max(1,int(self._value(attempts) or 1)); ps=max(0,float(self._value(passing) or 0))
         except Exception:self._error("مدت، تعداد دفعات و نمره قبولی باید عدد باشند.");return
         tid=self._teacher_id()
-        
+        if role_of(self.app_state) == "manager" and teacher_picker is not None:
+            idx = list(teacher_picker.values).index(teacher_picker.text) if teacher_picker.text in teacher_picker.values else -1
+            if 0 <= idx < len(getattr(self, "_manager_teacher_rows", [])):
+                try: tid = int(self._manager_teacher_rows[idx].get("id"))
+                except Exception: tid = None
+            if not tid:
+                self._error("برای آزمون یک دبیر معتبر انتخاب کنید."); return
+        if not tid:
+            self._error("دبیر آزمون برای حساب فعلی پیدا نشد."); return
+
         self.status.text=fa_display("در حال ذخیره آزمون…"); self.status.color=SECONDARY
         payload={"teacher_id":tid,"title":self._value(title),"subject":self._value(subject),"grade":self._value(grade),"class_name":self._value(class_name),"exam_type":"آزمون آنلاین","duration":dur,"description":self._value(desc),"published":False,"secure_mode":True,"standard_mode":mode.text==fa_display("استاندارد"),"max_attempts":mx,"passing_score":ps}
         Thread(target=self._save_worker,args=(payload,dur),daemon=True).start()
