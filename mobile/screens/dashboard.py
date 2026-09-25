@@ -165,6 +165,8 @@ PANEL_HUBS = [
     ("اولیا","parents"),
     ("مالی","finance"),
     ("کلاس‌های آنلاین","online"),
+    ("آزمون آنلاین","teacher_exams"),
+    ("ملاقات‌ها","meetings"),
     ("تابلو هوشمند","smart_board"),
     ("هوش مصنوعی","ai"),
     ("صندوق پیام‌ها","messages"),
@@ -211,7 +213,13 @@ class PanelHubScreen(Screen):
         head.add_widget(back); root.add_widget(head)
         # Dedicated creation actions for the two first-class teaching workspaces.
         # Keep them visible at the top of their panel, before the module list.
-        if self.panel_key == "online":
+        if self.panel_key == "meetings":
+            create=Button(text=fa_display("＋ ثبت یا پیگیری ملاقات"),font_name=font_name(),font_size="14sp",
+                           background_normal="",background_color=SUCCESS,color=WHITE,
+                           size_hint_y=None,height=dp(52))
+            create.bind(on_release=lambda *_: self._open_meeting_workflow())
+            root.add_widget(create)
+        elif self.panel_key == "online":
             active_role = str(getattr(self.app_state, "role", "") or "").strip().lower()
             active_role = {
                 "admin":"manager","administrator":"manager","management":"manager",
@@ -255,6 +263,16 @@ class PanelHubScreen(Screen):
         }.get(self.panel_key, self.panel_key)
         catalog = MOTHER_PANEL_CATALOG.get(catalog_key) or {}
         items = catalog.get("items") or []
+
+        # These are first-class operational centers, not generic CRUD tables.
+        # Always expose their real workflow entry point even if the mother ZIP
+        # catalog has no dedicated navigation section for them.
+        if self.panel_key == "meetings":
+            items = [("ثبت و پیگیری ملاقات", "meeting_requests")]
+        elif self.panel_key == "teacher_exams":
+            items = [("مرکز طراحی آزمون آنلاین", "teacher_exams")]
+        elif self.panel_key == "online":
+            items = [("مرکز کلاس آنلاین", "online_classes")]
         self.grid.clear_widgets()
         if not items:
             # Keep a visible diagnostic instead of silently rendering an empty
@@ -301,6 +319,16 @@ class PanelHubScreen(Screen):
             "درخواست گواهی":"درخواست و صدور گواهی اشتغال به تحصیل.",
             "درخواست ملاقات":"ثبت درخواست، تأیید مسئول و تأیید نهایی مدیر.",
         }.get(label,"ثبت، ویرایش، حذف، گزارش و تبادل اطلاعات واقعی سامانه.")
+
+    def _open_meeting_workflow(self):
+        app=App.get_running_app()
+        try:
+            target=app.ensure_meetings()
+            if target is None:
+                raise RuntimeError("مرکز ملاقات آماده نشد.")
+            app.sm.current=target.name
+        except Exception as exc:
+            print("MEETING OPEN ERROR:",repr(exc))
 
     def _open_online_create(self):
         app=App.get_running_app()
