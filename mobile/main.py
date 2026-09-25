@@ -7,6 +7,8 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.gridlayout import GridLayout
+from kivy.graphics import Color, RoundedRectangle
 from kivy.uix.screenmanager import NoTransition
 from mobile.ui import font_name, fa_display
 
@@ -138,7 +140,7 @@ class EmergencyDashboardScreen(Screen):
         root.add_widget(Label(text=fa_display("فراهوش"), font_name=font_name(), font_size="24sp", size_hint_y=None, height=48))
         root.add_widget(Label(text=fa_display("داشبورد مدیریت مدرسه"), font_name=font_name(), font_size="16sp", size_hint_y=None, height=40))
         scroll = ScreenAwareScrollView()
-        grid = BoxLayout(orientation="vertical", spacing=8, size_hint_y=None)
+        grid = GridLayout(cols=2, spacing=10, padding=6, size_hint_y=None)
         grid.bind(minimum_height=grid.setter("height"))
         scroll.add_widget(grid)
         root.add_widget(scroll)
@@ -147,43 +149,39 @@ class EmergencyDashboardScreen(Screen):
         self._populate()
 
     def _populate(self):
-        # Keep the emergency dashboard independent from dashboard.py itself.
-        # If dashboard.py is the component that fails to import/build on Android,
-        # importing it here would make the fallback fail for the same reason.
+        # Emergency mode must preserve the same school-wide panel directory.
+        # It is a fallback for visual/build failures, not a role-filtered menu.
         hubs = [
             ("مدیریت","management"), ("معاون آموزشی","educational"),
             ("معاون اجرایی","executive"), ("معاون پرورشی","cultural"),
             ("مشاوره","advisor"), ("دبیران","teachers"),
-            ("اولیا","parents"), ("دانش‌آموزان","students"),
-            ("مالی","finance"), ("تابلوی هوشمند","smart_board"),
-            ("آزمون آنلاین","teacher_exams"), ("کلاس آنلاین","online"),
-            ("پرداخت آنلاین","payment"), ("هوش مصنوعی","ai"),
-            ("صندوق پیام","messages"),
+            ("دانش‌آموزان","students"), ("اولیا","parents"),
+            ("مالی","finance"), ("کلاس‌های آنلاین","online"),
+            ("آزمون آنلاین","teacher_exams"), ("ملاقات‌ها","meetings"),
+            ("تابلو هوشمند","smart_board"), ("هوش مصنوعی","ai"),
+            ("صندوق پیام‌ها","messages"), ("گزارش‌ها","reports"),
+            ("برنامه‌ریزی / زمان‌بندی","schedule"), ("تنظیمات","settings"),
+            ("اطلاعات دانش‌آموز","student_info"), ("مشارکت","participation"),
         ]
-        raw = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
-        aliases = {
-            "admin":"manager","administrator":"manager","مدیر":"manager","مدیریت":"manager",
-            "executive":"executive","educational":"educational","cultural":"cultural",
-            "advisor":"advisor","counselor":"advisor","teacher":"teacher_staff",
-            "student":"student","parent":"parent","guardian":"parent",
-        }
-        role = aliases.get(raw, raw)
-        if role == "manager":
-            allowed = {k for _,k in hubs}
-        elif role == "student":
-            allowed = {k for _,k in hubs if k != "finance"}
-        elif role == "parent":
-            allowed = {k for _,k in hubs if k not in {"finance","online","teacher_exams"}}
-        else:
-            own = {"executive":"executive","educational":"educational","cultural":"cultural",
-                   "advisor":"advisor","teacher_staff":"teachers"}.get(role)
-            allowed = ({own} if own else set()) | {"online","teacher_exams","smart_board","ai","messages","payment"}
         for title, key in hubs:
-            if key not in allowed:
-                continue
-            b = Button(text=fa_display(title), font_name=font_name(), size_hint_y=None, height=54)
+            card = BoxLayout(orientation="vertical", padding=10, spacing=5,
+                             size_hint_y=None, height=150)
+            with card.canvas.before:
+                Color(0.02, 0.10, 0.20, 0.96)
+                bg = RoundedRectangle(radius=[12])
+            card.bind(pos=lambda o,v,bg=bg:setattr(bg,"pos",v),
+                      size=lambda o,v,bg=bg:setattr(bg,"size",v))
+            card.add_widget(Label(text=fa_display(title), font_name=font_name(),
+                                  font_size="15sp", bold=True, color=(1,1,1,1),
+                                  halign="center", valign="middle",
+                                  size_hint_y=None, height=42))
+            b = Button(text=fa_display("ورود به پنل"), font_name=font_name(),
+                       font_size="11sp", background_normal="",
+                       background_color=(0.04,0.45,0.75,1), color=(1,1,1,1),
+                       size_hint_y=None, height=44)
             b.bind(on_release=lambda *_a, k=key: self._open_panel(k))
-            self._grid.add_widget(b)
+            card.add_widget(b)
+            self._grid.add_widget(card)
 
     def _open_panel(self, key):
         app = App.get_running_app()
