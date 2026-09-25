@@ -1058,11 +1058,12 @@ class ModuleWorkspaceScreen(Screen):
             card.add_widget(title_box)
             purpose = MODULE_PURPOSES.get(table, FRIENDLY.get(table, table))
             card.add_widget(self.label(purpose, "7sp", (0.78, 0.90, 1, 1), False, "center"))
+            writable = self.can_write(table)
             card.add_widget(
                 self.btn(
-                    "ورود به جدول تخصصی و عملیات",
+                    "ورود به بخش عملیاتی" if writable else "مشاهده اطلاعات",
                     lambda *_a, t=table: self.open_table(t),
-                    SUCCESS if self.can_write(table) else PRIMARY,
+                    SUCCESS if writable else PRIMARY,
                     dp(32),
                 )
             )
