@@ -528,7 +528,7 @@ class DashboardScreen(Screen):
         with nav.canvas.before:
             Color(0.01,0.08,0.17,0.92); self.nav_bg=RoundedRectangle(radius=[dp(24)])
         nav.bind(pos=lambda o,v:setattr(self.nav_bg,"pos",v),size=lambda o,v:setattr(self.nav_bg,"size",v))
-        for title,route in (("🏠 خانه","home"),("▦ ماژول‌ها","modules"),("✉ پیام‌ها","messages"),("⚙ پروفایل","profile")):
+        for title,route in (("خانه","home"),("ماژول‌ها","modules"),("پیام‌ها","messages"),("پروفایل","profile")):
             b=Button(text=rtl_text(title),font_name=font_name(),font_size="10sp",background_normal="",background_color=(0,0,0,0),color=WHITE)
             b.bind(on_release=lambda *_a,r=route:self._bottom_nav(r)); nav.add_widget(b)
         root.add_widget(nav); self.add_widget(root)
