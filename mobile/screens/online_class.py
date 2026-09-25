@@ -109,8 +109,8 @@ class OnlineClassScreen(Screen):
         if api is None:
             return self._error("سرویس اتصال به پایگاه داده آماده نیست.")
         role=role_of(self.app_state)
-        if role in {"student","parent"}:
-            return self._error("این نقش اجازه ساخت کلاس آنلاین ندارد.")
+        if role not in CLASS_CREATORS:
+            return self._error("فقط مدیر، معاون اجرایی و معاون آموزشی اجازه ساخت کلاس آنلاین دارند.")
         if not getattr(api,"access_token",""):
             return self._error("نشست ورود معتبر نیست؛ دوباره وارد فراهوش شوید.")
         try:
