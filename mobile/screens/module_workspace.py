@@ -1366,7 +1366,7 @@ class ModuleWorkspaceScreen(Screen):
             try:
                 from kivy.app import App
                 app = App.get_running_app()
-                screen = app.ensure_meetings() if app is not None else None
+                screen = app.ensure_meeting_workflow() if app is not None else None
                 if screen is None:
                     raise RuntimeError("محیط ملاقات‌ها آماده نشد.")
                 screen.return_to = "panel"
