@@ -498,10 +498,15 @@ class MeetingsScreen(Screen):
     def _manager_create_form(self):
         self._clear()
         self._label("ایجاد درخواست ملاقات", "21sp", PRIMARY, 52, True, True)
-        students = self.app_state.api.table_select("students", {"order":"id.asc","limit":"200"}) or []
+        # Never let a backend read failure make the meeting button appear dead.
+        try:
+            students = self.app_state.api.table_select("students", {"order":"id.asc","limit":"200"}) or []
+        except Exception as exc:
+            print("MANAGER MEETING STUDENT LOAD ERROR:", repr(exc))
+            students = []
         self._student_rows = students
         labels = [self._person_name(r) for r in students]
-        student = self._spinner("انتخاب دانش‌آموز", labels or ["دانش‌آموزی ثبت نشده است"])
+        student = self._spinner("انتخاب دانش‌آموز", labels or ["دانش‌آموزی برای انتخاب ثبت نشده است"])
         parent = self._spinner("انتخاب ولی دانش‌آموز", ["ابتدا دانش‌آموز را انتخاب کنید"])
         def refresh(sp, value):
             row = self._selected_student(sp)
