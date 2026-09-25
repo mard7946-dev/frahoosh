@@ -7,7 +7,7 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.screenmanager import SlideTransition
+from kivy.uix.screenmanager import NoTransition
 
 # IMPORTANT: LoginScreen is intentionally NOT imported at module import time.
 # A failure in login.py (or one of its optional dependencies) must never kill
@@ -212,7 +212,7 @@ class FrahooshApp(App):
         self.sm = None
 
     def build(self):
-        self.title = "Frahoosh"
+        self.title = "فراهوش"
         Window.clearcolor = (0.94, 0.97, 0.985, 1)
         try:
             Window.softinput_mode = "below_target"
@@ -223,7 +223,7 @@ class FrahooshApp(App):
         # First render a login-capable screen; only then initialize AppState.
         # This isolates the first frame from Supabase/network/storage/native
         # dependencies and from every non-login module.
-        self.sm = ScreenManager(transition=SlideTransition(duration=0.22))
+        self.sm = ScreenManager(transition=NoTransition())
 
         global LoginScreen
         try:
