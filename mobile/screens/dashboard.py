@@ -220,12 +220,7 @@ class PanelHubScreen(Screen):
             create.bind(on_release=lambda *_: self._open_meeting_workflow())
             root.add_widget(create)
         elif self.panel_key == "online":
-            active_role = str(getattr(self.app_state, "role", "") or "").strip().lower()
-            active_role = {
-                "admin":"manager","administrator":"manager","management":"manager",
-                "معاون آموزشی":"educational","educational_deputy":"educational",
-                "معاون اجرایی":"executive","executive_deputy":"executive",
-            }.get(active_role, active_role)
+            active_role = self._active_role()
             if active_role in {"manager","educational","executive"}:
                 create=Button(text=fa_display("＋ تشکیل کلاس جدید"),font_name=font_name(),font_size="14sp",
                                background_normal="",background_color=SUCCESS,color=WHITE,
@@ -319,6 +314,22 @@ class PanelHubScreen(Screen):
             "درخواست گواهی":"درخواست و صدور گواهی اشتغال به تحصیل.",
             "درخواست ملاقات":"ثبت درخواست، تأیید مسئول و تأیید نهایی مدیر.",
         }.get(label,"ثبت، ویرایش، حذف، گزارش و تبادل اطلاعات واقعی سامانه.")
+
+    def _active_role(self):
+        profile = getattr(self.app_state, "profile", {}) or {}
+        raw = str(
+            profile.get("role") or profile.get("user_role") or
+            profile.get("school_role") or getattr(self.app_state, "role", "") or ""
+        ).strip().lower()
+        return {
+            "admin":"manager","administrator":"manager","management":"manager",
+            "manager":"manager","مدیر":"manager","مدیریت":"manager",
+            "معاون آموزشی":"educational","educational":"educational","educational_deputy":"educational",
+            "معاون اجرایی":"executive","executive":"executive","executive_deputy":"executive",
+            "معاون پرورشی":"cultural","cultural":"cultural",
+            "دبیر":"teacher","teacher":"teacher","دانش‌آموز":"student","student":"student",
+            "ولی":"parent","اولیا":"parent","parent":"parent",
+        }.get(raw, raw)
 
     def _open_meeting_workflow(self):
         app=App.get_running_app()
