@@ -33,7 +33,24 @@ class BaseWorkflow(Screen):
     def lab(self,t,h=42,s="11sp",c=SECONDARY,b=False):
         w=Label(text=fa_display(str(t)),font_name=font_name(),font_size=s,color=c,bold=b,halign="right",valign="middle",size_hint_y=None,height=dp(h)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); return w
     def btn(self,t,cb,c=PRIMARY,h=44):
-        b=Button(text=fa_display(t),font_name=font_name(),font_size="11sp",background_normal="",background_color=c,color=WHITE,size_hint_y=None,height=dp(h)); b.bind(on_press=cb); return b
+        b=Button(text=fa_display(t),font_name=font_name(),font_size="11sp",
+                 background_normal="",background_color=c,color=WHITE,
+                 size_hint_y=None,height=dp(h))
+        try:
+            b.always_release = True
+        except Exception:
+            pass
+        fired = {"value": False}
+        def run(*_):
+            if fired["value"]:
+                return
+            fired["value"] = True
+            try:
+                cb()
+            finally:
+                fired["value"] = False
+        b.bind(on_release=lambda *_: run())
+        return b
     def field(self,h,m=False): return PersianTextInput(hint_text=fa_display(h),font_name=font_name(),font_size="12sp",halign="right",multiline=m,size_hint_y=None,height=dp(70 if m else 46))
     def _spinner(self,text,values,height=46):
         s=Spinner(text=fa_display(text),values=tuple(fa_display(v) for v in values),
@@ -206,8 +223,10 @@ class MeetingWorkflowScreen(BaseWorkflow):
             "status":"pending_manager","manager_status":"pending"
         }
         try:
-            created=self.api().table_insert("meeting_requests",payload,return_representation=True)
-            row=created[0] if isinstance(created,list) and created else (created if isinstance(created,dict) else {})
+            # The request does not need the inserted row back. Using
+            # return=minimal keeps the write independent from a SELECT policy
+            # on the old production meeting table.
+            self.api().table_insert("meeting_requests",payload,return_representation=False)
             # Immediate inbox delivery when the target is a known username.
             target_username=self._value(self.target)
             try:
@@ -254,7 +273,7 @@ class MeetingWorkflowScreen(BaseWorkflow):
                 "title":self._value(self.title_field),"target_name":self._value(self.target),"target_username":self._value(self.target),
                 "requested_day":self._value(self.day),"requested_date":self._value(self.date),
                 "requested_time":self._value(self.time),"reason":self._value(self.reason),"description":self._value(self.details)
-            })
+            }, return_representation=False)
             self.msg("درخواست ملاقات ویرایش شد.",SUCCESS); self.build()
         except Exception as exc:self.msg("ویرایش انجام نشد: "+str(exc),ERROR)
 
@@ -281,14 +300,14 @@ class MeetingWorkflowScreen(BaseWorkflow):
 
     def approve(self,row):
         try:
-            self.api().table_update("meeting_requests",{"id":f"eq.{row.get('id')}"},{"status":"approved","manager_status":"approved"})
+            self.api().table_update("meeting_requests",{"id":f"eq.{row.get('id')}"},{"status":"approved","manager_status":"approved"}, return_representation=False)
             self._notify(row,"درخواست ملاقات شما تأیید شد.")
             self.msg("درخواست تأیید شد.",SUCCESS); self.build()
         except Exception as exc:self.msg("تأیید انجام نشد: "+str(exc),ERROR)
 
     def reject(self,row):
         try:
-            self.api().table_update("meeting_requests",{"id":f"eq.{row.get('id')}"},{"status":"rejected","manager_status":"rejected"})
+            self.api().table_update("meeting_requests",{"id":f"eq.{row.get('id')}"},{"status":"rejected","manager_status":"rejected"}, return_representation=False)
             self._notify(row,"درخواست ملاقات شما رد شد.")
             self.msg("درخواست رد شد.",SUCCESS); self.build()
         except Exception as exc:self.msg("رد درخواست انجام نشد: "+str(exc),ERROR)
