@@ -743,7 +743,7 @@ class ModuleWorkspaceScreen(Screen):
                 # alive until the queued callback has actually run.
                 def invoke(_dt):
                     try:
-                        cb(instance)
+                        cb()
                     except Exception as exc:
                         print("MODULE BUTTON CALLBACK ERROR:", repr(exc))
                         try:
