@@ -397,6 +397,25 @@ class FrahooshApp(App):
             print("MEETINGS BUILD ERROR:", repr(exc))
             return None
 
+    def ensure_attendance_discipline(self, mode="attendance"):
+        if self.sm is None:
+            return None
+        name = "attendance_discipline_" + str(mode)
+        try:
+            return self.sm.get_screen(name)
+        except Exception:
+            pass
+        try:
+            from mobile.screens.attendance_discipline import AttendanceDisciplineScreen
+            screen = AttendanceDisciplineScreen(
+                name=name, app_state=self.app_state, mode=mode
+            )
+            self.sm.add_widget(screen)
+            return screen
+        except Exception as exc:
+            print("ATTENDANCE DISCIPLINE BUILD ERROR:", repr(exc))
+            return None
+
     def ensure_smart_class_preview(self):
         if self.sm is None:
             return None
