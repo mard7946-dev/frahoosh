@@ -1488,7 +1488,9 @@ class ModuleWorkspaceScreen(Screen):
             self.body.add_widget(self.btn("زیرپنل‌ها", lambda *_: self._back_to_submenus(), PRIMARY, dp(40), dp(82)))
             self.body.add_widget(self.label(FRIENDLY.get(table, table), "16sp", PRIMARY, True, "center"))
             if not rows:
-                self.body.add_widget(self.label("برای فرزند متصل به این حساب رکوردی ثبت نشده است.", height=58, center=True))
+                empty = self.label("برای فرزند متصل به این حساب رکوردی ثبت نشده است.", "10sp", SECONDARY, False, True)
+                empty.size_hint_y = None; empty.height = dp(58)
+                self.body.add_widget(empty)
             else:
                 keys = [k for k in (_module_fields(table) or []) if k not in HIDDEN]
                 if not keys:
