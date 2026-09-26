@@ -219,6 +219,14 @@ class PanelHubScreen(Screen):
                            size_hint_y=None,height=dp(52))
             create.bind(on_release=lambda *_: self._open_meeting_workflow())
             root.add_widget(create)
+        # Staff/management panels get one explicit, real import/export center.
+        # Student/parent panels keep their restricted consumer workflow.
+        if self.panel_key not in {"students", "parents"}:
+            io=Button(text=fa_display("ورودی و خروجی Excel / PDF"),font_name=font_name(),font_size="12sp",
+                      background_normal="",background_color=(0.08,0.34,0.52,1),color=WHITE,
+                      size_hint_y=None,height=dp(46))
+            io.bind(on_release=lambda *_: self._open_io(self.panel_key))
+            root.add_widget(io)
         elif self.panel_key == "online":
             active_role = self._active_role()
             if active_role in {"manager","educational","executive"}:
@@ -296,11 +304,18 @@ class PanelHubScreen(Screen):
             # is an export/import utility, not the module itself, and showing it
             # beside every module was the source of the generic "ورودی و خروجی"
             # page being mistaken for the real module workspace.
-            enter=Button(text=fa_display("ورود به جدول تخصصی و عملیات"),
-                         font_name=font_name(),font_size="10sp",
-                         background_normal="",background_color=SUCCESS,color=WHITE,
-                         halign="center",valign="middle")
-            enter.bind(on_release=lambda *_a,r=route:self._open(r))
+            if route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
+                enter=Button(text=fa_display("ورود به محیط واقعی ملاقات"),
+                             font_name=font_name(),font_size="10sp",
+                             background_normal="",background_color=SUCCESS,color=WHITE,
+                             halign="center",valign="middle")
+                enter.bind(on_release=lambda *_a:self._open_meeting_workflow())
+            else:
+                enter=Button(text=fa_display("ورود به جدول تخصصی و عملیات"),
+                             font_name=font_name(),font_size="10sp",
+                             background_normal="",background_color=SUCCESS,color=WHITE,
+                             halign="center",valign="middle")
+                enter.bind(on_release=lambda *_a,r=route:self._open(r))
             actions.add_widget(enter); card.add_widget(actions)
             self.grid.add_widget(card)
 
