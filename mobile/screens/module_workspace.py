@@ -736,16 +736,33 @@ class ModuleWorkspaceScreen(Screen):
             try:
                 self.status.text = fa_display("در حال اجرای عملیات…")
                 self.status.color = SECONDARY
-                cb(instance)
+
+                # Never mutate ScreenManager/layouts from inside the Android
+                # Button dispatch itself.  Queue the real navigation/action
+                # for the next Kivy frame while keeping the single-fire guard
+                # alive until the queued callback has actually run.
+                def invoke(_dt):
+                    try:
+                        cb(instance)
+                    except Exception as exc:
+                        print("MODULE BUTTON CALLBACK ERROR:", repr(exc))
+                        try:
+                            self.status.text = fa_display("اجرای عملیات با خطا روبه‌رو شد: " + str(exc))
+                            self.status.color = (.8,.15,.15,1)
+                        except Exception:
+                            pass
+                    finally:
+                        fired["value"] = False
+
+                Clock.schedule_once(invoke, 0)
             except Exception as exc:
-                print("MODULE BUTTON CALLBACK ERROR:", repr(exc))
+                fired["value"] = False
+                print("MODULE BUTTON SCHEDULE ERROR:", repr(exc))
                 try:
-                    self.status.text=fa_display("اجرای عملیات با خطا روبه‌رو شد: "+str(exc))
-                    self.status.color=(.8,.15,.15,1)
+                    self.status.text = fa_display("اجرای عملیات با خطا روبه‌رو شد: " + str(exc))
+                    self.status.color = (.8,.15,.15,1)
                 except Exception:
                     pass
-            finally:
-                fired["value"] = False
 
         # Kivy Button.on_press/on_release dispatch the button instance;
         # they do not pass a touch object.  The previous two-argument handlers
