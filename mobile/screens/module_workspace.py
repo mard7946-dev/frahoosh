@@ -736,24 +736,16 @@ class ModuleWorkspaceScreen(Screen):
             try:
                 self.status.text = fa_display("در حال اجرای عملیات…")
                 self.status.color = SECONDARY
-            except Exception:
-                pass
-
-            def _run(_dt):
+                cb(instance)
+            except Exception as exc:
+                print("MODULE BUTTON CALLBACK ERROR:", repr(exc))
                 try:
-                    cb(instance)
-                except Exception as exc:
-                    print("MODULE BUTTON CALLBACK ERROR:", repr(exc))
-                    try:
-                        self.status.text=fa_display("اجرای عملیات با خطا روبه‌رو شد: "+str(exc))
-                        self.status.color=(.8,.15,.15,1)
-                    except Exception:
-                        pass
-                finally:
-                    # Re-arm after the current touch cycle so the next tap is
-                    # always accepted.
-                    fired["value"] = False
-            Clock.schedule_once(_run, 0)
+                    self.status.text=fa_display("اجرای عملیات با خطا روبه‌رو شد: "+str(exc))
+                    self.status.color=(.8,.15,.15,1)
+                except Exception:
+                    pass
+            finally:
+                fired["value"] = False
 
         # Kivy Button.on_press/on_release dispatch the button instance;
         # they do not pass a touch object.  The previous two-argument handlers
