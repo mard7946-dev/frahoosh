@@ -273,7 +273,7 @@ class PanelHubScreen(Screen):
             # Keep a visible diagnostic instead of silently rendering an empty
             # panel when a panel key is ever mistyped.
             b=Button(
-                text=rtl_text("ماژول‌های این پنل در قرارداد مادر پیدا نشد"),
+                text=fa_display("ماژول‌های این پنل در قرارداد مادر پیدا نشد"),
                 font_name=font_name(), font_size="13sp",
                 background_normal="", background_color=(0.65,0.12,0.12,1),
                 color=WHITE, size_hint_y=None, height=dp(58),
@@ -438,7 +438,7 @@ class PanelHubScreen(Screen):
                 print("MOTHER MODULE OPEN ERROR:",repr(exc))
                 try:
                     self.grid.add_widget(Button(
-                        text=rtl_text("خطای بازکردن ماژول: "+str(exc)),
+                        text=fa_display("خطای بازکردن ماژول: "+str(exc)),
                         font_name=font_name(),font_size="11sp",
                         background_normal="",background_color=(0.65,0.12,0.12,1),
                         color=WHITE,size_hint_y=None,height=dp(54),
@@ -465,7 +465,7 @@ class PanelHubScreen(Screen):
         except Exception as exc:
             print("DASHBOARD PRE-ENTER REFRESH ERROR:",repr(exc))
             try:
-                self.welcome.text=rtl_text("ورود موفق بود؛ داشبورد آماده است.")
+                self.welcome.text=fa_display("ورود موفق بود؛ داشبورد آماده است.")
                 self.role_text.text=rtl_text("پنل‌ها در حال آماده‌سازی هستند...")
             except Exception:
                 pass
@@ -528,7 +528,7 @@ class DashboardScreen(Screen):
         print("DASHBOARD SAFE FALLBACK ACTIVE:", repr(exc))
 
     def label(self,text,size="11sp",color=WHITE,bold=False,center=True):
-        w=Label(text=rtl_text(str(text)),font_name=font_name(),font_size=size,color=color,bold=bold,
+        w=Label(text=fa_display(str(text)),font_name=font_name(),font_size=size,color=color,bold=bold,
                 halign="center" if center else "right",valign="middle")
         w.bind(size=lambda o,v:setattr(o,"text_size",v))
         return w
@@ -575,7 +575,7 @@ class DashboardScreen(Screen):
             Color(0.01,0.08,0.17,0.92); self.nav_bg=RoundedRectangle(radius=[dp(24)])
         nav.bind(pos=lambda o,v:setattr(self.nav_bg,"pos",v),size=lambda o,v:setattr(self.nav_bg,"size",v))
         for title,route in (("خانه","home"),("ماژول‌ها","modules"),("پیام‌ها","messages"),("پروفایل","profile")):
-            b=Button(text=rtl_text(title),font_name=font_name(),font_size="10sp",background_normal="",background_color=(0,0,0,0),color=WHITE)
+            b=Button(text=fa_display(title),font_name=font_name(),font_size="10sp",background_normal="",background_color=(0,0,0,0),color=WHITE)
             b.bind(on_release=lambda *_a,r=route:self._bottom_nav(r)); nav.add_widget(b)
         root.add_widget(nav); self.add_widget(root)
 
