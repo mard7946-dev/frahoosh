@@ -1699,6 +1699,7 @@ class ModuleWorkspaceScreen(Screen):
         def work():
             try:
                 from openpyxl import Workbook
+                from openpyxl.styles import Font, Alignment
                 fields=[f for f in (_module_fields(table) or []) if f not in HIDDEN]
                 if not fields:
                     raise RuntimeError("برای این ماژول قرارداد فیلد قابل ورود تعریف نشده است.")
