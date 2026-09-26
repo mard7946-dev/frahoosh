@@ -353,7 +353,7 @@ class PanelHubScreen(Screen):
         def navigate(_dt):
             try:
                 try:
-                    target=app.ensure_meeting_workflow()
+                    target=app.ensure_meetings()
                 except Exception as primary_exc:
                     print("MEETING WORKFLOW BUILD ERROR:",repr(primary_exc))
                     target=None
