@@ -1465,6 +1465,52 @@ class ModuleWorkspaceScreen(Screen):
                 self.status.color = (.8, .15, .15, 1)
                 return
 
+    def _open_parent_student_records(self, table):
+        """Show only records belonging to children explicitly linked to this parent."""
+        try:
+            username = self._current_username()
+            links = self.app_state.api.table_select(
+                "parent_children", {"parent_username": "eq." + username, "limit": "100"}
+            ) or []
+            child_ids = [x.get("student_id") for x in links if x.get("student_id") is not None]
+            rows = []
+            for sid in child_ids:
+                params = {"student_id": "eq." + str(sid), "limit": "500", "order": "id.desc"}
+                if table == "discipline_records":
+                    params["status"] = "eq.approved"
+                try:
+                    rows.extend(self.app_state.api.table_select(table, params) or [])
+                except Exception as child_exc:
+                    print("PARENT RECORD LOAD ERROR:", table, sid, repr(child_exc))
+            self.table = table
+            self.body.clear_widgets()
+            self.title.text = fa_display(FRIENDLY.get(table, table))
+            self.body.add_widget(self.btn("زیرپنل‌ها", lambda *_: self._back_to_submenus(), PRIMARY, dp(40), dp(82)))
+            self.body.add_widget(self.label(FRIENDLY.get(table, table), "16sp", PRIMARY, True, "center"))
+            if not rows:
+                self.body.add_widget(self.label("برای فرزند متصل به این حساب رکوردی ثبت نشده است.", height=58, center=True))
+            else:
+                keys = [k for k in (_module_fields(table) or []) if k not in HIDDEN]
+                if not keys:
+                    keys = [k for k in rows[0].keys() if k not in HIDDEN]
+                header = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(3))
+                for k in keys[:6]:
+                    header.add_widget(self.label(COLUMNS.get(k, k), "9sp", WHITE, True, "center"))
+                self.area = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(3))
+                self.area.bind(minimum_height=self.area.setter("height"))
+                for row in rows:
+                    self.area.add_widget(self.row(row, len(self.area.children), keys[:6], dp(1380)))
+                self.body.add_widget(self.area)
+            self.status.text = fa_display("اطلاعات فقط از فرزندان متصل به حساب ولی نمایش داده می‌شود.")
+            self.status.color = SUCCESS
+        except Exception as exc:
+            self.status.text = fa_display("نمایش اطلاعات فرزند انجام نشد: " + str(exc))
+            self.status.color = ERROR
+
+        if self.role() == "parent" and table in ("attendance", "discipline_records"):
+            self._open_parent_student_records(table)
+            return
+
         if table in ("attendance", "teacher_attendance"):
             try:
                 from kivy.app import App
