@@ -16,7 +16,7 @@ from threading import Thread
 import json
 
 from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, BACKGROUND_PATH, PRIMARY, SECONDARY, SUCCESS, WHITE
-from mobile.ui import font_name, rtl_text, fa_display, bundled_login_background
+from mobile.ui import font_name, fa_display, bundled_login_background
 
 ROLE_ALIASES = {
     "admin":"manager","administrator":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager",
@@ -466,7 +466,7 @@ class PanelHubScreen(Screen):
             print("DASHBOARD PRE-ENTER REFRESH ERROR:",repr(exc))
             try:
                 self.welcome.text=fa_display("ورود موفق بود؛ داشبورد آماده است.")
-                self.role_text.text=rtl_text("پنل‌ها در حال آماده‌سازی هستند...")
+                self.role_text.text=fa_display("پنل‌ها در حال آماده‌سازی هستند...")
             except Exception:
                 pass
         if self.role() in {"parent","student","teacher","manager","educational","executive","cultural","advisor","counselor"}:
@@ -713,7 +713,7 @@ class DashboardScreen(Screen):
         except Exception as exc:
             print("DASHBOARD ROUTE ERROR:",repr(exc))
             try:
-                self.role_text.text=rtl_text("خطا در باز کردن پنل؛ دوباره تلاش کنید.")
+                self.role_text.text=fa_display("خطا در باز کردن پنل؛ دوباره تلاش کنید.")
                 self.role_text.color=(1,.35,.35,1)
                 Clock.schedule_once(lambda _dt:self._restore_role_status(),2.5)
             except Exception:
@@ -788,7 +788,7 @@ class DashboardScreen(Screen):
 
     def _set_parent_alert(self,message):
         try:
-            self.parent_alert.text=rtl_text(message)
+            self.parent_alert.text=fa_display(message)
             self.parent_alert.color=(0.72,1,0.82,1)
         except Exception:
             pass
@@ -796,7 +796,7 @@ class DashboardScreen(Screen):
     def _restore_role_status(self,*_):
         try:
             role=self.role()
-            self.role_text.text=rtl_text(f"پنل {ROLE_TITLES.get(role,'کاربر')} • دسترسی فعال")
+            self.role_text.text=fa_display(f"پنل {ROLE_TITLES.get(role,'کاربر')} • دسترسی فعال")
             self.role_text.color=(0.88,0.96,1,1)
         except Exception:
             pass
@@ -814,8 +814,8 @@ class DashboardScreen(Screen):
         except Exception as exc:
             print("DASHBOARD PRE-ENTER REFRESH ERROR:", repr(exc))
             try:
-                self.welcome.text = rtl_text("ورود موفق بود؛ داشبورد آماده شد.")
-                self.role_text.text = rtl_text("در حال آماده‌سازی پنل‌ها...")
+                self.welcome.text = fa_display("ورود موفق بود؛ داشبورد آماده شد.")
+                self.role_text.text = fa_display("در حال آماده‌سازی پنل‌ها...")
             except Exception:
                 pass
         if self.role() in {"parent","student","teacher","manager","educational","executive","cultural","advisor","counselor"}:
