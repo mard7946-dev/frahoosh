@@ -50,6 +50,6 @@ BORDER = (0.80, 0.84, 0.90, 1)
 # Kivy/Buildozer packages jpg files because buildozer.spec includes jpg/jpeg.
 BACKGROUND_PATH = str(ASSETS_DIR / "frahoosh_login_mobile.jpg")
 API_TIMEOUT = 15
-SUPABASE_URL = str(os.environ.get("FRAHOOSH_SUPABASE_URL") or _RUNTIME.get("supabase_url") or _RUNTIME.get("FRAHOOSH_SUPABASE_URL") or "https://wqructnmorlhrjwlvigm.supabase.co").strip()
-SUPABASE_ANON_KEY = str(os.environ.get("FRAHOOSH_SUPABASE_ANON_KEY") or _RUNTIME.get("supabase_anon_key") or _RUNTIME.get("FRAHOOSH_SUPABASE_ANON_KEY") or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxcnVjdG5tb3JsaHJqd2x2aWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMjE3MzQsImV4cCI6MjEwNTY5NzczNH0.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI").strip()
+SUPABASE_URL = str(os.environ.get("FRAHOOSH_SUPABASE_URL") or _RUNTIME.get("supabase_url") or _RUNTIME.get("FRAHOOSH_SUPABASE_URL") or "https://gtmmllcxhdejwjjnyzrh.supabase.co").strip()
+SUPABASE_ANON_KEY = str(os.environ.get("FRAHOOSH_SUPABASE_ANON_KEY") or _RUNTIME.get("supabase_anon_key") or _RUNTIME.get("FRAHOOSH_SUPABASE_ANON_KEY") or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bW1sbGN4aGRld2pqbnl6cmgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc5MDEyMTczNCwiZXhwIjoyMTA1Njk3NzM0fQ.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI").strip()
 PAYMENT_GATEWAY_URL = str(os.environ.get("FRAHOOSH_PAYMENT_GATEWAY_URL") or _RUNTIME.get("payment_gateway_url") or _RUNTIME.get("FRAHOOSH_PAYMENT_GATEWAY_URL") or "").strip()
