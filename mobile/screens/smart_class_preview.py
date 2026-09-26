@@ -77,7 +77,7 @@ class SmartClassPreviewScreen(Screen):
         rail = _Card(fill=(0.055,0.10,0.17,1), size_hint_x=None, width=dp(78))
         rail.add_widget(self.label("ابزار", "9sp", WHITE, 27, True, True))
         for t,c in [("قلم",PRIMARY),("پاک‌کن",SECONDARY),("متن",PRIMARY),("شکل",PRIMARY),
-                    ("عکس",PRIMARY),("PDF",PRIMARY),("آزمونک",SUCCESS)]:
+                    ("عکس",PRIMARY),("پی دی اف",PRIMARY),("آزمونک",SUCCESS)]:
             rail.add_widget(self.btn(t, self.tool, c, 45))
         main.add_widget(rail)
 
@@ -94,7 +94,7 @@ class SmartClassPreviewScreen(Screen):
         board_area.bind(pos=lambda o,v:self._sync_canvas(bg,border,o),
                         size=lambda o,v:self._sync_canvas(bg,border,o))
         board_area.add_widget(self.label(
-            "تخته آماده است\n\nمحتوای درس، PDF، تصویر، متن، شکل و آزمونک\nدر این محیط برای دبیر و دانش‌آموز نمایش داده می‌شود.",
+            "تخته آماده است\n\nمحتوای درس، پی دی اف، تصویر، متن، شکل و آزمونک\nدر این محیط برای دبیر و دانش‌آموز نمایش داده می‌شود.",
             "12sp", WHITE, 145, True, True))
         board.add_widget(board_area)
         center.add_widget(board)
