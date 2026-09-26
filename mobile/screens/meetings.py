@@ -526,8 +526,8 @@ class MeetingsScreen(Screen):
         desc=self._field("توضیحات تکمیلی",72); desc.multiline=True
         for w in [student,parent,day,title,date,time,reason,desc]:
             self.body.add_widget(w)
-        self._button("ثبت درخواست ملاقات",lambda *_:self._create_manager_meeting(student,parent,title,day,date,time,reason,desc),SUCCESS,48)
-        self._button("بازگشت",lambda *_:self.show_home(),SECONDARY,44)
+        self.body.add_widget(self._button("ثبت درخواست ملاقات",lambda *_:self._create_manager_meeting(student,parent,title,day,date,time,reason,desc),SUCCESS,48))
+        self.body.add_widget(self._button("بازگشت",lambda *_:self.show_home(),SECONDARY,44))
 
     def _create_manager_meeting(self, student,parent,title,day,date,time,reason,desc):
         srow=self._selected_student(student)
