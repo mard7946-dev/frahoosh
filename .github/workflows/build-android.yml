@@ -95,8 +95,8 @@ jobs:
           FRAHOOSH_WEB_URL: ${{ secrets.FRAHOOSH_WEB_URL }}
         run: |
           set -euo pipefail
-          : "${FRAHOOSH_SUPABASE_URL:=https://wqructnmorlhrjwlvigm.supabase.co}"
-          : "${FRAHOOSH_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxcnVjdG5tb3JsaHJqd2x2aWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMjE3MzQsImV4cCI6MjEwNTY5NzczNH0.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI}"
+          : "${FRAHOOSH_SUPABASE_URL:=https://gtmmllcxhdejwjjnyzrh.supabase.co}"
+          : "${FRAHOOSH_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bW1sbGN4aGRld2pqbnl6cmgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc5MDEyMTczNCwiZXhwIjoyMTA1Njk3NzM0fQ.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI}"
           export FRAHOOSH_SUPABASE_URL FRAHOOSH_SUPABASE_ANON_KEY
           python - <<'PY'
           import json
@@ -124,7 +124,7 @@ jobs:
           from pathlib import Path
 
           cfg = json.loads(Path("mobile/runtime_config.json").read_text(encoding="utf-8"))
-          expected_url = "https://wqructnmorlhrjwlvigm.supabase.co"
+          expected_url = "https://gtmmllcxhdejwjjnyzrh.supabase.co"
           actual_url = cfg["supabase_url"].rstrip("/")
           if actual_url != expected_url:
               raise SystemExit(f"Wrong Supabase project for Android build: {actual_url}")
@@ -134,12 +134,12 @@ jobs:
               payload = key.split(".")[1]
               payload += "=" * (-len(payload) % 4)
               claims = json.loads(base64.urlsafe_b64decode(payload).decode("utf-8"))
-              if claims.get("ref") != "wqructnmorlhrjwlvigm":
+              if claims.get("ref") != "gtmmllcxhdejwjjnyzrh":
                   raise SystemExit("Supabase anon key does not belong to the Android Supabase project")
           except (IndexError, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
               raise SystemExit("Supabase client key is not a valid JWT") from exc
 
-          print("Android Supabase runtime configuration validated for wqructnmorlhrjwlvigm.")
+          print("Android Supabase runtime configuration validated for gtmmllcxhdejwjjnyzrh.")
           PY
           python - <<'PY'
           import json
@@ -291,8 +291,8 @@ jobs:
           FRAHOOSH_WEB_URL: ${{ secrets.FRAHOOSH_WEB_URL }}
         run: |
           set -euo pipefail
-          : "${FRAHOOSH_SUPABASE_URL:=https://wqructnmorlhrjwlvigm.supabase.co}"
-          : "${FRAHOOSH_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxcnVjdG5tb3JsaHJqd2x2aWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMjE3MzQsImV4cCI6MjEwNTY5NzczNH0.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI}"
+          : "${FRAHOOSH_SUPABASE_URL:=https://gtmmllcxhdejwjjnyzrh.supabase.co}"
+          : "${FRAHOOSH_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bW1sbGN4aGRld2pqbnl6cmgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc5MDEyMTczNCwiZXhwIjoyMTA1Njk3NzM0fQ.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI}"
           export FRAHOOSH_SUPABASE_URL FRAHOOSH_SUPABASE_ANON_KEY
           python - <<'PY'
           import json
