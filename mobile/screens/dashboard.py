@@ -333,13 +333,34 @@ class PanelHubScreen(Screen):
 
     def _open_meeting_workflow(self):
         app=App.get_running_app()
-        try:
-            target=app.ensure_meeting_workflow()
-            if target is None:
-                raise RuntimeError("مرکز ملاقات آماده نشد.")
-            app.sm.current=target.name
-        except Exception as exc:
-            print("MEETING OPEN ERROR:",repr(exc))
+        if app is None or app.sm is None:
+            return
+        def navigate(_dt):
+            try:
+                try:
+                    target=app.ensure_meeting_workflow()
+                except Exception as primary_exc:
+                    print("MEETING WORKFLOW BUILD ERROR:",repr(primary_exc))
+                    target=None
+                # Keep the older real meeting screen as a compatibility fallback
+                # for APKs whose workflow dependencies are unavailable.
+                if target is None:
+                    target=app.ensure_meetings()
+                if target is None:
+                    raise RuntimeError("مرکز ملاقات آماده نشد.")
+                app.sm.current=target.name
+            except Exception as exc:
+                print("MEETING OPEN ERROR:",repr(exc))
+                try:
+                    self.grid.add_widget(Button(
+                        text=fa_display("خطای بازکردن ملاقات: "+str(exc)),
+                        font_name=font_name(),font_size="10sp",
+                        background_normal="",background_color=(0.65,0.12,0.12,1),
+                        color=WHITE,size_hint_y=None,height=dp(54),
+                    ))
+                except Exception:
+                    pass
+        Clock.schedule_once(navigate,0)
 
     def _open_online_create(self):
         app=App.get_running_app()
