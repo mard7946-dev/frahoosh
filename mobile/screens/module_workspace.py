@@ -1465,6 +1465,36 @@ class ModuleWorkspaceScreen(Screen):
                 self.status.color = (.8, .15, .15, 1)
                 return
 
+        if table in ("attendance", "teacher_attendance"):
+            try:
+                from kivy.app import App
+                app = App.get_running_app()
+                screen = app.ensure_attendance_discipline("attendance") if app is not None else None
+                if screen is None:
+                    raise RuntimeError("محیط حضور و غیاب آماده نشد.")
+                if self.manager:
+                    self.manager.current = screen.name
+                return
+            except Exception as exc:
+                self.status.text = fa_display("محیط حضور و غیاب باز نشد: " + str(exc))
+                self.status.color = ERROR
+                return
+
+        if table == "discipline_records":
+            try:
+                from kivy.app import App
+                app = App.get_running_app()
+                screen = app.ensure_attendance_discipline("discipline") if app is not None else None
+                if screen is None:
+                    raise RuntimeError("محیط انضباط آماده نشد.")
+                if self.manager:
+                    self.manager.current = screen.name
+                return
+            except Exception as exc:
+                self.status.text = fa_display("محیط انضباط باز نشد: " + str(exc))
+                self.status.color = ERROR
+                return
+
         # Student/parent online payment is a real operational workflow.
         # The offer is configured by school management; the consumer can submit
         # a payment request and, when a payment URL is configured, continue to it.
@@ -1496,6 +1526,8 @@ class ModuleWorkspaceScreen(Screen):
         hero.add_widget(line); self.body.add_widget(hero)
         can_write = self.can_write(table)
         consumer = self.role() in {"student", "parent"}
+        export_roles = {"manager", "educational", "executive", "cultural", "advisor"}
+        can_export = self.role() in export_roles
         if can_write:
             def _guard_write(action):
                 def _run(*_args):
@@ -1521,18 +1553,20 @@ class ModuleWorkspaceScreen(Screen):
                 row1.add_widget(self.btn("ثبت جدید",_guard_write(lambda: self.editor(table,None)),SUCCESS,dp(38)))
                 row1.add_widget(self.btn("ویرایش",_guard_write(self._edit_selected_row),PRIMARY,dp(38)))
                 row1.add_widget(self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1),dp(38)))
-                row1.add_widget(self.btn("خروجی جدول",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
-                row2.add_widget(self.btn("قالب جدول",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
-                row2.add_widget(self.btn("ورودی گروهی",_guard_write(self.import_excel),(0.42,.30,.62,1),dp(38)))
-                row2.add_widget(self.btn("گزارش چاپی",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
+                if can_export:
+                    row1.add_widget(self.btn("خروجی اکسل",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+                    row2.add_widget(self.btn("قالب اکسل",lambda *_:self.export_excel_template(),(0.18,.48,.58,1),dp(38)))
+                    row2.add_widget(self.btn("ورودی اکسل",_guard_write(self.import_excel),(0.42,.30,.62,1),dp(38)))
+                    row2.add_widget(self.btn("خروجی پی دی اف",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
                 bar.add_widget(row1); bar.add_widget(row2)
                 self.body.add_widget(bar)
                 self.status.text = fa_display("عملیات واقعی فعال است و به پایگاه داده مدرسه متصل است")
         else:
             if not consumer:
                 bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
-                bar.add_widget(self.btn("خروجی جدول",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
-                bar.add_widget(self.btn("گزارش چاپی",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
+                if can_export:
+                    bar.add_widget(self.btn("خروجی اکسل",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+                    bar.add_widget(self.btn("خروجی پی دی اف",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
                 self.body.add_widget(bar)
             self.status.text = fa_display("حالت مشاهده‌ای؛ این بخش فقط برای مشاهده اطلاعات است")
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
@@ -1567,7 +1601,7 @@ class ModuleWorkspaceScreen(Screen):
         table=str(self.table or "").strip()
         if not table:
             return
-        self.status.text = fa_display("در حال ساخت فایل Excel…")
+        self.status.text = fa_display("در حال ساخت فایل اکسل…")
         def work():
             try:
                 from openpyxl import Workbook
@@ -1582,10 +1616,10 @@ class ModuleWorkspaceScreen(Screen):
                 for row in rows:
                     ws.append([row.get(f,"") for f in fields])
                 path=self._excel_path(); wb.save(str(path))
-                msg=f"خروجی Excel ذخیره شد: {path}"
+                msg=f"خروجی اکسل ذخیره شد: {path}"
                 Clock.schedule_once(lambda *_: self._excel_done(msg),0)
             except Exception as exc:
-                Clock.schedule_once(lambda *_: self.write_error("خروجی Excel انجام نشد: "+str(exc)),0)
+                Clock.schedule_once(lambda *_: self.write_error("خروجی اکسل انجام نشد: "+str(exc)),0)
         Thread(target=work,daemon=True).start()
 
     def export_excel_template(self):
@@ -1593,7 +1627,7 @@ class ModuleWorkspaceScreen(Screen):
         table=str(self.table or "").strip()
         if not table:
             return
-        self.status.text = fa_display("در حال ساخت قالب Excel…")
+        self.status.text = fa_display("در حال ساخت قالب اکسل…")
         def work():
             try:
                 from openpyxl import Workbook
@@ -1605,16 +1639,16 @@ class ModuleWorkspaceScreen(Screen):
                 ws.append(["" for _ in fields])
                 path=self._excel_path(); template=path.with_name(path.stem+"_template.xlsx")
                 wb.save(str(template))
-                Clock.schedule_once(lambda *_: self._excel_done("قالب Excel آماده شد: "+str(template)),0)
+                Clock.schedule_once(lambda *_: self._excel_done("قالب اکسل آماده شد: "+str(template)),0)
             except Exception as exc:
-                Clock.schedule_once(lambda *_: self.write_error("ساخت قالب Excel انجام نشد: "+str(exc)),0)
+                Clock.schedule_once(lambda *_: self.write_error("ساخت قالب اکسل انجام نشد: "+str(exc)),0)
         Thread(target=work,daemon=True).start()
 
     def export_pdf(self):
         table=str(self.table or "").strip()
         if not table:
             return
-        self.status.text = fa_display("در حال ساخت گزارش PDF…")
+        self.status.text = fa_display("در حال ساخت گزارش پی دی اف…")
         def work():
             try:
                 from mobile.services.document_service import export_table_pdf
@@ -1630,7 +1664,7 @@ class ModuleWorkspaceScreen(Screen):
                 export_table_pdf(table,rows,fields,COLUMNS,str(path),title=FRIENDLY.get(table,table))
                 Clock.schedule_once(lambda *_: self._excel_done("گزارش PDF ذخیره شد: "+str(path)),0)
             except Exception as exc:
-                Clock.schedule_once(lambda *_: self.write_error("گزارش PDF انجام نشد: "+str(exc)),0)
+                Clock.schedule_once(lambda *_: self.write_error("گزارش پی دی اف انجام نشد: "+str(exc)),0)
         Thread(target=work,daemon=True).start()
 
     def _pick_excel_android(self):
