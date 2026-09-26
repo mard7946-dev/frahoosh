@@ -715,7 +715,7 @@ class ModuleWorkspaceScreen(Screen):
         makes an otherwise visible toolbar appear dead.  We therefore keep a
         single-fire guard and listen to both press and release.  Whichever event
         reaches the button first executes the operation; the second event is
-        ignored.  This does not duplicate CRUD/Excel/PDF actions.
+        ignored.  This does not duplicate CRUD/اکسل/پی دی اف actions.
         """
         b=Button(text=fa_display(str(text)),font_name=font_name(),font_size="10sp",
                  background_normal="",background_color=color,color=WHITE,
@@ -757,7 +757,7 @@ class ModuleWorkspaceScreen(Screen):
 
         # Kivy Button.on_press/on_release dispatch the button instance;
         # they do not pass a touch object.  The previous two-argument handlers
-        # therefore raised TypeError before any CRUD/Excel/PDF callback ran,
+        # therefore raised TypeError before any CRUD/اکسل/پی دی اف callback ran,
         # making every toolbar button look completely dead on Android.
         def _on_press(instance, *args):
             _execute(instance, "press")
@@ -1623,7 +1623,7 @@ class ModuleWorkspaceScreen(Screen):
         Thread(target=work,daemon=True).start()
 
     def export_excel_template(self):
-        """Create a ready-to-fill Excel template using the exact module field contract."""
+        """Create a ready-to-fill اکسل template using the exact module field contract."""
         table=str(self.table or "").strip()
         if not table:
             return
@@ -1657,12 +1657,12 @@ class ModuleWorkspaceScreen(Screen):
                 fields=[f for f in (_module_fields(table) or []) if f not in HIDDEN]
                 if not fields and rows:
                     fields=[k for k in rows[0] if k not in HIDDEN]
-                # Save PDF reports beside Excel exports in Download.
+                # Save پی دی اف reports beside اکسل exports in Download.
                 output=self._excel_path().parent
                 output.mkdir(parents=True,exist_ok=True)
                 path=output/("frahoosh_"+table+"_report.pdf")
                 export_table_pdf(table,rows,fields,COLUMNS,str(path),title=FRIENDLY.get(table,table))
-                Clock.schedule_once(lambda *_: self._excel_done("گزارش PDF ذخیره شد: "+str(path)),0)
+                Clock.schedule_once(lambda *_: self._excel_done("گزارش پی دی اف ذخیره شد: "+str(path)),0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self.write_error("گزارش پی دی اف انجام نشد: "+str(exc)),0)
         Thread(target=work,daemon=True).start()
@@ -1686,7 +1686,7 @@ class ModuleWorkspaceScreen(Screen):
                 except Exception:
                     pass
                 if result_code != Activity.RESULT_OK or intent is None:
-                    Clock.schedule_once(lambda *_: self.write_error("انتخاب فایل Excel لغو شد."), 0)
+                    Clock.schedule_once(lambda *_: self.write_error("انتخاب فایل اکسل لغو شد."), 0)
                     return
                 try:
                     uri = intent.getData()
@@ -1712,7 +1712,7 @@ class ModuleWorkspaceScreen(Screen):
                 except Exception as exc:
                     print("ANDROID EXCEL PICKER ERROR:", repr(exc))
                     Clock.schedule_once(
-                        lambda *_: self.write_error("خواندن فایل Excel انجام نشد: " + str(exc)), 0
+                        lambda *_: self.write_error("خواندن فایل اکسل انجام نشد: " + str(exc)), 0
                     )
 
             activity.bind(on_activity_result=on_result)
@@ -1737,7 +1737,7 @@ class ModuleWorkspaceScreen(Screen):
         table=str(self.table or "").strip()
         if not table:
             return
-        self.status.text = fa_display("در حال خواندن فایل Excel و ثبت گروهی…")
+        self.status.text = fa_display("در حال خواندن فایل اکسل و ثبت گروهی…")
         def work():
             try:
                 from openpyxl import load_workbook
@@ -1745,7 +1745,7 @@ class ModuleWorkspaceScreen(Screen):
                 ws=wb.active
                 values=list(ws.iter_rows(values_only=True))
                 if not values:
-                    raise RuntimeError("فایل Excel خالی است.")
+                    raise RuntimeError("فایل اکسل خالی است.")
                 headers=[str(x or "").strip() for x in values[0]]
                 reverse={str(v):k for k,v in COLUMNS.items()}
                 fields=[reverse.get(h,h) for h in headers]
@@ -1766,9 +1766,9 @@ class ModuleWorkspaceScreen(Screen):
                     Path(path).unlink(missing_ok=True)
                 except Exception:
                     pass
-                Clock.schedule_once(lambda *_: self._excel_done(f"{inserted} رکورد از Excel وارد شد."),0)
+                Clock.schedule_once(lambda *_: self._excel_done(f"{inserted} رکورد از اکسل وارد شد."),0)
             except Exception as exc:
-                Clock.schedule_once(lambda *_: self.write_error("ورودی Excel انجام نشد: "+str(exc)),0)
+                Clock.schedule_once(lambda *_: self.write_error("ورودی اکسل انجام نشد: "+str(exc)),0)
 
         Thread(target=work,daemon=True).start()
 
@@ -1782,7 +1782,7 @@ class ModuleWorkspaceScreen(Screen):
         try:
             from kivy.utils import platform
             if platform == "android" and self._pick_excel_android():
-                self.status.text = fa_display("فایل Excel را انتخاب کنید…")
+                self.status.text = fa_display("فایل اکسل را انتخاب کنید…")
                 return
         except Exception as exc:
             print("EXCEL PICKER FALLBACK:", repr(exc))
@@ -1794,8 +1794,8 @@ class ModuleWorkspaceScreen(Screen):
                 path=template
             else:
                 self.message(
-                    "ورودی Excel",
-                    f"برای ثبت گروهی، فایل Excel را انتخاب کنید.\n"
+                    "ورودی اکسل",
+                    f"برای ثبت گروهی، فایل اکسل را انتخاب کنید.\n"
                     f"در نسخه دسکتاپ مسیر پیش‌فرض: {path.name}"
                 )
                 return
