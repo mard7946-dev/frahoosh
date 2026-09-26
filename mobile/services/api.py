@@ -343,10 +343,14 @@ class SupabaseClient:
             raise ApiError(self._data_error(response, f"ثبت رکورد در جدول «{table}» انجام نشد."))
         return response.json()
 
-    def table_update(self, table, filters, payload):
+    def table_update(self, table, filters, payload, return_representation=True):
         if not self.configured or not self.access_token:
             raise ApiError("نشست معتبر برای ویرایش اطلاعات وجود ندارد.")
-        response = self._authenticated_request("PATCH", f"{self.url}/rest/v1/{table}", payload=payload, params=dict(filters or {}), prefer="return=representation")
+        prefer = "return=representation" if return_representation else "return=minimal"
+        response = self._authenticated_request(
+            "PATCH", f"{self.url}/rest/v1/{table}",
+            payload=payload, params=dict(filters or {}), prefer=prefer
+        )
         if not response.ok:
             raise ApiError(self._data_error(response, f"ویرایش رکورد جدول «{table}» انجام نشد."))
         return response.json()
