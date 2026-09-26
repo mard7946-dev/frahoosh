@@ -118,9 +118,15 @@ class MessageComposeScreen(Screen):
         api = self._api()
         users = api.table_select("users", {"limit": "500"}) or []
         role_targets = {
-            "student": {"teacher", "educational", "executive", "cultural", "advisor", "counselor", "manager", "admin", "administrator", "management"},
-            "parent": {"teacher", "educational", "executive", "cultural", "advisor", "counselor", "manager", "admin", "administrator", "management", "student"},
+            # ارتباطات رسمی فراهوش: هر نقش فقط مخاطبان تعریف‌شده مدرسه را می‌بیند.
+            "student": {"parent", "teacher", "educational", "executive", "cultural", "advisor", "counselor", "manager", "admin", "administrator", "management"},
+            "parent": {"student", "teacher", "educational", "executive", "cultural", "advisor", "counselor", "manager", "admin", "administrator", "management"},
             "teacher": {"student", "parent", "educational", "executive", "cultural", "advisor", "counselor", "manager", "admin", "administrator", "management"},
+            "educational": {"teacher", "student", "parent", "advisor", "manager", "admin", "administrator", "management"},
+            "executive": {"teacher", "student", "parent", "advisor", "manager", "admin", "administrator", "management"},
+            "cultural": {"teacher", "student", "parent", "advisor", "manager", "admin", "administrator", "management"},
+            "advisor": {"student", "parent", "teacher", "educational", "executive", "cultural", "manager", "admin", "administrator", "management"},
+            "counselor": {"student", "parent", "teacher", "educational", "executive", "cultural", "manager", "admin", "administrator", "management"},
             "manager": {"student", "parent", "teacher", "educational", "executive", "cultural", "advisor", "counselor"},
         }
         current_role = self._role()
