@@ -173,7 +173,14 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                         return screen
                 return super().open_table(table, refresh_subbar=False)
 
-            if table in ("online_classes", "messages", "payment_offers"):
+            if table in ("messages", "message_targets", "message_reads"):
+                if app is not None and hasattr(app, "ensure_message_workflow"):
+                    screen = app.ensure_message_workflow()
+                    if screen is not None and self.manager is not None:
+                        screen.return_to = "panel"
+                        self.manager.current = screen.name
+                        return screen
+            if table in ("online_classes", "payment_offers"):
                 return super().open_table(table, refresh_subbar=False)
             return ModuleWorkspaceScreen.open_table(self, table, refresh_subbar=False)
         except Exception as exc:
