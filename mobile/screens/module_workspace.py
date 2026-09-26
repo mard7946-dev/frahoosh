@@ -1059,7 +1059,7 @@ class ModuleWorkspaceScreen(Screen):
         scroll.add_widget(grid)
         panel.add_widget(scroll)
         self.body.add_widget(panel)
-        self.status.text = fa_display(f"{len(items)} جدول تخصصی واقعی • اتصال Supabase در حال بررسی")
+        self.status.text = fa_display(f"{len(items)} جدول تخصصی واقعی آماده است")
 
     def _badge(self,w):
         with w.canvas.before:
@@ -1354,7 +1354,7 @@ class ModuleWorkspaceScreen(Screen):
             try:
                 from kivy.app import App
                 app = App.get_running_app()
-                screen = app.ensure_meeting_workflow() if app is not None else None
+                screen = app.ensure_meetings() if app is not None else None
                 if screen is None:
                     raise RuntimeError("محیط ملاقات‌ها آماده نشد.")
                 screen.return_to = "panel"
