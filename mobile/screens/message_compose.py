@@ -127,7 +127,7 @@ class MessageComposeScreen(Screen):
             "cultural": {"teacher", "student", "parent", "advisor", "manager", "admin", "administrator", "management"},
             "advisor": {"student", "parent", "teacher", "educational", "executive", "cultural", "manager", "admin", "administrator", "management"},
             "counselor": {"student", "parent", "teacher", "educational", "executive", "cultural", "manager", "admin", "administrator", "management"},
-            "manager": {"student", "parent", "teacher", "educational", "executive", "cultural", "advisor", "counselor"},
+            "manager": {"student", "parent", "teacher", "educational", "executive", "cultural", "advisor", "counselor", "staff"},
         }
         current_role = self._role()
         allowed_roles = role_targets.get(current_role, {
