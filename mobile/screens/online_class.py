@@ -344,7 +344,7 @@ class OnlineClassScreen(Screen):
             from openpyxl import load_workbook
             wb=load_workbook(str(path),read_only=True,data_only=True); ws=wb.active
             rows=list(ws.iter_rows(values_only=True))
-            if not rows: return self._error("فایل Excel خالی است.")
+            if not rows: return self._error("فایل اکسل خالی است.")
             headers=[str(x or "").strip() for x in rows[0]]
             allowed={"title","subject","lesson","teacher","grade","class_name","class_day","start_date_shamsi","start_clock","end_clock","duration","status","join_url","meeting_url"}
             inserted=0
@@ -357,9 +357,9 @@ class OnlineClassScreen(Screen):
                     try: payload["duration"]=max(1,int(payload.get("duration") or 60))
                     except Exception: payload["duration"]=60
                     self.app_state.api.table_insert("online_classes",payload,return_representation=False); inserted+=1
-            wb.close(); self._ok(f"{inserted} کلاس از Excel وارد شد."); self.show_home()
+            wb.close(); self._ok(f"{inserted} کلاس از اکسل وارد شد."); self.show_home()
         except Exception as exc:
-            self._error("ورودی Excel انجام نشد: "+str(exc))
+            self._error("ورودی اکسل انجام نشد: "+str(exc))
 
     def _add_student(self,cid):
         self._clear()
