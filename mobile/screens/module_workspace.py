@@ -1584,7 +1584,7 @@ class ModuleWorkspaceScreen(Screen):
         hero.add_widget(line); self.body.add_widget(hero)
         can_write = self.can_write(table)
         consumer = self.role() in {"student", "parent"}
-        export_roles = {"manager", "educational", "executive", "cultural", "advisor"}
+        export_roles = {"manager", "educational", "executive", "cultural", "advisor", "teacher", "staff", "counselor"}
         can_export = self.role() in export_roles
         if can_write:
             def _guard_write(action):
@@ -1663,6 +1663,7 @@ class ModuleWorkspaceScreen(Screen):
         def work():
             try:
                 from openpyxl import Workbook
+                from openpyxl.styles import Font, Alignment
                 api=self.app_state.api
                 rows=api.table_select(table,{"limit":"1000"}) or []
                 rows=[dict(x) for x in rows if isinstance(x,dict)]
@@ -1670,9 +1671,18 @@ class ModuleWorkspaceScreen(Screen):
                 if not fields and rows:
                     fields=[k for k in rows[0] if k not in HIDDEN]
                 wb=Workbook(); ws=wb.active; ws.title="فراهوش"
+                ws.sheet_view.rightToLeft = True
                 ws.append([COLUMNS.get(f,f) for f in fields])
                 for row in rows:
                     ws.append([row.get(f,"") for f in fields])
+                # Excel stores real Unicode Persian text; styling every cell with
+                # the bundled Arabic-capable family prevents Android/desktop
+                # viewers from substituting a Latin font that renders □ glyphs.
+                for row_cells in ws.iter_rows():
+                    for cell in row_cells:
+                        cell.font = Font(name="Noto Sans Arabic", size=10, bold=(cell.row == 1))
+                        cell.alignment = Alignment(horizontal="right", vertical="center")
+                ws.freeze_panes = "A2"
                 path=self._excel_path(); wb.save(str(path))
                 msg=f"خروجی اکسل ذخیره شد: {path}"
                 Clock.schedule_once(lambda *_: self._excel_done(msg),0)
@@ -1693,8 +1703,14 @@ class ModuleWorkspaceScreen(Screen):
                 if not fields:
                     raise RuntimeError("برای این ماژول قرارداد فیلد قابل ورود تعریف نشده است.")
                 wb=Workbook(); ws=wb.active; ws.title="فراهوش"
+                ws.sheet_view.rightToLeft = True
                 ws.append([COLUMNS.get(f,f) for f in fields])
                 ws.append(["" for _ in fields])
+                for row_cells in ws.iter_rows():
+                    for cell in row_cells:
+                        cell.font = Font(name="Noto Sans Arabic", size=10, bold=(cell.row == 1))
+                        cell.alignment = Alignment(horizontal="right", vertical="center")
+                ws.freeze_panes = "A2"
                 path=self._excel_path(); template=path.with_name(path.stem+"_template.xlsx")
                 wb.save(str(template))
                 Clock.schedule_once(lambda *_: self._excel_done("قالب اکسل آماده شد: "+str(template)),0)
