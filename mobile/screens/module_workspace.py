@@ -1389,6 +1389,7 @@ class ModuleWorkspaceScreen(Screen):
                 print("MEETING WORKFLOW OPEN ERROR:", repr(exc))
                 self.status.text = fa_display("محیط ملاقات‌ها باز نشد: " + str(exc))
                 self.status.color = (.8, .15, .15, 1)
+                return
 
         if table == "messages":
             try:
