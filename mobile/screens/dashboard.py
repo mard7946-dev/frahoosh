@@ -221,7 +221,7 @@ class PanelHubScreen(Screen):
             root.add_widget(create)
         # Staff/management panels get one explicit, real import/export center.
         # Student/parent panels keep their restricted consumer workflow.
-        if self.panel_key not in {"students", "parents"}:
+        if self.panel_key not in {"students", "parents", "meetings"}:
             io=Button(text=fa_display("ورودی و خروجی Excel / PDF"),font_name=font_name(),font_size="12sp",
                       background_normal="",background_color=(0.08,0.34,0.52,1),color=WHITE,
                       size_hint_y=None,height=dp(46))
