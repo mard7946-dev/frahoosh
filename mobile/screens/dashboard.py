@@ -428,7 +428,9 @@ class PanelHubScreen(Screen):
                     if route == "certificate_requests":
                         target=app.ensure_certificate_workflow()
                     elif route in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
-                        target=app.ensure_meeting_workflow()
+                        target=app.ensure_meetings()
+                    elif route in {"messages","message_targets","message_reads"}:
+                        target=app.ensure_message_workflow()
                     elif route in {"online_classes","virtual"}:
                         target=app.ensure_online_workflow()
                     elif route in {"teacher_exams","exams","questions","quiz_questions"}:
