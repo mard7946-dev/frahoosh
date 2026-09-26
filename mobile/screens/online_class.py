@@ -331,9 +331,9 @@ class OnlineClassScreen(Screen):
             ws.append(fields)
             for r in rows: ws.append([r.get(k,"") for k in fields])
             path=self._excel_path(); wb.save(str(path))
-            self._ok("خروجی Excel ذخیره شد: Download/frahoosh_online_classes.xlsx")
+            self._ok("خروجی اکسل ذخیره شد: Download/frahoosh_online_classes.xlsx")
         except Exception as exc:
-            self._error("خروجی Excel انجام نشد: "+str(exc))
+            self._error("خروجی اکسل انجام نشد: "+str(exc))
 
     def _import_excel(self):
         from pathlib import Path
