@@ -10,6 +10,10 @@
   "panels": {
     "management": [
       [
+        "حضور و غیاب",
+        "attendance"
+      ],
+      [
         "مدیریت کاربران و کارکنان",
         "users"
       ],
@@ -170,6 +174,14 @@
     ],
     "executive": [
       [
+        "موارد انضباطی",
+        "discipline_records"
+      ],
+      [
+        "حضور و غیاب",
+        "attendance"
+      ],
+      [
         "دانش‌آموزان",
         "students"
       ],
@@ -235,6 +247,10 @@
       ]
     ],
     "cultural": [
+      [
+        "حضور و غیاب",
+        "attendance"
+      ],
       [
         "صبحگاه / ظهرگاه",
         "morning_ceremony"
@@ -305,6 +321,10 @@
       ]
     ],
     "advisor": [
+      [
+        "حضور و غیاب",
+        "attendance"
+      ],
       [
         "تابلو اعلانات مشاور",
         "counselor_board"
