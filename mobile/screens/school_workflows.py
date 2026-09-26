@@ -47,9 +47,12 @@ class BaseWorkflow(Screen):
             fired["value"] = True
             try:
                 cb()
+            except Exception as exc:
+                print("WORKFLOW BUTTON CALLBACK ERROR:", repr(exc))
+                self.msg("اجرای عملیات با خطا روبه‌رو شد: " + str(exc), ERROR)
             finally:
                 fired["value"] = False
-        b.bind(on_release=lambda *_: run())
+        b.bind(on_release=run)
         return b
     def field(self,h,m=False): return PersianTextInput(hint_text=fa_display(h),font_name=font_name(),font_size="12sp",halign="right",multiline=m,size_hint_y=None,height=dp(70 if m else 46))
     def _spinner(self,text,values,height=46):
