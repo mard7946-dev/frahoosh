@@ -709,75 +709,34 @@ class ModuleWorkspaceScreen(Screen):
         return w
 
     def btn(self,text,cb,color=PRIMARY,h=dp(40),width=None):
-        """Create a touch-safe action button.
-        
-        Android builds have shown cases where relying on a single Kivy event
-        makes an otherwise visible toolbar appear dead.  We therefore keep a
-        single-fire guard and listen to both press and release.  Whichever event
-        reaches the button first executes the operation; the second event is
-        ignored.  This does not duplicate CRUD/اکسل/پی دی اف actions.
-        """
+        """Android-safe action button: dispatch exactly once on release."""
         b=Button(text=fa_display(str(text)),font_name=font_name(),font_size="10sp",
                  background_normal="",background_color=color,color=WHITE,
-                 size_hint_y=None,height=h,
-                 halign="center",valign="middle")
+                 size_hint_y=None,height=h,halign="center",valign="middle")
         b.always_release=True
         b.min_state_time=0
         if width is not None:
             b.size_hint_x=None
             b.width=width
-
-        fired = {"value": False}
-
-        def _execute(instance, event_name):
+        fired={"value":False}
+        def run(*_args):
             if fired["value"]:
                 return
-            fired["value"] = True
-            try:
-                self.status.text = fa_display("در حال اجرای عملیات…")
-                self.status.color = SECONDARY
-
-                # Never mutate ScreenManager/layouts from inside the Android
-                # Button dispatch itself.  Queue the real navigation/action
-                # for the next Kivy frame while keeping the single-fire guard
-                # alive until the queued callback has actually run.
-                def invoke(_dt):
-                    try:
-                        cb()
-                    except Exception as exc:
-                        print("MODULE BUTTON CALLBACK ERROR:", repr(exc))
-                        try:
-                            self.status.text = fa_display("اجرای عملیات با خطا روبه‌رو شد: " + str(exc))
-                            self.status.color = (.8,.15,.15,1)
-                        except Exception:
-                            pass
-                    finally:
-                        fired["value"] = False
-
-                Clock.schedule_once(invoke, 0)
-            except Exception as exc:
-                fired["value"] = False
-                print("MODULE BUTTON SCHEDULE ERROR:", repr(exc))
+            fired["value"]=True
+            def invoke(_dt):
                 try:
-                    self.status.text = fa_display("اجرای عملیات با خطا روبه‌رو شد: " + str(exc))
-                    self.status.color = (.8,.15,.15,1)
-                except Exception:
-                    pass
-
-        # Kivy Button.on_press/on_release dispatch the button instance;
-        # they do not pass a touch object.  The previous two-argument handlers
-        # therefore raised TypeError before any CRUD/اکسل/پی دی اف callback ran,
-        # making every toolbar button look completely dead on Android.
-        def _on_press(instance, *args):
-            _execute(instance, "press")
-
-        def _on_release(instance, *args):
-            # Fallback for devices/event paths where release is the first
-            # delivered callback.  The single-fire guard prevents double work.
-            _execute(instance, "release")
-
-        b.bind(on_press=_on_press)
-        b.bind(on_release=_on_release)
+                    cb()
+                except Exception as exc:
+                    print("MODULE BUTTON CALLBACK ERROR:",repr(exc))
+                    try:
+                        self.status.text=fa_display("خطای عملیات: "+str(exc))
+                        self.status.color=(.8,.15,.15,1)
+                    except Exception:
+                        pass
+                finally:
+                    fired["value"]=False
+            Clock.schedule_once(invoke,0)
+        b.bind(on_release=run)
         return b
 
     def _ensure_built(self):
