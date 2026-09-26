@@ -17,7 +17,7 @@ from kivy.uix.widget import Widget
 from kivy.resources import resource_find
 from pathlib import Path
 
-from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, WHITE
+from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, WHITE, PAYMENT_GATEWAY_URL
 from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput, PersianSpinner
 
 class SelectableRow(ButtonBehavior, BoxLayout):
@@ -1245,15 +1245,33 @@ class ModuleWorkspaceScreen(Screen):
         self.title.text = fa_display("پرداخت آنلاین")
         role = self.role()
         profile = getattr(self.app_state, "profile", {}) or {}
-        username = str(profile.get("username") or getattr(self.app_state, "username", "") or "").strip()
+        user = getattr(self.app_state, "user", {}) or {}
+        username = str(
+            profile.get("username") or getattr(self.app_state, "username", "") or
+            user.get("username") or profile.get("email") or user.get("email") or ""
+        ).strip()
         student_id = profile.get("linked_student_id") or profile.get("student_id")
         if role == "parent" and not student_id:
+            # Legacy accounts sometimes keep the parent link under username,
+            # while Auth-based profiles expose only the email. Try both without
+            # broadening access to unrelated children.
+            candidates = []
+            for value in (username, profile.get("email"), user.get("email")):
+                value = str(value or "").strip()
+                if value and value not in candidates:
+                    candidates.append(value)
             try:
-                links = self.app_state.api.table_select("parent_children", {"parent_username": "eq."+username, "limit": "50"}) or []
-                if links:
-                    student_id = links[0].get("student_id")
-            except Exception:
-                pass
+                for candidate in candidates:
+                    links = self.app_state.api.table_select(
+                        "parent_children",
+                        {"parent_username": "eq."+candidate, "limit": "50"}
+                    ) or []
+                    if links:
+                        student_id = links[0].get("student_id")
+                        if student_id:
+                            break
+            except Exception as exc:
+                print("PAYMENT CHILD LINK ERROR:", repr(exc))
         head = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(78), padding=dp(5))
         head.add_widget(self.label("پرداخت آنلاین", "20sp", PRIMARY, True, "center"))
         head.add_widget(self.label("فقط گزینه‌های پرداخت فعال مدرسه در این بخش نمایش داده می‌شوند.", "9sp", SECONDARY, False, "center"))
@@ -1299,16 +1317,18 @@ class ModuleWorkspaceScreen(Screen):
             "description": offer.get("description") or offer.get("title") or "پرداخت آنلاین",
         }
         try:
-            rows = self.app_state.api.table_insert("payment_attempts", payload, return_representation=True) or []
-            rid = rows[0].get("id") if isinstance(rows,list) and rows else None
-            payment_url = str(offer.get("payment_url") or "").strip()
-            if payment_url:
+            # The inserted id is not required by the UI. Avoid requesting a
+            # representation because legacy RLS policies may allow INSERT but
+            # not SELECT on payment_attempts.
+            self.app_state.api.table_insert("payment_attempts", payload, return_representation=False)
+            payment_url = str(offer.get("payment_url") or PAYMENT_GATEWAY_URL or "").strip()
+            if payment_url and payment_url.startswith(("https://", "http://")):
                 import webbrowser
                 webbrowser.open(payment_url)
                 self.message("پرداخت آنلاین", "درخواست پرداخت ثبت شد و درگاه پرداخت باز شد.")
             else:
-                self.message("پرداخت آنلاین", "درخواست پرداخت ثبت شد و در انتظار تکمیل پرداخت است.")
-            print("PAYMENT ATTEMPT CREATED:", rid)
+                self.message("پرداخت آنلاین", "درخواست پرداخت ثبت شد؛ درگاه آنلاین هنوز برای این گزینه تنظیم نشده است.")
+            print("PAYMENT ATTEMPT CREATED")
         except Exception as exc:
             self.message("پرداخت آنلاین", "ثبت درخواست پرداخت انجام نشد: "+str(exc))
 
