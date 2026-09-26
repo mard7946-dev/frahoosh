@@ -439,11 +439,25 @@ class FrahooshApp(App):
         from mobile.screens.school_workflows import CertificateWorkflowScreen
         s=CertificateWorkflowScreen(name="certificate_workflow",app_state=self.app_state); self.sm.add_widget(s); return s
     def ensure_meeting_workflow(self):
-        if self.sm is None:return None
-        try:return self.sm.get_screen("meeting_workflow")
-        except Exception:pass
-        from mobile.screens.school_workflows import MeetingWorkflowScreen
-        s=MeetingWorkflowScreen(name="meeting_workflow",app_state=self.app_state); self.sm.add_widget(s); return s
+        """Return the real meeting workflow, with a legacy screen fallback."""
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("meeting_workflow")
+        except Exception:
+            pass
+        try:
+            from mobile.screens.school_workflows import MeetingWorkflowScreen
+            s=MeetingWorkflowScreen(name="meeting_workflow",app_state=self.app_state)
+            self.sm.add_widget(s)
+            return s
+        except Exception as exc:
+            print("MEETING WORKFLOW BUILD ERROR:", repr(exc))
+            try:
+                return self.ensure_meetings()
+            except Exception as fallback_exc:
+                print("LEGACY MEETINGS BUILD ERROR:", repr(fallback_exc))
+                return None
     def ensure_online_workflow(self):
         """Open the full online-class center used by the operational module."""
         if self.sm is None:return None
