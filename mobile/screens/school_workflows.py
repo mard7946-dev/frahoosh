@@ -510,52 +510,227 @@ class ExamAuthoringScreen(BaseWorkflow):
         except Exception as e:self.msg("خروجی PDF ناموفق: "+str(e),ERROR)
 
 class PanelIOWorkflowScreen(BaseWorkflow):
-    ALIASES={"users":"users","virtual":"online_classes","planning":"weekly_schedule","reports":"ai_smart_reports","settings":"school_profile","class_management":"executive_classes","student_archive":"archive_items","executive_operations":"executive_operations","referrals":"student_referrals","meetings":"meeting_requests","meeting_requests":"meeting_requests","notifications":"school_events","exams":"teacher_exams","questions":"quiz_questions","cultural_activities":"educational_activities","competitions":"competitions","educational_programs":"school_events","activity_registrations":"cultural_activity_registrations","cultural_reports":"cultural_reports","counseling_records":"counseling_records","student_followup":"counseling_followups","academic_guidance":"counseling_followups","counseling_reports":"ai_smart_reports","classes":"teacher_classes","grades":"grades","assignments":"assignments","lesson":"lesson_plans","student_profile":"students","activities":"activity_registrations","performance_report":"ai_smart_reports","weekly_schedule":"weekly_schedule","online_payment":"payment_offers","children":"parent_children","student_info":"students","educational_activities":"educational_activities","schedule_exams":"exam_schedule","teacher_meetings":"teacher_meetings","payments_finance":"payment_records","payments":"payment_records","transactions":"finance_transactions","accounts":"finance_accounts","financial_reports":"finance_transactions","payment_settings":"payment_offers","whiteboard":"smart_board_whiteboards","files":"smart_board_files","media":"smart_board_media","interactive_tools":"smart_board_interactive_tools","assistant":"ai_assistant_sessions","educational_analysis":"ai_educational_analysis","smart_reports":"ai_smart_reports","qa":"ai_questions","online_classes":"online_classes","certificate_requests":"certificate_requests"}
-    def __init__(self,app_state=None,panel_key="manager",**kw): super().__init__(app_state,**kw); self.panel_key=panel_key
-    def on_pre_enter(self,*_): self.build()
-    def build(self):
-        self.clear_widgets(); root=BoxLayout(orientation="vertical",padding=dp(9),spacing=dp(6)); root.add_widget(self.lab(f"ورودی و خروجی اطلاعات • {self.panel_key}",48,"19sp",PRIMARY,True)); root.add_widget(self.lab("خروجی Excel/PDF از داده زنده و ورود Excel به جدول انتخاب‌شده.",48))
-        self.path=self.field("برای ورود Excel مسیر فایل را وارد کنید"); self.table=self.field("نام جدول مقصد مثل students")
-        root.add_widget(self.path); root.add_widget(self.table); root.add_widget(self.btn("خروجی اکسل کل پنل",self.excel,SUCCESS)); root.add_widget(self.btn("خروجی پی‌دی‌اف کل پنل",self.pdf,PRIMARY)); root.add_widget(self.btn("ورود اکسل",self.imp,SECONDARY)); root.add_widget(self.btn("بازگشت",self.back,SECONDARY)); self.status=self.lab("",55); root.add_widget(self.status); self.add_widget(root)
+    """Real panel-level Excel/PDF transfer center for staff panels."""
+    ALIASES={
+        "users":"users","virtual":"online_classes","planning":"weekly_schedule","reports":"ai_smart_reports",
+        "settings":"school_profile","class_management":"executive_classes","student_archive":"archive_items",
+        "executive_operations":"executive_operations","referrals":"student_referrals","meetings":"meeting_requests",
+        "meeting_requests":"meeting_requests","notifications":"school_events","exams":"teacher_exams",
+        "questions":"quiz_questions","cultural_activities":"educational_activities","competitions":"competitions",
+        "educational_programs":"school_events","activity_registrations":"cultural_activity_registrations",
+        "cultural_reports":"cultural_reports","counseling_records":"counseling_records",
+        "student_followup":"counseling_followups","academic_guidance":"counseling_followups",
+        "counseling_reports":"ai_smart_reports","classes":"teacher_classes","grades":"grades",
+        "assignments":"assignments","lesson":"lesson_plans","student_profile":"students",
+        "activities":"activity_registrations","performance_report":"ai_smart_reports",
+        "weekly_schedule":"weekly_schedule","online_payment":"payment_offers","children":"parent_children",
+        "student_info":"students","educational_activities":"educational_activities","schedule_exams":"exam_schedule",
+        "teacher_meetings":"teacher_meetings","payments_finance":"payment_records","payments":"payment_records",
+        "transactions":"finance_transactions","accounts":"finance_accounts","financial_reports":"finance_transactions",
+        "payment_settings":"payment_offers","whiteboard":"smart_board_whiteboards","files":"smart_board_files",
+        "media":"smart_board_media","interactive_tools":"smart_board_interactive_tools",
+        "assistant":"ai_assistant_sessions","educational_analysis":"ai_educational_analysis",
+        "smart_reports":"ai_smart_reports","qa":"ai_questions","online_classes":"online_classes",
+        "certificate_requests":"certificate_requests"
+    }
+
+    def __init__(self,app_state=None,panel_key="manager",**kw):
+        super().__init__(app_state,**kw)
+        self.panel_key=panel_key
+        self._choices=[]
+        self._picker_bound=False
+
+    def on_pre_enter(self,*_):
+        self.build()
+
     def modules(self):
         try:
             from mobile.screens.dashboard import MOTHER_PANEL_CATALOG
-            key={"management":"manager","teachers":"teacher","students":"student","parents":"parent"}.get(self.panel_key,self.panel_key); return (MOTHER_PANEL_CATALOG.get(key) or {}).get("items") or []
-        except Exception:return []
+            key={"management":"manager","teachers":"teacher","students":"student","parents":"parent"}.get(self.panel_key,self.panel_key)
+            return (MOTHER_PANEL_CATALOG.get(key) or {}).get("items") or []
+        except Exception:
+            return []
+
+    def _table_choices(self):
+        result=[]
+        seen=set()
+        for label,route in self.modules():
+            table=self.ALIASES.get(route,route)
+            if not table or table in seen:
+                continue
+            seen.add(table)
+            result.append((str(label),str(table)))
+        return result
+
+    def build(self):
+        self.clear_widgets()
+        root=BoxLayout(orientation="vertical",padding=dp(9),spacing=dp(6))
+        root.add_widget(self.lab("ورودی و خروجی اطلاعات • "+str(self.panel_key),48,"19sp",PRIMARY,True))
+        root.add_widget(self.lab("برای هر جدول پنل، خروجی Excel یا PDF بگیرید و Excel را دوباره وارد همان جدول کنید.",52,"10sp",SECONDARY,False,True))
+
+        choices=self._table_choices()
+        self._choices=choices
+        labels=[x[0] for x in choices] or ["جدولی برای این پنل تعریف نشده است."]
+        self.table_spinner=Spinner(text=labels[0],values=labels,size_hint_y=None,height=dp(46),
+                                   font_name=font_name(),font_size="11sp",
+                                   background_normal="",background_color=(0.05,0.30,0.48,1),
+                                   color=WHITE)
+        root.add_widget(self.lab("انتخاب ماژول / جدول",28,"10sp",SECONDARY,True))
+        root.add_widget(self.table_spinner)
+
+        actions=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(5))
+        actions.add_widget(self.btn("خروجی Excel",self.excel,SUCCESS,46))
+        actions.add_widget(self.btn("خروجی PDF",self.pdf,PRIMARY,46))
+        root.add_widget(actions)
+
+        actions2=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(5))
+        actions2.add_widget(self.btn("قالب Excel",self.template,SECONDARY,46))
+        actions2.add_widget(self.btn("ورودی Excel",self.imp,(0.08,.42,.62,1),46))
+        root.add_widget(actions2)
+
+        self.status=self.lab("",62,"9sp",SECONDARY,False,True)
+        root.add_widget(self.status)
+        root.add_widget(self.btn("بازگشت",self.back,SECONDARY,44))
+        self.add_widget(root)
+
+    def selected_table(self):
+        label=str(getattr(self,"table_spinner",None).text if getattr(self,"table_spinner",None) else "")
+        for title,table in self._choices:
+            if title==label:
+                return table
+        return self._choices[0][1] if self._choices else ""
+
+    def selected_label(self):
+        label=str(getattr(self,"table_spinner",None).text if getattr(self,"table_spinner",None) else "")
+        return label or self.selected_table()
+
+    def _rows(self,table):
+        return [dict(x) for x in (self.api().table_select(table,{"order":"id.desc","limit":"2000"}) or []) if isinstance(x,dict)]
+
+    def _fields(self,rows):
+        if rows:
+            keys=[]
+            for row in rows:
+                for key in row:
+                    if key not in {"id","created_at","updated_at","deleted_at"} and key not in keys:
+                        keys.append(key)
+            return keys
+        return []
+
     def excel(self,*_):
-        from openpyxl import Workbook
-        from mobile.services.export_service import app_dir
+        table=self.selected_table()
+        if not table:
+            self.status.text=fa_display("ابتدا یک ماژول انتخاب کنید.")
+            return
         try:
-            path=app_dir()/f"frahoosh_{self.panel_key}.xlsx"; wb=Workbook(); wb.remove(wb.active); used=set()
-            for label,route in self.modules():
-                table=self.ALIASES.get(route,route); name=str(table)[:25] or "data"; base=name; n=1
-                while name in used:n+=1; name=f"{base[:22]}_{n}"
-                used.add(name); ws=wb.create_sheet(name); rows=self.api().table_select(table,{"select":"*","order":"id.desc","limit":"1000"}) or []; fields=list(rows[0].keys()) if rows else ["status"]
-                for j,k in enumerate(fields,1):ws.cell(1,j,k)
-                for i,row in enumerate(rows,2):
-                    for j,k in enumerate(fields,1):ws.cell(i,j,str(row.get(k,"")))
-            wb.save(path); self.status.text = fa_display("فایل اکسل ساخته شد: "+str(path))
-        except Exception as e:self.status.text = fa_display("ساخت فایل اکسل ناموفق بود: "+str(e))
+            from mobile.services.export_service import export_excel
+            rows=self._rows(table); fields=self._fields(rows)
+            if not fields:
+                raise RuntimeError("این جدول هنوز رکوردی برای خروجی ندارد.")
+            path=export_excel(rows,fields,title="frahoosh_"+table)
+            self.status.text=fa_display("خروجی Excel ساخته شد: "+path)
+            self.status.color=SUCCESS
+        except Exception as exc:
+            self.status.text=fa_display("خروجی Excel ناموفق بود: "+str(exc))
+            self.status.color=ERROR
+
+    def template(self,*_):
+        table=self.selected_table()
+        if not table:
+            self.status.text=fa_display("ابتدا یک ماژول انتخاب کنید.")
+            return
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, Alignment
+            from mobile.services.export_service import app_dir
+            rows=self._rows(table); fields=self._fields(rows)
+            if not fields:
+                fields=["title","description","status"]
+            wb=Workbook(); ws=wb.active; ws.title="فراهوش"; ws.sheet_view.rightToLeft=True
+            for col,key in enumerate(fields,1):
+                cell=ws.cell(1,col,key); cell.font=Font(name="Noto Sans Arabic",size=11,bold=True); cell.alignment=Alignment(horizontal="right")
+            ws.freeze_panes="A2"
+            path=app_dir()/("frahoosh_"+table+"_template.xlsx"); wb.save(path)
+            self.status.text=fa_display("قالب Excel ساخته شد: "+str(path)); self.status.color=SUCCESS
+        except Exception as exc:
+            self.status.text=fa_display("ساخت قالب Excel ناموفق بود: "+str(exc)); self.status.color=ERROR
+
     def pdf(self,*_):
-        from reportlab.lib.pagesizes import A4,landscape
-        from reportlab.pdfgen import canvas
-        from mobile.services.export_service import app_dir
+        table=self.selected_table()
+        if not table:
+            self.status.text=fa_display("ابتدا یک ماژول انتخاب کنید.")
+            return
         try:
-            path=app_dir()/f"frahoosh_{self.panel_key}.pdf"; c=canvas.Canvas(str(path),pagesize=landscape(A4)); w,h=landscape(A4); y=h-30; c.setFont("Helvetica",9); c.drawString(25,y,"Frahoosh "+self.panel_key); y-=22
-            for label,route in self.modules():
-                if y<35:c.showPage();y=h-30
-                table=self.ALIASES.get(route,route); rows=self.api().table_select(table,{"select":"*","limit":"1000"}) or []; c.drawString(35,y,f"{label}: {len(rows)}"); y-=13
-                for row in rows[:20]:
-                    if y<25:c.showPage();y=h-30
-                    c.drawString(45,y,str(row)[:150]); y-=10
-            c.save(); self.status.text = fa_display("فایل پی‌دی‌اف ساخته شد: "+str(path))
-        except Exception as e:self.status.text = fa_display("ساخت فایل پی‌دی‌اف ناموفق بود: "+str(e))
-    def imp(self,*_):
+            from mobile.services.export_service import export_pdf
+            rows=self._rows(table); fields=self._fields(rows)
+            if not fields:
+                raise RuntimeError("این جدول هنوز رکوردی برای خروجی ندارد.")
+            path=export_pdf(rows,fields,title="گزارش "+self.selected_label())
+            self.status.text=fa_display("خروجی PDF ساخته شد: "+path); self.status.color=SUCCESS
+        except Exception as exc:
+            self.status.text=fa_display("خروجی PDF ناموفق بود: "+str(exc)); self.status.color=ERROR
+
+    def _pick_excel_android(self):
+        try:
+            from android import activity
+            from jnius import autoclass, cast
+            PythonActivity=autoclass("org.kivy.android.PythonActivity")
+            Intent=autoclass("android.content.Intent")
+            Activity=autoclass("android.app.Activity")
+            current=cast("android.app.Activity",PythonActivity.mActivity)
+            request_code=5819
+            def on_result(code,result_code,intent):
+                if code!=request_code:
+                    return
+                try: activity.unbind(on_activity_result=on_result)
+                except Exception: pass
+                if result_code!=Activity.RESULT_OK or intent is None:
+                    self.status.text=fa_display("انتخاب فایل Excel لغو شد."); return
+                try:
+                    uri=intent.getData()
+                    resolver=current.getContentResolver()
+                    stream=resolver.openInputStream(uri)
+                    from java.io import ByteArrayOutputStream
+                    out=ByteArrayOutputStream()
+                    while True:
+                        value=stream.read()
+                        if value==-1: break
+                        out.write(value)
+                    stream.close()
+                    target=Path(getattr(self.app_state,"user_data_dir",".") or ".")/"panel_import.xlsx"
+                    target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(bytes(out.toByteArray()))
+                    self._import_path(target)
+                except Exception as exc:
+                    self.status.text=fa_display("خواندن فایل Excel ناموفق بود: "+str(exc)); self.status.color=ERROR
+            activity.bind(on_activity_result=on_result)
+            intent=Intent(Intent.ACTION_OPEN_DOCUMENT)
+            intent.addCategory(Intent.CATEGORY_OPENABLE)
+            intent.setType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            current.startActivityForResult(intent,request_code)
+            return True
+        except Exception as exc:
+            print("PANEL IO PICKER ERROR:",repr(exc)); return False
+
+    def _import_path(self,path):
+        table=self.selected_table()
+        if not table:
+            return
         try:
             from mobile.services.export_service import import_excel
-            rows=import_excel(self.path.text.strip()); table=self.table.text.strip(); count=0
+            rows=import_excel(str(path)); count=0
             for row in rows:
-                try:self.api().table_insert(table,row); count+=1
-                except Exception: pass
-            self.status.text = fa_display(f"{count} ردیف وارد شد.")
-        except Exception as e:self.status.text = fa_display("ورود اکسل ناموفق بود: "+str(e))
+                payload={str(k):v for k,v in row.items() if str(k).strip()}
+                if payload:
+                    self.api().table_insert(table,payload,return_representation=False); count+=1
+            try: Path(path).unlink(missing_ok=True)
+            except Exception: pass
+            self.status.text=fa_display(f"{count} رکورد Excel وارد جدول «{self.selected_label()}» شد.")
+            self.status.color=SUCCESS
+        except Exception as exc:
+            self.status.text=fa_display("ورودی Excel ناموفق بود: "+str(exc)); self.status.color=ERROR
+
+    def imp(self,*_):
+        if self._pick_excel_android():
+            self.status.text=fa_display("فایل Excel را انتخاب کنید…"); self.status.color=SECONDARY
+            return
+        self.status.text=fa_display("در نسخه دسکتاپ، فایل Excel را با مسیر برنامه وارد کنید.")
