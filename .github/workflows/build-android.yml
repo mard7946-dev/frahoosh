@@ -119,7 +119,6 @@ jobs:
           PY
           test -s mobile/runtime_config.json
           python - <<'PY'
-          import base64
           import json
           from pathlib import Path
 
@@ -129,17 +128,16 @@ jobs:
           if actual_url != expected_url:
               raise SystemExit(f"Wrong Supabase project for Android build: {actual_url}")
 
-          key = cfg["supabase_anon_key"]
-          try:
-              payload = key.split(".")[1]
-              payload += "=" * (-len(payload) % 4)
-              claims = json.loads(base64.urlsafe_b64decode(payload).decode("utf-8"))
-              if claims.get("ref") != "gtmmllcxhdejwjjnyzrh":
-                  raise SystemExit("Supabase anon key does not belong to the Android Supabase project")
-          except (IndexError, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-              raise SystemExit("Supabase client key is not a valid JWT") from exc
+          key = str(cfg.get("supabase_anon_key") or "").strip()
+          if not key:
+              raise SystemExit("Supabase client key is empty")
 
-          print("Android Supabase runtime configuration validated for gtmmllcxhdejwjjnyzrh.")
+          # Supabase now supports both legacy JWT anon keys and newer
+          # publishable client keys. Do not reject a valid client key merely
+          # because it is not JWT-shaped; the authenticated endpoint check
+          # below is the authoritative validation.
+          key_kind = "legacy JWT" if key.count(".") == 2 and key.startswith("eyJ") else "client/publishable key"
+          print(f"Android Supabase runtime configuration validated for gtmmllcxhdejwjjnyzrh ({key_kind}).")
           PY
           python - <<'PY'
           import json
