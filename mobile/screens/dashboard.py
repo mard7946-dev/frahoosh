@@ -227,7 +227,7 @@ class PanelHubScreen(Screen):
                       size_hint_y=None,height=dp(46))
             io.bind(on_release=lambda *_: self._open_io(self.panel_key))
             root.add_widget(io)
-        elif self.panel_key == "online":
+        if self.panel_key == "online":
             active_role = self._active_role()
             if active_role in {"manager","educational","executive"}:
                 create=Button(text=fa_display("＋ تشکیل کلاس جدید"),font_name=font_name(),font_size="14sp",
