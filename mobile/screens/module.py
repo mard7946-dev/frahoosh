@@ -108,7 +108,7 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 return None
             app = App.get_running_app()
             if table == "meeting_requests" and app is not None and hasattr(app, "ensure_meetings"):
-                screen = app.ensure_meeting_workflow()
+                screen = app.ensure_meetings()
                 if screen is not None and self.manager is not None:
                     self.manager.current = "meetings"
                     return screen
