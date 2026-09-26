@@ -253,7 +253,7 @@ class AttendanceDisciplineScreen(Screen):
             payload = {
                 "student_id": student_id, "teacher_id": p.get("linked_teacher_id") or p.get("teacher_id"),
                 "title": item, "description": item, "priority": "عادی",
-                "status": "pending", "item_id": item, "actor_username": username,
+                "status": "pending", "item_id": item, "actor_username": username, "class_name": self.class_name,
                 "actor_role": role, "note": "در انتظار تأیید معاون آموزشی"
             }
             self._api().table_insert("discipline_records", payload, return_representation=False)
@@ -264,8 +264,10 @@ class AttendanceDisciplineScreen(Screen):
     def _load_pending(self):
         try:
             rows = self._api().table_select("discipline_records", {
-                "class_name": "eq." + self.class_name, "status": "eq.pending", "limit": "200"
+                "status": "eq.pending", "limit": "500"
             }) or []
+            allowed = {str(x.get("id")) for x in self.students}
+            rows = [r for r in rows if str(r.get("student_id")) in allowed]
         except Exception:
             rows = []
         for row in rows:
