@@ -209,9 +209,14 @@ class SmartClassPreviewScreen(Screen):
 
     def attendance(self, *_):
         try:
+            from kivy.app import App
+            app = App.get_running_app()
+            screen = app.ensure_attendance_discipline("attendance") if app is not None else None
+            if screen is None:
+                raise RuntimeError("محیط حضور و غیاب آماده نشد.")
             if self.manager:
-                self.manager.current="special_attendance"
-                self.set_status("محیط حضور و غیاب کلاس باز شد.",SUCCESS)
+                self.manager.current = screen.name
+            self.set_status("محیط حضور و غیاب کلاس باز شد.",SUCCESS)
         except Exception as exc:
             self.set_status("محیط حضور و غیاب باز نشد: "+str(exc),ERROR)
 
