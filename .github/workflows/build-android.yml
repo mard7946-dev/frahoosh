@@ -95,8 +95,8 @@ jobs:
           FRAHOOSH_WEB_URL: ${{ secrets.FRAHOOSH_WEB_URL }}
         run: |
           set -euo pipefail
-          : "${FRAHOOSH_SUPABASE_URL:=https://wqructnmorlhrjwlvigm.supabase.co}"
-          : "${FRAHOOSH_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxcnVjdG5tb3JsaHd2aWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMjE3MzQsImV4cCI6MjEwNTY5NzczNH0.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI}"
+          : "${FRAHOOSH_SUPABASE_URL:=https://gtmmllcxhdejwjjnyzrh.supabase.co}"
+          : "${FRAHOOSH_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bW1sbGN4aGRld2pqbnl6cmgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc5MDEyMTczNCwiZXhwIjoyMTA1Njk3NzM0fQ.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI}"
           export FRAHOOSH_SUPABASE_URL FRAHOOSH_SUPABASE_ANON_KEY
           python - <<'PY'
           import json
@@ -268,8 +268,8 @@ jobs:
           FRAHOOSH_WEB_URL: ${{ secrets.FRAHOOSH_WEB_URL }}
         run: |
           set -euo pipefail
-          : "${FRAHOOSH_SUPABASE_URL:=https://wqructnmorlhrjwlvigm.supabase.co}"
-          : "${FRAHOOSH_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxcnVjdG5tb3JsaHd2aWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMjE3MzQsImV4cCI6MjEwNTY5NzczNH0.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI}"
+          : "${FRAHOOSH_SUPABASE_URL:=https://gtmmllcxhdejwjjnyzrh.supabase.co}"
+          : "${FRAHOOSH_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bW1sbGN4aGRld2pqbnl6cmgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc5MDEyMTczNCwiZXhwIjoyMTA1Njk3NzM0fQ.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI}"
           export FRAHOOSH_SUPABASE_URL FRAHOOSH_SUPABASE_ANON_KEY
           python - <<'PY'
           import json
