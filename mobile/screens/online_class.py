@@ -9,6 +9,9 @@ from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.spinner import Spinner
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget
+from kivy.graphics import Color, Line, Rectangle, Ellipse
+import json
 
 from mobile.config import APP_NAME, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
@@ -16,6 +19,73 @@ from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
 MANAGERS={"manager","educational","executive"}
 CLASS_CREATORS={"manager","educational","executive"}
 CLASS_MANAGERS={"manager","educational","executive"}
+
+
+class WhiteboardPad(Widget):
+    """Touch whiteboard whose strokes can be persisted in smart_board_whiteboards.content."""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.strokes = []
+        self.tool = "pen"
+        self._active = None
+        with self.canvas.before:
+            Color(0.98, 0.98, 0.95, 1)
+            self._bg = Rectangle(pos=self.pos, size=self.size)
+        self.bind(pos=lambda *_: self._sync_bg(), size=lambda *_: self._sync_bg())
+
+    def _sync_bg(self):
+        self._bg.pos = self.pos; self._bg.size = self.size
+
+    def on_touch_down(self, touch):
+        if not self.collide_point(*touch.pos): return False
+        if self.tool == "pen":
+            self._active = [touch.x, touch.y]
+            self.strokes.append(self._active[:])
+            with self.canvas:
+                Color(0.08, 0.20, 0.38, 1)
+                touch.ud["line"] = Line(points=[touch.x, touch.y], width=2.2)
+            return True
+        if self.tool == "rectangle":
+            touch.ud["shape_start"] = (touch.x, touch.y)
+            return True
+        if self.tool == "circle":
+            touch.ud["shape_start"] = (touch.x, touch.y)
+            return True
+        return False
+
+    def on_touch_move(self, touch):
+        line = touch.ud.get("line")
+        if line is not None:
+            line.points = list(line.points) + [touch.x, touch.y]
+            self.strokes.append([touch.x, touch.y])
+            return True
+        return False
+
+    def on_touch_up(self, touch):
+        start = touch.ud.get("shape_start")
+        if start and self.tool in {"rectangle", "circle"}:
+            x, y = start; w = touch.x - x; h = touch.y - y
+            with self.canvas:
+                Color(0.08, 0.20, 0.38, 1)
+                if self.tool == "rectangle":
+                    Line(rectangle=(x, y, w, h), width=1.6)
+                else:
+                    r = max(4, min(abs(w), abs(h)))
+                    Ellipse(pos=(x, y), size=(r, r))
+            self.strokes.append({"shape": self.tool, "x": x, "y": y, "w": w, "h": h})
+            return True
+        return False
+
+    def clear_board(self):
+        self.canvas.clear()
+        with self.canvas.before:
+            Color(0.98, 0.98, 0.95, 1)
+            self._bg = Rectangle(pos=self.pos, size=self.size)
+        self.strokes = []
+
+    def payload(self):
+        return json.dumps({"version": 1, "strokes": self.strokes}, ensure_ascii=False)
+
 
 
 def _is_legacy_management_account(state, profile):
@@ -407,15 +477,67 @@ class OnlineClassScreen(Screen):
         try:self.app_state.api.table_insert("messages",{"sender_name":"کاربر فراهوش","title":f"کلاس #{cid} — گفت‌وگو","body":text.text.strip(),"audience_type":"online_class","audience_value":str(cid)}); self._ok("پیام ثبت شد."); self._chat(cid)
         except Exception as exc:self._error(str(exc))
     def _board(self,cid):
-        self._clear(); self._label(f"تخته مشترک کلاس #{cid}","21sp",PRIMARY,50,True); self._label("محتوای تخته به صورت واقعی در پایگاه داده ذخیره می‌شود و در بازخوانی جلسه قابل مشاهده است.",height=62)
-        try:rows=self.app_state.api.table_select("smart_board_whiteboards",{"class_id":f"eq.{cid}","order":"id.asc","limit":"100"})
-        except Exception:rows=[]
-        for r in rows:self._label(str(r.get("content") or r.get("text") or ""),height=65)
-        text=self._field("متن / یادداشت روی تخته",100,True); self._button("ثبت روی تخته",lambda *_:self._save_board(cid,text),SUCCESS); self._button("بازگشت",lambda *_:self.show_home())
+        self._clear()
+        self._label(f"تخته هوشمند کلاس #{cid}","21sp",PRIMARY,50,True)
+        self._label("قلم لمسی، شکل، متن، پاک‌کردن و ذخیره واقعی محتوای تخته در سامانه فعال است.",height=58)
+        self.whiteboard = WhiteboardPad(size_hint_y=None, height=dp(260))
+        self.body.add_widget(self.whiteboard)
+        tools = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(4))
+        for title, tool in [("قلم","pen"),("مربع","rectangle"),("دایره","circle")]:
+            b=Button(text=fa_display(title),font_name=font_name(),font_size="10sp",
+                     background_normal="",background_color=PRIMARY,color=WHITE)
+            b.bind(on_release=lambda *_a,t=tool:self._set_board_tool(t))
+            tools.add_widget(b)
+        tools.add_widget(self._button("پاک کردن",lambda *_:self.whiteboard.clear_board(),ERROR,38))
+        self.body.add_widget(tools)
+        text=self._field("متن یا یادداشت درس",82,True)
+        self._button("ذخیره تخته",lambda *_:self._save_board(cid,text),SUCCESS)
+        self._button("آزمونک سریع",lambda *_:self._quick_quiz(cid),PRIMARY)
+        self._button("بازگشت",lambda *_:self.show_home(),SECONDARY)
+
+    def _set_board_tool(self, tool):
+        if hasattr(self, "whiteboard"):
+            self.whiteboard.tool = tool
+            self._ok("ابزار تخته انتخاب شد: " + {"pen":"قلم","rectangle":"مربع","circle":"دایره"}.get(tool, tool))
+
     def _save_board(self,cid,text):
-        if not text.text.strip():return self._error("متن تخته خالی است.")
-        try:self.app_state.api.table_insert("smart_board_whiteboards",{"class_id":cid,"content":text.text.strip(),"created_at":datetime.now(timezone.utc).isoformat()}); self._ok("محتوای تخته ذخیره شد."); self._board(cid)
-        except Exception as exc:self._error(str(exc))
+        content = self.whiteboard.payload() if hasattr(self, "whiteboard") else "{}"
+        note = str(text.text or "").strip()
+        if note:
+            content = json.dumps({"version":1,"board":content,"note":note}, ensure_ascii=False)
+        try:
+            profile=getattr(self.app_state,"profile",{}) or {}
+            teacher_id=profile.get("linked_teacher_id") or profile.get("teacher_id")
+            self.app_state.api.table_insert("smart_board_whiteboards",{
+                "title":"تخته هوشمند","class_id":cid,"teacher_id":teacher_id,
+                "content":content,"board_date":datetime.now(timezone.utc).isoformat()
+            },return_representation=False)
+            self._ok("محتوای تخته واقعاً در سامانه ذخیره شد.")
+        except Exception as exc:self._error("ذخیره تخته انجام نشد: "+str(exc))
+
+    def _quick_quiz(self,cid):
+        self._clear()
+        self._label("آزمونک سریع کلاس","21sp",PRIMARY,50,True)
+        question=self._field("متن سؤال",80,True)
+        a=self._field("گزینه اول"); b=self._field("گزینه دوم"); c=self._field("گزینه سوم"); d=self._field("گزینه چهارم")
+        correct=self._field("گزینه صحیح؛ مثال گزینه اول")
+        self._button("ثبت آزمونک برای کلاس",lambda *_:self._save_quiz(cid,question,a,b,c,d,correct),SUCCESS)
+        self._button("بازگشت به تخته",lambda *_:self._board(cid),SECONDARY)
+
+    def _save_quiz(self,cid,q,a,b,c,d,correct):
+        if not q.text.strip():return self._error("متن سؤال را وارد کنید.")
+        try:
+            profile=getattr(self.app_state,"profile",{}) or {}
+            self.app_state.api.table_insert("smart_board_quizzes",{
+                "title":"آزمونک سریع","question":q.text.strip(),"option_a":a.text.strip(),
+                "option_b":b.text.strip(),"option_c":c.text.strip(),"option_d":d.text.strip(),
+                "correct_option":correct.text.strip(),"class_id":cid,
+                "teacher_id":profile.get("linked_teacher_id") or profile.get("teacher_id"),
+                "quiz_date_shamsi":datetime.now().strftime("%Y/%m/%d")
+            },return_representation=False)
+            self._ok("آزمونک برای کلاس ثبت شد.")
+            self._board(cid)
+        except Exception as exc:self._error("ثبت آزمونک انجام نشد: "+str(exc))
     def _absence_notice(self,cid):
         try:
             members=self.app_state.api.table_select("online_class_students",{"class_id":f"eq.{cid}","limit":"100"})
