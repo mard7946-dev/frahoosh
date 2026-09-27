@@ -39,7 +39,7 @@ class SelectableRow(ButtonBehavior, BoxLayout):
 # One shared operational vocabulary for Android and the future web client.
 # Both clients must bind these keys to the same Supabase tables and field names.
 SUBMENUS = {
-"management":[("اطلاعات مدرسه","school_profile"),("دانش‌آموزان","students"),("دبیران","teachers"),("کادر و کارکنان","staff"),("پایه و کلاس‌ها","school_class_config"),("حساب‌های سامانه","users"),("رویدادها","school_events"),("صندوق پیام","messages"),("کارنامه‌ها","report_cards"),("برنامه هفتگی","weekly_schedule"),("آزمون آنلاین","teacher_exams"),("کلاس آنلاین","online_classes"),("مالی","finance_accounts"),("پرداخت آنلاین","payment_offers"),("تابلو هوشمند","smart_board_content"),("نمونه کلاس هوشمند","smart_class_preview"),("ملاقات‌ها","meeting_requests"),("گزارش‌های مدیریتی","report_cards")],
+"management":[("اطلاعات مدرسه","school_profile"),("دانش‌آموزان","students"),("دبیران","teachers"),("کادر و کارکنان","staff"),("پایه و کلاس‌ها","school_class_config"),("حساب‌های سامانه","users"),("رویدادها","school_events"),("صندوق پیام","messages"),("کارنامه‌ها","report_cards"),("برنامه هفتگی","weekly_schedule"),("آزمون آنلاین","teacher_exams"),("کلاس آنلاین","online_classes"),("مالی","finance_accounts"),("تابلو هوشمند","smart_board_content"),("نمونه کلاس هوشمند","smart_class_preview"),("ملاقات‌ها","meeting_requests"),("گزارش‌های مدیریتی","report_cards")],
 "educational":[("ملاقات‌ها","meeting_requests"),("پرونده اطلاعاتی دانش‌آموز","students"),("پرونده پرسنلی همکاران","staff"),("کلاس‌های دبیران","teacher_classes"),("فعال‌سازی کلاس آنلاین","online_classes"),("برنامه هفتگی","weekly_schedule"),("برنامه امتحانی","exam_schedule"),("پیگیری آموزشی","educational_followups"),("پیگیری درسی","academic_followups"),("پیگیری انضباطی","discipline_records"),("ثبت انضباطی","discipline_records"),("نمرات و کارنامه‌ها","student_grades"),("گزارش آموزشی هوشمند","ai_smart_reports"),("جشنواره خوارزمی","khwarizmi_registrations"),("آزمون آنلاین","teacher_exams"),("صندوق پیام","messages")],
 "executive":[("ملاقات با اولیا","meeting_requests"),("پرونده دانش‌آموزی","students"),("پرونده پرسنلی کارکنان","staff"),("اولیا و ارتباط فرزند","parent_children"),("فعال‌سازی برنامه هفتگی","weekly_schedule"),("فعال‌سازی کارنامه ماهیانه","monthly_report_cards"),("فعال‌سازی کارنامه مستمر و پایان ترم","report_cards"),("ثبت انضباطی","discipline_records"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("کلاس‌های آنلاین","online_classes"),("رویدادها و مراسمات","school_events"),("صندوق پیام","messages")],
 "cultural":[("ملاقات با اولیا","meeting_requests"),("پیام‌های پرورشی","messages"),("ایجاد مسابقات","activity_offers"),("مسابقات فرهنگی","cultural_competitions"),("مسابقات هنری","art_competitions"),("مسابقات ورزشی","sport_competitions"),("فعالیت‌ها و مراسمات","educational_activities"),("انتخابات شورای دانش‌آموزی","student_council"),("بسیج دانش‌آموزی","basij_registration"),("شهردار مدرسه","school_mayor"),("مکبر","morning_leaders"),("قاری برنامه ظهرگاهی","qari_registration"),("جدول مراسم ظهرگاهی","morning_ceremony"),("ثبت انضباطی","discipline_records"),("صندوق پیام","messages")],
@@ -76,7 +76,7 @@ SUBMENUS = {
 "settings":[("تنظیمات حساب","account_settings"),("مشخصات مدرسه","school_profile"),("ساختار کلاس‌ها","school_class_config"),("حساب‌های سامانه","users")],
 "student_info":[("اطلاعات شخصی","students"),("پایه و کلاس","student_class_info"),("نمرات","student_grades"),("حضور و غیاب","attendance"),("تکالیف","assignments"),("کارنامه","report_cards")],
 "teacher_exams":[("آزمون آنلاین","teacher_exams"),("بانک سؤال","quiz_questions"),("زمان‌بندی","exam_schedule")],
-"payment":[("پرداخت آنلاین","payment_offers"),("درخواست‌های پرداخت","payment_attempts"),("سوابق پرداخت","payment_records"),("تراکنش‌ها","payment_transactions")],
+"payment":[("درخواست‌های پرداخت","payment_attempts"),("سوابق پرداخت","payment_records"),("تراکنش‌ها","payment_transactions")],
 "messages":[("صندوق ورودی","messages"),("ارسال پیام","message_targets"),("وضعیت خواندن","message_reads")]
 }
 
@@ -129,7 +129,7 @@ _MOTHER_MODULES = {
     "advisor":[("پرونده مشاوره","counseling_records"),("جلسات","meeting_requests"),("پیگیری دانش‌آموز","counseling_followups"),("ارجاعات","student_referrals"),("هدایت تحصیلی","counseling_followups"),("گزارش مشاوره","ai_smart_reports"),("درخواست‌های ملاقات","meeting_requests")],
     "teachers":[("کلاس‌های من","teacher_classes"),("نمرات و کارنامه","student_grades"),("تکالیف","assignments"),("حضور و غیاب","attendance"),("آزمون‌ها","teacher_exams"),("طرح درس","lesson_plans"),("جلسات","meeting_requests"),("گزارش‌ها","teacher_activities"),("ملاقات با اولیا","teacher_parent_meetings")],
     "students":[("انتخاب و اطلاعات من","students"),("پایه و کلاس","student_class_info"),("نمرات","student_grades"),("تکالیف","assignment_submissions"),("پیام‌ها","messages"),("حضور و غیاب","attendance"),("مسابقات و فعالیت‌ها","activity_registrations"),("برنامه هفتگی","weekly_schedule"),("امتحانات","exam_schedule"),("گزارش عملکرد","ai_smart_reports"),("کلاس آنلاین","online_classes"),("پرداخت آنلاین","payment_offers")],
-    "parents":[("انتخاب دانش‌آموز","parent_children"),("اطلاعات دانش‌آموز","students"),("کارنامه و نمرات","student_grades"),("حضور و غیاب","attendance"),("تکالیف و فعالیت‌های آموزشی","assignments"),("پیام‌ها و اطلاعیه‌ها","messages"),("برنامه هفتگی و امتحانات","schedule"),("جلسات با دبیران","teacher_meetings"),("پرداخت‌ها و امور مالی","payment_records"),("پرداخت آنلاین","payment_offers"),("فعالیت‌های فرهنگی و پرورشی","cultural_activity_registrations"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("تعیین وقت ملاقات","meeting_requests")],
+    "parents":[("انتخاب دانش‌آموز","parent_children"),("اطلاعات دانش‌آموز","students"),("کارنامه و نمرات","student_grades"),("حضور و غیاب","attendance"),("تکالیف و فعالیت‌های آموزشی","assignments"),("پیام‌ها و اطلاعیه‌ها","messages"),("برنامه هفتگی و امتحانات","schedule"),("جلسات با دبیران","teacher_meetings"),("پرداخت‌ها و امور مالی","payment_records"),("فعالیت‌های فرهنگی و پرورشی","cultural_activity_registrations"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("تعیین وقت ملاقات","meeting_requests")],
     "finance":[("پرداخت‌ها","payment_records"),("تراکنش‌ها","finance_transactions"),("حساب‌ها","finance_accounts"),("کمک‌های داوطلبانه","finance_donations"),("گزینه‌های پرداخت آنلاین","payment_offers"),("درخواست‌های پرداخت","payment_attempts"),("تراکنش‌های پرداخت","payment_transactions")],
     "smart_board":[("تخته آموزشی","smart_board_whiteboards"),("محتوای آموزشی","smart_board_content"),("فعالیت‌های تعاملی","smart_board_activities"),("آزمون‌های کوتاه","smart_board_quizzes"),("فایل‌ها","smart_board_files"),("تصاویر و ویدئوها","smart_board_media"),("ابزارهای تعاملی","smart_board_interactive_tools")],
     "ai":[("دستیار هوشمند","ai_assistant_sessions"),("تحلیل آموزشی","ai_educational_analysis"),("گزارش هوشمند","ai_smart_reports"),("پرسش و پاسخ","ai_questions")],
@@ -1223,79 +1223,6 @@ class ModuleWorkspaceScreen(Screen):
             self._open_student_assignments()
         except Exception as exc:
             self.message("ارسال تکلیف", "حذف ارسال تکلیف انجام نشد: "+str(exc))
-
-    def _open_consumer_payment(self):
-        self.body.clear_widgets()
-        self.table = None
-        self.title.text = fa_display("پرداخت آنلاین")
-        role = self.role()
-        profile = getattr(self.app_state, "profile", {}) or {}
-        username = str(profile.get("username") or getattr(self.app_state, "username", "") or "").strip()
-        student_id = profile.get("linked_student_id") or profile.get("student_id")
-        if role == "parent" and not student_id:
-            try:
-                links = self.app_state.api.table_select("parent_children", {"parent_username": "eq."+username, "limit": "50"}) or []
-                if links:
-                    student_id = links[0].get("student_id")
-            except Exception:
-                pass
-        head = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(78), padding=dp(5))
-        head.add_widget(self.label("پرداخت آنلاین", "20sp", PRIMARY, True, "center"))
-        head.add_widget(self.label("فقط گزینه‌های پرداخت فعال مدرسه در این بخش نمایش داده می‌شوند.", "9sp", SECONDARY, False, "center"))
-        self.body.add_widget(head)
-        try:
-            offers = self.app_state.api.table_select("payment_offers", {"order":"id.desc", "limit":"100"}) or []
-            offers = [x for x in offers if str(x.get("status") or "active").lower() not in {"inactive","disabled","غیرفعال"}]
-        except Exception as exc:
-            self.body.add_widget(self.label("خواندن گزینه‌های پرداخت انجام نشد: "+str(exc), "10sp", ERROR, True, "center"))
-            return
-        if not offers:
-            self.body.add_widget(self.label("در حال حاضر گزینه پرداخت فعالی از طرف مدرسه تعریف نشده است.", "11sp", SECONDARY, False, "center"))
-            return
-        for offer in offers:
-            amount = offer.get("amount") or 0
-            card = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(150), padding=dp(10), spacing=dp(4))
-            with card.canvas.before:
-                Color(0.02,0.10,0.20,0.92)
-                bg = RoundedRectangle(radius=[dp(14)])
-            card.bind(pos=lambda o,v,bg=bg:setattr(bg,"pos",v), size=lambda o,v,bg=bg:setattr(bg,"size",v))
-            card.add_widget(self.label(str(offer.get("title") or "گزینه پرداخت"), "13sp", WHITE, True, "center"))
-            card.add_widget(self.label("مبلغ: "+str(amount)+" تومان", "11sp", SECONDARY, True, "center"))
-            desc = str(offer.get("description") or "").strip()
-            if desc:
-                card.add_widget(self.label(desc, "8sp", SECONDARY, False, "center"))
-            b = self.btn("ادامه پرداخت آنلاین", lambda *_a, o=dict(offer), sid=student_id, u=username: self._submit_payment_offer(o,sid,u), SUCCESS, dp(42))
-            card.add_widget(b)
-            self.body.add_widget(card)
-        self.body.add_widget(self.btn("بازگشت به پنل", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
-
-    def _submit_payment_offer(self, offer, student_id, username):
-        if not student_id:
-            self.message("پرداخت آنلاین", "برای انجام پرداخت، ابتدا دانش‌آموز مرتبط با حساب مشخص شود.")
-            return
-        amount = offer.get("amount") or 0
-        payload = {
-            "offer_id": offer.get("id"),
-            "student_id": student_id,
-            "payer_username": username or None,
-            "payer_role": self.role(),
-            "amount": amount,
-            "status": "pending",
-            "description": offer.get("description") or offer.get("title") or "پرداخت آنلاین",
-        }
-        try:
-            rows = self.app_state.api.table_insert("payment_attempts", payload, return_representation=True) or []
-            rid = rows[0].get("id") if isinstance(rows,list) and rows else None
-            payment_url = str(offer.get("payment_url") or "").strip()
-            if payment_url:
-                import webbrowser
-                webbrowser.open(payment_url)
-                self.message("پرداخت آنلاین", "درخواست پرداخت ثبت شد و درگاه پرداخت باز شد.")
-            else:
-                self.message("پرداخت آنلاین", "درخواست پرداخت ثبت شد و در انتظار تکمیل پرداخت است.")
-            print("PAYMENT ATTEMPT CREATED:", rid)
-        except Exception as exc:
-            self.message("پرداخت آنلاین", "ثبت درخواست پرداخت انجام نشد: "+str(exc))
 
     def open_table(self,table,refresh_subbar=True):
         # Student and parent accounts are consumer/read-only roles. Their
