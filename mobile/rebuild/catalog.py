@@ -22,7 +22,6 @@ PANELS = [
     ("students", "دانش‌آموزان"),
     ("parents", "اولیا"),
     ("finance", "مالی"),
-    ("payment", "پرداخت آنلاین"),
     ("online", "کلاس‌های آنلاین"),
     ("teacher_exams", "آزمون آنلاین"),
     ("smart_board", "تابلو هوشمند"),
