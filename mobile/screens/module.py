@@ -107,10 +107,11 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 self.message("ورود به زیرپنل", "شناسه این زیرپنل معتبر نیست.")
                 return None
             app = App.get_running_app()
-            if table == "meeting_requests" and app is not None and hasattr(app, "ensure_meetings"):
-                screen = app.ensure_meetings()
+            if table == "meeting_requests" and app is not None and hasattr(app, "ensure_meeting_workflow"):
+                screen = app.ensure_meeting_workflow()
                 if screen is not None and self.manager is not None:
-                    self.manager.current = "meetings"
+                    screen.return_to = "panel"
+                    self.manager.current = screen.name
                     return screen
             if table == "weekly_schedule":
                 try:
