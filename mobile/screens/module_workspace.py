@@ -20,6 +20,7 @@ from pathlib import Path
 from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput, PersianSpinner
 
+# Build #936 baseline contract: login untouched; operational CRUD policy is defined below.
 class SelectableRow(ButtonBehavior, BoxLayout):
     """Touch-friendly table row: selecting it enables the module-level Edit/Delete buttons."""
     def __init__(self, owner=None, record=None, **kwargs):
