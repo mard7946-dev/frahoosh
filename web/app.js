@@ -96,14 +96,30 @@ function bindTools(){
  if(pdf)pdf.onclick=()=>window.print();
 }
 function editorFields(row){
- const keys=tableKeys([row||{}]).filter(k=>k!=="id");
- return keys.map(k=>'<label>'+esc(fieldLabel(k))+'<input data-field="'+esc(k)+'" value="'+esc(row?.[k]??"")+'"></label>').join("");
+ const spec=catalog?.modules?.[currentTable];
+ const configured=Array.isArray(spec?.fields)?spec.fields:[];
+ const existing=tableKeys([row||{}]).filter(k=>k!=="id");
+ const keys=[...new Set([...configured,...existing])].filter(k=>!ignoredExcelFields.has(k)&&k!=="id");
+ return keys.map(k=>{
+  const value=row?.[k]??"";
+  const numeric=["id","student_id","teacher_id","parent_id","class_id","assignment_id","exam_id","activity_id","children_count","teaching_hours","duration","amount","score","max_score","coefficient","quantity","fixed_amount"].includes(k);
+  const multiline=["description","content","answer_text","message","note","executive_note","report","reason"].includes(k);
+  const input=multiline
+   ? '<textarea data-field="'+esc(k)+'" rows="3">'+esc(value)+'</textarea>'
+   : '<input data-field="'+esc(k)+'" type="'+(numeric?"number":"text")+'" value="'+esc(value)+'">';
+  return '<label>'+esc(fieldLabel(k))+input+'</label>';
+ }).join("");
 }
 function openEditor(){
  const row=selectedIndex>=0?rows[selectedIndex]:null;
  const wrap=document.createElement("div");wrap.className="modal";wrap.innerHTML='<div class="modal-card"><h3>'+(row?"ویرایش رکورد":"ثبت رکورد")+'</h3><div class="form-grid">'+editorFields(row)+'</div><div class="modal-actions"><button id="saveRecord" class="primary">ذخیره</button><button id="cancelRecord" class="secondary">انصراف</button></div></div>';document.body.appendChild(wrap);
  $("cancelRecord").onclick=()=>wrap.remove();
- $("saveRecord").onclick=async()=>{const payload={};wrap.querySelectorAll("[data-field]").forEach(i=>{if(i.value!=="")payload[i.dataset.field]=i.value});try{if(row){const id=row.id;if(id===undefined||id===null)throw Error("این رکورد شناسه قابل ویرایش ندارد.");await api("/rest/v1/"+encodeURIComponent(currentTable)+"?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify(payload)})}else await api("/rest/v1/"+encodeURIComponent(currentTable),{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(payload)});wrap.remove();selectedIndex=-1;await openTable(currentTable)}catch(e){alert("ذخیره انجام نشد: "+e.message)}};
+ $("saveRecord").onclick=async()=>{const payload={};wrap.querySelectorAll("[data-field]").forEach(i=>{if(i.value!=="")payload[i.dataset.field]=i.type==="number"?Number(i.value):i.value});try{
+ const spec=catalog?.modules?.[currentTable];
+ const required=(spec?.fields||[]).filter(k=>currentTable==="online_classes"&&k==="title");
+ const missing=required.filter(k=>payload[k]===undefined||payload[k]===null||payload[k]==="");
+ if(missing.length)throw Error("فیلدهای الزامی را وارد کنید: "+missing.map(fieldLabel).join("، "));
+if(row){const id=row.id;if(id===undefined||id===null)throw Error("این رکورد شناسه قابل ویرایش ندارد.");await api("/rest/v1/"+encodeURIComponent(currentTable)+"?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify(payload)})}else await api("/rest/v1/"+encodeURIComponent(currentTable),{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(payload)});wrap.remove();selectedIndex=-1;await openTable(currentTable)}catch(e){alert("ذخیره انجام نشد: "+e.message)}};
 }
 async function deleteSelected(){
  if(selectedIndex<0){alert("ابتدا یک ردیف را انتخاب کنید.");return}
