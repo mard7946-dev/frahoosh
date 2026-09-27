@@ -439,18 +439,17 @@ EDITABLE = {
     # Consumer roles: only the workflows explicitly requested by the school
     # are writable. Every other student/parent module is informational.
     "student": {
-        "certificate_requests",
-        "payment_offers", "payment_attempts",
         "assignment_submissions",
-        "student_council", "basij_registration",
-        "activity_registrations", "competitions",
-        "cultural_activity_registrations", "khwarizmi_registrations",
+        "school_ally",
+        "basij_registration",
+        "school_mayor",
+        "student_council",
+        "certificate_requests",
+        "payment_attempts",
     },
     "parent": {
-        "parent_children",
-        "parent_meeting_requests", "meeting_requests",
-        "payment_offers", "payment_attempts",
-        "survey_responses",
+        "payment_attempts",
+        "meeting_requests",
         "transport_requests",
         "parent_activities",
     },
@@ -1124,38 +1123,23 @@ class ModuleWorkspaceScreen(Screen):
     def _open_parent_children(self):
         self.body.clear_widgets()
         self.table = None
-        self.title.text = fa_display("انتخاب دانش‌آموزان")
+        self.title.text = fa_display("اطلاعات فرزندان")
         username = self._current_username()
-        self.body.add_widget(self.label("یک یا چند دانش‌آموز مرتبط با حساب ولی را انتخاب و مدیریت کنید.", "10sp", SECONDARY, False, "center"))
-        current = self.app_state.api.table_select("parent_children", {"parent_username":"eq."+username, "limit":"200"}) or []
-        linked_ids = {str(x.get("student_id")) for x in current}
-        students = self.app_state.api.table_select("students", {"order":"last_name.asc", "limit":"300"}) or []
-        picker = PersianSpinner(text=fa_display("انتخاب دانش‌آموز برای افزودن"),
-                                values=[fa_display(f"{s.get('first_name','')} {s.get('last_name','')} • {s.get('student_code') or '-'}")
-                                        for s in students],
-                                font_name=font_name(), font_size="11sp", size_hint_y=None, height=dp(44))
-        self.body.add_widget(picker)
-
-        def selected_student():
-            text = str(picker.text or "").strip()
-            for s in students:
-                label = f"{s.get('first_name','')} {s.get('last_name','')} • {s.get('student_code') or '-'}"
-                if text == label or text == fa_display(label):
-                    return s
-            return None
-
-        self.body.add_widget(self.btn("افزودن دانش‌آموز", lambda *_: self._add_parent_child(username, selected_student()), SUCCESS, dp(42)))
-        self.body.add_widget(self.label("دانش‌آموزان مرتبط با این حساب", "14sp", PRIMARY, True, "center"))
+        self.body.add_widget(self.label("ارتباط فرزند با حساب ولی فقط برای مشاهده است.", "10sp", SECONDARY, False, "center"))
+        try:
+            current = self.app_state.api.table_select("parent_children", {"parent_username":"eq."+username, "limit":"200"}) or []
+            students = self.app_state.api.table_select("students", {"order":"last_name.asc", "limit":"300"}) or []
+        except Exception as exc:
+            self.body.add_widget(self.label("خواندن اطلاعات انجام نشد: "+str(exc), "10sp", ERROR, True, "center"))
+            self.body.add_widget(self.btn("بازگشت", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
+            return
+        if not current:
+            self.body.add_widget(self.label("هنوز دانش‌آموز مرتبطی برای این حساب ثبت نشده است.", "10sp", SECONDARY, False, "center"))
         for link in current:
             sid = link.get("student_id")
             student = next((s for s in students if str(s.get("id")) == str(sid)), None)
             name = f"{student.get('first_name','')} {student.get('last_name','')}" if student else f"دانش‌آموز شماره {sid}"
-            row = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(5))
-            row.add_widget(self.label(name, "10sp", WHITE, True, "center"))
-            row.add_widget(self.btn("حذف", lambda *_a, sid=sid: self._remove_parent_child(username, sid), ERROR, dp(40), dp(78)))
-            self.body.add_widget(row)
-        if not current:
-            self.body.add_widget(self.label("هنوز دانش‌آموزی به این حساب متصل نشده است.", "10sp", SECONDARY, False, "center"))
+            self.body.add_widget(self.label(name, "12sp", WHITE, True, "center"))
         self.body.add_widget(self.btn("بازگشت", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
 
     def _add_parent_child(self, username, student):
