@@ -53,7 +53,7 @@ SUBMENUS = {
 ("ارسال تکالیف","assignment_submissions"),("برنامه هفتگی","weekly_schedule"),
 ("برنامه امتحانات","exam_schedule"),("صندلی کلاسی","class_seat_assignments"),
 ("صندلی امتحان","exam_seat_assignments"),("درخواست گواهی","certificate_requests"),
-("کلاس آنلاین","online_classes"),("پرداخت آنلاین","payment")
+("کلاس آنلاین","online_classes")
 ],
 "parents":[
 ("انتخاب یک یا چند دانش‌آموز","parent_children"),("اطلاعات دانش‌آموز","students"),
@@ -63,7 +63,7 @@ SUBMENUS = {
 ("پیام‌ها و اطلاعیه‌ها","messages"),("ملاقات‌ها","meeting_requests"),
 ("نظرسنجی","survey_responses"),("برنامه هفتگی","weekly_schedule"),
 ("برنامه امتحانات","exam_schedule"),("سوابق پرداخت","payment_records"),
-("پرداخت آنلاین","payment"),("سرویس مدرسه","transport_requests"),
+("سرویس مدرسه","transport_requests"),
 ("فعالیت‌های اولیا","parent_activities")
 ],
 "finance":[("حساب‌ها","finance_accounts"),("تراکنش‌ها","finance_transactions"),("کمک‌های داوطلبانه","finance_donations"),("تعریف گزینه پرداخت","payment_offers"),("درخواست‌های پرداخت","payment_attempts"),("سوابق پرداخت","payment_records")],
