@@ -1123,38 +1123,32 @@ class ModuleWorkspaceScreen(Screen):
         return None
 
     def _open_parent_children(self):
+        # Parent/student permission contract: this relationship is view-only
+        # for parents. Management/executive roles retain the existing CRUD path.
         self.body.clear_widgets()
         self.table = None
         self.title.text = fa_display("انتخاب دانش‌آموزان")
         username = self._current_username()
-        self.body.add_widget(self.label("یک یا چند دانش‌آموز مرتبط با حساب ولی را انتخاب و مدیریت کنید.", "10sp", SECONDARY, False, "center"))
-        current = self.app_state.api.table_select("parent_children", {"parent_username":"eq."+username, "limit":"200"}) or []
-        linked_ids = {str(x.get("student_id")) for x in current}
-        students = self.app_state.api.table_select("students", {"order":"last_name.asc", "limit":"300"}) or []
-        picker = PersianSpinner(text=fa_display("انتخاب دانش‌آموز برای افزودن"),
-                                values=[fa_display(f"{s.get('first_name','')} {s.get('last_name','')} • {s.get('student_code') or '-'}")
-                                        for s in students],
-                                font_name=font_name(), font_size="11sp", size_hint_y=None, height=dp(44))
-        self.body.add_widget(picker)
-
-        def selected_student():
-            text = str(picker.text or "").strip()
-            for s in students:
-                label = f"{s.get('first_name','')} {s.get('last_name','')} • {s.get('student_code') or '-'}"
-                if text == label or text == fa_display(label):
-                    return s
-            return None
-
-        self.body.add_widget(self.btn("افزودن دانش‌آموز", lambda *_: self._add_parent_child(username, selected_student()), SUCCESS, dp(42)))
-        self.body.add_widget(self.label("دانش‌آموزان مرتبط با این حساب", "14sp", PRIMARY, True, "center"))
+        self.body.add_widget(self.label(
+            "دانش‌آموزان مرتبط با این حساب ولی فقط برای مشاهده نمایش داده می‌شوند.",
+            "10sp", SECONDARY, False, "center"
+        ))
+        try:
+            current = self.app_state.api.table_select(
+                "parent_children", {"parent_username":"eq."+username, "limit":"200"}
+            ) or []
+            students = self.app_state.api.table_select(
+                "students", {"order":"last_name.asc", "limit":"300"}
+            ) or []
+        except Exception as exc:
+            self.body.add_widget(self.label("خواندن ارتباط ولی و فرزند انجام نشد: "+str(exc), "9sp", ERROR, True, "center"))
+            self.body.add_widget(self.btn("بازگشت", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
+            return
         for link in current:
             sid = link.get("student_id")
             student = next((s for s in students if str(s.get("id")) == str(sid)), None)
-            name = f"{student.get('first_name','')} {student.get('last_name','')}" if student else f"دانش‌آموز شماره {sid}"
-            row = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(5))
-            row.add_widget(self.label(name, "10sp", WHITE, True, "center"))
-            row.add_widget(self.btn("حذف", lambda *_a, sid=sid: self._remove_parent_child(username, sid), ERROR, dp(40), dp(78)))
-            self.body.add_widget(row)
+            name = f"{student.get('first_name','')} {student.get('last_name','')}".strip() if student else f"دانش‌آموز شماره {sid}"
+            self.body.add_widget(self.label(name, "11sp", WHITE, True, "center"))
         if not current:
             self.body.add_widget(self.label("هنوز دانش‌آموزی به این حساب متصل نشده است.", "10sp", SECONDARY, False, "center"))
         self.body.add_widget(self.btn("بازگشت", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
