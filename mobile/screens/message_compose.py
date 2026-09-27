@@ -116,38 +116,31 @@ class MessageComposeScreen(Screen):
 
     def _fetch_targets(self):
         api = self._api()
+        # Real school relationships are stored in Supabase. The relationship
+        # table is the source of truth for who this account can contact.
+        relations = api.table_select(
+            "school_relationships",
+            {"source_username": "eq." + self._username(), "active": "eq.true", "limit": "1000"}
+        ) or []
         users = api.table_select("users", {"limit": "500"}) or []
-        role_targets = {
-            "student": {"teacher", "educational", "executive", "cultural", "advisor", "counselor", "manager", "admin", "administrator", "management"},
-            "parent": {"teacher", "educational", "executive", "cultural", "advisor", "counselor", "manager", "admin", "administrator", "management", "student"},
-            "teacher": {"student", "parent", "educational", "executive", "cultural", "advisor", "counselor", "manager", "admin", "administrator", "management"},
-            "manager": {"student", "parent", "teacher", "educational", "executive", "cultural", "advisor", "counselor"},
-        }
-        current_role = self._role()
-        allowed_roles = role_targets.get(current_role, {
-            "manager", "admin", "administrator", "management",
-            "educational", "executive", "cultural",
-            "advisor", "counselor", "teacher", "student", "parent"
-        })
-        allowed_roles = {str(x).lower() for x in allowed_roles}
+        by_username = {str(x.get("username") or "").strip(): x for x in users}
         result = []
         seen = set()
-        for row in users:
-            role = str(row.get("role") or "").strip()
-            username = str(row.get("username") or "").strip()
-            name = str(row.get("display_name") or "").strip()
-            if role.lower() not in allowed_roles or not username:
+        for rel in relations:
+            username = str(rel.get("target_username") or "").strip()
+            if not username or username == self._username() or username in seen:
                 continue
-            if username == self._username() or username in seen:
-                continue
-            if not name:
-                name = username
+            row = by_username.get(username, {})
+            role = str(rel.get("target_role") or row.get("role") or "").strip()
+            name = str(row.get("display_name") or "").strip() or username
             result.append({
-                "username": username, "name": name, "role": role,
-                "user_id": row.get("id")
+                "username": username,
+                "name": name,
+                "role": role,
+                "user_id": row.get("id"),
             })
             seen.add(username)
-        result.sort(key=lambda x: x["name"])
+        result.sort(key=lambda x: x["name"]) 
         return result
 
     def _targets_loaded(self, targets, error):
