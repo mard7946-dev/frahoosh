@@ -1357,21 +1357,6 @@ class ModuleWorkspaceScreen(Screen):
                 self.status.color = (.8, .15, .15, 1)
                 return
 
-        # Student/parent online payment is a real operational workflow.
-        # The offer is configured by school management; the consumer can submit
-        # a payment request and, when a payment URL is configured, continue to it.
-        if table == "parent_children" and self.role() == "parent":
-            self._open_parent_children()
-            return
-
-        if table == "assignment_submissions" and self.role() == "student":
-            self._open_student_assignments()
-            return
-
-        if table in ("payment", "payment_offers") and self.role() in {"student", "parent"}:
-            self._open_consumer_payment()
-            return
-
         # Mother/ZIP module buttons carry logical ids; all operational paths use the canonical Supabase table.
         table = self._resolve_backend_route(table)
         self.table=table
