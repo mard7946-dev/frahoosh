@@ -13,3 +13,5 @@
 .modal-actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-start}
 @media(max-width:700px){.form-grid{grid-template-columns:1fr}.table-tools{align-items:stretch}.table-tools button{width:100%}}
 @media print{body *{visibility:hidden!important}.data-table,.data-table *{visibility:visible!important}.data-table{position:absolute;left:0;top:0;width:100%}.table-tools,.crud-hint{display:none!important}}
+
+.module-card{display:flex;flex-direction:column;gap:6px}.module-card .module{width:100%}.module-excel-tools{display:flex;gap:6px;padding:0 4px 4px}.module-excel-tools button{flex:1;cursor:pointer;font-size:12px;padding:7px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:inherit}.module-excel-tools button:hover{background:rgba(255,255,255,.14)}
