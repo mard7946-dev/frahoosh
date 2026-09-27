@@ -438,19 +438,23 @@ EDITABLE = {
     },
     # Consumer roles: only the workflows explicitly requested by the school
     # are writable. Every other student/parent module is informational.
+    # Student: only the explicitly approved request/registration workflows are writable.
     "student": {
-        "certificate_requests",
-        "payment_offers", "payment_attempts",
         "assignment_submissions",
-        "student_council", "basij_registration",
-        "activity_registrations", "competitions",
-        "cultural_activity_registrations", "khwarizmi_registrations",
+        "school_ally",
+        "basij_registration",
+        "school_mayor",
+        "student_council",
+        "certificate_requests",
+        "payment_offers",
     },
+    # Parent: only payment, meetings, transport/service details, and parent activities
+    # are writable. All other parent modules remain read-only.
     "parent": {
-        "parent_children",
-        "parent_meeting_requests", "meeting_requests",
-        "payment_offers", "payment_attempts",
-        "survey_responses",
+        "payment_offers",
+        "payment_attempts",
+        "meeting_requests",
+        "parent_meeting_requests",
         "transport_requests",
         "parent_activities",
     },
