@@ -1488,15 +1488,14 @@ class ModuleWorkspaceScreen(Screen):
                 row1.add_widget(self.btn("خروجی اکسل",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
                 row2.add_widget(self.btn("ورودی اکسل",_guard_write(self.import_excel),(0.42,.30,.62,1),dp(38)))
                 row2.add_widget(self.btn("خروجی PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
-                row2.add_widget(self.btn("خروجی PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
                 bar.add_widget(row1); bar.add_widget(row2)
                 self.body.add_widget(bar)
                 self.status.text = fa_display("عملیات واقعی فعال است و به پایگاه داده مدرسه متصل است")
         else:
             if not consumer:
                 bar=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(5))
-                bar.add_widget(self.btn("خروجی جدول",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
-                bar.add_widget(self.btn("گزارش چاپی",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
+                bar.add_widget(self.btn("خروجی اکسل",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
+                bar.add_widget(self.btn("خروجی PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
                 self.body.add_widget(bar)
             self.status.text = fa_display("حالت مشاهده‌ای؛ این بخش فقط برای مشاهده اطلاعات است")
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
