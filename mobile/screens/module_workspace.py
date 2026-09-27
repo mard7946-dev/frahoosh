@@ -442,15 +442,16 @@ EDITABLE = {
         "certificate_requests",
         "payment_offers", "payment_attempts",
         "assignment_submissions",
-        "student_council", "basij_registration",
+        "student_council", "basij_registration", "school_ally", "school_mayor",
         "activity_registrations", "competitions",
         "cultural_activity_registrations", "khwarizmi_registrations",
     },
     "parent": {
-        "parent_children",
-        "parent_meeting_requests", "meeting_requests",
+        # Parent write access is intentionally limited to the four approved
+        # operational areas: payment, meetings, school transport/address, and
+        # parent activities. All other parent modules remain view-only.
+        "meeting_requests",
         "payment_offers", "payment_attempts",
-        "survey_responses",
         "transport_requests",
         "parent_activities",
     },
