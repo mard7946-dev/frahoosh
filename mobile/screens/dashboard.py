@@ -38,7 +38,7 @@ MOTHER_PANEL_CATALOG = {
     "advisor": {"title":"مشاور","items":[["پرونده مشاوره","counseling_records"],["جلسات","meeting_requests"],["پیگیری دانش‌آموز","counseling_followups"],["ارجاعات","student_referrals"],["هدایت تحصیلی","counseling_guidance"],["گزارش مشاوره","ai_smart_reports"]]},
     "teacher": {"title":"دبیران","items":[["کلاس‌های من","teacher_classes"],["کلاس آنلاین","online"],["نمرات و کارنامه","student_grades"],["تکالیف","assignments"],["حضور و غیاب","attendance"],["آزمون‌ها","teacher_exams"],["طرح درس","lesson_plans"],["جلسات","meeting_requests"],["گزارش‌ها","reports"]]},
     "student": {"title":"دانش‌آموزان","items":[["تکالیف","assignment_submissions"],["صندوق پیام","messages"]]},
-    "parent": {"title":"اولیا","items":[["پرداخت آنلاین","payment"],["صندوق پیام","messages"]]},
+    "parent": {"title":"اولیا","items":[[],["صندوق پیام","messages"]]},
     "finance": {"title":"مالی","items":[["پرداخت‌ها","payment_records"],["تراکنش‌ها","finance_transactions"],["حساب‌ها","finance_accounts"],["گزارش مالی","reports"],["تنظیمات پرداخت آنلاین","payment_offers"]]},
     "smart_board": {"title":"تابلو هوشمند","items":[["تخته آموزشی","smart_board_whiteboards"],["فایل‌ها","smart_board_content"],["تصاویر و ویدئوها","smart_board_media"],["ابزارهای تعاملی","smart_board_activities"]]},
     "online": {"title":"کلاس آنلاین","items":[["کلاس‌های آنلاین","online_classes"],["جلسات","online_class_sessions"],["دانش‌آموزان کلاس","online_class_students"],["دبیران کلاس","online_class_teachers"],["حضور آنلاین","online_attendance"],["تخته کلاس","smart_board_whiteboards"]]},
@@ -577,8 +577,7 @@ class DashboardScreen(Screen):
                     return real_route
             common = {
                 "گزارش عملکرد": "ai_smart_reports",
-                "پرداخت آنلاین": "payment",
-                "کلاس آنلاین": "online",
+                                "کلاس آنلاین": "online",
                 "بانک سؤال": "teacher_exams",
                 "هدایت تحصیلی": "counseling_followups",
                 "گزارش‌های آموزشی": "ai_smart_reports",
