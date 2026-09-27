@@ -1414,30 +1414,57 @@ class ModuleWorkspaceScreen(Screen):
         self.area=BoxLayout(orientation="vertical"); self.body.add_widget(self.area); self.load_table()
 
     def _excel_path(self):
-        # Android 10+ uses scoped storage.  Direct writes to the public Download
-        # directory can fail even when the directory exists, so verify a real
-        # write first and fall back to the app's persistent files directory.
+        """Return a writable private staging path; Android publication is handled by MediaStore."""
         table=str(self.table or "table")
         filename="frahoosh_"+table+".xlsx"
         try:
-            download=Path("/storage/emulated/0/Download")
-            download.mkdir(parents=True,exist_ok=True)
-            probe=download/(".frahoosh_write_test_"+table)
-            probe.write_bytes(b"1")
-            probe.unlink(missing_ok=True)
-            return download/filename
+            app_dir=Path(getattr(self.app_state, "user_data_dir", "") or "")
+            if not str(app_dir):
+                from kivy.app import App
+                app=App.get_running_app()
+                app_dir=Path(getattr(app, "user_data_dir", ".") or ".")
+            app_dir.mkdir(parents=True,exist_ok=True)
+            return app_dir/filename
+        except Exception:
+            return Path(".")/filename
+
+    def _publish_excel_android(self, path):
+        """Publish a generated XLSX into the user's public Downloads/Frahoosh folder."""
+        try:
+            from kivy.utils import platform
+            if platform != "android":
+                return None
+            from jnius import autoclass, cast
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            MediaStore = autoclass("android.provider.MediaStore")
+            ContentValues = autoclass("android.content.ContentValues")
+            BuildVersion = autoclass("android.os.Build$VERSION")
+            current = cast("android.app.Activity", PythonActivity.mActivity)
+            if int(BuildVersion.SDK_INT) < 29:
+                return None
+
+            values = ContentValues()
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME, path.name)
+            values.put(MediaStore.MediaColumns.MIME_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/Frahoosh")
+            values.put(MediaStore.MediaColumns.IS_PENDING, 1)
+            resolver = current.getContentResolver()
+            uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            if uri is None:
+                raise RuntimeError("MediaStore نتوانست فایل Excel را ایجاد کند.")
+            stream = resolver.openOutputStream(uri)
+            if stream is None:
+                raise RuntimeError("مسیر خروجی Excel قابل باز شدن نیست.")
+            stream.write(path.read_bytes())
+            stream.flush()
+            stream.close()
+            done = ContentValues()
+            done.put(MediaStore.MediaColumns.IS_PENDING, 0)
+            resolver.update(uri, done, None, None)
+            return str(uri.toString())
         except Exception as exc:
-            print("PUBLIC DOWNLOAD NOT WRITABLE:", repr(exc))
-            try:
-                app_dir=Path(getattr(self.app_state, "user_data_dir", "") or "")
-                if not str(app_dir):
-                    from kivy.app import App
-                    app=App.get_running_app()
-                    app_dir=Path(getattr(app, "user_data_dir", ".") or ".")
-                app_dir.mkdir(parents=True,exist_ok=True)
-                return app_dir/filename
-            except Exception:
-                return Path(".")/filename
+            print("ANDROID EXCEL PUBLISH ERROR:", repr(exc))
+            return None
 
     def export_excel(self):
         table=str(self.table or "").strip()
@@ -1457,8 +1484,10 @@ class ModuleWorkspaceScreen(Screen):
                 ws.append([COLUMNS.get(f,f) for f in fields])
                 for row in rows:
                     ws.append([row.get(f,"") for f in fields])
-                path=self._excel_path(); wb.save(str(path))
-                msg=f"خروجی Excel ذخیره شد: {path}"
+                path=self._excel_path()
+                wb.save(str(path))
+                published=self._publish_excel_android(path)
+                msg="خروجی Excel در پوشه Download/Frahoosh ذخیره شد." if published else f"خروجی Excel ذخیره شد: {path}"
                 Clock.schedule_once(lambda *_: self._excel_done(msg),0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self.write_error("خروجی Excel انجام نشد: "+str(exc)),0)
@@ -1481,7 +1510,9 @@ class ModuleWorkspaceScreen(Screen):
                 ws.append(["" for _ in fields])
                 path=self._excel_path(); template=path.with_name(path.stem+"_template.xlsx")
                 wb.save(str(template))
-                Clock.schedule_once(lambda *_: self._excel_done("قالب Excel آماده شد: "+str(template)),0)
+                published=self._publish_excel_android(template)
+                msg="قالب Excel در پوشه Download/Frahoosh ذخیره شد." if published else "قالب Excel آماده شد: "+str(template)
+                Clock.schedule_once(lambda *_: self._excel_done(msg),0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self.write_error("ساخت قالب Excel انجام نشد: "+str(exc)),0)
         Thread(target=work,daemon=True).start()
