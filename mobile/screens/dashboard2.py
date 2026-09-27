@@ -20,18 +20,18 @@ ROLE_TITLES = {"manager":"مدیریت", "executive":"معاون اجرایی", 
 MANAGER_MENU = [
     ("مدیریت", "management"), ("معاون آموزشی", "educational"), ("معاون اجرایی", "executive"), ("معاون پرورشی", "cultural"),
     ("مشاوره", "advisor"), ("دبیران", "teachers"), ("اولیا", "parents"), ("دانش‌آموزان", "students"), ("مالی", "finance"),
-    ("پرداخت آنلاین", "payment"), ("کلاس‌های آنلاین", "online"), ("آزمون آنلاین", "teacher_exams"), ("تابلو هوشمند", "smart_board"),
+     ("کلاس‌های آنلاین", "online"), ("آزمون آنلاین", "teacher_exams"), ("تابلو هوشمند", "smart_board"),
     ("دستیار هوش مصنوعی", "ai"), ("گزارش‌ها", "reports"), ("برنامه هفتگی", "schedule"), ("صندوق پیام‌ها", "messages"),
     ("تنظیمات", "settings"), ("درباره برنامه", "about")
 ]
 ROLE_MENU = {
     "executive": [("معاون اجرایی", "executive"), ("دانش‌آموزان", "students"), ("اولیا", "parents"), ("کلاس‌های آنلاین", "online"), ("صندوق پیام‌ها", "messages"), ("تنظیمات", "settings"), ("درباره برنامه", "about")],
     "educational": [("معاون آموزشی", "educational"), ("دانش‌آموزان", "students"), ("دبیران", "teachers"), ("کلاس‌های آنلاین", "online"), ("آزمون آنلاین", "teacher_exams"), ("تابلو هوشمند", "smart_board"), ("گزارش‌ها", "reports"), ("برنامه هفتگی", "schedule"), ("صندوق پیام‌ها", "messages"), ("تنظیمات", "settings"), ("درباره برنامه", "about")],
-    "cultural": [("معاون پرورشی", "cultural"), ("دانش‌آموزان", "students"), ("اولیا", "parents"), ("مشارکت و فعالیت‌ها", "participation"), ("پرداخت آنلاین", "payment"), ("تابلو هوشمند", "smart_board"), ("گزارش‌ها", "reports"), ("صندوق پیام‌ها", "messages"), ("تنظیمات", "settings"), ("درباره برنامه", "about")],
+    "cultural": [("معاون پرورشی", "cultural"), ("دانش‌آموزان", "students"), ("اولیا", "parents"), ("مشارکت و فعالیت‌ها", "participation"),  ("تابلو هوشمند", "smart_board"), ("گزارش‌ها", "reports"), ("صندوق پیام‌ها", "messages"), ("تنظیمات", "settings"), ("درباره برنامه", "about")],
     "advisor": [("مشاوره", "advisor"), ("دانش‌آموزان", "students"), ("اولیا", "parents"), ("گزارش‌ها", "reports"), ("صندوق پیام‌ها", "messages"), ("تنظیمات", "settings"), ("درباره برنامه", "about")],
     "teacher": [("پنل دبیر", "teacher"), ("آزمون آنلاین", "teacher_exams"), ("دانش‌آموزان", "students"), ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("تنظیمات", "settings"), ("درباره برنامه", "about")],
-    "student": [("پنل دانش‌آموز", "student"), ("آزمون‌های آنلاین", "teacher_exams"), ("برنامه هفتگی", "schedule"), ("وضعیت تحصیلی", "student_info"), ("مشارکت و فعالیت‌ها", "participation"), ("پرداخت آنلاین", "payment"), ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
-    "parent": [("پنل اولیا", "parent"), ("وضعیت تحصیلی فرزند", "student_info"), ("مشارکت اولیا", "participation"), ("پرداخت آنلاین", "payment"), ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
+    "student": [("پنل دانش‌آموز", "student"), ("آزمون‌های آنلاین", "teacher_exams"), ("برنامه هفتگی", "schedule"), ("وضعیت تحصیلی", "student_info"), ("مشارکت و فعالیت‌ها", "participation"),  ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
+    "parent": [("پنل اولیا", "parent"), ("وضعیت تحصیلی فرزند", "student_info"), ("مشارکت اولیا", "participation"),  ("کلاس‌های آنلاین", "online"), ("تابلو هوشمند", "smart_board"), ("صندوق پیام‌ها", "messages"), ("درباره برنامه", "about")],
 }
 OPS = {"payment", "online", "messages"}
 SCHOOL = "دبیرستان سردارشهیدحاجی زاده ۲"
