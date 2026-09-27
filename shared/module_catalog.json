@@ -547,10 +547,6 @@
         "payment_records"
       ],
       [
-        "پرداخت آنلاین",
-        "payment_offers"
-      ],
-      [
         "سرویس مدرسه",
         "transport_requests"
       ],
@@ -577,7 +573,7 @@
         "finance_transactions"
       ],
       [
-        "تنظیمات پرداخت آنلاین",
+        "تعریف گزینه پرداخت",
         "payment_offers"
       ]
     ],
