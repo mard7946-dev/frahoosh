@@ -107,11 +107,19 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 self.message("ورود به زیرپنل", "شناسه این زیرپنل معتبر نیست.")
                 return None
             app = App.get_running_app()
-            if table == "meeting_requests" and app is not None and hasattr(app, "ensure_meetings"):
-                screen = app.ensure_meetings()
+            if table == "meeting_requests" and app is not None:
+                # Build #936 keeps the dedicated MeetingsScreen as the primary
+                # workflow. If its construction fails, use the already shipped
+                # MeetingWorkflowScreen instead of leaving the module unusable.
+                screen = None
+                if hasattr(app, "ensure_meetings"):
+                    screen = app.ensure_meetings()
+                if screen is None and hasattr(app, "ensure_meeting_workflow"):
+                    screen = app.ensure_meeting_workflow()
                 if screen is not None and self.manager is not None:
-                    self.manager.current = "meetings"
+                    self.manager.current = screen.name
                     return screen
+                raise RuntimeError("مرکز ملاقات آماده نشد.")
             if table == "weekly_schedule":
                 try:
                     screen = self.manager.get_screen("weekly_schedule_real") if self.manager is not None else None
