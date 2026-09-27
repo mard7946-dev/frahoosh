@@ -395,7 +395,14 @@ class FrahooshApp(App):
             return screen
         except Exception as exc:
             print("MEETINGS BUILD ERROR:", repr(exc))
-            return None
+            # Build #936 also ships the compact meeting workflow. Use it as a
+            # real fallback so a constructor failure in the richer screen
+            # cannot surface as a dead "center not ready" module.
+            try:
+                return self.ensure_meeting_workflow()
+            except Exception as fallback_exc:
+                print("MEETING WORKFLOW FALLBACK ERROR:", repr(fallback_exc))
+                return None
 
     def ensure_smart_class_preview(self):
         if self.sm is None:
