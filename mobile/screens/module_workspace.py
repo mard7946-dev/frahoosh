@@ -439,18 +439,19 @@ EDITABLE = {
     # Consumer roles: only the workflows explicitly requested by the school
     # are writable. Every other student/parent module is informational.
     "student": {
+        # Explicit student write workflows only:
+        # homework submission, school ally, Basij, school mayor, student council,
+        # certificate request, and online payment.
+        "assignment_submissions",
+        "school_ally", "basij_registration", "school_mayor", "student_council",
         "certificate_requests",
         "payment_offers", "payment_attempts",
-        "assignment_submissions",
-        "student_council", "basij_registration",
-        "activity_registrations", "competitions",
-        "cultural_activity_registrations", "khwarizmi_registrations",
     },
     "parent": {
-        "parent_children",
-        "parent_meeting_requests", "meeting_requests",
+        # Explicit parent write workflows only:
+        # payment, meetings, school transport, and parent activities.
+        "meeting_requests",
         "payment_offers", "payment_attempts",
-        "survey_responses",
         "transport_requests",
         "parent_activities",
     },
