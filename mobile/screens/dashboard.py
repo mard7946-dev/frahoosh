@@ -39,7 +39,7 @@ MOTHER_PANEL_CATALOG = {
     "teacher": {"title":"دبیران","items":[["کلاس‌های من","teacher_classes"],["کلاس آنلاین","online"],["نمرات و کارنامه","student_grades"],["تکالیف","assignments"],["حضور و غیاب","attendance"],["آزمون‌ها","teacher_exams"],["طرح درس","lesson_plans"],["جلسات","meeting_requests"],["گزارش‌ها","reports"]]},
     "student": {"title":"دانش‌آموزان","items":[["تکالیف","assignment_submissions"],["صندوق پیام","messages"]]},
     "parent": {"title":"اولیا","items":[[],["صندوق پیام","messages"]]},
-    "finance": {"title":"مالی","items":[["پرداخت‌ها","payment_records"],["تراکنش‌ها","finance_transactions"],["حساب‌ها","finance_accounts"],["گزارش مالی","reports"],["تنظیمات پرداخت آنلاین","payment_offers"]]},
+    "finance": {"title":"مالی","items":[["پرداخت‌ها","payment_records"],["تراکنش‌ها","finance_transactions"],["حساب‌ها","finance_accounts"],["گزارش مالی","reports"],["تعریف گزینه پرداخت","payment_offers"]]},
     "smart_board": {"title":"تابلو هوشمند","items":[["تخته آموزشی","smart_board_whiteboards"],["فایل‌ها","smart_board_content"],["تصاویر و ویدئوها","smart_board_media"],["ابزارهای تعاملی","smart_board_activities"]]},
     "online": {"title":"کلاس آنلاین","items":[["کلاس‌های آنلاین","online_classes"],["جلسات","online_class_sessions"],["دانش‌آموزان کلاس","online_class_students"],["دبیران کلاس","online_class_teachers"],["حضور آنلاین","online_attendance"],["تخته کلاس","smart_board_whiteboards"]]},
     "teacher_exams": {"title":"آزمون آنلاین","items":[["آزمون‌های آنلاین","teacher_exams"],["بانک سؤال","quiz_questions"],["زمان‌بندی آزمون","exam_schedule"]]},
