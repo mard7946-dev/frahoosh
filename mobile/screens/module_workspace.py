@@ -46,7 +46,7 @@ SUBMENUS = {
 "teachers":[("کلاس‌های من","teacher_classes"),("طرح درس","lesson_plans"),("برنامه هفتگی","weekly_schedule"),("کلاس‌های آنلاین فعال","online_classes"),("آزمون آنلاین","teacher_exams"),("حضور و غیاب","attendance"),("نمرات درسی","grades"),("تکالیف","assignments"),("موارد انضباطی","discipline_records"),("ارجاع دانش‌آموز","student_referrals"),("ملاقات با اولیا","meeting_requests"),("صندوق پیام","messages")],
 "students":[
 ("اطلاعات دانش‌آموز","students"),("پایه و کلاس","student_class_info"),("حضور و غیاب","attendance"),
-("نمرات","student_grades"),("تکالیف","assignments"),("صندوق پیام","messages"),
+("نمرات","student_grades"),("تکالیف","assignment_submissions"),("صندوق پیام","messages"),
 ("مسابقات و فعالیت‌ها","activity_registrations"),("شورای دانش‌آموزی","student_council"),
 ("بسیج","basij_registration"),("همیار مدرسه","school_ally"),("شهردار مدرسه","school_mayor"),
 ("ارسال تکالیف","assignment_submissions"),("برنامه هفتگی","weekly_schedule"),
