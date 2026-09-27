@@ -124,7 +124,10 @@ class MeetingWorkflowScreen(BaseWorkflow):
     def build(self):
         self.clear_widgets()
         root=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(5))
-        root.add_widget(self.lab("تعیین وقت ملاقات",48,"21sp",PRIMARY,True))
+        head=BoxLayout(size_hint_y=None,height=dp(46),spacing=dp(6))
+        head.add_widget(self.btn("‹ بازگشت",self.back,SECONDARY,44))
+        head.add_widget(self.lab("تعیین وقت ملاقات",46,"21sp",PRIMARY,True))
+        root.add_widget(head)
         scroll=ScrollView(do_scroll_x=False,do_scroll_y=True)
         body=BoxLayout(orientation="vertical",spacing=dp(5),padding=[dp(3),dp(8)],size_hint_y=None)
         body.bind(minimum_height=body.setter("height"))
