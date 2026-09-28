@@ -89,14 +89,16 @@ def register_fonts():
 
 
 def fa_display(value):
-    """Prepare Persian text once for Kivy/SDL2's non-Pango Android renderer.
+    """Return display-order Persian text with Arabic shaping applied exactly once.
 
-    Android builds of this app do not consistently perform Arabic shaping and
-    bidi layout for every Label/Button.  Feed visual-form text to those
-    widgets exactly once.  PersianTextInput keeps logical Unicode separately
-    and never uses this function for editable content.
+    rtl_text() already returns shaped/bidi display text. Calling the reshaper a
+    second time corrupts Arabic joining forms and reverses text on Android.
+    Keep one canonical path here: normalize Unicode, then shape+bidi once for
+    labels/buttons. Editable TextInput content remains logical Unicode.
     """
-    text = rtl_text(value)
+    text = unicodedata.normalize("NFKC", str(value or ""))
+    text = text.replace("ي", "ی").replace("ى", "ی").replace("ك", "ک")
+    text = text.replace("ۀ", "هٔ").replace("ة", "ه")
     if not text:
         return text
     try:
@@ -105,7 +107,6 @@ def fa_display(value):
     except Exception as exc:
         print("PERSIAN DISPLAY SHAPING ERROR:", repr(exc))
     return text
-
 def font_name():
     # Use the bundled Arabic/Persian-capable face. Roboto in the Android
     # Kivy package does not contain the required Persian glyphs.
