@@ -26,6 +26,7 @@ from mobile.config import (
 
 
 _FONT_REGISTERED = False
+_FONT_FAMILY = "FrahooshPersian"
 
 
 def register_fonts():
@@ -33,39 +34,47 @@ def register_fonts():
     global _FONT_REGISTERED
 
     if _FONT_REGISTERED:
-        return "FrahooshBTitr"
+        return _FONT_FAMILY
 
-    # BTitrBd.ttf is the required Frahoosh typeface. Do not replace it.
-    # Resolve it through both the normal filesystem path and Kivy's packaged
-    # resource path so the APK never silently falls back to Roboto (which
-    # produces □ for Persian glyphs).
-    candidates = [
+    # Android rendering must use a font with complete Persian/Arabic Unicode
+    # coverage. Noto Sans Arabic is bundled specifically for this purpose and
+    # is used as the single application font so no widget falls back to Roboto
+    # and no Persian glyph becomes a square. BTitr remains bundled as the
+    # requested design asset, but it is not allowed to break Arabic shaping.
+    asset_dir = Path(__file__).resolve().parent / "assets"
+    regular_candidates = [
+        asset_dir / "NotoSansArabic-Regular.ttf",
         Path(FONT_REGULAR),
-        Path(__file__).resolve().parent / "assets" / "BTitrBd.ttf",
+    ]
+    bold_candidates = [
+        asset_dir / "NotoSansArabic-Bold.ttf",
+        Path(FONT_BOLD),
     ]
     try:
-        packaged = resource_find("mobile/assets/BTitrBd.ttf") or resource_find("assets/BTitrBd.ttf")
-        if packaged:
-            candidates.insert(0, Path(packaged))
+        packaged_regular = resource_find("mobile/assets/NotoSansArabic-Regular.ttf") or resource_find("assets/NotoSansArabic-Regular.ttf")
+        packaged_bold = resource_find("mobile/assets/NotoSansArabic-Bold.ttf") or resource_find("assets/NotoSansArabic-Bold.ttf")
+        if packaged_regular:
+            regular_candidates.insert(0, Path(packaged_regular))
+        if packaged_bold:
+            bold_candidates.insert(0, Path(packaged_bold))
     except Exception as exc:
         print("FONT RESOURCE LOOKUP ERROR:", repr(exc))
 
-    regular = next((p for p in candidates if p.is_file()), None)
+    regular = next((p for p in regular_candidates if p.is_file()), None)
+    bold = next((p for p in bold_candidates if p.is_file()), None) or regular
     if regular is None:
-        print("FONT FILE NOT FOUND:", [str(p) for p in candidates])
+        print("PERSIAN FONT FILE NOT FOUND:", [str(p) for p in regular_candidates])
         return ""
 
     try:
-        # Keep BTitr for both weights. The important fix is deterministic APK
-        # resolution; never substitute another typeface for the module UI.
         LabelBase.register(
-            name="FrahooshBTitr",
+            name=_FONT_FAMILY,
             fn_regular=str(regular),
-            fn_bold=str(regular),
+            fn_bold=str(bold),
         )
         _FONT_REGISTERED = True
-        print("FRAHOOSH BTITR REGISTERED:", str(regular))
-        return "FrahooshBTitr"
+        print("FRAHOOH PERSIAN FONT REGISTERED:", str(regular), "bold:", str(bold))
+        return _FONT_FAMILY
 
 
     except Exception as exc:
@@ -158,10 +167,11 @@ def rtl_text(value):
 
     try:
 
-        # Kivy/SDL2 performs Arabic shaping at render time when the
-        # widget is configured for Persian/Arabic. Pre-shaping creates Arabic
-        # presentation-form codepoints that BTitrBd.ttf may not contain,
-        # producing square glyphs on Android. Keep the logical Persian text.
+        # Kivy's Android text provider needs visual-order Arabic shaping for
+        # these widgets. Do it exactly once here. TextInput deliberately keeps
+        # logical Unicode and never passes through this function.
+        if arabic_reshaper is not None and get_display is not None:
+            return get_display(arabic_reshaper.reshape(text), base_dir="R")
         return text
 
 
