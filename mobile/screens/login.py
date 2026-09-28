@@ -52,7 +52,7 @@ class LoginScreen(Screen):
 
     def _field(self, hint, password=False):
         field = PersianTextInput(
-            hint_text=fa_display(hint),
+            hint_text=str(hint),
             password=password,
             password_mask="*",
             font_name=font_name(),
