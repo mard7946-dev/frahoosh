@@ -96,7 +96,7 @@ jobs:
         run: |
           set -euo pipefail
           : "${FRAHOOSH_SUPABASE_URL:=https://wqructnmorlhrjwlvigm.supabase.co}"
-          : "${FRAHOOSH_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxcnVjdG5tb3JsaHd2aWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMjE3MzQsImV4cCI6MjEwNTY5NzczNH0.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI}"
+          : "${FRAHOOSH_SUPABASE_ANON_KEY:=sb_publishable_iGZ1qf7UUYmVeAnPRrYHpw_7TonH2XR}"
           export FRAHOOSH_SUPABASE_URL FRAHOOSH_SUPABASE_ANON_KEY
           python - <<'PY'
           import json
@@ -240,8 +240,8 @@ jobs:
           assert not missing_fields, f"Canonical module fields missing from migrations: {missing_fields}"
           print("Canonical module-to-database contract validated.")
           PY
-          grep -Fq "version = 1.6.4" buildozer.spec
-          grep -Fq "android.numeric_version = 164" buildozer.spec
+          grep -Fq "version = 1.6.5" buildozer.spec
+          grep -Fq "android.numeric_version = 165" buildozer.spec
           grep -Fq "package.name = frahooshmobile" buildozer.spec
           grep -Fq "package.domain = ir.frahoosh" buildozer.spec
           grep -Fq "source.dir = ." buildozer.spec
@@ -269,7 +269,7 @@ jobs:
         run: |
           set -euo pipefail
           : "${FRAHOOSH_SUPABASE_URL:=https://wqructnmorlhrjwlvigm.supabase.co}"
-          : "${FRAHOOSH_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxcnVjdG5tb3JsaHd2aWdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMjE3MzQsImV4cCI6MjEwNTY5NzczNH0.ckuMyGSpvztf1gGR3BbQRZfjxjFurcaLjcyp-1hVnBI}"
+          : "${FRAHOOSH_SUPABASE_ANON_KEY:=sb_publishable_iGZ1qf7UUYmVeAnPRrYHpw_7TonH2XR}"
           export FRAHOOSH_SUPABASE_URL FRAHOOSH_SUPABASE_ANON_KEY
           python - <<'PY'
           import json
@@ -326,7 +326,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Frahoosh-APK-v1.6.4
+          name: Frahoosh-APK-v1.6.5
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
