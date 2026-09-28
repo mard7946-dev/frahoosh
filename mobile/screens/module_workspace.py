@@ -1373,7 +1373,15 @@ class ModuleWorkspaceScreen(Screen):
         hero.add_widget(line); self.body.add_widget(hero)
         can_write = self.can_write(table)
         consumer = self.role() in {"student", "parent"}
-        if can_write:
+        # These are the full operational school roles. Their table modules must
+        # always expose the complete real toolbar: ثبت، ویرایش، حذف، ورودی اکسل،
+        # خروجی اکسل and PDF. Parent/student remain intentionally excluded.
+        panel_role = str(getattr(self, "panel_role", "") or "").strip().lower()
+        full_operational_role = panel_role in {
+            "manager", "educational", "executive", "cultural", "advisor",
+            "teacher", "staff"
+        }
+        if can_write or full_operational_role:
             def _guard_write(action):
                 def _run(*_args):
                     if not self.can_write(table):
