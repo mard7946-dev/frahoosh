@@ -240,8 +240,10 @@ jobs:
           assert not missing_fields, f"Canonical module fields missing from migrations: {missing_fields}"
           print("Canonical module-to-database contract validated.")
           PY
-          grep -Fq "version = 1.6.5" buildozer.spec
-          grep -Fq "android.numeric_version = 165" buildozer.spec
+          APP_VERSION="$(awk -F'= ' '/^version = /{print $2; exit}' buildozer.spec)"
+          APP_NUMERIC_VERSION="$(awk -F'= ' '/^android.numeric_version = /{print $2; exit}' buildozer.spec)"
+          test "$APP_VERSION" = "1.6.5"
+          test "$APP_NUMERIC_VERSION" = "165"
           grep -Fq "package.name = frahooshmobile" buildozer.spec
           grep -Fq "package.domain = ir.frahoosh" buildozer.spec
           grep -Fq "source.dir = ." buildozer.spec
