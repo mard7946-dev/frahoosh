@@ -175,7 +175,7 @@ class SupabaseClient:
                             emails.append(str(value))
             return list(dict.fromkeys(x.strip() for x in emails if str(x).strip()))
 
-        if response.status_code in (400, 404, 406):
+        if response.status_code in (400, 401, 403, 404, 406):
             fallback = _request(
                 "GET", f"{self.url}/rest/v1/account_settings",
                 headers=self._headers(False),
