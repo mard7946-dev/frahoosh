@@ -168,9 +168,6 @@ jobs:
               assert set(spec.get("operations") or []) >= {"create", "update", "delete"}, f"CRUD contract missing: {table}"
           print(f"Canonical ZIP module contract validated: {len(panels)} panels / {len(modules)} modules")
 
-          # Verify that every canonical module has a real Supabase backing table
-          # and that every declared business field is present in the migration
-          # contract. This prevents Android/Web from exposing decorative tables.
           import re
           migrations = ""
           for path in Path("supabase/migrations").glob("*.sql"):
@@ -243,7 +240,7 @@ jobs:
           APP_VERSION="$(awk -F'= ' '/^version = /{print $2; exit}' buildozer.spec)"
           APP_NUMERIC_VERSION="$(awk -F'= ' '/^android.numeric_version = /{print $2; exit}' buildozer.spec)"
           test "$APP_VERSION" = "1.6.6"
-          test "$APP_NUMERIC_VERSION" = "165"
+          test "$APP_NUMERIC_VERSION" = "166"
           grep -Fq "package.name = frahooshmobile" buildozer.spec
           grep -Fq "package.domain = ir.frahoosh" buildozer.spec
           grep -Fq "source.dir = ." buildozer.spec
@@ -322,7 +319,7 @@ jobs:
           apks=(bin/*.apk)
           test "${#apks[@]}" -gt 0
           echo "APK produced:"
-          printf '%s\n' "${apks[@]}"
+          printf '%s\\n' "${apks[@]}"
 
       - name: Upload APK
         if: success()
