@@ -28,6 +28,7 @@ GLASS = (0.01, 0.07, 0.20, 0.84)
 
 
 class LoginScreen(Screen):
+    # Credential fields use LTR direction for account identifiers.
     """Responsive Android login. Authentication and remember-me use the real app services."""
 
     def __init__(self, app_state=None, **kwargs):
