@@ -51,13 +51,15 @@ class LoginScreen(Screen):
         return w
 
     def _field(self, hint, password=False):
+        # TextInput must keep logical Unicode. Shaping the hint before feeding it
+        # to TextInput reverses Persian and can make joined glyphs appear broken.
+        # The bundled Noto Sans Arabic face also contains the ASCII asterisk used
+        # by the password renderer, so password fields no longer fall back to Roboto.
         field = PersianTextInput(
-            hint_text=fa_display(str(hint)),
+            hint_text=str(hint),
             password=password,
             password_mask="*",
-            # Android renders the ASCII asterisk reliably with the platform sans font.
-            # Persian labels/placeholders still use the bundled application font.
-            font_name=("Roboto" if password else font_name()),
+            font_name=font_name(),
             font_size="14sp",
             multiline=False,
             size_hint_y=None,
@@ -118,7 +120,7 @@ class LoginScreen(Screen):
         with card.canvas.before:
             Color(0.01,0.09,0.22,0.93); card._card=RoundedRectangle(radius=[dp(28)])
             Color(0.04,0.66,0.92,0.65); card._line=Line(rounded_rectangle=(0,0,0,0,dp(28)),width=1.2)
-        def card_sync(*_):
+        def card_sync(*_): 
             card._card.pos=card.pos; card._card.size=card.size
             card._line.rounded_rectangle=(card.x,card.y,card.width,card.height,dp(28))
         card.bind(pos=card_sync,size=card_sync)
@@ -153,8 +155,6 @@ class LoginScreen(Screen):
         self.add_widget(root)
 
     def _remember_changed(self, *_args):
-        # The checkbox is the source of truth. AppState persists the session
-        # only when this value is true.
         pass
 
     def _toggle_remember(self, *_):
@@ -189,8 +189,6 @@ class LoginScreen(Screen):
             return "ارتباط با سرور زمان‌بر شد؛ دوباره تلاش کنید."
         if "urlopen error" in lower or "network" in lower:
             return "ارتباط با سرور برقرار نشد. اینترنت را بررسی کنید."
-        # Never render raw exception payloads on the Persian login screen.
-        # They can contain URLs, ASCII diagnostics, or unsupported glyphs.
         return "ارتباط با سرور برقرار نشد. دوباره تلاش کنید."
 
     def login(self, *_):
@@ -302,7 +300,6 @@ class LoginScreen(Screen):
         except Exception:
             pass
 
-        # Real remember-me behavior: a previously persisted session is reused.
         if not self._auto_login_checked:
             self._auto_login_checked = True
             try:
