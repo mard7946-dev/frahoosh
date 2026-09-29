@@ -488,6 +488,10 @@
       [
         "کلاس آنلاین",
         "online_classes"
+      ],
+      [
+        "آزمون‌های آنلاین",
+        "teacher_exams"
       ]    ],
     "parents": [
       [
@@ -553,6 +557,10 @@
       [
         "فعالیت‌های اولیا",
         "parent_activities"
+      ],
+      [
+        "آزمون‌های آنلاین",
+        "teacher_exams"
       ]
     ],
     "finance": [
