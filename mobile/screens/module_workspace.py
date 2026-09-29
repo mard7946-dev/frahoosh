@@ -2116,10 +2116,14 @@ class ModuleWorkspaceScreen(Screen):
                         tid = profile.get("linked_teacher_id") or profile.get("teacher_id")
                         if tid and not payload.get("teacher_id"):
                             payload["teacher_id"] = tid
-                    if role in ("student","دانش‌آموز") and table in {"student_grades","attendance","assignments","assignment_submissions","discipline_records"}:
+                    if role in ("student","دانش‌آموز") and table in {"student_grades","attendance","assignments","assignment_submissions","discipline_records","student_council","basij_registration","school_ally","school_mayor","certificate_requests","student_referrals","activity_registrations","cultural_activity_registrations"}:
                         sid = profile.get("linked_student_id") or profile.get("student_id")
                         if sid and not payload.get("student_id"):
                             payload["student_id"] = sid
+                    if role in ("parent","parents","ولی","اولیا") and table == "parent_activities":
+                        username = profile.get("username") or profile.get("national_code") or profile.get("email")
+                        if username and not payload.get("parent_username"):
+                            payload["parent_username"] = username
                     if row is None:
                         api.table_insert(table,payload); msg='رکورد جدید با موفقیت ثبت شد.'
                     else:
