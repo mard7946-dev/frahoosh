@@ -247,6 +247,65 @@ class PersianTextInput(TextInput):
         return str(self.logical_text if self.logical_text is not None else "")
 
 
+class CredentialTextInput(TextInput):
+    """LTR credential editor. Keeps real value separately and renders only safe ASCII."""
+    def __init__(self, **kwargs):
+        register_fonts()
+        initial = unicodedata.normalize("NFKC", str(kwargs.pop("text", "") or ""))
+        self.logical_text = initial
+        self.masked = bool(kwargs.pop("masked", False))
+        kwargs.setdefault("font_name", font_name())
+        kwargs.setdefault("halign", "left")
+        kwargs.setdefault("multiline", False)
+        kwargs.setdefault("base_direction", "ltr")
+        kwargs.setdefault("cursor_width", 2)
+        super().__init__(**kwargs)
+        self._rendering = False
+        self._render()
+        self.bind(text=self._capture, focus=self._focus_changed)
+
+    def _display_text(self):
+        return ("*" * len(self.logical_text)) if self.masked else self.logical_text
+
+    def _render(self):
+        if self._rendering:
+            return
+        self._rendering = True
+        try:
+            self.text = self._display_text()
+            self.cursor = (len(self.text), 0)
+        finally:
+            self._rendering = False
+
+    def insert_text(self, substring, from_undo=False):
+        if self._rendering:
+            return super().insert_text(substring, from_undo=from_undo)
+        raw = unicodedata.normalize("NFKC", str(substring or ""))
+        if raw:
+            self.logical_text += raw
+            self._render()
+
+    def do_backspace(self, from_undo=False, mode="bkspc"):
+        if self._rendering or not self.logical_text:
+            return
+        self.logical_text = self.logical_text[:-1]
+        self._render()
+
+    def _capture(self, _widget, value):
+        if not self._rendering:
+            self.logical_text = unicodedata.normalize("NFKC", str(value or ""))
+
+    def _focus_changed(self, _widget, focused):
+        self._render()
+
+    def set_logical_text(self, value):
+        self.logical_text = unicodedata.normalize("NFKC", str(value or ""))
+        self._render()
+
+    def get_logical_text(self):
+        return str(self.logical_text or "")
+
+
 class PersianSpinnerOption(Button):
     """Spinner dropdown option using the same bundled Persian font."""
     def __init__(self, **kwargs):
