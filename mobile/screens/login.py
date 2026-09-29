@@ -52,10 +52,12 @@ class LoginScreen(Screen):
 
     def _field(self, hint, password=False):
         field = PersianTextInput(
-            hint_text=str(hint),
+            hint_text=fa_display(str(hint)),
             password=password,
             password_mask="*",
-            font_name=font_name(),
+            # Android renders the ASCII asterisk reliably with the platform sans font.
+            # Persian labels/placeholders still use the bundled application font.
+            font_name=("Roboto" if password else font_name()),
             font_size="14sp",
             multiline=False,
             size_hint_y=None,
