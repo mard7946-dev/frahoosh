@@ -43,8 +43,15 @@ class BaseWorkflow(Screen):
         return s
     def api(self): return getattr(self.app_state,"api",None)
     def username(self):
-        p=getattr(self.app_state,"profile",{}) or {}; u=getattr(self.app_state,"user",{}) or {}
-        return str(u.get("email") or p.get("email") or p.get("username") or "").strip()
+        p=getattr(self.app_state,"profile",{}) or {}
+        u=getattr(self.app_state,"user",{}) or {}
+        # School relationships and meeting targets use the canonical username
+        # (national code). Auth email is only the credential, not the business key.
+        return str(
+            p.get("username")
+            or p.get("national_code")
+            or u.get("user_metadata", {}).get("username") if isinstance(u.get("user_metadata"), dict) else ""
+        ).strip() or str(u.get("email") or p.get("email") or "").strip()
     def back(self,*_):
         if self.manager:self.manager.current="dashboard"
     def msg(self,t,c=SUCCESS):
@@ -175,7 +182,16 @@ class MeetingWorkflowScreen(BaseWorkflow):
     def _load_my_requests(self,body):
         try:
             username=self.username()
-            rows=self.api().table_select("meeting_requests",{"requester_username":f"eq.{username}","order":"id.desc","limit":"50"}) or []
+            role=role_of(self.app_state)
+            if role == "parent":
+                # Parents must see appointments created for them by management,
+                # while still seeing requests they created themselves.
+                rows=self.api().table_select(
+                    "meeting_requests",
+                    {"or":f"(requester_username.eq.{username},target_username.eq.{username})","order":"id.desc","limit":"50"}
+                ) or []
+            else:
+                rows=self.api().table_select("meeting_requests",{"requester_username":f"eq.{username}","order":"id.desc","limit":"50"}) or []
         except Exception as exc:
             body.add_widget(self.lab("خواندن درخواست‌های قبلی ناموفق بود: "+str(exc),42,"9sp",ERROR)); return
         if not rows:
