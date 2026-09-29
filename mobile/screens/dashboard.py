@@ -239,7 +239,31 @@ class PanelHubScreen(Screen):
         self.scroll.add_widget(self.grid); root.add_widget(self.scroll)
         self.add_widget(root)
 
+    def _has_panel_access(self, panel_key):
+        role = self._active_role()
+        if role == "manager":
+            return True
+        role_panels = {
+            "executive": {"executive"},
+            "educational": {"educational"},
+            "cultural": {"cultural"},
+            "advisor": {"advisor"},
+            "teacher": {"teachers"},
+            "student": {"students"},
+            "parent": {"parents"},
+        }
+        return panel_key in role_panels.get(role, set())
+
     def refresh(self):
+        # Hard role boundary: only the manager receives the school-wide
+        # directory. Every other role receives exactly its own panel.
+        if not self._has_panel_access(self.panel_key):
+            try:
+                self.manager.current = "dashboard"
+            except Exception:
+                pass
+            print("PANEL ACCESS DENIED:", self._active_role(), self.panel_key)
+            return
         # The uploaded v16.12 mother ZIP is the single source of truth for
         # panel/module membership.  Do not derive this screen from the backend
         # catalog or from a secondary navigation map.
@@ -428,6 +452,13 @@ class PanelHubScreen(Screen):
         Clock.schedule_once(navigate,0)
 
     def on_pre_enter(self,*_):
+        if not self._has_panel_access(self.panel_key):
+            try:
+                if self.manager:
+                    self.manager.current = "dashboard"
+            except Exception:
+                pass
+            return
         # Kivy calls this synchronously while ScreenManager.current is changed.
         # An exception here bubbles back into open_dashboard() and is reported
         # incorrectly as "dashboard did not open" even though authentication
@@ -517,10 +548,23 @@ class DashboardScreen(Screen):
         return ROLE_ALIASES.get(raw,raw)
 
     def items(self):
-        # The dashboard is the school-wide panel directory. Every authenticated
-        # account sees the same professional panel cards; the operational/read-only
-        # policy is enforced after entering a panel, at the module level.
-        return [(title, "panelhub:" + key) for title, key in PANEL_HUBS]
+        role = self.role()
+        if role == "manager":
+            return [(title, "panelhub:" + key) for title, key in PANEL_HUBS]
+        own_panel = {
+            "executive": "executive",
+            "educational": "educational",
+            "cultural": "cultural",
+            "advisor": "advisor",
+            "teacher": "teachers",
+            "student": "students",
+            "parent": "parents",
+        }.get(role)
+        if own_panel:
+            for title, key in PANEL_HUBS:
+                if key == own_panel:
+                    return [(title, "panelhub:" + key)]
+        return []
 
 
     def _build(self):
@@ -628,6 +672,17 @@ class DashboardScreen(Screen):
         return True
 
     def open_route(self,route):
+        route_key = str(route or "")
+        if route_key.startswith("panelhub:"):
+            panel_key = route_key.split(":",1)[1]
+            role = self.role()
+            allowed = role == "manager" or panel_key == {
+                "executive":"executive","educational":"educational","cultural":"cultural",
+                "advisor":"advisor","teacher":"teachers","student":"students","parent":"parents"
+            }.get(role)
+            if not allowed:
+                print("DASHBOARD ACCESS DENIED:", role, panel_key)
+                return
         app=App.get_running_app()
         if app is None or app.sm is None:
             return
