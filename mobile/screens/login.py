@@ -147,7 +147,7 @@ class LoginScreen(Screen):
         self.status.size_hint_y=None; self.status.height=dp(26); card.add_widget(self.status)
         root.add_widget(card)
 
-        footer=Label(text=fa_display(f"{SCHOOL_NAME} • سال تحصیلی ۱۴۰۵–۱۴۰۶"),font_name=font_name(),font_size="8sp",
+        footer=Label(text=fa_display(f"{SCHOOL_NAME} - سال تحصیلی ۱۴۰۵–۱۴۰۶"),font_name=font_name(),font_size="8sp",
                      color=(.60,.78,.92,1),size_hint=(.92,None),height=dp(28),pos_hint={"center_x":.5,"y":.035},halign="center")
         footer.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(footer)
         self.add_widget(root)
