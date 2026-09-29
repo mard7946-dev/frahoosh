@@ -1980,7 +1980,8 @@
         "title",
         "description",
         "activity_date",
-        "status"
+        "status",
+        "parent_username"
       ],
       "operations": [
         "create",
