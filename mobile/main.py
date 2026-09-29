@@ -11,6 +11,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.graphics import Color, RoundedRectangle
 from kivy.uix.screenmanager import NoTransition
 from mobile.ui import font_name, fa_display
+from mobile.login_credentials_patch import patch_login_screen
 
 # IMPORTANT: LoginScreen is intentionally NOT imported at module import time.
 # A failure in login.py (or one of its optional dependencies) must never kill
@@ -45,7 +46,7 @@ class EmergencyLoginScreen(Screen):
         try:
             if LoginScreen is None:
                 from mobile.screens.login import LoginScreen as _LoginScreen
-                LoginScreen = _LoginScreen
+                LoginScreen = patch_login_screen(_LoginScreen)
             app = App.get_running_app()
             real = LoginScreen(name="login", app_state=getattr(app, "app_state", None))
             self.manager.add_widget(real)
@@ -227,7 +228,7 @@ class FrahooshApp(App):
         global LoginScreen
         try:
             from mobile.screens.login import LoginScreen as _LoginScreen
-            LoginScreen = _LoginScreen
+            LoginScreen = patch_login_screen(_LoginScreen)
             self.sm.add_widget(LoginScreen(name="login", app_state=None))
         except Exception as exc:
             print("LOGIN CONSTRUCTION ERROR:", repr(exc))
