@@ -617,7 +617,7 @@ class DashboardScreen(Screen):
         if self.app_state is None or not getattr(self.app_state,"logged_in",False): return False
         role=self.role(); items=self.items()
         self.welcome.text=fa_display(f"خوش آمدید، {getattr(self.app_state,'display_name','کاربر فراهوش')}")
-        self.role_text.text=fa_display(f"پنل {ROLE_TITLES.get(role,'کاربر')} • دسترسی فعال")
+        self.role_text.text=fa_display(f"پنل {ROLE_TITLES.get(role,'کاربر')} - دسترسی فعال")
         self.grid.clear_widgets()
         total=len(items)
         for i,(title,route) in enumerate(items,1):
@@ -716,10 +716,10 @@ class DashboardScreen(Screen):
                     latest=events[0]
                     title=latest.get("title","اعلان جدید")
                     count=len(events)
-                    msg=f"صندوق پیام • {title} • {count} مورد جدید"
+                    msg=f"صندوق پیام - {title} - {count} مورد جدید"
                 else:
                     total=sum(len(feed.get(k,[])) for k in ("attendance","discipline","grades","activities","messages"))
-                    msg=f"اعلان‌های لحظه‌ای فعال • {total} رویداد مدرسه"
+                    msg=f"اعلان‌های لحظه‌ای فعال - {total} رویداد مدرسه"
                 Clock.schedule_once(lambda _dt,m=msg:self._set_parent_alert(m),0)
             except Exception as exc:
                 print("PARENT LIVE FEED ERROR:",repr(exc))
@@ -752,10 +752,10 @@ class DashboardScreen(Screen):
                 if ids:
                     self._parent_seen.update(ids)
                     latest=events[0]
-                    msg=f'صندوق پیام • {latest.get("title","اعلان جدید")} • {len(events)} مورد جدید'
+                    msg=f'صندوق پیام - {latest.get("title","اعلان جدید")} - {len(events)} مورد جدید'
                 else:
                     total=sum(len(feed.get(k,[])) for k in ("attendance","discipline","grades","activities","messages"))
-                    msg=f"اعلان‌های لحظه‌ای فعال • {total} رویداد مدرسه"
+                    msg=f"اعلان‌های لحظه‌ای فعال - {total} رویداد مدرسه"
                 Clock.schedule_once(lambda _dt,m=msg:self._set_parent_alert(m),0)
             except Exception as exc:
                 print("PARENT LIVE FEED ERROR:",repr(exc))
@@ -774,7 +774,7 @@ class DashboardScreen(Screen):
     def _restore_role_status(self,*_):
         try:
             role=self.role()
-            self.role_text.text=rtl_text(f"پنل {ROLE_TITLES.get(role,'کاربر')} • دسترسی فعال")
+            self.role_text.text=rtl_text(f"پنل {ROLE_TITLES.get(role,'کاربر')} - دسترسی فعال")
             self.role_text.color=(0.88,0.96,1,1)
         except Exception:
             pass
