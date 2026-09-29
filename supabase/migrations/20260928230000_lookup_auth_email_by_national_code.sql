@@ -16,3 +16,12 @@ $$;
 
 revoke all on function public.lookup_auth_emails_by_national_code(text) from public;
 grant execute on function public.lookup_auth_emails_by_national_code(text) to anon, authenticated;
+
+
+-- Each authenticated user may read only their own account_settings profile.
+drop policy if exists account_settings_select_self on public.account_settings;
+create policy account_settings_select_self
+on public.account_settings
+for select to authenticated
+using (lower(trim(coalesce(email, ''))) = lower(trim(coalesce(auth.jwt() ->> 'email', ''))));
+grant select on public.account_settings to authenticated;
