@@ -47,11 +47,15 @@ class BaseWorkflow(Screen):
         u=getattr(self.app_state,"user",{}) or {}
         # School relationships and meeting targets use the canonical username
         # (national code). Auth email is only the credential, not the business key.
+        metadata = u.get("user_metadata") if isinstance(u.get("user_metadata"), dict) else {}
         return str(
             p.get("username")
             or p.get("national_code")
-            or u.get("user_metadata", {}).get("username") if isinstance(u.get("user_metadata"), dict) else ""
-        ).strip() or str(u.get("email") or p.get("email") or "").strip()
+            or metadata.get("username")
+            or u.get("email")
+            or p.get("email")
+            or ""
+        ).strip()
     def back(self,*_):
         if self.manager:self.manager.current="dashboard"
     def msg(self,t,c=SUCCESS):
