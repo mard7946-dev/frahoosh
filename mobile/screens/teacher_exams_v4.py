@@ -157,8 +157,9 @@ class TeacherExamsV4Screen(Screen):
             self._label("ورود به آزمون","22sp",PRIMARY,54,True)
             self._label("کد اشتراک یا لینک آزمون دبیر را وارد کنید. برای هر دانش‌آموز ترتیب سؤال‌ها و گزینه‌ها مستقل می‌شود.",height=72)
             code=self._field("کد اشتراک یا لینک آزمون")
-            self._button("شروع آزمون",lambda *_:self._open_shared(code.text.strip()),SUCCESS)
-            self._label("آزمون‌های فعال مدرسه نیز در همین بخش نمایش داده می‌شوند.","10sp",SECONDARY,42)
+            self._button("شروع با کد یا لینک آزمون",lambda *_:self._open_shared(code.text.strip()),SUCCESS)
+            self._button("نمایش آزمون‌های فعال مدرسه",lambda *_:self._load_school_exams(),PRIMARY)
+            self._label("آزمون‌های فعال مدرسه بر اساس پایه و کلاس دانش‌آموز در سرور بررسی می‌شوند.","10sp",SECONDARY,42)
 
     def _new_exam(self):
         self._clear(); self.questions=[]; self._label("ساخت آزمون استاندارد","22sp",PRIMARY,52,True)
@@ -500,6 +501,51 @@ class TeacherExamsV4Screen(Screen):
                 "option4":o4.text.strip(),"correct_answer":ans.text.strip(),"points":float(pts.text.strip() or 1)})
             self._ok("سؤال ویرایش شد.")
         except Exception as exc:self._error("ویرایش سؤال انجام نشد: "+str(exc))
+    def _load_school_exams(self):
+        """Show published school exams to students and start them through the protected RPC flow."""
+        self._clear()
+        self._label("آزمون‌های فعال مدرسه","22sp",PRIMARY,54,True)
+        try:
+            rows=self.app_state.api.table_select("teacher_exams",{
+                "published":"eq.true","order":"id.desc","limit":"50"
+            }) or []
+        except Exception as exc:
+            return self._error("دریافت آزمون‌های مدرسه انجام نشد: "+str(exc))
+        student_id=(getattr(self.app_state,"profile",{}) or {}).get("linked_student_id")
+        try: student_id=int(student_id) if student_id else None
+        except Exception: student_id=None
+        if not rows:
+            self._label("در حال حاضر آزمون منتشرشده‌ای وجود ندارد.",height=70,center=True)
+        for row in rows:
+            self._label(
+                f"{row.get('title') or 'آزمون'}\\n{row.get('subject') or ''} | {row.get('grade') or ''} | {row.get('class_name') or ''} | {row.get('duration') or 45} دقیقه",
+                height=78
+            )
+            self._button("شروع آزمون",lambda *_a,eid=int(row.get("id")):self._start_school_exam(eid,student_id),SUCCESS,44)
+        self._button("بازگشت",lambda *_:self.show_home(),SECONDARY,44)
+
+    def _start_school_exam(self,eid,student_id=None):
+        if not student_id:
+            return self._error("پرونده دانش‌آموز در سامانه پیدا نشد.")
+        try:
+            profile=getattr(self.app_state,"profile",{}) or {}
+            username=str(profile.get("username") or profile.get("national_code") or getattr(self.app_state,"national_code","") or "").strip()
+            if not username:
+                return self._error("شناسه کاربر دانش‌آموز مشخص نیست.")
+            eligible,reason=self._check_exam_eligibility(student_id)
+            if not eligible:
+                return self._error(reason)
+            attempt=self.app_state.api.rpc("start_teacher_exam",{
+                "p_quiz_id":int(eid),"p_student_id":int(student_id),"p_student_username":username
+            })
+            attempt=attempt[0] if isinstance(attempt,list) and attempt else attempt
+            exam_rows=self.app_state.api.table_select("teacher_exams",{"id":"eq."+str(eid),"limit":"1"}) or []
+            if not exam_rows:
+                return self._error("آزمون پیدا نشد.")
+            self._render_attempt(exam_rows[0],attempt)
+        except Exception as exc:
+            self._error("شروع آزمون انجام نشد: "+str(exc))
+
     def _open_shared(self,code):
         code=(code or "").strip().rstrip("/").split("/")[-1]
         if not code:self._error("کد یا لینک آزمون را وارد کنید.");return
