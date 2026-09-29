@@ -283,6 +283,38 @@ class SupabaseClient:
                         for key in ("role", "linked_student_id", "linked_teacher_id", "linked_staff_id"):
                             if prefs.get(key) not in (None, ""):
                                 merged[key] = prefs.get(key)
+
+                    # The canonical role/link record is public.users.  Keep
+                    # account_settings as profile metadata, but resolve the
+                    # actual school role from the authoritative user row so a
+                    # stale preferences.role can never turn a deputy into the
+                    # wrong panel.
+                    national_code = self._normalize_digits(
+                        str(merged.get("national_code") or "")
+                    ).strip()
+                    if national_code:
+                        try:
+                            user_response = _request(
+                                "GET",
+                                f"{self.url}/rest/v1/users",
+                                headers=self._headers(True),
+                                params={
+                                    "username": f"eq.{national_code}",
+                                    "select": "username,role,display_name,linked_student_id,linked_teacher_id,linked_staff_id",
+                                    "limit": "1",
+                                },
+                                timeout=API_TIMEOUT,
+                            )
+                            if user_response.ok:
+                                user_rows = user_response.json() or []
+                                if user_rows and isinstance(user_rows[0], dict):
+                                    canonical = user_rows[0]
+                                    for key in ("role", "display_name", "linked_student_id", "linked_teacher_id", "linked_staff_id"):
+                                        if canonical.get(key) not in (None, ""):
+                                            merged[key] = canonical[key]
+                                    merged["username"] = canonical.get("username") or merged.get("username") or national_code
+                        except Exception as exc:
+                            print("CANONICAL ROLE LOOKUP ERROR:", repr(exc))
                     return merged
         except Exception:
             pass
