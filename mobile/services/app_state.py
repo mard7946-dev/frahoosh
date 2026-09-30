@@ -119,7 +119,25 @@ class AppState:
                     merged = dict(current_profile)
                     merged.update(refreshed)
                     current_profile = merged
+
+                # Numeric login is the authoritative onboarding identifier.
+                # Resolve the canonical public.users row by that identifier as a
+                # second path, so a stale Auth metadata role can never force the
+                # dashboard into the student panel.
+                login_identifier = str(self.session.get("login_identifier") or "").strip()
+                normalized_identifier = self.api._normalize_digits(login_identifier)
+                if normalized_identifier.isdigit() and len(normalized_identifier) == 10:
+                    try:
+                        canonical_by_code = self.api._profile_by_national_code(normalized_identifier)
+                        if isinstance(canonical_by_code, dict) and canonical_by_code:
+                            merged = dict(current_profile)
+                            merged.update(canonical_by_code)
+                            current_profile = merged
+                    except Exception as code_exc:
+                        print("CANONICAL LOGIN PROFILE ERROR:", repr(code_exc))
+
                 self.session["profile"] = current_profile
+                self.session.pop("login_identifier", None)
             except Exception as exc:
                 print("PROFILE ENRICHMENT ERROR:", repr(exc))
 
