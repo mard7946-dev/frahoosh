@@ -65,7 +65,7 @@ class SmartClassPreviewScreen(Screen):
         hr.add_widget(self.btn("بازگشت", self.back, SECONDARY, 40))
         title = BoxLayout(orientation="vertical")
         title.add_widget(self.label(self.class_title, "15sp", WHITE, 30, True, True))
-        title.add_widget(self.label("محیط واقعی کلاس هوشمند • تخته، ابزار، دبیر، دانش‌آموز و اولیا", "8sp", (0.70,0.88,1,1), 20, False, True))
+        title.add_widget(self.label("محیط واقعی کلاس هوشمند • تخته، ابزار، دبیر، دانش‌آموز و اولیا • محتوای آخرین کلاس ثبت‌شده در سرور", "8sp", (0.70,0.88,1,1), 20, False, True))
         hr.add_widget(title)
         hr.add_widget(self.btn("اتصال", self.refresh_live, SUCCESS, 40))
         header.add_widget(hr)
