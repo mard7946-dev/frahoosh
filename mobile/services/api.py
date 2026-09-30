@@ -266,6 +266,32 @@ class SupabaseClient:
         if not self.configured or not email:
             profile.setdefault("email", email)
             return profile
+        # Resolve the canonical school identity through a SECURITY DEFINER RPC.
+        # This is deliberately independent of account_settings SELECT policies:
+        # a valid Auth login must never silently fall back to the student role
+        # just because profile enrichment is blocked by RLS.
+        try:
+            response = _request(
+                "POST",
+                f"{self.url}/rest/v1/rpc/lookup_login_profile_by_email",
+                headers=self._headers(False),
+                payload={"p_email": email},
+                timeout=API_TIMEOUT,
+            )
+            if response.ok:
+                rows = response.json() or []
+                if isinstance(rows, list) and rows and isinstance(rows[0], dict):
+                    canonical = rows[0]
+                    for key in (
+                        "username","role","display_name","national_code",
+                        "linked_student_id","linked_teacher_id","linked_staff_id",
+                    ):
+                        if canonical.get(key) not in (None, ""):
+                            profile[key] = canonical[key]
+                    profile["email"] = email
+                    return profile
+        except Exception as exc:
+            print("LOGIN PROFILE RPC ERROR:", repr(exc))
         try:
             response = _request(
                 "GET", f"{self.url}/rest/v1/account_settings",
