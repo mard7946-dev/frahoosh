@@ -129,12 +129,19 @@ class AppState:
                 if normalized_identifier.isdigit() and len(normalized_identifier) == 10:
                     try:
                         canonical_by_code = self.api._profile_by_national_code(normalized_identifier)
-                        if isinstance(canonical_by_code, dict) and canonical_by_code:
-                            merged = dict(current_profile)
-                            merged.update(canonical_by_code)
-                            current_profile = merged
+                        if not isinstance(canonical_by_code, dict) or not canonical_by_code:
+                            print("CANONICAL LOGIN PROFILE NOT FOUND; refusing login")
+                            self.logout()
+                            return False
+                        # For numeric login, public.users is authoritative.
+                        # Never keep an Auth/student fallback role.
+                        merged = dict(current_profile)
+                        merged.update(canonical_by_code)
+                        current_profile = merged
                     except Exception as code_exc:
                         print("CANONICAL LOGIN PROFILE ERROR:", repr(code_exc))
+                        self.logout()
+                        return False
 
                 resolved_role = str(current_profile.get("role") or "").strip().lower()
                 if not resolved_role:
