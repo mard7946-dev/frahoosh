@@ -96,7 +96,10 @@ class SupabaseClient:
             raise ApiError("تنظیمات اتصال سرور در برنامه وجود ندارد.")
 
         if "@" in identifier:
-            return self._password_auth(identifier, password)
+            result = self._password_auth(identifier, password)
+            if isinstance(result, dict):
+                result["login_identifier"] = identifier
+            return result
 
         if not identifier.isdigit() or len(identifier) != 10:
             raise ApiError("کد ملی باید ۱۰ رقم باشد.")
@@ -112,7 +115,10 @@ class SupabaseClient:
         last_error = None
         for email in emails:
             try:
-                return self._password_auth(email, password)
+                result = self._password_auth(email, password)
+                if isinstance(result, dict):
+                    result["login_identifier"] = identifier
+                return result
             except ApiError as exc:
                 last_error = exc
                 if "کد ملی یا رمز عبور صحیح نیست" not in str(exc):
