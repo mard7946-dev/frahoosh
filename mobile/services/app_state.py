@@ -58,7 +58,7 @@ class AppState:
         metadata = user.get("user_metadata")
         if not role and isinstance(metadata, dict):
             role = metadata.get("role")
-        return str(role or "student").strip().lower()
+        return str(role or "unknown").strip().lower()
 
     @property
     def national_code(self):
@@ -136,6 +136,11 @@ class AppState:
                     except Exception as code_exc:
                         print("CANONICAL LOGIN PROFILE ERROR:", repr(code_exc))
 
+                resolved_role = str(current_profile.get("role") or "").strip().lower()
+                if not resolved_role:
+                    print("LOGIN PROFILE MISSING ROLE; refusing session")
+                    self.logout()
+                    return False
                 self.session["profile"] = current_profile
                 self.session.pop("login_identifier", None)
             except Exception as exc:
