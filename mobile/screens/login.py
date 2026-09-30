@@ -304,8 +304,14 @@ class LoginScreen(Screen):
         except Exception:
             pass
 
-        # Always start from the login screen; never silently reuse a cached role.
+        # Login is always interactive; stale remembered sessions are never
+        # allowed to determine the role shown after a fresh launch.
         self._auto_login_checked = True
+        try:
+            if self.app_state is not None and getattr(self.app_state, "logged_in", False):
+                self.app_state.logout()
+        except Exception:
+            pass
 
         return super().on_pre_enter(*args)
 
