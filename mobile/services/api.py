@@ -118,6 +118,17 @@ class SupabaseClient:
                 result = self._password_auth(email, password)
                 if isinstance(result, dict):
                     result["login_identifier"] = identifier
+                    # Resolve the canonical school identity immediately after
+                    # Auth succeeds. This prevents any stale Auth metadata or
+                    # cached student profile from deciding the dashboard role.
+                    try:
+                        canonical = self._profile_by_national_code(identifier)
+                        if isinstance(canonical, dict) and canonical.get("role"):
+                            result["profile"] = dict(canonical)
+                            result["canonical_profile"] = dict(canonical)
+                            result["canonical_role"] = str(canonical.get("role") or "").strip().lower()
+                    except Exception as exc:
+                        print("CANONICAL ROLE AFTER AUTH ERROR:", repr(exc))
                 return result
             except ApiError as exc:
                 last_error = exc
