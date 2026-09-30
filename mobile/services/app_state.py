@@ -129,21 +129,42 @@ class AppState:
                 if normalized_identifier.isdigit() and len(normalized_identifier) == 10:
                     try:
                         canonical_by_code = self.api._profile_by_national_code(normalized_identifier)
-                        if not isinstance(canonical_by_code, dict) or not canonical_by_code:
-                            print("CANONICAL LOGIN PROFILE NOT FOUND; refusing login")
-                            self.logout()
-                            return False
-                        # For numeric login, public.users is authoritative.
-                        # Never keep an Auth/student fallback role.
-                        # Canonical public.users identity is authoritative.
-                        current_profile = dict(canonical_by_code)
-                        current_profile["email"] = (current_profile.get("email")
-                                                    or (user.get("email") if isinstance(user, dict) else "")
-                                                    or "")
+                        if isinstance(canonical_by_code, dict) and canonical_by_code:
+                            # public.users is authoritative whenever the
+                            # canonical lookup is available.
+                            current_profile = dict(canonical_by_code)
+                            current_profile["email"] = (
+                                current_profile.get("email")
+                                or (user.get("email") if isinstance(user, dict) else "")
+                                or ""
+                            )
+                        else:
+                            # Do not turn a successful Auth login into a
+                            # generic "server connection" failure merely
+                            # because the second profile RPC is temporarily
+                            # unavailable. _profile() already resolved the
+                            # canonical identity by Auth email.
+                            existing_code = self.api._normalize_digits(
+                                str(current_profile.get("national_code")
+                                    or current_profile.get("username") or "")
+                            ).strip()
+                            existing_role = str(
+                                current_profile.get("role") or ""
+                            ).strip().lower()
+                            if existing_code != normalized_identifier or not existing_role:
+                                print("CANONICAL LOGIN PROFILE NOT FOUND; refusing login")
+                                self.logout()
+                                return False
                     except Exception as code_exc:
                         print("CANONICAL LOGIN PROFILE ERROR:", repr(code_exc))
-                        self.logout()
-                        return False
+                        existing_code = self.api._normalize_digits(
+                            str(current_profile.get("national_code")
+                                or current_profile.get("username") or "")
+                        ).strip()
+                        existing_role = str(current_profile.get("role") or "").strip().lower()
+                        if existing_code != normalized_identifier or not existing_role:
+                            self.logout()
+                            return False
 
                 resolved_role = str(current_profile.get("role") or "").strip().lower()
                 if not resolved_role:
