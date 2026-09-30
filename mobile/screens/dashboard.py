@@ -284,6 +284,8 @@ class PanelHubScreen(Screen):
         }.get(self.panel_key, self.panel_key)
         catalog = MOTHER_PANEL_CATALOG.get(catalog_key) or {}
         items = catalog.get("items") or []
+        if self.panel_key == "staff":
+            items = [("کادر و کارکنان", "staff")]
 
         # These are first-class operational centers, not generic CRUD tables.
         # Always expose their real workflow entry point even if the mother ZIP
