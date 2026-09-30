@@ -548,13 +548,18 @@ class DashboardScreen(Screen):
         return w
 
     def role(self):
-        raw=str(getattr(self.app_state,"role","student") or "student").strip().lower()
+        raw=str(getattr(self.app_state,"role","unknown") or "unknown").strip().lower()
         return ROLE_ALIASES.get(raw,raw)
 
     def items(self):
         role = self.role()
         if role == "manager":
-            return [(title, "panelhub:" + key) for title, key in PANEL_HUBS]
+            return [
+                ("دانش‌آموزان", "panelhub:students"),
+                ("اولیا", "panelhub:parents"),
+                ("دبیران", "panelhub:teachers"),
+                ("کارمندان و معاونان", "panelhub:staff"),
+            ]
         own_panel = {
             "executive": "executive",
             "educational": "educational",
