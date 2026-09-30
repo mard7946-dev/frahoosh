@@ -135,9 +135,11 @@ class AppState:
                             return False
                         # For numeric login, public.users is authoritative.
                         # Never keep an Auth/student fallback role.
-                        merged = dict(current_profile)
-                        merged.update(canonical_by_code)
-                        current_profile = merged
+                        # Canonical public.users identity is authoritative.
+                        current_profile = dict(canonical_by_code)
+                        current_profile["email"] = (current_profile.get("email")
+                                                    or (user.get("email") if isinstance(user, dict) else "")
+                                                    or "")
                     except Exception as code_exc:
                         print("CANONICAL LOGIN PROFILE ERROR:", repr(code_exc))
                         self.logout()
