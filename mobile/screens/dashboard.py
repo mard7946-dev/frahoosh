@@ -161,6 +161,7 @@ PANEL_HUBS = [
     ("معاون پرورشی","cultural"),
     ("مشاوره","advisor"),
     ("دبیران","teachers"),
+    ("کارمندان","staff"),
     ("دانش‌آموزان","students"),
     ("اولیا","parents"),
     ("مالی","finance"),
@@ -183,7 +184,7 @@ PARENT_ALLOWED_PANELS = {"parents"}
 PANEL_MODULE_SOURCE = {
     "management":"management", "educational":"educational", "executive":"executive",
     "cultural":"cultural", "advisor":"advisor", "teachers":"teachers",
-    "parents":"parents", "students":"students", "finance":"finance",
+    "parents":"parents", "students":"students", "staff":"staff", "finance":"finance",
     "smart_board":"smart_board", "online":"online", "ai":"ai", "messages":"messages",
     "teacher_exams":"teacher_exams", "payment":"payment"
 }
@@ -274,6 +275,7 @@ class PanelHubScreen(Screen):
             "cultural": "cultural",
             "advisor": "advisor",
             "teachers": "teacher",
+            "staff": "staff",
             "students": "student",
             "parents": "parent",
             "finance": "finance",
