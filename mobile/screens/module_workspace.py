@@ -1121,6 +1121,42 @@ class ModuleWorkspaceScreen(Screen):
                 print("STUDENT ID RESOLVE ERROR:", repr(exc))
         return None
 
+    def _open_parent_directory(self):
+        self.body.clear_widgets()
+        self.table = None
+        self.title.text = fa_display("پروفایل اولیا و ارتباط فرزند")
+        self.body.add_widget(self.label("فهرست واقعی حساب‌های ولی و دانش‌آموزان متصل‌شده در مدرسه", "10sp", SECONDARY, False, "center"))
+        try:
+            links = self.app_state.api.table_select("parent_children", {"limit":"500"}) or []
+            students = self.app_state.api.table_select("students", {"limit":"500"}) or []
+        except Exception as exc:
+            self.body.add_widget(self.label("خواندن اطلاعات انجام نشد: " + str(exc), "10sp", ERROR, True, "center"))
+            self.body.add_widget(self.btn("بازگشت", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
+            return
+        student_by_id = {str(s.get("id")): s for s in students}
+        grouped = {}
+        for link in links:
+            username = str(link.get("parent_username") or "").strip()
+            if not username:
+                continue
+            grouped.setdefault(username, []).append(student_by_id.get(str(link.get("student_id"))) or {})
+        if not grouped:
+            self.body.add_widget(self.label("هیچ حساب ولی متصل به دانش‌آموز در پایگاه داده ثبت نشده است.", "11sp", SECONDARY, False, "center"))
+        for username, children in sorted(grouped.items()):
+            names = []
+            for student in children:
+                name = " ".join(str(student.get(k) or "").strip() for k in ("first_name", "last_name")).strip()
+                names.append(name or ("دانش‌آموز " + str(student.get("id") or "")))
+            card = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(105), padding=dp(9), spacing=dp(4))
+            with card.canvas.before:
+                Color(0.02, 0.10, 0.20, 0.92)
+                bg = RoundedRectangle(radius=[dp(14)])
+            card.bind(pos=lambda o,v,bg=bg:setattr(bg,"pos",v), size=lambda o,v,bg=bg:setattr(bg,"size",v))
+            card.add_widget(self.label("حساب ولی: " + username, "12sp", WHITE, True, "center"))
+            card.add_widget(self.label("فرزند/فرزندان: " + "، ".join(names), "10sp", SECONDARY, False, "center"))
+            self.body.add_widget(card)
+        self.body.add_widget(self.btn("بازگشت", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
+
     def _open_parent_children(self):
         self.body.clear_widgets()
         self.table = None
@@ -1356,6 +1392,12 @@ class ModuleWorkspaceScreen(Screen):
                 self.status.text = fa_display("محیط کلاس هوشمند باز نشد: " + str(exc))
                 self.status.color = (.8, .15, .15, 1)
                 return
+
+        # The manager's parent panel is a school-wide directory, not a self-only
+        # parent-child view. Render the real linked parent accounts directly.
+        if table == "parent_children" and self.role() == "manager":
+            self._open_parent_directory()
+            return
 
         # Mother/ZIP module buttons carry logical ids; all operational paths use the canonical Supabase table.
         table = self._resolve_backend_route(table)
