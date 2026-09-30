@@ -349,6 +349,26 @@ class SupabaseClient:
         profile.setdefault("display_name", email)
         return profile
 
+    def _profile_by_national_code(self, national_code):
+        national_code = self._normalize_digits(national_code).strip()
+        if not self.configured or not national_code:
+            return {}
+        try:
+            response = _request(
+                "POST",
+                f"{self.url}/rest/v1/rpc/lookup_login_profile_by_national_code",
+                headers=self._headers(False),
+                payload={"p_national_code": national_code},
+                timeout=API_TIMEOUT,
+            )
+            if response.ok:
+                rows = response.json() or []
+                if isinstance(rows, list) and rows and isinstance(rows[0], dict):
+                    return dict(rows[0])
+        except Exception as exc:
+            print("LOGIN PROFILE NATIONAL CODE RPC ERROR:", repr(exc))
+        return {}
+
     def refresh_access_token(self):
         if not self.configured or not self.refresh_token:
             return False
