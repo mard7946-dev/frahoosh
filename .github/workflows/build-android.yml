@@ -239,8 +239,8 @@ jobs:
           PY
           APP_VERSION="$(awk -F'= ' '/^version = /{print $2; exit}' buildozer.spec)"
           APP_NUMERIC_VERSION="$(awk -F'= ' '/^android.numeric_version = /{print $2; exit}' buildozer.spec)"
-          test "$APP_VERSION" = "1.6.7"
-          test "$APP_NUMERIC_VERSION" = "167"
+          test "$APP_VERSION" = "1.6.8"
+          test "$APP_NUMERIC_VERSION" = "168"
           grep -Fq "package.name = frahooshmobile" buildozer.spec
           grep -Fq "package.domain = ir.frahoosh" buildozer.spec
           grep -Fq "source.dir = ." buildozer.spec
@@ -325,7 +325,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Frahoosh-APK-v1.6.7
+          name: Frahoosh-APK-v1.6.8
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
