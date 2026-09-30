@@ -15,7 +15,7 @@ from mobile.config import (
     APP_NAME, SCHOOL_NAME, APP_SLOGAN, SYSTEM_TITLE, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
     SUCCESS, WHITE, ERROR,
 )
-from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
+from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput, CredentialTextInput
 
 
 NAVY = (0.015, 0.07, 0.18, 1)
@@ -52,29 +52,46 @@ class LoginScreen(Screen):
         return w
 
     def _field(self, hint, password=False):
-        # TextInput must keep logical Unicode. Shaping the hint before feeding it
-        # to TextInput reverses Persian and can make joined glyphs appear broken.
-        # The bundled Noto Sans Arabic face also contains the ASCII asterisk used
-        # by the password renderer, so password fields no longer fall back to Roboto.
-        field = PersianTextInput(
-            hint_text=str(hint),
-            password=password,
-            password_mask="*",
-            font_name=font_name(),
-            font_size="14sp",
-            multiline=False,
-            size_hint_y=None,
-            height=dp(47),
-            halign="right",
-            padding=[dp(14), dp(9)],
-            background_normal="",
-            background_active="",
-            background_color=(0, 0, 0, 0),
-            foreground_color=WHITE,
-            hint_text_color=MUTED,
-            cursor_color=CYAN,
-            selection_color=(0.10, 0.50, 0.90, 0.55),
-        )
+        # Passwords use a dedicated logical credential editor so Android/Kivy
+        # never substitutes a missing password glyph with square boxes.
+        if password:
+            field = CredentialTextInput(
+                hint_text=str(hint),
+                masked=True,
+                font_name=font_name(),
+                font_size="14sp",
+                multiline=False,
+                size_hint_y=None,
+                height=dp(47),
+                halign="right",
+                padding=[dp(14), dp(9)],
+                background_normal="",
+                background_active="",
+                background_color=(0, 0, 0, 0),
+                foreground_color=WHITE,
+                hint_text_color=MUTED,
+                cursor_color=CYAN,
+                selection_color=(0.10, 0.50, 0.90, 0.55),
+            )
+        else:
+            field = PersianTextInput(
+                hint_text=str(hint),
+                password=False,
+                font_name=font_name(),
+                font_size="14sp",
+                multiline=False,
+                size_hint_y=None,
+                height=dp(47),
+                halign="right",
+                padding=[dp(14), dp(9)],
+                background_normal="",
+                background_active="",
+                background_color=(0, 0, 0, 0),
+                foreground_color=WHITE,
+                hint_text_color=MUTED,
+                cursor_color=CYAN,
+                selection_color=(0.10, 0.50, 0.90, 0.55),
+            )
         with field.canvas.before:
             Color(*FIELD)
             field._bg = RoundedRectangle(radius=[dp(16)])
