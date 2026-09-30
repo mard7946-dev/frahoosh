@@ -95,6 +95,15 @@ class AppState:
 
         self.session = dict(payload)
 
+        # sign_in() resolves numeric identifiers against public.users before
+        # the dashboard is opened. Treat that canonical role as immutable for
+        # this session; never merge a stale cached student role over it.
+        canonical_profile = self.session.get("canonical_profile")
+        canonical_role = str(self.session.get("canonical_role") or "").strip().lower()
+        if isinstance(canonical_profile, dict) and canonical_role:
+            self.session["profile"] = dict(canonical_profile)
+            self.session["canonical_role"] = canonical_role
+
         # The Auth response normally already contains the school profile, but
         # older/partially configured Supabase projects can return only the Auth
         # user. Enrich the session immediately while the fresh bearer token is
@@ -176,6 +185,8 @@ class AppState:
             except Exception as exc:
                 print("PROFILE ENRICHMENT ERROR:", repr(exc))
 
+        if self.session.get("canonical_role"):
+            self.session["profile"]["role"] = self.session["canonical_role"]
         self.session["remember_me"] = bool(remember)
         self._load_tokens()
 
