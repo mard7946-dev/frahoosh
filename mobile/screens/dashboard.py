@@ -554,12 +554,7 @@ class DashboardScreen(Screen):
     def items(self):
         role = self.role()
         if role == "manager":
-            return [
-                ("دانش‌آموزان", "panelhub:students"),
-                ("اولیا", "panelhub:parents"),
-                ("دبیران", "panelhub:teachers"),
-                ("کارمندان و معاونان", "panelhub:staff"),
-            ]
+            return [(title, "panelhub:" + key) for title, key in PANEL_HUBS]
         own_panel = {
             "executive": "executive",
             "educational": "educational",
