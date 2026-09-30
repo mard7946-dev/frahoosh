@@ -304,19 +304,8 @@ class LoginScreen(Screen):
         except Exception:
             pass
 
-        if not self._auto_login_checked:
-            self._auto_login_checked = True
-            try:
-                session = self.app_state.session if self.app_state else {}
-                if (
-                    isinstance(session, dict)
-                    and session.get("remember_me") is True
-                    and self.app_state.logged_in
-                ):
-                    self._set_status("در حال ورود خودکار...", MUTED)
-                    Clock.schedule_once(lambda dt: self._open_saved_session(), 0.15)
-            except Exception as exc:
-                print("AUTO LOGIN CHECK ERROR:", repr(exc))
+        # Always start from the login screen; never silently reuse a cached role.
+        self._auto_login_checked = True
 
         return super().on_pre_enter(*args)
 
