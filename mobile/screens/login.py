@@ -227,6 +227,9 @@ class LoginScreen(Screen):
             session = self.app_state.api.sign_in(identifier, password)
             if not session:
                 raise RuntimeError("نشست ایجاد نشد.")
+            # Preserve the exact numeric identifier through profile enrichment;
+            # AppState uses it to resolve the canonical role/links from public.users.
+            session["login_identifier"] = self._normalize_digits(identifier).strip()
             if not self.app_state.set_session(session, remember=remember):
                 raise RuntimeError("ذخیره نشست انجام نشد.")
             Clock.schedule_once(lambda dt: self._login_success(), 0)
