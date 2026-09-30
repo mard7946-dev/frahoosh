@@ -260,7 +260,7 @@ class FrahooshApp(App):
 
     def _set_screen_capture_policy(self):
         try:
-            role = str(getattr(self.app_state, "role", "student") or "student").strip().lower()
+            role = str(getattr(self.app_state, "role", "unknown") or "unknown").strip().lower()
             allowed = {
                 "manager", "admin", "administrator", "مدیر", "مدیریت",
                 "معاون آموزشی", "معاون اجرایی", "معاون پرورشی",
