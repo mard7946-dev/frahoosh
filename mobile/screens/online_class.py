@@ -111,48 +111,48 @@ class OnlineClassScreen(Screen):
         self._create_form()
         self._button("بازگشت به فهرست کلاس‌ها",lambda *_:self.show_home(),SECONDARY,46)
     def _create_form(self):
-        title=self._field("عنوان کلاس"); subject=self._field("درس / موضوع"); teacher=self._field("نام دبیر"); grade=self._field("پایه"); cls=self._field("نام کلاس")
-        day=self._field("روز هفته"); date=self._field("تاریخ شروع شمسی"); start=self._field("ساعت شروع"); end=self._field("ساعت پایان"); duration=self._field("مدت به دقیقه"); duration.text="60"; join=self._field("لینک جلسه واقعی؛ اختیاری")
-        self._button("＋ ساخت کلاس",lambda *_:self._create(title,subject,teacher,grade,cls,day,date,start,end,duration,join),SUCCESS)
-    def _create(self,title,subject,teacher,grade,cls,day,date,start,end,duration,join):
-        # This is the only write path for creating an online class. Keep the
-        # response from Supabase and verify that a row was actually returned;
-        # a silent/empty response must never be presented as a successful save.
+        # تشکیل کلاس عمداً ساده است: فقط چهار اطلاعات اصلی.
+        teacher=self._field("نام دبیر")
+        subject=self._field("نام درس")
+        start=self._field("زمان شروع")
+        end=self._field("زمان پایان")
+        self._button("＋ تشکیل کلاس",lambda *_:self._create(teacher,subject,start,end),SUCCESS)
+    def _create(self,teacher,subject,start,end):
         api=getattr(self.app_state,"api",None)
         if api is None:
             return self._error("سرویس اتصال به پایگاه داده آماده نیست.")
         role=role_of(self.app_state)
         if role not in CLASS_CREATORS:
-            return self._error("فقط مدیر، معاون اجرایی و معاون آموزشی اجازه ساخت کلاس آنلاین دارند.")
+            return self._error("فقط مدیر، معاون اجرایی و معاون آموزشی اجازه تشکیل کلاس آنلاین دارند.")
         if not getattr(api,"access_token",""):
             return self._error("نشست ورود معتبر نیست؛ دوباره وارد فراهوش شوید.")
+
+        teacher_value=(teacher.text or "").strip()
+        subject_value=(subject.text or "").strip()
+        start_value=(start.text or "").strip()
+        end_value=(end.text or "").strip()
+        if not teacher_value:
+            return self._error("نام دبیر الزامی است.")
+        if not subject_value:
+            return self._error("نام درس الزامی است.")
+        if not start_value or not end_value:
+            return self._error("زمان شروع و پایان را وارد کنید.")
+
         try:
-            d=max(1,int((duration.text or "").strip() or 60))
-        except Exception:
-            return self._error("مدت کلاس باید عدد باشد.")
-        title_value=(title.text or "").strip()
-        if not title_value:
-            return self._error("عنوان کلاس الزامی است.")
-        try:
-            join_url=(join.text or "").strip()
-            if not join_url:
-                import secrets
-                safe_class=str((cls.text or "").strip() or "class").replace(" ","-")
-                join_url="https://meet.jit.si/frahoosh-"+safe_class+"-"+secrets.token_hex(5)
+            import secrets
+            safe_key="-".join((subject_value+" "+teacher_value).split()).replace("/","-")
+            join_url="https://meet.jit.si/frahoosh-"+safe_key[:40]+"-"+secrets.token_hex(4)
+            title_value=f"{subject_value} - {teacher_value}"
             payload={
                 "title":title_value,
-                "subject":(subject.text or "").strip(),
-                "lesson":(subject.text or "").strip(),
-                "teacher":(teacher.text or "").strip(),
-                "grade":(grade.text or "").strip(),
-                "class_name":(cls.text or "").strip(),
-                "duration":d,
-                "class_day":(day.text or "").strip(),
-                "start_date_shamsi":(date.text or "").strip(),
-                "start_clock":(start.text or "").strip(),
-                "end_clock":(end.text or "").strip(),
-                "start_time_shamsi":((date.text or "").strip()+" "+(start.text or "").strip()).strip(),
-                "end_time_shamsi":((date.text or "").strip()+" "+(end.text or "").strip()).strip(),
+                "subject":subject_value,
+                "lesson":subject_value,
+                "teacher":teacher_value,
+                "start_time":start_value,
+                "end_time":end_value,
+                "start_time_shamsi":start_value,
+                "end_time_shamsi":end_value,
+                "duration":0,
                 "status":"inactive",
                 "join_url":join_url,
                 "meeting_url":join_url,
@@ -161,39 +161,59 @@ class OnlineClassScreen(Screen):
             rows=result if isinstance(result,list) else ([result] if isinstance(result,dict) else [])
             if not rows or not rows[0].get("id"):
                 return self._error("پاسخ ثبت کلاس از Supabase معتبر نبود؛ کلاس ذخیره نشد.")
-            created=rows[0]
-            class_id=int(created.get("id"))
-            # Persist the real teacher relationship, not only the typed teacher name.
-            teacher_name=(teacher.text or "").strip()
-            if teacher_name:
-                teachers=api.table_select("teachers",{"limit":"500"}) or []
-                match=next((t for t in teachers if str(t.get("email") or "").strip().lower()==teacher_name.lower()
-                            or f"{t.get('first_name','')} {t.get('last_name','')}".strip()==teacher_name
-                            or str(t.get("first_name") or "").strip()==teacher_name),None)
-                if match and match.get("id"):
+            class_id=int(rows[0]["id"])
+
+            # نام دبیر به رابطه واقعی teachers وصل می‌شود؛ متن فرم فقط برای نمایش است.
+            teachers=api.table_select("teachers",{"limit":"500"}) or []
+            match=next(
+                (t for t in teachers
+                 if str(t.get("email") or "").strip().lower()==teacher_value.lower()
+                 or f"{t.get('first_name','')} {t.get('last_name','')}".strip()==teacher_value
+                 or str(t.get("first_name") or "").strip()==teacher_value),
+                None,
+            )
+            if match and match.get("id"):
+                existing=api.table_select("online_class_teachers",{
+                    "class_id":f"eq.{class_id}","teacher_id":f"eq.{int(match['id'])}","limit":"1"
+                }) or []
+                if not existing:
                     api.table_insert("online_class_teachers",{
-                        "class_id":class_id,"teacher_id":int(match["id"]),
-                        "teacher_name":f"{match.get('first_name','')} {match.get('last_name','')}".strip() or teacher_name
+                        "class_id":class_id,
+                        "teacher_id":int(match["id"]),
+                        "teacher_name":f"{match.get('first_name','')} {match.get('last_name','')}".strip() or teacher_value,
                     },return_representation=False)
-            self._ok("کلاس با موفقیت ثبت شد و ارتباط دبیر در سامانه ذخیره شد. کد کلاس: "+str(class_id))
+
+            self._ok("کلاس ثبت شد و به دبیر متصل شد. برای دانش‌آموز، از «اتصال دانش‌آموز به کلاس» استفاده کنید. کد کلاس: "+str(class_id))
             self.show_home()
         except Exception as exc:
             self._error("ثبت کلاس در Supabase انجام نشد: "+str(exc))
+
     def _load_classes(self):
-        try:rows=self.app_state.api.table_select("online_classes",{"order":"id.desc","limit":"50"})
-        except Exception as exc:return self._error("خواندن کلاس‌ها انجام نشد: "+str(exc))
-        if not rows:self._label("هنوز کلاسی ثبت نشده است.",height=55); return
+        try:
+            rows=self.app_state.api.table_select("online_classes",{"order":"id.desc","limit":"50"})
+        except Exception as exc:
+            return self._error("خواندن کلاس‌ها انجام نشد: "+str(exc))
+        if not rows:
+            self._label("هنوز کلاسی ثبت نشده است.",height=55)
+            return
+        role=role_of(self.app_state)
         for r in rows:
             cid=r.get("id"); state=str(r.get("status") or "inactive")
-            self._label(f"#{cid} | {r.get('title') or 'کلاس آنلاین'}\n{r.get('subject','')} | پایه {r.get('grade','')} | کلاس {r.get('class_name','')} | دبیر {r.get('teacher','')}\nوضعیت: {'فعال' if state=='active' else ('پایان‌یافته' if state=='ended' else 'غیرفعال')}",height=92,bold=True)
-            if role_of(self.app_state) in CLASS_MANAGERS:
+            self._label(
+                f"{r.get('teacher') or '-'} | {r.get('subject') or r.get('lesson') or '-'}\n"
+                f"شروع: {r.get('start_clock') or r.get('start_time') or r.get('start_time_shamsi') or '-'}"
+                f"   پایان: {r.get('end_clock') or r.get('end_time') or r.get('end_time_shamsi') or '-'}\n"
+                f"وضعیت: {'فعال' if state=='active' else ('پایان‌یافته' if state=='ended' else 'غیرفعال')}",
+                height=86,bold=True
+            )
+            if role in CLASS_MANAGERS:
                 self._button("✎ ویرایش کلاس",lambda *_ ,row=dict(r):self._edit_class(row),PRIMARY)
                 self._button("حذف کلاس",lambda *_ ,x=cid:self._delete_class(x),ERROR)
-                self._button("خروجی اکسل کلاس‌ها",lambda *_:self._export_excel(),PRIMARY)
-                self._button("ورودی اکسل کلاس‌ها",lambda *_:self._import_excel(),PRIMARY)
                 self._button("＋ اتصال دانش‌آموز به کلاس",lambda *_ ,x=cid:self._add_student(x),SUCCESS)
                 self._button("＋ اتصال دبیر به کلاس",lambda *_ ,x=cid:self._add_teacher(x),SUCCESS)
                 self._button("اعضای کلاس",lambda *_ ,x=cid:self._members(x),PRIMARY)
+                self._button("خروجی اکسل کلاس‌ها",lambda *_:self._export_excel(),PRIMARY)
+                self._button("ورودی اکسل کلاس‌ها",lambda *_:self._import_excel(),PRIMARY)
                 if state!="active": self._button("▶ شروع جلسه",lambda *_ ,x=cid:self._start(x),SUCCESS)
                 if state=="active": self._button("■ پایان جلسه",lambda *_ ,x=cid:self._end(x),ERROR)
                 self._button("حضور و غیاب",lambda *_ ,x=cid:self._attendance(x),PRIMARY)
@@ -208,31 +228,31 @@ class OnlineClassScreen(Screen):
     def _edit_class(self,row):
         self._clear()
         self._label("ویرایش کلاس #"+str(row.get("id")),"21sp",PRIMARY,52,True)
-        title=self._field("عنوان کلاس"); title.text=str(row.get("title") or "")
-        subject=self._field("درس / موضوع"); subject.text=str(row.get("subject") or row.get("lesson") or "")
         teacher=self._field("نام دبیر"); teacher.text=str(row.get("teacher") or "")
-        grade=self._field("پایه"); grade.text=str(row.get("grade") or "")
-        cls=self._field("نام کلاس"); cls.text=str(row.get("class_name") or "")
-        day=self._field("روز هفته"); day.text=str(row.get("class_day") or "")
-        date=self._field("تاریخ شروع شمسی"); date.text=str(row.get("start_date_shamsi") or "")
-        start=self._field("ساعت شروع"); start.text=str(row.get("start_clock") or "")
-        end=self._field("ساعت پایان"); end.text=str(row.get("end_clock") or "")
-        duration=self._field("مدت به دقیقه"); duration.text=str(row.get("duration") or 60)
-        join=self._field("لینک جلسه واقعی؛ اختیاری"); join.text=str(row.get("join_url") or row.get("meeting_url") or "")
-        self._button("ذخیره ویرایش",lambda *_:self._save_class_edit(row.get("id"),title,subject,teacher,grade,cls,day,date,duration,start,end,join),SUCCESS)
+        subject=self._field("نام درس"); subject.text=str(row.get("subject") or row.get("lesson") or "")
+        start=self._field("زمان شروع"); start.text=str(row.get("start_clock") or row.get("start_time") or row.get("start_time_shamsi") or "")
+        end=self._field("زمان پایان"); end.text=str(row.get("end_clock") or row.get("end_time") or row.get("end_time_shamsi") or "")
+        self._button("ذخیره ویرایش",lambda *_:self._save_class_edit(row.get("id"),teacher,subject,start,end),SUCCESS)
         self._button("بازگشت",lambda *_:self.show_home(),SECONDARY)
-    def _save_class_edit(self,cid,title,subject,teacher,grade,cls,day,date,duration,start,end,join):
+
+    def _save_class_edit(self,cid,teacher,subject,start,end):
         try:
-            d=max(1,int(duration.text.strip() or 60))
-            if not title.text.strip(): return self._error("عنوان کلاس الزامی است.")
+            teacher_value=teacher.text.strip(); subject_value=subject.text.strip()
+            start_value=start.text.strip(); end_value=end.text.strip()
+            if not teacher_value or not subject_value or not start_value or not end_value:
+                return self._error("نام دبیر، نام درس، زمان شروع و زمان پایان الزامی است.")
             self.app_state.api.table_update("online_classes",{"id":f"eq.{cid}"},{
-                "title":title.text.strip(),"subject":subject.text.strip(),"lesson":subject.text.strip(),
-                "teacher":teacher.text.strip(),"grade":grade.text.strip(),"class_name":cls.text.strip(),
-                "duration":d,"class_day":day.text.strip(),"start_date_shamsi":date.text.strip(),"start_clock":start.text.strip(),"end_clock":end.text.strip(),
-                "start_time_shamsi":(date.text.strip()+" "+start.text.strip()).strip(),"end_time_shamsi":(date.text.strip()+" "+end.text.strip()).strip(),
-                "join_url":join.text.strip(),"meeting_url":join.text.strip()
+                "title":f"{subject_value} - {teacher_value}",
+                "subject":subject_value,
+                "lesson":subject_value,
+                "teacher":teacher_value,
+                "start_time":start_value,
+                "end_time":end_value,
+                "start_time_shamsi":start_value,
+                "end_time_shamsi":end_value,
             })
-            self._ok("کلاس با موفقیت ویرایش شد."); self.show_home()
+            self._ok("کلاس با موفقیت ویرایش شد.")
+            self.show_home()
         except Exception as exc:
             self._error("ویرایش کلاس انجام نشد: "+str(exc))
 
@@ -256,7 +276,7 @@ class OnlineClassScreen(Screen):
         try:
             from openpyxl import Workbook
             rows=self.app_state.api.table_select("online_classes",{"limit":"1000"}) or []
-            fields=["id","title","subject","lesson","teacher","grade","class_name","class_day","start_date_shamsi","start_clock","end_clock","duration","status","join_url","meeting_url"]
+            fields=["id","teacher","subject","start_time","end_time","status","join_url","meeting_url"]
             wb=Workbook(); ws=wb.active; ws.title="کلاس‌های آنلاین"
             ws.append(fields)
             for r in rows: ws.append([r.get(k,"") for k in fields])
@@ -276,7 +296,7 @@ class OnlineClassScreen(Screen):
             rows=list(ws.iter_rows(values_only=True))
             if not rows: return self._error("فایل Excel خالی است.")
             headers=[str(x or "").strip() for x in rows[0]]
-            allowed={"title","subject","lesson","teacher","grade","class_name","class_day","start_date_shamsi","start_clock","end_clock","duration","status","join_url","meeting_url"}
+            allowed={"teacher","subject","start_time","end_time","status","join_url","meeting_url"}
             inserted=0
             for values in rows[1:]:
                 payload={}
