@@ -1927,7 +1927,9 @@ class ModuleWorkspaceScreen(Screen):
         b=SelectableRow(owner=self,record=r,size_hint=(None,None),width=totalw,height=dp(100),spacing=dp(3),padding=[dp(5),dp(5)])
         for k in keys:
             raw = r.get(k, "")
-            s = fa_display(str(raw).strip())
+            # label() is the single canonical RTL rendering boundary. Do not
+            # pre-shape the value here or Persian text gets bidi-shaped twice.
+            s = str(raw).strip()
             if not s or all(ch in "□�▯" for ch in s):
                 s = "ثبت نشده"
             cell=self.label(s,"17sp",SECONDARY,False,'center')
