@@ -300,7 +300,7 @@ class SupabaseClient:
             response = _request(
                 "POST",
                 f"{self.url}/rest/v1/rpc/lookup_login_profile_by_email",
-                headers=self._headers(False),
+                headers=self._headers(True),
                 payload={"p_email": email},
                 timeout=API_TIMEOUT,
             )
@@ -383,7 +383,7 @@ class SupabaseClient:
             response = _request(
                 "POST",
                 f"{self.url}/rest/v1/rpc/lookup_login_profile_by_national_code",
-                headers=self._headers(False),
+                headers=self._headers(True),
                 payload={"p_national_code": national_code},
                 timeout=API_TIMEOUT,
             )
