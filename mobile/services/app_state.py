@@ -88,90 +88,71 @@ class AppState:
 
     def set_session(self, payload, remember=True):
         if not isinstance(payload, dict):
-            return False
+            raise RuntimeError("پاسخ ورود نامعتبر است.")
         if not payload.get("access_token"):
             self.logout()
-            return False
+            raise RuntimeError("توکن ورود از Supabase دریافت نشد.")
 
         self.session = dict(payload)
 
-        # sign_in() resolves numeric identifiers against public.users before
-        # the dashboard is opened. Treat that canonical role as immutable for
-        # this session; never merge a stale cached student role over it.
         canonical_profile = self.session.get("canonical_profile")
         canonical_role = str(self.session.get("canonical_role") or "").strip().lower()
         if isinstance(canonical_profile, dict) and canonical_role:
             self.session["profile"] = dict(canonical_profile)
             self.session["canonical_role"] = canonical_role
 
-        # The Auth response normally already contains the school profile, but
-        # older/partially configured Supabase projects can return only the Auth
-        # user. Enrich the session immediately while the fresh bearer token is
-        # available so role-aware panels do not silently fall back to student
-        # mode. This is especially important for the manager account: CRUD
-        # controls and operational workflows depend on the canonical role.
         if self.api is not None:
+            user = self.session.get("user") or {}
+            current_profile = self.session.get("profile")
+            if not isinstance(current_profile, dict):
+                current_profile = {}
+
             try:
-                user = self.session.get("user") or {}
-                current_profile = self.session.get("profile")
-                if not isinstance(current_profile, dict):
-                    current_profile = {}
-                # Always refresh the school profile after authentication.
-                # A cached student/parent role must never override the current
-                # staff/manager role and hide CRUD controls.
+                refreshed = self.api._profile(user)
+            except Exception as profile_exc:
+                print("PROFILE REFRESH ERROR:", repr(profile_exc))
+                refreshed = None
+
+            if isinstance(refreshed, dict):
+                merged = dict(current_profile)
+                merged.update(refreshed)
+                current_profile = merged
+
+            login_identifier = str(self.session.get("login_identifier") or "").strip()
+            normalized_identifier = self.api._normalize_digits(login_identifier)
+
+            if normalized_identifier.isdigit() and len(normalized_identifier) == 10:
                 try:
-                    refreshed = self.api._profile(user)
-                except Exception as profile_exc:
-                    print("PROFILE REFRESH ERROR:", repr(profile_exc))
-                    refreshed = None
-                if isinstance(refreshed, dict):
-                    merged = dict(current_profile)
-                    merged.update(refreshed)
-                    current_profile = merged
+                    canonical_by_code = self.api._profile_by_national_code(normalized_identifier)
+                    if isinstance(canonical_by_code, dict) and canonical_by_code:
+                        current_profile = dict(current_profile)
+                        current_profile.update(canonical_by_code)
+                        current_profile["email"] = (
+                            current_profile.get("email")
+                            or (user.get("email") if isinstance(user, dict) else "")
+                            or ""
+                        )
+                except Exception as code_exc:
+                    print("CANONICAL LOGIN PROFILE UPGRADE ERROR:", repr(code_exc))
 
-                # Numeric login is the onboarding identifier, but it must
-                # never invalidate a successful Auth login merely because the
-                # canonical public.users repair has not reached the database yet.
-                # _profile() has already resolved the same manager-compatible
-                # account_settings identity and role. When public.users exists,
-                # _profile_by_national_code() upgrades the profile with its
-                # authoritative links; when it does not, keep the valid role
-                # from account_settings instead of reporting a fake network error.
-                login_identifier = str(self.session.get("login_identifier") or "").strip()
-                normalized_identifier = self.api._normalize_digits(login_identifier)
-                if normalized_identifier.isdigit() and len(normalized_identifier) == 10:
-                    try:
-                        canonical_by_code = self.api._profile_by_national_code(normalized_identifier)
-                        if isinstance(canonical_by_code, dict) and canonical_by_code:
-                            current_profile = dict(current_profile)
-                            current_profile.update(canonical_by_code)
-                            current_profile["email"] = (
-                                current_profile.get("email")
-                                or (user.get("email") if isinstance(user, dict) else "")
-                                or ""
-                            )
-                    except Exception as code_exc:
-                        print("CANONICAL LOGIN PROFILE UPGRADE ERROR:", repr(code_exc))
+            resolved_role = str(current_profile.get("role") or "").strip().lower()
+            if not resolved_role:
+                print("LOGIN PROFILE MISSING ROLE; refusing session")
+                self.logout()
+                raise RuntimeError(
+                    "نقش کاربر از Supabase دریافت نشد؛ "
+                    "ایمیل حساب و رکورد account_settings را بررسی کنید."
+                )
 
-                resolved_role = str(current_profile.get("role") or "").strip().lower()
-                if not resolved_role:
-                    print("LOGIN PROFILE MISSING ROLE; refusing session")
-                    self.logout()
-                    return False
-                self.session["profile"] = current_profile
-                self.session.pop("login_identifier", None)
-            except Exception as exc:
-                print("PROFILE ENRICHMENT ERROR:", repr(exc))
+            self.session["profile"] = current_profile
 
         if self.session.get("canonical_role"):
             self.session["profile"]["role"] = self.session["canonical_role"]
+
         self.session["remember_me"] = bool(remember)
         self._load_tokens()
 
         if remember:
-            # Local persistence is a convenience, not part of authentication.
-            # A successful Supabase login must not be rejected because an
-            # Android filesystem refuses to persist the optional session file.
             persisted = save_session(self.session)
             if not persisted:
                 print("SESSION PERSISTENCE WARNING: login remains valid in memory")
