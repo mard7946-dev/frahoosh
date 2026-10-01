@@ -63,9 +63,23 @@ def _atomic_write(
     except Exception as exc:
 
         print(
-            "SESSION WRITE ERROR:",
+            "SESSION ATOMIC WRITE ERROR:",
             repr(exc)
         )
+
+        # Some Android filesystems/sandboxes can reject os.replace even
+        # though the app-private directory itself is writable. Fall back to
+        # a direct write to the final file before declaring session storage
+        # unavailable.
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+            return True
+        except Exception as fallback_exc:
+            print(
+                "SESSION DIRECT WRITE ERROR:",
+                repr(fallback_exc)
+            )
 
         try:
             if temp.exists():
@@ -92,7 +106,8 @@ def save_session(data):
             separators=(
                 ",",
                 ":"
-            )
+            ),
+            default=str,
         )
 
         return _atomic_write(
