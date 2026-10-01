@@ -259,8 +259,8 @@ jobs:
       - name: Recreate runtime config after clean
         shell: bash
         env:
-          FRAHOOSH_SUPABASE_URL: ${{ secrets.FRAHOOSH_SUPABASE_URL }}
-          FRAHOOSH_SUPABASE_ANON_KEY: ${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}
+          FRAHOOSH_SUPABASE_URL: https://gtmmllcxhdejwjjnyzrh.supabase.co
+          FRAHOOSH_SUPABASE_ANON_KEY: sb_publishable_9gf_wPQVUTO6STGZR6JNSw_YduXkxN0
           FRAHOOSH_SCHOOL_ID: ${{ secrets.FRAHOOSH_SCHOOL_ID }}
           FRAHOOSH_SCHOOL_NAME: ${{ secrets.FRAHOOSH_SCHOOL_NAME }}
           FRAHOOSH_SCHOOL_YEAR: ${{ secrets.FRAHOOSH_SCHOOL_YEAR }}
@@ -268,9 +268,8 @@ jobs:
           FRAHOOSH_WEB_URL: ${{ secrets.FRAHOOSH_WEB_URL }}
         run: |
           set -euo pipefail
-          : "${FRAHOOSH_SUPABASE_URL:=https://gtmmllcxhdejwjjnyzrh.supabase.co}"
-          : "${FRAHOOSH_SUPABASE_ANON_KEY:=sb_publishable_9gf_wPQVUTO6STGZR6JNSw_YduXkxN0}"
-          export FRAHOOSH_SUPABASE_URL FRAHOOSH_SUPABASE_ANON_KEY
+          export FRAHOOSH_SUPABASE_URL="https://gtmmllcxhdejwjjnyzrh.supabase.co"
+          export FRAHOOSH_SUPABASE_ANON_KEY="sb_publishable_9gf_wPQVUTO6STGZR6JNSw_YduXkxN0"
           python - <<'PY'
           import json
           import os
