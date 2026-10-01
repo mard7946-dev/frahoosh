@@ -189,6 +189,8 @@ class LoginScreen(Screen):
 
     @staticmethod
     def _readable_error(exc):
+        # Do not hide actionable Supabase/API errors behind the generic
+        # network message. Real transport failures are still normalized.
         message = str(exc or "").strip()
         lower = message.lower()
         if "invalid login credentials" in lower:
@@ -205,9 +207,14 @@ class LoginScreen(Screen):
             return "تعداد تلاش‌ها زیاد است؛ کمی بعد دوباره تلاش کنید."
         if "timed out" in lower or "timeout" in lower:
             return "ارتباط با سرور زمان‌بر شد؛ دوباره تلاش کنید."
-        if "urlopen error" in lower or "network" in lower:
-            return "ارتباط با سرور برقرار نشد. اینترنت را بررسی کنید."
-        return "ارتباط با سرور برقرار نشد. دوباره تلاش کنید."
+        if "urlopen error" in lower or "network" in lower or "certificate" in lower or "dns" in lower:
+            return "ارتباط با سرور برقرار نشد. اینترنت و دسترسی شبکه را بررسی کنید."
+        # Preserve the Persian ApiError produced by the API layer. This makes
+        # the actual failing stage visible instead of incorrectly reporting a
+        # network failure for authentication/profile/RLS errors.
+        if message and any("\u0600" <= ch <= "\u06ff" for ch in message):
+            return message
+        return "خطای ورود: " + message if message else "خطای ورود؛ دوباره تلاش کنید."
 
     def login(self, *_):
         if self._busy:
