@@ -169,7 +169,13 @@ class AppState:
         self._load_tokens()
 
         if remember:
-            return save_session(self.session)
+            # Local persistence is a convenience, not part of authentication.
+            # A successful Supabase login must not be rejected because an
+            # Android filesystem refuses to persist the optional session file.
+            persisted = save_session(self.session)
+            if not persisted:
+                print("SESSION PERSISTENCE WARNING: login remains valid in memory")
+            return True
 
         clear_session()
         return True
