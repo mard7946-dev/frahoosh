@@ -203,3 +203,75 @@ begin
         );
     end loop;
 end $$;
+
+
+-- Canonical profile RPCs used by the mobile client after Auth succeeds.
+-- They deliberately read the same account_settings -> users path as the
+-- manager account, so role resolution cannot silently fall back to student.
+create or replace function public.lookup_login_profile_by_email(p_email text)
+returns table(
+    username text,
+    role text,
+    display_name text,
+    national_code text,
+    linked_student_id integer,
+    linked_teacher_id integer,
+    linked_staff_id integer
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+    select
+        u.username,
+        u.role,
+        u.display_name,
+        a.national_code,
+        u.linked_student_id,
+        u.linked_teacher_id,
+        u.linked_staff_id
+    from public.account_settings a
+    join public.users u
+      on lower(trim(u.username)) =
+         lower(trim(coalesce(nullif(a.national_code,''), a.username)))
+    where lower(trim(coalesce(a.email,''))) = lower(trim(coalesce(p_email,'')))
+    limit 1;
+$$;
+
+create or replace function public.lookup_login_profile_by_national_code(p_national_code text)
+returns table(
+    username text,
+    role text,
+    display_name text,
+    national_code text,
+    linked_student_id integer,
+    linked_teacher_id integer,
+    linked_staff_id integer
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+    select
+        u.username,
+        u.role,
+        u.display_name,
+        a.national_code,
+        u.linked_student_id,
+        u.linked_teacher_id,
+        u.linked_staff_id
+    from public.account_settings a
+    join public.users u
+      on lower(trim(u.username)) =
+         lower(trim(coalesce(nullif(a.national_code,''), a.username)))
+    where regexp_replace(coalesce(a.national_code,''),'[^0-9]','','g')
+        = regexp_replace(coalesce(p_national_code,''),'[^0-9]','','g')
+    limit 1;
+$$;
+
+revoke all on function public.lookup_login_profile_by_email(text) from public;
+revoke all on function public.lookup_login_profile_by_national_code(text) from public;
+grant execute on function public.lookup_login_profile_by_email(text) to authenticated;
+grant execute on function public.lookup_login_profile_by_national_code(text) to authenticated;
