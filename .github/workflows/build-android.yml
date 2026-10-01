@@ -87,8 +87,8 @@ jobs:
       - name: Create runtime config
         shell: bash
         env:
-          FRAHOOSH_SUPABASE_URL: https://wqructnmorlhrjwlvigm.supabase.co
-          FRAHOOSH_SUPABASE_ANON_KEY: sb_publishable_iGZ1qf7UUYmVeAnPRrYHpw_7TonH2XR
+          FRAHOOSH_SUPABASE_URL: https://gtmmllcxhdejwjjnyzrh.supabase.co
+          FRAHOOSH_SUPABASE_ANON_KEY: sb_publishable_9gf_wPQVUTO6STGZR6JNSw_YduXkxN0
           FRAHOOSH_SCHOOL_ID: ${{ secrets.FRAHOOSH_SCHOOL_ID }}
           FRAHOOSH_SCHOOL_NAME: ${{ secrets.FRAHOOSH_SCHOOL_NAME }}
           FRAHOOSH_SCHOOL_YEAR: ${{ secrets.FRAHOOSH_SCHOOL_YEAR }}
@@ -96,8 +96,8 @@ jobs:
           FRAHOOSH_WEB_URL: ${{ secrets.FRAHOOSH_WEB_URL }}
         run: |
           set -euo pipefail
-          export FRAHOOSH_SUPABASE_URL="https://wqructnmorlhrjwlvigm.supabase.co"
-          export FRAHOOSH_SUPABASE_ANON_KEY="sb_publishable_iGZ1qf7UUYmVeAnPRrYHpw_7TonH2XR"
+          export FRAHOOSH_SUPABASE_URL="https://gtmmllcxhdejwjjnyzrh.supabase.co"
+          export FRAHOOSH_SUPABASE_ANON_KEY="sb_publishable_9gf_wPQVUTO6STGZR6JNSw_YduXkxN0"
           export FRAHOOSH_SUPABASE_URL FRAHOOSH_SUPABASE_ANON_KEY
           python - <<'PY'
           import json
@@ -268,8 +268,8 @@ jobs:
           FRAHOOSH_WEB_URL: ${{ secrets.FRAHOOSH_WEB_URL }}
         run: |
           set -euo pipefail
-          : "${FRAHOOSH_SUPABASE_URL:=https://wqructnmorlhrjwlvigm.supabase.co}"
-          : "${FRAHOOSH_SUPABASE_ANON_KEY:=sb_publishable_iGZ1qf7UUYmVeAnPRrYHpw_7TonH2XR}"
+          : "${FRAHOOSH_SUPABASE_URL:=https://gtmmllcxhdejwjjnyzrh.supabase.co}"
+          : "${FRAHOOSH_SUPABASE_ANON_KEY:=sb_publishable_9gf_wPQVUTO6STGZR6JNSw_YduXkxN0}"
           export FRAHOOSH_SUPABASE_URL FRAHOOSH_SUPABASE_ANON_KEY
           python - <<'PY'
           import json
