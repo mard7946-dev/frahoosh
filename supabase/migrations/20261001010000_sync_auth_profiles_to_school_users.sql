@@ -173,14 +173,10 @@ after insert or update of username, email, role, display_name, national_code, pr
 on public.account_settings
 for each row execute function public.sync_account_settings_row_to_user();
 
-grant execute on function public.sync_account_settings_to_user(text,text,text,text,text,integer,integer,integer)
-to anon, authenticated;
-
-grant execute on function public.sync_auth_account_to_user()
-to service_role;
-
-grant execute on function public.sync_account_settings_row_to_user()
-to anon, authenticated;
+revoke all on function public.sync_account_settings_to_user(text,text,text,text,text,integer,integer,integer) from public;
+revoke all on function public.sync_auth_account_to_user() from public;
+revoke all on function public.sync_account_settings_row_to_user() from public;
+grant execute on function public.sync_auth_account_to_user() to service_role;
 
 -- Repair every already-existing account_settings row immediately.
 do $$
