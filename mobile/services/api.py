@@ -281,21 +281,31 @@ class SupabaseClient:
         return bool(user and user.get("id"))
 
     def _profile(self, user):
+        """Resolve the logged-in account through the same canonical school path.
+
+        Auth is the credential gate. account_settings is the identity mapping
+        and public.users is the school-role/link record. If the latter has not
+        been materialized yet, do not invent a student role; keep the Auth/
+        account_settings identity and let the onboarding/profile repair path
+        finish the canonical row.
+        """
         user = user if isinstance(user, dict) else {}
         metadata = user.get("user_metadata") or {}
         profile = {
             key: metadata[key]
-            for key in ("role", "display_name", "full_name", "username", "national_code", "first_name", "last_name", "linked_student_id", "linked_teacher_id", "linked_staff_id")
+            for key in (
+                "role", "display_name", "full_name", "username", "national_code",
+                "first_name", "last_name", "linked_student_id",
+                "linked_teacher_id", "linked_staff_id",
+            )
             if key in metadata
         }
         email = str(user.get("email") or "").strip()
+        profile["email"] = email
         if not self.configured or not email:
-            profile.setdefault("email", email)
             return profile
-        # Resolve the canonical school identity through a SECURITY DEFINER RPC.
-        # This is deliberately independent of account_settings SELECT policies:
-        # a valid Auth login must never silently fall back to the student role
-        # just because profile enrichment is blocked by RLS.
+
+        # First choice: the authenticated canonical RPC.
         try:
             response = _request(
                 "POST",
@@ -307,72 +317,38 @@ class SupabaseClient:
             if response.ok:
                 rows = response.json() or []
                 if isinstance(rows, list) and rows and isinstance(rows[0], dict):
-                    canonical = rows[0]
-                    for key in (
-                        "username","role","display_name","national_code",
-                        "linked_student_id","linked_teacher_id","linked_staff_id",
-                    ):
-                        if canonical.get(key) not in (None, ""):
-                            profile[key] = canonical[key]
+                    profile.update({k:v for k,v in rows[0].items() if v not in (None, "")})
                     profile["email"] = email
                     return profile
         except Exception as exc:
             print("LOGIN PROFILE RPC ERROR:", repr(exc))
+
+        # Second choice: account_settings. This is deliberately retained as
+        # the onboarding source of truth so a missing/late public.users row
+        # does not become a generic network error.
         try:
             response = _request(
-                "GET", f"{self.url}/rest/v1/account_settings",
-                headers=self._headers(True), params={"email": f"eq.{email}", "limit": "1"}, timeout=API_TIMEOUT,
+                "GET",
+                f"{self.url}/rest/v1/account_settings",
+                headers=self._headers(True),
+                params={"email": f"eq.{email}", "limit": "1"},
+                timeout=API_TIMEOUT,
             )
             if response.ok:
                 rows = response.json() or []
                 if rows and isinstance(rows[0], dict):
                     merged = dict(profile)
-                    merged.update(rows[0])
-                    # account_settings keeps extensible role/link metadata in preferences.
-                    # Promote canonical values so AppState.role does not silently fall back to student.
+                    merged.update({k:v for k,v in rows[0].items() if v not in (None, "")})
                     prefs = rows[0].get("preferences")
                     if isinstance(prefs, dict):
                         for key in ("role", "linked_student_id", "linked_teacher_id", "linked_staff_id"):
                             if prefs.get(key) not in (None, ""):
-                                merged[key] = prefs.get(key)
-
-                    # The canonical role/link record is public.users.  Keep
-                    # account_settings as profile metadata, but resolve the
-                    # actual school role from the authoritative user row so a
-                    # stale preferences.role can never turn a deputy into the
-                    # wrong panel.
-                    national_code = self._normalize_digits(
-                        str(merged.get("national_code") or "")
-                    ).strip()
-                    if national_code:
-                        try:
-                            user_response = _request(
-                                "GET",
-                                f"{self.url}/rest/v1/users",
-                                headers=self._headers(True),
-                                params={
-                                    "username": f"eq.{national_code}",
-                                    "select": "username,role,display_name,linked_student_id,linked_teacher_id,linked_staff_id",
-                                    "limit": "1",
-                                },
-                                timeout=API_TIMEOUT,
-                            )
-                            if user_response.ok:
-                                user_rows = user_response.json() or []
-                                if user_rows and isinstance(user_rows[0], dict):
-                                    canonical = user_rows[0]
-                                    for key in ("role", "display_name", "linked_student_id", "linked_teacher_id", "linked_staff_id"):
-                                        if canonical.get(key) not in (None, ""):
-                                            merged[key] = canonical[key]
-                                    merged["username"] = canonical.get("username") or merged.get("username") or national_code
-                        except Exception as exc:
-                            print("CANONICAL ROLE LOOKUP ERROR:", repr(exc))
+                                merged[key] = prefs[key]
+                    merged["email"] = email
                     return merged
-        except Exception:
-            pass
-        profile.setdefault("email", email)
-        profile.setdefault("username", email)
-        profile.setdefault("display_name", email)
+        except Exception as exc:
+            print("ACCOUNT PROFILE LOOKUP ERROR:", repr(exc))
+
         return profile
 
     def _profile_by_national_code(self, national_code):
