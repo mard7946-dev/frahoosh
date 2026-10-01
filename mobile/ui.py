@@ -203,9 +203,11 @@ class PersianTextInput(TextInput):
         self.bind(text=self._capture_external_text, focus=self._focus_changed)
 
     def _visual(self, logical):
-        # Keep TextInput logical Unicode text; only labels/buttons are bidi-shaped.
-        # Feeding fa_display() back into TextInput corrupts subsequent Persian input.
-        return logical
+        # Kivy Android TextInput can render logical Persian Unicode as isolated
+        # or reversed glyphs on some text providers. Keep the real value logical
+        # for Supabase, but render the editor in visual RTL order. The internal
+        # guard prevents the shaped display value from being captured as data.
+        return fa_display(logical)
 
     def _render_visual(self):
         if self._rendering_persian:
