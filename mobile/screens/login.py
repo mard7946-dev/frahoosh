@@ -52,8 +52,6 @@ class LoginScreen(Screen):
         return w
 
     def _field(self, hint, password=False):
-        # Passwords use a dedicated logical credential editor so Android/Kivy
-        # never substitutes a missing password glyph with square boxes.
         if password:
             field = CredentialTextInput(
                 hint_text=str(hint),
@@ -138,7 +136,7 @@ class LoginScreen(Screen):
         with card.canvas.before:
             Color(0.01,0.09,0.22,0.93); card._card=RoundedRectangle(radius=[dp(28)])
             Color(0.04,0.66,0.92,0.65); card._line=Line(rounded_rectangle=(0,0,0,0,dp(28)),width=1.2)
-        def card_sync(*_): 
+        def card_sync(*_):
             card._card.pos=card.pos; card._card.size=card.size
             card._line.rounded_rectangle=(card.x,card.y,card.width,card.height,dp(28))
         card.bind(pos=card_sync,size=card_sync)
@@ -189,8 +187,6 @@ class LoginScreen(Screen):
 
     @staticmethod
     def _readable_error(exc):
-        # Do not hide actionable Supabase/API errors behind the generic
-        # network message. Real transport failures are still normalized.
         message = str(exc or "").strip()
         lower = message.lower()
         if "invalid login credentials" in lower:
@@ -209,9 +205,6 @@ class LoginScreen(Screen):
             return "ارتباط با سرور زمان‌بر شد؛ دوباره تلاش کنید."
         if "urlopen error" in lower or "network" in lower or "certificate" in lower or "dns" in lower:
             return "ارتباط با سرور برقرار نشد. اینترنت و دسترسی شبکه را بررسی کنید."
-        # Preserve the Persian ApiError produced by the API layer. This makes
-        # the actual failing stage visible instead of incorrectly reporting a
-        # network failure for authentication/profile/RLS errors.
         if message and any("\u0600" <= ch <= "\u06ff" for ch in message):
             return message
         return "خطای ورود: " + message if message else "خطای ورود؛ دوباره تلاش کنید."
@@ -251,11 +244,8 @@ class LoginScreen(Screen):
             session = self.app_state.api.sign_in(identifier, password)
             if not session:
                 raise RuntimeError("نشست ایجاد نشد.")
-            # Preserve the exact numeric identifier through profile enrichment;
-            # AppState uses it to resolve the canonical role/links from public.users.
             session["login_identifier"] = self._normalize_digits(identifier).strip()
-            if not self.app_state.set_session(session, remember=remember):
-                raise RuntimeError("ذخیره نشست انجام نشد.")
+            self.app_state.set_session(session, remember=remember)
             Clock.schedule_once(lambda dt: self._login_success(), 0)
         except Exception as exc:
             print("LOGIN ERROR:", repr(exc))
@@ -327,16 +317,12 @@ class LoginScreen(Screen):
             self.login_button.disabled = False
         except Exception:
             pass
-
-        # Login is always interactive; stale remembered sessions are never
-        # allowed to determine the role shown after a fresh launch.
         self._auto_login_checked = True
         try:
             if self.app_state is not None and getattr(self.app_state, "logged_in", False):
                 self.app_state.logout()
         except Exception:
             pass
-
         return super().on_pre_enter(*args)
 
     def _open_saved_session(self):
