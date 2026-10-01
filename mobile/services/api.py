@@ -296,7 +296,7 @@ class SupabaseClient:
             response = _request(
                 "GET", f"{self.url}/rest/v1/account_settings",
                 headers=self._headers(True),
-                params={"email": f"eq.{email}", "select": "*", "limit": "1"},
+                params={"email": f"eq.{email}", "select": "username,display_name,email,preferences,updated_at,national_code,role,auth_user_id", "limit": "1"},
                 timeout=API_TIMEOUT,
             )
             if response.ok:
@@ -341,7 +341,7 @@ class SupabaseClient:
                 "GET", f"{self.url}/rest/v1/account_settings",
                 headers=self._headers(True),
                 params={
-                    "select": "*",
+                    "select": "username,display_name,email,preferences,updated_at,national_code,role,auth_user_id",
                     "national_code": f"eq.{national_code}",
                     "limit": "1",
                 },
