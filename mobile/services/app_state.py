@@ -129,51 +129,29 @@ class AppState:
                     merged.update(refreshed)
                     current_profile = merged
 
-                # Numeric login is the authoritative onboarding identifier.
-                # Resolve the canonical public.users row by that identifier as a
-                # second path, so a stale Auth metadata role can never force the
-                # dashboard into the student panel.
+                # Numeric login is the onboarding identifier, but it must
+                # never invalidate a successful Auth login merely because the
+                # canonical public.users repair has not reached the database yet.
+                # _profile() has already resolved the same manager-compatible
+                # account_settings identity and role. When public.users exists,
+                # _profile_by_national_code() upgrades the profile with its
+                # authoritative links; when it does not, keep the valid role
+                # from account_settings instead of reporting a fake network error.
                 login_identifier = str(self.session.get("login_identifier") or "").strip()
                 normalized_identifier = self.api._normalize_digits(login_identifier)
                 if normalized_identifier.isdigit() and len(normalized_identifier) == 10:
                     try:
                         canonical_by_code = self.api._profile_by_national_code(normalized_identifier)
                         if isinstance(canonical_by_code, dict) and canonical_by_code:
-                            # public.users is authoritative whenever the
-                            # canonical lookup is available.
-                            current_profile = dict(canonical_by_code)
+                            current_profile = dict(current_profile)
+                            current_profile.update(canonical_by_code)
                             current_profile["email"] = (
                                 current_profile.get("email")
                                 or (user.get("email") if isinstance(user, dict) else "")
                                 or ""
                             )
-                        else:
-                            # Do not turn a successful Auth login into a
-                            # generic "server connection" failure merely
-                            # because the second profile RPC is temporarily
-                            # unavailable. _profile() already resolved the
-                            # canonical identity by Auth email.
-                            existing_code = self.api._normalize_digits(
-                                str(current_profile.get("national_code")
-                                    or current_profile.get("username") or "")
-                            ).strip()
-                            existing_role = str(
-                                current_profile.get("role") or ""
-                            ).strip().lower()
-                            if existing_code != normalized_identifier or not existing_role:
-                                print("CANONICAL LOGIN PROFILE NOT FOUND; refusing login")
-                                self.logout()
-                                return False
                     except Exception as code_exc:
-                        print("CANONICAL LOGIN PROFILE ERROR:", repr(code_exc))
-                        existing_code = self.api._normalize_digits(
-                            str(current_profile.get("national_code")
-                                or current_profile.get("username") or "")
-                        ).strip()
-                        existing_role = str(current_profile.get("role") or "").strip().lower()
-                        if existing_code != normalized_identifier or not existing_role:
-                            self.logout()
-                            return False
+                        print("CANONICAL LOGIN PROFILE UPGRADE ERROR:", repr(code_exc))
 
                 resolved_role = str(current_profile.get("role") or "").strip().lower()
                 if not resolved_role:
