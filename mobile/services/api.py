@@ -190,9 +190,18 @@ class SupabaseClient:
                         value = row.get("email") or row.get("auth_email")
                         if value:
                             emails.append(str(value))
-            return list(dict.fromkeys(x.strip() for x in emails if str(x).strip()))
+            emails = list(dict.fromkeys(x.strip() for x in emails if str(x).strip()))
+            # The legacy RPC used to require a matching public.users row.
+            # During onboarding a valid Auth/account_settings user can exist
+            # before that canonical row is created. Do not turn an empty,
+            # successful lookup into a false "server connection" failure.
+            if emails:
+                return emails
 
-        if response.status_code in (400, 401, 403, 404, 406):
+        # Fall back not only when the RPC is unavailable, but also when it
+        # returns an empty set. account_settings is the onboarding source of
+        # truth for the Auth email <-> national-code mapping.
+        if response.status_code in (200, 400, 401, 403, 404, 406):
             fallback = _request(
                 "GET", f"{self.url}/rest/v1/account_settings",
                 headers=self._headers(False),
