@@ -33,7 +33,6 @@ class _Response:
 
 
 def _request(method, url, headers=None, payload=None, params=None, timeout=15):
-    """Perform a mobile-safe HTTPS request while preserving the complete Supabase client."""
     try:
         response = requests.request(
             method=method,
@@ -91,7 +90,6 @@ class SupabaseClient:
             raise ApiError("کد ملی را وارد کنید.")
         if not password:
             raise ApiError("رمز عبور را وارد کنید.")
-
         if not self.configured:
             raise ApiError("تنظیمات اتصال سرور در برنامه وجود ندارد.")
 
@@ -104,10 +102,6 @@ class SupabaseClient:
         if not identifier.isdigit() or len(identifier) != 10:
             raise ApiError("کد ملی باید ۱۰ رقم باشد.")
 
-        # A national code is normally unique. During onboarding it can
-        # temporarily collide (for example when several test accounts share
-        # one placeholder code). Try every matching Auth email so the password
-        # identifies the intended account instead of arbitrary LIMIT 1 order.
         emails = self.resolve_emails_by_national_code(identifier)
         if not emails:
             raise ApiError("برای این کد ملی، حساب کاربری در سامانه پیدا نشد.")
@@ -118,9 +112,6 @@ class SupabaseClient:
                 result = self._password_auth(email, password)
                 if isinstance(result, dict):
                     result["login_identifier"] = identifier
-                    # Resolve the canonical school identity immediately after
-                    # Auth succeeds. This prevents any stale Auth metadata or
-                    # cached student profile from deciding the dashboard role.
                     try:
                         canonical = self._profile_by_national_code(identifier)
                         if isinstance(canonical, dict) and canonical.get("role"):
@@ -191,16 +182,9 @@ class SupabaseClient:
                         if value:
                             emails.append(str(value))
             emails = list(dict.fromkeys(x.strip() for x in emails if str(x).strip()))
-            # The legacy RPC used to require a matching public.users row.
-            # During onboarding a valid Auth/account_settings user can exist
-            # before that canonical row is created. Do not turn an empty,
-            # successful lookup into a false "server connection" failure.
             if emails:
                 return emails
 
-        # Fall back not only when the RPC is unavailable, but also when it
-        # returns an empty set. account_settings is the onboarding source of
-        # truth for the Auth email <-> national-code mapping.
         if response.status_code in (200, 400, 401, 403, 404, 406):
             fallback = _request(
                 "GET", f"{self.url}/rest/v1/account_settings",
@@ -255,11 +239,8 @@ class SupabaseClient:
                 raise ApiError("برای این کد ملی، حساب کاربری در سامانه پیدا نشد.")
 
         response = _request(
-            "POST",
-            f"{self.url}/auth/v1/recover",
-            headers=self._headers(),
-            payload={"email": email},
-            timeout=API_TIMEOUT,
+            "POST", f"{self.url}/auth/v1/recover",
+            headers=self._headers(), payload={"email": email}, timeout=API_TIMEOUT,
         )
         if not response.ok:
             raise ApiError(self._error(response, "ارسال لینک بازیابی رمز انجام نشد."))
@@ -281,14 +262,6 @@ class SupabaseClient:
         return bool(user and user.get("id"))
 
     def _profile(self, user):
-        """Resolve the logged-in account through the same canonical school path.
-
-        Auth is the credential gate. account_settings is the identity mapping
-        and public.users is the school-role/link record. If the latter has not
-        been materialized yet, do not invent a student role; keep the Auth/
-        account_settings identity and let the onboarding/profile repair path
-        finish the canonical row.
-        """
         user = user if isinstance(user, dict) else {}
         metadata = user.get("user_metadata") or {}
         profile = {
@@ -305,14 +278,10 @@ class SupabaseClient:
         if not self.configured or not email:
             return profile
 
-        # First choice: the authenticated canonical RPC.
         try:
             response = _request(
-                "POST",
-                f"{self.url}/rest/v1/rpc/lookup_login_profile_by_email",
-                headers=self._headers(True),
-                payload={"p_email": email},
-                timeout=API_TIMEOUT,
+                "POST", f"{self.url}/rest/v1/rpc/lookup_login_profile_by_email",
+                headers=self._headers(True), payload={"p_email": email}, timeout=API_TIMEOUT,
             )
             if response.ok:
                 rows = response.json() or []
@@ -323,15 +292,11 @@ class SupabaseClient:
         except Exception as exc:
             print("LOGIN PROFILE RPC ERROR:", repr(exc))
 
-        # Second choice: account_settings. This is deliberately retained as
-        # the onboarding source of truth so a missing/late public.users row
-        # does not become a generic network error.
         try:
             response = _request(
-                "GET",
-                f"{self.url}/rest/v1/account_settings",
+                "GET", f"{self.url}/rest/v1/account_settings",
                 headers=self._headers(True),
-                params={"email": f"eq.{email}", "limit": "1"},
+                params={"email": f"eq.{email}", "select": "*", "limit": "1"},
                 timeout=API_TIMEOUT,
             )
             if response.ok:
@@ -357,10 +322,8 @@ class SupabaseClient:
             return {}
         try:
             response = _request(
-                "POST",
-                f"{self.url}/rest/v1/rpc/lookup_login_profile_by_national_code",
-                headers=self._headers(True),
-                payload={"p_national_code": national_code},
+                "POST", f"{self.url}/rest/v1/rpc/lookup_login_profile_by_national_code",
+                headers=self._headers(True), payload={"p_national_code": national_code},
                 timeout=API_TIMEOUT,
             )
             if response.ok:
@@ -369,6 +332,29 @@ class SupabaseClient:
                     return dict(rows[0])
         except Exception as exc:
             print("LOGIN PROFILE NATIONAL CODE RPC ERROR:", repr(exc))
+
+        # Direct authenticated fallback. This does not require the custom RPC
+        # and uses account_settings, which is already the onboarding mapping
+        # used to resolve the Auth email.
+        try:
+            response = _request(
+                "GET", f"{self.url}/rest/v1/account_settings",
+                headers=self._headers(True),
+                params={
+                    "select": "*",
+                    "national_code": f"eq.{national_code}",
+                    "limit": "1",
+                },
+                timeout=API_TIMEOUT,
+            )
+            if response.ok:
+                rows = response.json() or []
+                if isinstance(rows, list) and rows and isinstance(rows[0], dict):
+                    row = dict(rows[0])
+                    row["national_code"] = row.get("national_code") or national_code
+                    return row
+        except Exception as exc:
+            print("ACCOUNT PROFILE NATIONAL CODE FALLBACK ERROR:", repr(exc))
         return {}
 
     def refresh_access_token(self):
@@ -448,7 +434,6 @@ class SupabaseClient:
         return response.json()
 
     def _data_error(self, response, default):
-        """Keep backend CRUD failures visible enough to fix schema/RLS issues."""
         data = response.json()
         code = ""
         message = ""
@@ -492,7 +477,6 @@ class SupabaseClient:
             return "اطلاعات ورود در سامانه پیدا نشد."
         if response.status_code >= 500:
             return "سرور سامانه موقتاً پاسخ نمی‌دهد."
-        # Never send raw HTTP/ASCII diagnostics to the Persian UI.
         return default
 
     def sign_out(self):
