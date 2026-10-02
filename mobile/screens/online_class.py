@@ -417,7 +417,101 @@ class OnlineClassScreen(Screen):
         spin=PersianSpinner(text=visual_labels[0],values=visual_labels,font_size="12sp",size_hint_y=None,height=dp(50))
         self.body.add_widget(spin)
         self._button("ثبت اتصال دانش‌آموز",lambda *_:self._save_student(cid,spin),SUCCESS)
+        self._label("یا ثبت دستی نام دانش‌آموز", "14sp", PRIMARY, 38, True)
+        manual_name=self._field("نام و نام خانوادگی دانش‌آموز")
+        manual_code=self._field("کد ملی (اختیاری)")
+        self._button("ثبت دستی و اتصال دانش‌آموز",lambda *_:self._save_manual_member(cid,manual_name,manual_code,"student"),SUCCESS)
+        self._button("ورود Excel دانش‌آموزان",lambda *_:self._import_member_excel(cid,"student"),PRIMARY)
+        self._label("قالب Excel: id یا نام و نام خانوادگی یا کد ملی", "11sp", SECONDARY, 42)
         self._button("بازگشت",lambda *_:self.show_home(),SECONDARY)
+
+    def _member_name(self, row, kind):
+        if kind == "teacher":
+            return (str(row.get("first_name") or "")+" "+str(row.get("last_name") or "")).strip()
+        return (str(row.get("first_name") or "")+" "+str(row.get("last_name") or "")).strip()
+
+    def _find_member_by_text(self, text, kind, national_code=""):
+        table = "teachers" if kind == "teacher" else "students"
+        value = str(text or "").strip()
+        code = str(national_code or "").strip()
+        rows = self.app_state.api.table_select(table, {"limit":"1000"}) or []
+        def norm(v):
+            return " ".join(str(v or "").replace("\u200c"," ").replace("ي","ی").replace("ك","ک").split()).strip().lower()
+        if code:
+            for row in rows:
+                if str(row.get("national_code") or "").strip() == code:
+                    return row
+        wanted = norm(value)
+        for row in rows:
+            if norm(self._member_name(row, kind)) == wanted:
+                return row
+        return None
+
+    def _save_manual_member(self, cid, name_input, code_input, kind):
+        try:
+            name=(name_input.get_logical_text() if hasattr(name_input,"get_logical_text") else name_input.text or "").strip()
+            code=(code_input.get_logical_text() if hasattr(code_input,"get_logical_text") else code_input.text or "").strip()
+            if not name and not code:
+                return self._error("نام یا کد ملی را وارد کنید.")
+            row=self._find_member_by_text(name, kind, code)
+            if not row or row.get("id") is None:
+                return self._error("این فرد در فهرست اصلی فراهوش پیدا نشد؛ ابتدا او را در بخش دانش‌آموزان یا دبیران ثبت کنید.")
+            table="online_class_teachers" if kind == "teacher" else "online_class_students"
+            id_field="teacher_id" if kind == "teacher" else "student_id"
+            name_field="teacher_name" if kind == "teacher" else "student_name"
+            member_id=int(row["id"])
+            existing=self.app_state.api.table_select(table,{"class_id":"eq."+str(cid),id_field:"eq."+str(member_id),"limit":"1"}) or []
+            if not existing:
+                self.app_state.api.table_insert(table,{"class_id":cid,id_field:member_id,name_field:self._member_name(row,kind)})
+            self._ok(("دبیر" if kind=="teacher" else "دانش‌آموز")+" به کلاس متصل شد.")
+            self._members(cid)
+        except Exception as exc:
+            self._error("ثبت عضو انجام نشد: "+str(exc))
+
+    def _import_member_excel(self, cid, kind):
+        from pathlib import Path
+        from openpyxl import load_workbook
+        filename="frahoosh_online_class_teachers.xlsx" if kind=="teacher" else "frahoosh_online_class_students.xlsx"
+        path=Path("/storage/emulated/0/Download/")+Path(filename)
+        if not path.is_file():
+            return self._error("فایل "+filename+" را در پوشه Download گوشی قرار دهید.")
+        try:
+            wb=load_workbook(str(path),read_only=True,data_only=True); ws=wb.active
+            rows=list(ws.iter_rows(values_only=True)); wb.close()
+            if not rows: return self._error("فایل Excel خالی است.")
+            headers=[str(x or "").strip().lower() for x in rows[0]]
+            allowed={"id","شناسه","name","نام","نام و نام خانوادگی","national_code","کد ملی"}
+            table="online_class_teachers" if kind=="teacher" else "online_class_students"
+            id_field="teacher_id" if kind=="teacher" else "student_id"
+            name_field="teacher_name" if kind=="teacher" else "student_name"
+            source_table="teachers" if kind=="teacher" else "students"
+            inserted=0; skipped=0
+            for values in rows[1:]:
+                data={}
+                for i,v in enumerate(values):
+                    if i < len(headers) and headers[i] in allowed and v not in (None,""):
+                        data[headers[i]]=v
+                member_id=data.get("id") or data.get("شناسه")
+                name=data.get("name") or data.get("نام") or data.get("نام و نام خانوادگی") or ""
+                code=data.get("national_code") or data.get("کد ملی") or ""
+                member=None
+                if member_id:
+                    found=self.app_state.api.table_select(source_table,{"id":"eq."+str(int(member_id)),"limit":"1"}) or []
+                    member=found[0] if found else None
+                if member is None:
+                    member=self._find_member_by_text(name,kind,code)
+                if not member or member.get("id") is None:
+                    skipped+=1; continue
+                mid=int(member["id"])
+                existing=self.app_state.api.table_select(table,{"class_id":"eq."+str(cid),id_field:"eq."+str(mid),"limit":"1"}) or []
+                if existing:
+                    skipped+=1; continue
+                self.app_state.api.table_insert(table,{"class_id":cid,id_field:mid,name_field:self._member_name(member,kind)})
+                inserted+=1
+            self._ok(str(inserted)+" "+("دبیر" if kind=="teacher" else "دانش‌آموز")+" از Excel به کلاس متصل شد؛ "+str(skipped)+" مورد تکراری/نامعتبر رد شد.")
+            self._members(cid)
+        except Exception as exc:
+            self._error("ورودی Excel اعضای کلاس انجام نشد: "+str(exc))
 
     def _save_student(self,cid,spin):
         try:
@@ -447,6 +541,12 @@ class OnlineClassScreen(Screen):
         spin=PersianSpinner(text=visual_labels[0],values=visual_labels,font_size="12sp",size_hint_y=None,height=dp(50))
         self.body.add_widget(spin)
         self._button("ثبت اتصال دبیر",lambda *_:self._save_teacher(cid,spin),SUCCESS)
+        self._label("یا ثبت دستی نام دبیر", "14sp", PRIMARY, 38, True)
+        manual_name=self._field("نام و نام خانوادگی دبیر")
+        manual_code=self._field("کد ملی (اختیاری)")
+        self._button("ثبت دستی و اتصال دبیر",lambda *_:self._save_manual_member(cid,manual_name,manual_code,"teacher"),SUCCESS)
+        self._button("ورود Excel دبیران",lambda *_:self._import_member_excel(cid,"teacher"),PRIMARY)
+        self._label("قالب Excel: id یا نام و نام خانوادگی یا کد ملی", "11sp", SECONDARY, 42)
         self._button("بازگشت",lambda *_:self.show_home(),SECONDARY)
 
     def _save_teacher(self,cid,spin):
