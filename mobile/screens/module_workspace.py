@@ -1941,15 +1941,34 @@ class ModuleWorkspaceScreen(Screen):
             b.bind(pos=lambda o,v:setattr(bg,'pos',v),size=lambda o,v:setattr(bg,'size',v))
         return b
 
-    def _relationship_options(self, field, existing):
+    def _relationship_options(self, table, field, existing):
         """Build real foreign-key choices so modules connect by IDs, not free text."""
         relation_tables = {
-            "student_id": "students", "teacher_id": "teachers", "class_id": "online_classes",
+            "student_id": "students", "teacher_id": "teachers",
             "assignment_id": "assignments", "exam_id": "teacher_exams", "quiz_id": "teacher_exams",
             "activity_id": "activity_offers", "offer_id": "payment_offers", "question_id": "quiz_questions",
             "attempt_id": "teacher_exam_attempts", "message_id": "messages",
         }
-        table = relation_tables.get(field)
+        table_specific = {
+            "class_id": {
+                "online_class_sessions": "online_classes",
+                "online_class_students": "online_classes",
+                "online_class_teachers": "online_classes",
+                "online_attendance": "online_classes",
+                "online_class_activity": "online_classes",
+                "online_class_ai_reports": "online_classes",
+                "online_class_notifications": "online_classes",
+                "online_presence_checks": "online_classes",
+                "smart_board_content": "online_classes",
+                "smart_board_whiteboards": "online_classes",
+                "smart_board_files": "online_classes",
+                "smart_board_media": "online_classes",
+                "smart_board_interactive_tools": "online_classes",
+                "smart_board_quizzes": "online_classes",
+                "smart_board_activities": "online_classes",
+            }
+        }
+        table = (table_specific.get(field, {}).get(table) if field in table_specific else relation_tables.get(field))
         if not table:
             return None
         try:
@@ -2035,7 +2054,7 @@ class ModuleWorkspaceScreen(Screen):
             existing = "" if row is None else str(row.get(f, ""))
             if existing and all(ch in "□�▯" for ch in existing.strip()):
                 existing = ""
-            relation = self._relationship_options(f, existing)
+            relation = self._relationship_options(table, f, existing)
             if relation:
                 relation_labels, relation_selected, relation_map = relation
                 ti = PersianSpinner(
