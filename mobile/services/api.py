@@ -395,6 +395,36 @@ class SupabaseClient:
             response = _request(method, url, headers=headers, payload=payload, params=params or {}, timeout=API_TIMEOUT)
         return response
 
+    def storage_upload(self, bucket, object_path, data, content_type):
+        if not self.configured or not self.access_token:
+            raise ApiError("نشست معتبر برای بارگذاری فایل وجود ندارد.")
+        bucket = str(bucket or "").strip()
+        object_path = str(object_path or "").strip().lstrip("/")
+        if not bucket or not object_path:
+            raise ApiError("مسیر فایل معتبر نیست.")
+        headers = self._headers(True)
+        headers["Content-Type"] = content_type or "application/octet-stream"
+        headers["x-upsert"] = "false"
+        try:
+            response = requests.post(
+                self.url + "/storage/v1/object/" + bucket + "/" + object_path,
+                headers=headers, data=data, timeout=60, verify=certifi.where(),
+            )
+        except RequestException as exc:
+            raise ApiError("بارگذاری فایل انجام نشد: " + str(exc)) from exc
+        if response.status_code == 401 and self.refresh_access_token():
+            headers = self._headers(True)
+            headers["Content-Type"] = content_type or "application/octet-stream"
+            headers["x-upsert"] = "false"
+            response = requests.post(
+                self.url + "/storage/v1/object/" + bucket + "/" + object_path,
+                headers=headers, data=data, timeout=60, verify=certifi.where(),
+            )
+        if not (200 <= response.status_code < 300):
+            body = response.content.decode("utf-8", errors="replace") if response.content else ""
+            raise ApiError("بارگذاری فایل ناموفق بود: " + (body or str(response.status_code)))
+        return {"bucket": bucket, "path": object_path}
+
     def invoke_function(self, function_name, payload=None):
         if not self.configured or not self.access_token:
             raise ApiError("نشست معتبر برای اجرای سرویس وجود ندارد.")
