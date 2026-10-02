@@ -183,7 +183,28 @@ class OnlineClassScreen(Screen):
                         "teacher_name":f"{match.get('first_name','')} {match.get('last_name','')}".strip() or teacher_value,
                     },return_representation=False)
 
-            self._ok("کلاس ثبت شد و به دبیر متصل شد. برای دانش‌آموز، از «اتصال دانش‌آموز به کلاس» استفاده کنید. کد کلاس: "+str(class_id))
+            # اتصال خودکار دانش‌آموزان کلاس دبیر: تشکیل کلاس فقط وقتی واقعی است که اعضا هم متصل شوند.
+            if match and match.get("id"):
+                class_links = api.table_select("teacher_classes", {
+                    "teacher_id": f"eq.{int(match['id'])}", "active": "eq.1", "limit": "50"
+                }) or []
+                for link in class_links:
+                    students = api.table_select("students", {
+                        "class_name": f"eq.{link.get('class_name','')}",
+                        "grade": f"eq.{link.get('grade','')}", "limit": "500"
+                    }) or []
+                    for student in students:
+                        sid = student.get("id")
+                        if sid is None: continue
+                        exists = api.table_select("online_class_students", {
+                            "class_id": f"eq.{class_id}", "student_id": f"eq.{int(sid)}", "limit": "1"
+                        }) or []
+                        if not exists:
+                            name = (str(student.get("first_name") or "")+" "+str(student.get("last_name") or "")).strip()
+                            api.table_insert("online_class_students", {
+                                "class_id": class_id, "student_id": int(sid), "student_name": name
+                            }, return_representation=False)
+            self._ok("کلاس ثبت شد؛ دبیر و دانش‌آموزان کلاس مربوطه به‌صورت واقعی متصل شدند. کد کلاس: "+str(class_id))
             self.show_home()
         except Exception as exc:
             self._error("ثبت کلاس در Supabase انجام نشد: "+str(exc))
