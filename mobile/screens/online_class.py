@@ -364,16 +364,22 @@ class OnlineClassScreen(Screen):
             rows=list(ws.iter_rows(values_only=True))
             if not rows: return self._error("فایل Excel خالی است.")
             headers=[str(x or "").strip() for x in rows[0]]
-            allowed={"teacher","subject","start_time","end_time","status","join_url","meeting_url"}
+            allowed={"title","teacher","subject","lesson","grade","class_name","duration","start_time","end_time","start_time_shamsi","end_time_shamsi","status","join_url","meeting_url"}
             inserted=0
             for values in rows[1:]:
                 payload={}
                 for i,v in enumerate(values):
                     if i>=len(headers) or headers[i] not in allowed or v in (None,""): continue
                     payload[headers[i]]=v
-                if payload.get("title"):
+                if payload:
+                    payload.setdefault("title", payload.get("subject") or "کلاس آنلاین")
+                    payload.setdefault("duration", 60)
                     try: payload["duration"]=max(1,int(payload.get("duration") or 60))
                     except Exception: payload["duration"]=60
+                    if payload.get("start_time") and not payload.get("start_time_shamsi"):
+                        payload["start_time_shamsi"]=payload["start_time"]
+                    if payload.get("end_time") and not payload.get("end_time_shamsi"):
+                        payload["end_time_shamsi"]=payload["end_time"]
                     self.app_state.api.table_insert("online_classes",payload,return_representation=False); inserted+=1
             wb.close(); self._ok(f"{inserted} کلاس از Excel وارد شد."); self.show_home()
         except Exception as exc:
