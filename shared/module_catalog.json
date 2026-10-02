@@ -3128,6 +3128,44 @@
         "update",
         "delete"
       ]
+    },
+    "teacher_exam_shares": {
+      "table": "teacher_exam_shares",
+      "fields": [
+        "quiz_id",
+        "share_code",
+        "shared_by_teacher_id",
+        "target_school_id",
+        "target_class_name",
+        "start_at",
+        "end_at",
+        "duration_minutes",
+        "active"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "special": "teacher_exam_share"
+    },
+    "teacher_parent_meetings": {
+      "table": "teacher_parent_meetings",
+      "fields": [
+        "teacher_id",
+        "student_id",
+        "parent_id",
+        "requested_date",
+        "status",
+        "manager_status",
+        "reason"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "special": "teacher_parent_meeting"
     }
   },
   "special": {
