@@ -586,6 +586,7 @@ class OnlineClassScreen(Screen):
             WebViewClient = autoclass("android.webkit.WebViewClient")
             LayoutParams = autoclass("android.view.ViewGroup$LayoutParams")
             FrameLayout = autoclass("android.widget.FrameLayout")
+            FrameLayoutParams = autoclass("android.widget.FrameLayout$LayoutParams")
             Button = autoclass("android.widget.Button")
             Color = autoclass("android.graphics.Color")
 
@@ -612,7 +613,7 @@ class OnlineClassScreen(Screen):
                 @java_method("(Landroid/view/View;)V")
                 def onClick(self, view):
                     try:
-                        self.activity.runOnUiThread(lambda: self._close())
+                        self._close()
                     except Exception as exc:
                         print("VIRTUAL CLASSROOM CLOSE ERROR:", repr(exc))
                 def _close(self):
@@ -640,7 +641,7 @@ class OnlineClassScreen(Screen):
 
             back_button = Button(activity)
             back_button.setText("بازگشت به فراهوش")
-            button_params = FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+            button_params = FrameLayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
             button_params.leftMargin = 18
             button_params.topMargin = 24
             container.addView(back_button, button_params)
