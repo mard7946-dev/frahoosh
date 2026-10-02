@@ -245,3 +245,20 @@ with check (
   lower(coalesce(sender,''))=lower(coalesce(auth.jwt()->>'email',''))
   and private.frahoosh_can_message_target(receiver)
 );
+
+
+-- جلسات کلاس آنلاین فقط برای اعضای واقعی کلاس و ولیِ دانش‌آموز عضو قابل مشاهده است.
+drop policy if exists "online class sessions authenticated read" on public.online_class_sessions;
+drop policy if exists "parent class member read online_class_sessions" on public.online_class_sessions;
+create policy "parent class member read online_class_sessions"
+on public.online_class_sessions
+for select to authenticated
+using (
+  exists (
+    select 1
+    from public.online_class_students m
+    join public.parent_children pc on pc.student_id=m.student_id
+    where m.class_id=online_class_sessions.class_id
+      and private.frahoosh_current_parent_matches(pc.parent_username)
+  )
+);
