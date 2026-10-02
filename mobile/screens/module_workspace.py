@@ -441,6 +441,7 @@ EDITABLE = {
     # are writable. Every other student/parent module is informational.
     "student": {
         "assignment_submissions",
+        "activity_registrations",
         "school_ally",
         "basij_registration",
         "school_mayor",
