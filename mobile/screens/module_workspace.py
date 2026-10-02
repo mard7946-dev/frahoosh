@@ -1331,6 +1331,23 @@ class ModuleWorkspaceScreen(Screen):
                 self.status.text = fa_display("محیط ملاقات‌ها باز نشد: " + str(exc))
                 self.status.color = (.8, .15, .15, 1)
 
+        if table == "assignment_submissions" and self.role() in {"student","دانش‌آموز"}:
+            try:
+                from kivy.app import App
+                app = App.get_running_app()
+                screen = app.ensure_assignment_submission_workflow() if app is not None else None
+                if screen is None:
+                    raise RuntimeError("محیط ارسال تکلیف آماده نشد.")
+                screen.return_to = "panel"
+                if self.manager:
+                    self.manager.current = screen.name
+                return
+            except Exception as exc:
+                print("ASSIGNMENT SUBMISSION WORKFLOW ERROR:", repr(exc))
+                self.status.text = fa_display("محیط ارسال تکلیف باز نشد: " + str(exc))
+                self.status.color = (.8, .15, .15, 1)
+                return
+
         if table == "messages":
             try:
                 from kivy.app import App
