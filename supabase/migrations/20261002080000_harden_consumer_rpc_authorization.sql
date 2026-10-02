@@ -140,7 +140,7 @@ set search_path='public'
 as $function$
   select q.id,q.question,
     case when q.question_type='multiple_choice' then
-      (select jsonb_agg(value order by random())::text
+      (select jsonb_agg(x.value order by random())::text
        from jsonb_array_elements_text(
          case when q.options_json is null or q.options_json='' or q.options_json='[]'
               then jsonb_build_array(q.option1,q.option2,q.option3,q.option4)
