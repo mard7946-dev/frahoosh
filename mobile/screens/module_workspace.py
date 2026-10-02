@@ -408,19 +408,19 @@ EDITABLE = {
     "educational": {
         "attendance","student_referrals","meeting_requests","ai_smart_reports","online_classes",
         "messages","message_targets","exam_schedule","quiz_questions","teacher_classes","students",
-        "educational_followups","academic_followups","khwarizmi_registrations"
+        "educational_followups","academic_followups","khwarizmi_registrations","module_activations"
     },
     "executive": {
         "students","executive_classes","staff","archive_items","executive_operations","executive_reports",
         "report_cards","online_classes","messages","weekly_schedule","discipline_records",
         "certificate_requests","school_class_config","parent_children","assets","student_cards","class_cards",
-        "certificates","executive_requests","surveys"
+        "certificates","executive_requests","surveys","module_activations"
     },
     "cultural": {
         "morning_ceremony","cultural_competitions","activity_programs","competitions",
         "educational_activities","cultural_reports","cultural_activity_registrations",
         "messages","message_targets","activity_offers","activity_registrations",
-        "student_council","basij_registration","school_ally","school_mayor","qari_registration",
+        "student_council","basij_registration","school_ally","school_mayor","qari_registration","module_activations",
         "art_competitions","sport_competitions","morning_leaders"
     },
     "advisor": {
@@ -523,6 +523,7 @@ FORMS = {
     "online_classes":["title","subject","lesson","teacher","grade","class_name","duration","start_time_shamsi","end_time_shamsi","status","join_url","meeting_url"],
     "finance_donations":["title","description","amount","status"],
     "messages":["title","description","status"],
+    "module_activations":["module_key","active","activated_by","activated_at","settings"],
     "school_profile":["title","description"],
     "discipline_records":["student_id","discipline_type","record_date","decision_type","deduct_score","referral_to","description"],
     "educational_followups":["student_id","followup_date","followup_items","decision"],
@@ -2279,6 +2280,35 @@ class ModuleWorkspaceScreen(Screen):
                 else:
                     role = self.role()
                     profile = getattr(self.app_state, "profile", {}) or {}
+                    # Management/deputies control which student/parent workflows are open.
+                    if table == "module_activations":
+                        if str(role).lower() not in {"manager","educational","executive","cultural"}:
+                            raise RuntimeError("فقط مدیریت و معاونان مجاز به فعال‌سازی قابلیت‌ها هستند.")
+                        payload["activated_at"] = payload.get("activated_at") or "now()"
+                        auth_id = profile.get("auth_user_id") or profile.get("user_id")
+                        if auth_id:
+                            payload["activated_by"] = auth_id
+                    consumer_activation = {
+                        "activity_registrations":"activity_registrations",
+                        "cultural_activity_registrations":"activity_registrations",
+                        "student_council":"student_council",
+                        "school_mayor":"school_mayor",
+                        "school_ally":"school_ally",
+                        "basij_registration":"basij_registration",
+                        "certificate_requests":"certificate_requests",
+                        "transport_requests":"transport_requests",
+                        "parent_activities":"parent_activities",
+                        "parent_children":"parent_children",
+                        "survey_responses":"survey_responses",
+                        "teacher_exams":"teacher_exams",
+                        "online_classes":"online_classes",
+                    }
+                    if role in ("student","دانش‌آموز","parent","parents","ولی","اولیا") and table in consumer_activation:
+                        activation_key = consumer_activation[table]
+                        active_rows = api.rpc("is_module_active", {"p_module_key": activation_key})
+                        active = bool(active_rows if isinstance(active_rows, bool) else (active_rows[0] if isinstance(active_rows,list) and active_rows else active_rows))
+                        if not active:
+                            raise RuntimeError("این قابلیت هنوز توسط مدیریت یا معاون مربوطه فعال نشده است.")
                     if role in ("teacher", "دبیر", "معلم") and table in {"grades","student_grades","attendance","assignments","discipline_records","teacher_exams","lesson_plans","teacher_activities"}:
                         tid = profile.get("linked_teacher_id") or profile.get("teacher_id")
                         if tid and not payload.get("teacher_id"):
