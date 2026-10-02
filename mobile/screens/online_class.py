@@ -11,7 +11,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.scrollview import ScrollView
 
 from mobile.config import APP_NAME, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
-from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
+from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput, PersianSpinner
 
 MANAGERS={"manager","educational","executive"}
 CLASS_CREATORS={"manager","educational","executive"}
@@ -168,14 +168,32 @@ class OnlineClassScreen(Screen):
             self._error("ثبت کلاس در Supabase انجام نشد: "+str(exc))
 
     def _load_classes(self):
+        api=self.app_state.api
+        role=role_of(self.app_state)
         try:
-            rows=self.app_state.api.table_select("online_classes",{"order":"id.desc","limit":"50"})
+            if role=="teacher":
+                memberships=api.table_select("online_class_teachers",{"teacher_id":"eq."+str(self._current_teacher_id()),"order":"class_id.desc","limit":"100"}) or []
+                class_ids=[int(x["class_id"]) for x in memberships if x.get("class_id") is not None]
+                if not class_ids:
+                    self._label("هنوز کلاسی به این دبیر متصل نشده است.",height=55)
+                    return
+                filt="eq."+str(class_ids[0]) if len(class_ids)==1 else "in.("+",".join(str(x) for x in class_ids)+")"
+                rows=api.table_select("online_classes",{"id":filt,"order":"id.desc","limit":"100"}) or []
+            elif role=="student":
+                memberships=api.table_select("online_class_students",{"student_id":"eq."+str(self._current_student_id()),"order":"class_id.desc","limit":"100"}) or []
+                class_ids=[int(x["class_id"]) for x in memberships if x.get("class_id") is not None]
+                if not class_ids:
+                    self._label("هنوز کلاسی به این دانش‌آموز متصل نشده است.",height=55)
+                    return
+                filt="eq."+str(class_ids[0]) if len(class_ids)==1 else "in.("+",".join(str(x) for x in class_ids)+")"
+                rows=api.table_select("online_classes",{"id":filt,"order":"id.desc","limit":"100"}) or []
+            else:
+                rows=api.table_select("online_classes",{"order":"id.desc","limit":"100"}) or []
         except Exception as exc:
             return self._error("خواندن کلاس‌ها انجام نشد: "+str(exc))
         if not rows:
             self._label("هنوز کلاسی ثبت نشده است.",height=55)
             return
-        role=role_of(self.app_state)
         for r in rows:
             cid=r.get("id"); state=str(r.get("status") or "inactive")
             self._label(
@@ -186,15 +204,15 @@ class OnlineClassScreen(Screen):
                 height=86,bold=True
             )
             if role in CLASS_MANAGERS:
-                self._button("✎ ویرایش کلاس",lambda *_ ,row=dict(r):self._edit_class(row),PRIMARY)
+                self._button("ویرایش کلاس",lambda *_ ,row=dict(r):self._edit_class(row),PRIMARY)
                 self._button("حذف کلاس",lambda *_ ,x=cid:self._delete_class(x),ERROR)
-                self._button("＋ اتصال دانش‌آموز به کلاس",lambda *_ ,x=cid:self._add_student(x),SUCCESS)
-                self._button("＋ اتصال دبیر به کلاس",lambda *_ ,x=cid:self._add_teacher(x),SUCCESS)
+                self._button("اتصال دانش‌آموز به کلاس",lambda *_ ,x=cid:self._add_student(x),SUCCESS)
+                self._button("اتصال دبیر به کلاس",lambda *_ ,x=cid:self._add_teacher(x),SUCCESS)
                 self._button("اعضای کلاس",lambda *_ ,x=cid:self._members(x),PRIMARY)
                 self._button("خروجی اکسل کلاس‌ها",lambda *_:self._export_excel(),PRIMARY)
                 self._button("ورودی اکسل کلاس‌ها",lambda *_:self._import_excel(),PRIMARY)
-                if state!="active": self._button("▶ شروع جلسه",lambda *_ ,x=cid:self._start(x),SUCCESS)
-                if state=="active": self._button("■ پایان جلسه",lambda *_ ,x=cid:self._end(x),ERROR)
+                if state!="active": self._button("شروع جلسه",lambda *_ ,x=cid:self._start(x),SUCCESS)
+                if state=="active": self._button("پایان جلسه",lambda *_ ,x=cid:self._end(x),ERROR)
                 self._button("حضور و غیاب",lambda *_ ,x=cid:self._attendance(x),PRIMARY)
                 self._button("گفت‌وگوی کلاس",lambda *_ ,x=cid:self._chat(x),PRIMARY)
                 self._button("تخته مشترک / نوشتن روی تخته",lambda *_ ,x=cid:self._board(x),PRIMARY)
@@ -204,6 +222,7 @@ class OnlineClassScreen(Screen):
                 if url:self._button("ورود به جلسه و فعال‌سازی دوربین/میکروفون",lambda *_ ,u=url,x=cid:self._join(u,x),SUCCESS)
                 self._button(f"میکروفون: {'روشن' if self.mic else 'خاموش'}",lambda *_:self._toggle_mic(),SECONDARY)
                 self._button(f"دوربین: {'روشن' if self.camera else 'خاموش'}",lambda *_:self._toggle_camera(),SECONDARY)
+
     def _edit_class(self,row):
         self._clear()
         self._label("ویرایش کلاس #"+str(row.get("id")),"21sp",PRIMARY,52,True)
@@ -292,6 +311,30 @@ class OnlineClassScreen(Screen):
         except Exception as exc:
             self._error("ورودی Excel انجام نشد: "+str(exc))
 
+    def _current_teacher_id(self):
+        profile=getattr(self.app_state,"profile",{}) or {}
+        value=profile.get("linked_teacher_id") or profile.get("teacher_id")
+        if value:
+            return int(value)
+        national_code=str(profile.get("national_code") or "").strip()
+        if national_code:
+            rows=self.app_state.api.table_select("teachers",{"national_code":"eq."+national_code,"limit":"1"}) or []
+            if rows and rows[0].get("id") is not None:
+                return int(rows[0]["id"])
+        raise RuntimeError("شناسه دبیر جاری در سامانه پیدا نشد.")
+
+    def _current_student_id(self):
+        profile=getattr(self.app_state,"profile",{}) or {}
+        value=profile.get("linked_student_id") or profile.get("student_id")
+        if value:
+            return int(value)
+        national_code=str(profile.get("national_code") or "").strip()
+        if national_code:
+            rows=self.app_state.api.table_select("students",{"national_code":"eq."+national_code,"limit":"1"}) or []
+            if rows and rows[0].get("id") is not None:
+                return int(rows[0]["id"])
+        raise RuntimeError("شناسه دانش‌آموز جاری در سامانه پیدا نشد.")
+
     def _add_student(self,cid):
         self._clear()
         self._label("اتصال دانش‌آموز به کلاس #"+str(cid),"21sp",PRIMARY,50,True)
@@ -302,15 +345,19 @@ class OnlineClassScreen(Screen):
         self._student_rows=rows
         labels=[str(x.get("id"))+" | "+str(x.get("first_name") or "")+" "+str(x.get("last_name") or "")+" | "+str(x.get("class_name") or "") for x in rows]
         if not labels: return self._error("هیچ دانش‌آموزی در سامانه ثبت نشده است.")
-        spin=Spinner(text=fa_display(labels[0]),values=tuple(fa_display(x) for x in labels),font_name=font_name(),font_size="12sp",size_hint_y=None,height=dp(50))
+        self._student_spin_map={fa_display(label):int(row.get("id")) for label,row in zip(labels,rows)}
+        visual_labels=tuple(self._student_spin_map.keys())
+        spin=PersianSpinner(text=visual_labels[0],values=visual_labels,font_size="12sp",size_hint_y=None,height=dp(50))
         self.body.add_widget(spin)
         self._button("ثبت اتصال دانش‌آموز",lambda *_:self._save_student(cid,spin),SUCCESS)
         self._button("بازگشت",lambda *_:self.show_home(),SECONDARY)
 
     def _save_student(self,cid,spin):
         try:
-            sid=int(str(spin.text).split("|",1)[0].strip())
-            row=next((x for x in self._student_rows if int(x.get("id"))==sid),None)
+            sid=self._student_spin_map.get(str(spin.text))
+            if sid is None:
+                return self._error("دانش‌آموز انتخاب‌شده معتبر نیست.")
+            row=next((x for x in self._student_rows if int(x.get("id"))==int(sid)),None)
             if not row: return self._error("دانش‌آموز انتخاب‌شده پیدا نشد.")
             existing=self.app_state.api.table_select("online_class_students",{"class_id":"eq."+str(cid),"student_id":"eq."+str(sid),"limit":"1"}) or []
             if not existing:
@@ -328,15 +375,19 @@ class OnlineClassScreen(Screen):
         self._teacher_rows=rows
         labels=[str(x.get("id"))+" | "+str(x.get("first_name") or "")+" "+str(x.get("last_name") or "")+" | "+str(x.get("subject") or "") for x in rows]
         if not labels: return self._error("هیچ دبیری در سامانه ثبت نشده است.")
-        spin=Spinner(text=fa_display(labels[0]),values=tuple(fa_display(x) for x in labels),font_name=font_name(),font_size="12sp",size_hint_y=None,height=dp(50))
+        self._teacher_spin_map={fa_display(label):int(row.get("id")) for label,row in zip(labels,rows)}
+        visual_labels=tuple(self._teacher_spin_map.keys())
+        spin=PersianSpinner(text=visual_labels[0],values=visual_labels,font_size="12sp",size_hint_y=None,height=dp(50))
         self.body.add_widget(spin)
         self._button("ثبت اتصال دبیر",lambda *_:self._save_teacher(cid,spin),SUCCESS)
         self._button("بازگشت",lambda *_:self.show_home(),SECONDARY)
 
     def _save_teacher(self,cid,spin):
         try:
-            tid=int(str(spin.text).split("|",1)[0].strip())
-            row=next((x for x in self._teacher_rows if int(x.get("id"))==tid),None)
+            tid=self._teacher_spin_map.get(str(spin.text))
+            if tid is None:
+                return self._error("دبیر انتخاب‌شده معتبر نیست.")
+            row=next((x for x in self._teacher_rows if int(x.get("id"))==int(tid)),None)
             if not row: return self._error("دبیر انتخاب‌شده پیدا نشد.")
             existing=self.app_state.api.table_select("online_class_teachers",{"class_id":"eq."+str(cid),"teacher_id":"eq."+str(tid),"limit":"1"}) or []
             if not existing:
