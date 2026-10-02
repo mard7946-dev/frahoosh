@@ -99,6 +99,8 @@ def fa_display(value):
     text = unicodedata.normalize("NFKC", str(value or ""))
     text = text.replace("ي", "ی").replace("ى", "ی").replace("ك", "ک")
     text = text.replace("ۀ", "هٔ").replace("ة", "ه")
+    # Do not send unsupported icon glyphs to Android fonts; they render as squares.
+    text = text.translate(str.maketrans({"‹":"", "＋":"", "✎":"", "▶":"", "■":"", "□":"", "☑":"", "✓":""}))
     if not text:
         return text
     try:
