@@ -2425,7 +2425,7 @@
       ]
     },
     "smart_class_preview": {
-      "table": "online_classes",
+      "table": "smart_class_preview",
       "fields": [],
       "operations": [
         "create",
