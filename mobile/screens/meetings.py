@@ -189,6 +189,8 @@ class MeetingsScreen(Screen):
                     "last_name":"",
                     "role":row.get("role"),
                     "id":row.get("id"),
+                    "linked_teacher_id":row.get("linked_teacher_id"),
+                    "linked_staff_id":row.get("linked_staff_id"),
                 })
             self._target_rows=result
             return result
@@ -328,12 +330,14 @@ class MeetingsScreen(Screen):
         if not srow or not trow:
             return self._message("دانش‌آموز و فرد مورد ملاقات را از فهرست انتخاب کنید.", ERROR)
         teacher_id=None
-        if self.target_role in {"teacher","teachers"} and trow.get("username"):
-            try:
-                trs=self.app_state.api.table_select("teachers",{"email":f"eq.{trow.get('username')}","select":"id","limit":"1"}) or []
-                teacher_id=trs[0].get("id") if trs else None
-            except Exception:
-                teacher_id=None
+        if self.target_role in {"teacher","teachers"}:
+            teacher_id=trow.get("linked_teacher_id") or trow.get("teacher_id")
+            if teacher_id is None and trow.get("username"):
+                try:
+                    trs=self.app_state.api.table_select("teachers",{"email":f"eq.{trow.get('username')}","select":"id","limit":"1"}) or []
+                    teacher_id=trs[0].get("id") if trs else None
+                except Exception:
+                    teacher_id=None
         self._create(
             student_name=self._person_name(srow),
             target_name=self._person_name(trow),
