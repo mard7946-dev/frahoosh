@@ -110,6 +110,31 @@ end $$;
 
 create index if not exists idx_parent_children_student_id
   on public.parent_children(student_id);
+drop index if exists public.idx_teacher_classes_teacher_id;
+
+-- برای تمام FKهای تک‌ستونه شاخص پوششی بساز؛ FK بدون index در مقیاس مدرسه کند می‌شود.
+do $
+declare r record; idxname text;
+begin
+  for r in
+    select n.nspname as schema_name,c.relname as table_name,a.attname as column_name
+      from pg_constraint fk
+      join pg_class c on c.oid=fk.conrelid
+      join pg_namespace n on n.oid=c.relnamespace
+      join pg_attribute a on a.attrelid=c.oid and a.attnum=fk.conkey[1]
+     where fk.contype='f' and n.nspname='public'
+       and array_length(fk.conkey,1)=1
+       and not exists (
+         select 1 from pg_index i
+          where i.indrelid=c.oid and i.indisvalid and i.indisready
+            and i.indnkeyatts=1 and i.indkey[0]=fk.conkey[1]
+       )
+  loop
+    idxname := left('idx_'||r.table_name||'_'||r.column_name||'_fk',60);
+    execute format('create index if not exists %I on public.%I(%I)',idxname,r.table_name,r.column_name);
+  end loop;
+end $;
+
 create index if not exists idx_teacher_classes_teacher_id
   on public.teacher_classes(teacher_id);
 create index if not exists idx_assignments_student_teacher
