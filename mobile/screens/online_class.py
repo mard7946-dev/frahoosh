@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
 import webbrowser
 import urllib.parse
+import random
+
+from kivy.clock import Clock
+from kivy.uix.popup import Popup
 
 from kivy.metrics import dp
 from kivy.uix.screenmanager import Screen
@@ -65,7 +69,7 @@ def role_of(state):
 
 class OnlineClassScreen(Screen):
     def __init__(self,app_state=None,**kwargs):
-        super().__init__(**kwargs); self.app_state=app_state; self.current_id=None; self.selected_class=None; self.mic=True; self.camera=True; self._build()
+        super().__init__(**kwargs); self.app_state=app_state; self.current_id=None; self.selected_class=None; self.mic=True; self.camera=True; self._build(); self._checkpoint_events=[]; self._checkpoint_session_id=None; self._checkpoint_student_id=None; self._checkpoint_class_id=None; self._checkpoint_name=""
     def _build(self):
         root=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(7)); head=BoxLayout(size_hint_y=None,height=dp(52),spacing=dp(7))
         back=Button(text=fa_display("‹ داشبورد"),font_name=font_name(),background_normal="",background_color=PRIMARY,color=WHITE,size_hint_x=None,width=dp(100)); back.bind(on_release=lambda *_:self._back()); head.add_widget(back)
@@ -562,12 +566,12 @@ class OnlineClassScreen(Screen):
                             "online_class_students",
                             {"class_id":class_id,"student_id":student_id,"student_name":name}
                         )
-                    self.app_state.api.table_insert(
-                        "online_attendance",
-                        {"class_id":class_id,"student_id":student_id,
-                         "student_name":name,"status":"present",
-                         "recorded_at":datetime.now(timezone.utc).isoformat()}
-                    )
+                    self._checkpoint_session_id=int(session.get("id"))
+                    self._checkpoint_student_id=int(student_id)
+                    self._checkpoint_class_id=int(class_id)
+                    self._checkpoint_name=name
+                    self._record_checkpoint(1)
+                    self._schedule_random_checkpoints(class_id)
             if self._open_virtual_classroom(str(url), class_id, profile, role):
                 self._ok("کلاس مجازی باز شد؛ حضور شما در سامانه ثبت شد.")
             else:
@@ -575,6 +579,104 @@ class OnlineClassScreen(Screen):
                 self._ok("محیط کلاس مجازی در دستگاه در دسترس نبود؛ لینک کلاس باز شد.")
         except Exception as exc:
             self._error("ورود به جلسه انجام نشد: "+str(exc))
+    def _record_checkpoint(self, checkpoint_no, status="present"):
+        if not self._checkpoint_session_id or not self._checkpoint_student_id or not self._checkpoint_class_id:
+            return
+        try:
+            now=datetime.now(timezone.utc).isoformat()
+            self.app_state.api.table_insert("online_attendance", {
+                "class_id":self._checkpoint_class_id,"student_id":self._checkpoint_student_id,
+                "student_name":self._checkpoint_name,"session_id":self._checkpoint_session_id,
+                "checkpoint_no":int(checkpoint_no),"status":status,
+                "source":"online_class_checkpoint","event_time":now,"recorded_at":now
+            })
+        except Exception as exc:
+            print("ONLINE ATTENDANCE CHECKPOINT ERROR:",repr(exc))
+
+    def _schedule_random_checkpoints(self, class_id):
+        for ev in getattr(self,"_checkpoint_events",[]):
+            try: ev.cancel()
+            except Exception: pass
+        self._checkpoint_events=[]
+        try:
+            rows=self.app_state.api.table_select("online_classes",{"id":f"eq.{class_id}","limit":"1"}) or []
+            duration=int(rows[0].get("duration") or 45) if rows else 45
+        except Exception:
+            duration=45
+        total=max(60,duration*60)
+        first=random.uniform(total*0.25,total*0.45)
+        second=random.uniform(total*0.60,total*0.82)
+        if second <= first+30: second=min(total-10,first+60)
+        self._checkpoint_events.append(Clock.schedule_once(lambda dt:self._checkpoint_prompt(2),first))
+        self._checkpoint_events.append(Clock.schedule_once(lambda dt:self._checkpoint_prompt(3),second))
+
+    def _checkpoint_prompt(self, checkpoint_no):
+        if not self._checkpoint_session_id:
+            return
+        box=BoxLayout(orientation="vertical",padding=dp(14),spacing=dp(10))
+        label=Label(text=fa_display("برای تأیید ادامه حضور در کلاس، حداکثر ۵ ثانیه فرصت دارید."),font_name=font_name(),halign="center",valign="middle")
+        label.bind(size=lambda o,v:setattr(o,"text_size",v)); box.add_widget(label)
+        button=Button(text=fa_display("تأیید حضور — ۵"),font_name=font_name(),size_hint_y=None,height=dp(50))
+        box.add_widget(button)
+        popup=Popup(title=fa_display("صحت‌سنجی حضور در کلاس"),content=box,size_hint=(.86,.34),auto_dismiss=False)
+        state={"left":5,"done":False}
+        def confirm(*_):
+            if state["done"]: return
+            state["done"]=True
+            try: countdown.cancel()
+            except Exception: pass
+            popup.dismiss()
+            self._record_checkpoint(checkpoint_no)
+            self._ok("حضور شما برای ادامه کلاس تأیید شد.")
+        def tick(dt):
+            if state["done"]: return False
+            state["left"]-=1
+            if state["left"]<=0:
+                state["done"]=True
+                popup.dismiss()
+                self._record_checkpoint(checkpoint_no,"absent_timeout")
+                self._notify_parent_absence("عدم تأیید صحت‌سنجی حضور",checkpoint_no)
+                self._close_virtual_classroom("عدم تأیید حضور در مهلت ۵ ثانیه")
+                return False
+            button.text=fa_display("تأیید حضور — "+str(state["left"]))
+            return True
+        button.bind(on_release=confirm)
+        popup.open()
+        countdown=Clock.schedule_interval(tick,1)
+
+    def _notify_parent_absence(self, reason, checkpoint_no):
+        try:
+            sid=self._checkpoint_student_id
+            rows=self.app_state.api.table_select("students",{"id":f"eq.{sid}","limit":"1"}) or []
+            student=rows[0] if rows else {}
+            student_name=(str(student.get("first_name") or "")+" "+str(student.get("last_name") or "")).strip() or self._checkpoint_name
+            body=(f"دانش‌آموز {student_name} در کلاس آنلاین #{self._checkpoint_class_id} "
+                  f"در صحت‌سنجی شماره {checkpoint_no} حضور را در مهلت ۵ ثانیه تأیید نکرد و از کلاس خارج شد.")
+            self.app_state.api.table_insert("messages",{
+                "sender":"مدیریت مدرسه","sender_name":"مدیریت مدرسه",
+                "title":"هشدار حضور و غیاب کلاس آنلاین","body":body,"text":body,
+                "audience_type":"parent","target_role":"parent","target_name":student_name,
+                "audience_value":str(sid),"created_at":datetime.now(timezone.utc).isoformat()
+            })
+        except Exception as exc:
+            print("PARENT ABSENCE MESSAGE ERROR:",repr(exc))
+
+    def _close_virtual_classroom(self, reason=""):
+        for ev in getattr(self,"_checkpoint_events",[]):
+            try: ev.cancel()
+            except Exception: pass
+        self._checkpoint_events=[]
+        container=getattr(self,"_active_webview_container",None)
+        if container is not None:
+            try:
+                parent=container.getParent()
+                if parent is not None: parent.removeView(container)
+            except Exception as exc: print("VIRTUAL CLASSROOM CLOSE ERROR:",repr(exc))
+        self._active_webview=None
+        self._active_webview_container=None
+        self._checkpoint_session_id=None
+        self._error(reason or "کلاس بسته شد.")
+
     def _open_virtual_classroom(self, url, class_id, profile, role):
         """Open the live WebRTC classroom inside Android instead of a bare browser meeting."""
         try:
