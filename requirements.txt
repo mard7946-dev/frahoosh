@@ -3,3 +3,5 @@ requests
 urllib3
 arabic-reshaper
 python-bidi
+openpyxl==3.1.5
+et-xmlfile==2.0.0
