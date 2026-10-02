@@ -454,6 +454,8 @@ EDITABLE = {
         "meeting_requests",
         "transport_requests",
         "parent_activities",
+        "parent_children",
+        "survey_responses",
     },
 }
 # Normalize write permissions to the canonical backend table ids used by the
