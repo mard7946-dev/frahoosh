@@ -196,7 +196,7 @@ COLUMNS.update({
     "parent_id":"شناسه ولی", "parent_name":"نام ولی", "target_role":"نقش مخاطب", "target_name":"نام مخاطب",
     "requested_date_shamsi":"تاریخ درخواست شمسی", "requested_time":"ساعت درخواست", "educational_approval":"تأیید معاون آموزشی",
     "manager_approval":"تأیید مدیریت", "registration_date":"تاریخ ثبت", "certificate_type":"نوع گواهی",
-    "reason":"علت", "report":"گزارش", "meeting_at":"زمان جلسه"
+    "reason":"علت", "report":"گزارش", "meeting_at":"زمان جلسه","due_date":"مهلت ارسال","expires_at":"تاریخ انقضا","max_file_size_mb":"حداکثر حجم فایل (MB)","file_name":"نام فایل","file_mime_type":"نوع فایل","file_size_bytes":"حجم فایل (بایت)"
 })
 
 COLUMNS.update({
@@ -519,7 +519,7 @@ FORMS = {
     "staff":["first_name","last_name","father_name","national_code","personnel_code","birth_certificate_place","birth_place","nationality","religion","sect","service_years","phone","role"],
     "school_events":["title","description","event_date","status"],
     "lesson_plans":["teacher_id","teacher_name","subject","grade","class_name","title","description"],
-    "assignments":["student_id","teacher_id","title","subject","class_name","description","status"],
+    "assignments":["student_id","teacher_id","title","subject","class_name","description","status","due_date","max_file_size_mb","expires_at"],
     "attendance":["student_id","teacher_id","class_name","subject","attendance_date","status"],
     "grades":["student_id","teacher_id","subject","score","max_score","term"],
     "teacher_exams":["teacher_id","title","subject","grade","class_name","exam_type","duration","description","published","secure_mode","max_attempts","passing_score"],
@@ -538,7 +538,7 @@ FORMS = {
     "activity_registrations":["activity_id","student_id","participation_type","team_members","competition_type","payment_status","status"],
     "program_activations":["program_key","title","active","activated_by"],
     "khwarizmi_registrations":["title","category","grade","class_name","student_id","status"],
-    "assignment_submissions":["assignment_id","student_id","file_url","answer_text","submitted_at","status"],
+    "assignment_submissions":["assignment_id","student_id","file_url","file_name","file_mime_type","file_size_bytes","answer_text","submitted_at","status","expires_at"],
     "class_seat_assignments":["class_id","student_id","seat_number","academic_year"],
     "exam_seat_assignments":["exam_id","student_id","subject","exam_date","seat_number"],
     "monthly_report_cards":["student_id","month_name","active","created_at"],
