@@ -656,7 +656,7 @@ class OnlineClassScreen(Screen):
                 "sender":"مدیریت مدرسه","sender_name":"مدیریت مدرسه",
                 "title":"هشدار حضور و غیاب کلاس آنلاین","body":body,"text":body,
                 "audience_type":"parent","target_role":"parent","target_name":student_name,
-                "audience_value":str(sid),"created_at":datetime.now(timezone.utc).isoformat()
+                "audience_value":str(sid),"student_id":sid,"created_at":datetime.now(timezone.utc).isoformat()
             })
         except Exception as exc:
             print("PARENT ABSENCE MESSAGE ERROR:",repr(exc))
