@@ -112,6 +112,10 @@
       [
         "حساب‌های سامانه",
         "users"
+      ],
+      [
+        "فعال‌سازی قابلیت‌های دانش‌آموز و اولیا",
+        "module_activations"
       ]
     ],
     "educational": [
@@ -174,6 +178,10 @@
       [
         "جشنواره خوارزمی",
         "khwarizmi_registrations"
+      ],
+      [
+        "فعال‌سازی قابلیت‌های آموزشی/آزمون/کلاس",
+        "module_activations"
       ]
     ],
     "executive": [
@@ -240,6 +248,10 @@
       [
         "درخواست‌ها",
         "executive_requests"
+      ],
+      [
+        "فعال‌سازی قابلیت‌های اجرایی و درخواست‌ها",
+        "module_activations"
       ]
     ],
     "cultural": [
@@ -310,6 +322,10 @@
       [
         "ارسال پیام",
         "message_targets"
+      ],
+      [
+        "فعال‌سازی مسابقات و فعالیت‌های دانش‌آموزی",
+        "module_activations"
       ]
     ],
     "advisor": [
@@ -909,7 +925,8 @@
     "student_files": "پرونده تکمیلی دانش‌آموز",
     "student_registrations": "ثبت‌نام فعالیت‌ها",
     "survey_answers": "پاسخ‌های نظرسنجی",
-    "survey_questions": "سؤالات نظرسنجی"
+    "survey_questions": "سؤالات نظرسنجی",
+    "module_activations": "فعال‌سازی قابلیت‌ها"
   },
   "modules": {
     "users": {
@@ -3078,6 +3095,21 @@
         "options",
         "required",
         "sort_order"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "module_activations": {
+      "table": "module_activations",
+      "fields": [
+        "module_key",
+        "active",
+        "activated_by",
+        "activated_at",
+        "settings"
       ],
       "operations": [
         "create",
