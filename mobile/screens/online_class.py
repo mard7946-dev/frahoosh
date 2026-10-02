@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import webbrowser
+import urllib.parse
 
 from kivy.metrics import dp
 from kivy.uix.screenmanager import Screen
@@ -567,10 +568,103 @@ class OnlineClassScreen(Screen):
                          "student_name":name,"status":"present",
                          "recorded_at":datetime.now(timezone.utc).isoformat()}
                     )
-            webbrowser.open(str(url))
-            self._ok("جلسه واقعی باز شد و ورود شما در سامانه ثبت شد؛ کنترل دوربین و میکروفون توسط سرویس جلسه انجام می‌شود.")
+            if self._open_virtual_classroom(str(url), class_id, profile, role):
+                self._ok("کلاس مجازی باز شد؛ حضور شما در سامانه ثبت شد.")
+            else:
+                webbrowser.open(str(url))
+                self._ok("محیط کلاس مجازی در دستگاه در دسترس نبود؛ لینک کلاس باز شد.")
         except Exception as exc:
             self._error("ورود به جلسه انجام نشد: "+str(exc))
+    def _open_virtual_classroom(self, url, class_id, profile, role):
+        """Open the live WebRTC classroom inside Android instead of a bare browser meeting."""
+        try:
+            from jnius import autoclass, PythonJavaClass, java_method
+            from android.runnable import run_on_ui_thread
+
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            WebView = autoclass("android.webkit.WebView")
+            WebViewClient = autoclass("android.webkit.WebViewClient")
+            LayoutParams = autoclass("android.view.ViewGroup$LayoutParams")
+            FrameLayout = autoclass("android.widget.FrameLayout")
+            Button = autoclass("android.widget.Button")
+            Color = autoclass("android.graphics.Color")
+
+            activity = PythonActivity.mActivity
+            web = WebView(activity)
+            web.setBackgroundColor(Color.BLACK)
+            settings = web.getSettings()
+            settings.setJavaScriptEnabled(True)
+            settings.setDomStorageEnabled(True)
+            settings.setMediaPlaybackRequiresUserGesture(False)
+            settings.setAllowFileAccess(True)
+            settings.setAllowContentAccess(True)
+            web.setWebViewClient(WebViewClient())
+
+            class BackListener(PythonJavaClass):
+                __javainterfaces__ = ["android/view/View$OnClickListener"]
+                __javacontext__ = "app"
+                def __init__(self, activity, webview, container, button):
+                    super().__init__()
+                    self.activity = activity
+                    self.webview = webview
+                    self.container = container
+                    self.button = button
+                @java_method("(Landroid/view/View;)V")
+                def onClick(self, view):
+                    try:
+                        self.activity.runOnUiThread(lambda: self._close())
+                    except Exception as exc:
+                        print("VIRTUAL CLASSROOM CLOSE ERROR:", repr(exc))
+                def _close(self):
+                    try:
+                        parent = self.container.getParent()
+                        if parent is not None:
+                            parent.removeView(self.container)
+                    finally:
+                        self._active = False
+
+            name = str(profile.get("display_name") or getattr(self.app_state, "display_name", "") or "کاربر فراهوش")
+            encoded_name = urllib.parse.quote(name)
+            sep = "&" if "?" in url else "?"
+            room_url = (
+                url + sep
+                + "config.prejoinPageEnabled=false"
+                + "&config.disableAP=true"
+                + "&config.toolbarButtons=%5B%22microphone%22,%22camera%22,%22chat%22,%22participants-pane%22,%22desktop%22,%22raisehand%22,%22tileview%22,%22fullscreen%22,%22whiteboard%22%5D"
+                + "&userInfo.displayName=" + encoded_name
+            )
+
+            container = FrameLayout(activity)
+            container.setBackgroundColor(Color.BLACK)
+            container.addView(web, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+
+            back_button = Button(activity)
+            back_button.setText("بازگشت به فراهوش")
+            button_params = FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+            button_params.leftMargin = 18
+            button_params.topMargin = 24
+            container.addView(back_button, button_params)
+
+            listener = BackListener(activity, web, container, back_button)
+            back_button.setOnClickListener(listener)
+            self._classroom_back_listener = listener
+
+            @run_on_ui_thread
+            def attach():
+                activity.addContentView(
+                    container,
+                    LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+                )
+                web.loadUrl(room_url)
+
+            attach()
+            self._active_webview = web
+            self._active_webview_container = container
+            return True
+        except Exception as exc:
+            print("VIRTUAL CLASSROOM WEBVIEW ERROR:", repr(exc))
+            return False
+
     def _toggle_mic(self):self.mic=not self.mic; self.show_home()
     def _toggle_camera(self):self.camera=not self.camera; self.show_home()
     def _ok(self,text):self.status.color=SUCCESS;self.status.text=fa_display(text)
