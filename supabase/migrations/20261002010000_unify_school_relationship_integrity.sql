@@ -308,3 +308,11 @@ begin
     );
   end loop;
 end $$;
+
+
+-- این توابع فقط از trigger/cron داخلی اجرا می‌شوند و نباید RPC عمومی باشند.
+revoke execute on function public.refresh_all_school_relationships() from public,anon,authenticated;
+revoke execute on function public.refresh_school_relationships_for(text) from public,anon,authenticated;
+revoke execute on function public.trg_refresh_school_relationships() from public,anon,authenticated;
+revoke execute on function public.validate_assignment_submission() from public,anon,authenticated;
+revoke execute on function public.purge_expired_assignment_submissions() from public,anon,authenticated;
