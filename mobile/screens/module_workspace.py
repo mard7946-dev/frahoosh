@@ -691,6 +691,7 @@ class ModuleWorkspaceScreen(Screen):
         self.table=None
         self.rows=[]
         self._built=False
+        self.parent_selected_student_id=None
 
     def _build_emergency(self, exc):
         root=BoxLayout(orientation="vertical",padding=dp(18),spacing=dp(12))
@@ -1106,6 +1107,9 @@ class ModuleWorkspaceScreen(Screen):
     def _current_username(self):
         profile = getattr(self.app_state, "profile", {}) or {}
         user = getattr(self.app_state, "user", {}) or {}
+        role = str(profile.get("role") or getattr(self.app_state, "role", "") or "").strip().lower()
+        if role in ("parent","parents","ولی","اولیا"):
+            return str(profile.get("national_code") or "").strip()
         return str(profile.get("username") or user.get("username") or getattr(self.app_state, "username", "") or "").strip()
 
     def _current_student_id(self):
@@ -1167,7 +1171,9 @@ class ModuleWorkspaceScreen(Screen):
         self.table = None
         self.title.text = fa_display("اطلاعات فرزندان")
         username = self._current_username()
-        self.body.add_widget(self.label("ارتباط فرزند با حساب ولی فقط برای مشاهده است.", "10sp", SECONDARY, False, "center"))
+        selected_text = "هیچ فرزندی برای عملیات انتخاب نشده است." if not self.parent_selected_student_id else f"فرزند انتخاب‌شده برای عملیات: {self.parent_selected_student_id}"
+        self.body.add_widget(self.label("یک یا چند فرزند متصل را می‌توانید برای عملیات والد انتخاب کنید.", "10sp", SECONDARY, False, "center"))
+        self.body.add_widget(self.label(selected_text, "10sp", WHITE, True, "center"))
         try:
             current = self.app_state.api.table_select("parent_children", {"parent_username":"eq."+username, "limit":"200"}) or []
             students = self.app_state.api.table_select("students", {"order":"last_name.asc", "limit":"300"}) or []
@@ -1182,7 +1188,16 @@ class ModuleWorkspaceScreen(Screen):
             student = next((s for s in students if str(s.get("id")) == str(sid)), None)
             name = f"{student.get('first_name','')} {student.get('last_name','')}" if student else f"دانش‌آموز شماره {sid}"
             self.body.add_widget(self.label(name, "12sp", WHITE, True, "center"))
+            self.body.add_widget(self.btn("انتخاب این دانش‌آموز", lambda *_args, sid=sid: self._select_parent_child(sid), PRIMARY, dp(40)))
         self.body.add_widget(self.btn("بازگشت", lambda *_: self._back_to_submenus(), PRIMARY, dp(42)))
+
+    def _select_parent_child(self, student_id):
+        try:
+            self.parent_selected_student_id = int(student_id)
+            self.message("انتخاب دانش‌آموز", "این دانش‌آموز برای عملیات والد انتخاب شد.")
+            self._open_parent_children()
+        except Exception as exc:
+            self.message("انتخاب دانش‌آموز", "انتخاب دانش‌آموز انجام نشد: " + str(exc))
 
     def _add_parent_child(self, username, student):
         if not student or not student.get("id"):
@@ -2351,7 +2366,7 @@ class ModuleWorkspaceScreen(Screen):
                         if sid and not payload.get("student_id"):
                             payload["student_id"] = sid
                     if role in ("parent","parents","ولی","اولیا"):
-                        username = profile.get("username") or profile.get("national_code") or profile.get("email")
+                        username = profile.get("national_code") or profile.get("username") or profile.get("email")
                         if username and not payload.get("parent_username") and table in {"parent_activities","transport_requests","payment_attempts","parent_meeting_requests","parent_children"}:
                             payload["parent_username"] = username
                         if username and table == "survey_responses":
@@ -2362,9 +2377,12 @@ class ModuleWorkspaceScreen(Screen):
                         # Parent-facing workflows must always carry a real child relationship.
                         if table in {"transport_requests","payment_attempts","meeting_requests","parent_meeting_requests"} and not payload.get("student_id"):
                             try:
-                                links = api.table_select("parent_children", {"parent_username":f"eq.{username}","limit":"50"}) or []
-                                if links:
-                                    payload["student_id"] = links[0].get("student_id")
+                                if self.parent_selected_student_id:
+                                    payload["student_id"] = self.parent_selected_student_id
+                                else:
+                                    links = api.table_select("parent_children", {"parent_username":f"eq.{username}","limit":"50"}) or []
+                                    if links:
+                                        payload["student_id"] = links[0].get("student_id")
                             except Exception as rel_exc:
                                 print("PARENT CHILD RELATION SAVE ERROR:", repr(rel_exc))
                     if row is None:
