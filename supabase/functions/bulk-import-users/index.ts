@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
   const results: any[] = [];
 
-  async function upsertPersonProfile(p: any, role: string, authUserId: string) {
+  async function upsertPersonProfile(p: any, role: string) {
     const common = {
       first_name: text(p.first_name),
       last_name: text(p.last_name),
@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
         if (updateAuthError) throw updateAuthError;
       }
 
-      const profileIds = await upsertPersonProfile(p, role, userId);
+      const profileIds = await upsertPersonProfile(p, role);
 
       const account = {
         username: text(p.username) || nationalCode,
@@ -198,19 +198,6 @@ Deno.serve(async (req) => {
       const { error: accountError } = await admin.from("account_settings")
         .upsert(account, { onConflict:"national_code" });
       if (accountError) throw accountError;
-
-      const legacy = {
-        username: account.username,
-        role,
-        display_name: displayName,
-        permissions: { "*": true },
-        ...(profileIds.student_id ? { linked_student_id: profileIds.student_id } : {}),
-        ...(profileIds.teacher_id ? { linked_teacher_id: profileIds.teacher_id } : {}),
-        ...(profileIds.staff_id ? { linked_staff_id: profileIds.staff_id } : {}),
-      };
-      const { error: legacyError } = await admin.from("users")
-        .upsert(legacy, { onConflict:"username" });
-      if (legacyError) throw legacyError;
 
       if (role === "parent" && text(p.child_national_code)) {
         const { data: child } = await admin.from("students").select("id")
