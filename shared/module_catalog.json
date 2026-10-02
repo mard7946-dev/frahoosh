@@ -438,6 +438,14 @@
       [
         "ارسال پیام",
         "message_targets"
+      ],
+      [
+        "اشتراک‌گذاری آزمون",
+        "teacher_exam_shares"
+      ],
+      [
+        "جلسات والد و دبیر",
+        "teacher_parent_meetings"
       ]
     ],
     "students": [
@@ -586,6 +594,10 @@
       [
         "آزمون‌های آنلاین",
         "teacher_exams"
+      ],
+      [
+        "جلسات والد و دبیر",
+        "teacher_parent_meetings"
       ]
     ],
     "finance": [
@@ -2413,7 +2425,7 @@
       ]
     },
     "smart_class_preview": {
-      "table": "smart_class_preview",
+      "table": "online_classes",
       "fields": [],
       "operations": [
         "create",
@@ -3337,5 +3349,11 @@
     "parent_children": "parent_children",
     "weekly_schedule": "weekly_schedule",
     "smart_class_preview": "smart_class"
+  },
+  "infrastructure": {
+    "school_relationships": {
+      "table": "school_relationships",
+      "purpose": "رابطه امنیتی و ارتباطی نقش‌های مدرسه"
+    }
   }
 }
