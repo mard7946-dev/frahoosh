@@ -127,10 +127,10 @@ class OnlineClassScreen(Screen):
         if not getattr(api,"access_token",""):
             return self._error("نشست ورود معتبر نیست؛ دوباره وارد فراهوش شوید.")
 
-        teacher_value=(teacher.text or "").strip()
-        subject_value=(subject.text or "").strip()
-        start_value=(start.text or "").strip()
-        end_value=(end.text or "").strip()
+        teacher_value=(teacher.get_logical_text() if hasattr(teacher,"get_logical_text") else teacher.text or "").strip()
+        subject_value=(subject.get_logical_text() if hasattr(subject,"get_logical_text") else subject.text or "").strip()
+        start_value=(start.get_logical_text() if hasattr(start,"get_logical_text") else start.text or "").strip()
+        end_value=(end.get_logical_text() if hasattr(end,"get_logical_text") else end.text or "").strip()
         if not teacher_value:
             return self._error("نام دبیر الزامی است.")
         if not subject_value:
@@ -163,47 +163,33 @@ class OnlineClassScreen(Screen):
                 return self._error("پاسخ ثبت کلاس از Supabase معتبر نبود؛ کلاس ذخیره نشد.")
             class_id=int(rows[0]["id"])
 
-            # نام دبیر به رابطه واقعی teachers وصل می‌شود؛ متن فرم فقط برای نمایش است.
+            # تشخیص دبیر با متن منطقی انجام می‌شود؛ TextInput متن نمایشیِ RTL را در .text نگه می‌دارد.
             teachers=api.table_select("teachers",{"limit":"500"}) or []
+            normalized_teacher = " ".join(teacher_value.replace("ي","ی").replace("ك","ک").split())
             match=next(
                 (t for t in teachers
-                 if str(t.get("email") or "").strip().lower()==teacher_value.lower()
-                 or f"{t.get('first_name','')} {t.get('last_name','')}".strip()==teacher_value
-                 or str(t.get("first_name") or "").strip()==teacher_value),
+                 if str(t.get("email") or "").strip().lower()==normalized_teacher.lower()
+                 or " ".join(f"{t.get('first_name','')} {t.get('last_name','')}".split())==normalized_teacher
+                 or str(t.get("first_name") or "").strip()==normalized_teacher),
                 None,
             )
-            if match and match.get("id"):
-                existing=api.table_select("online_class_teachers",{
-                    "class_id":f"eq.{class_id}","teacher_id":f"eq.{int(match['id'])}","limit":"1"
-                }) or []
-                if not existing:
-                    api.table_insert("online_class_teachers",{
-                        "class_id":class_id,
-                        "teacher_id":int(match["id"]),
-                        "teacher_name":f"{match.get('first_name','')} {match.get('last_name','')}".strip() or teacher_value,
-                    },return_representation=False)
-
-            # اتصال خودکار دانش‌آموزان کلاس دبیر: تشکیل کلاس فقط وقتی واقعی است که اعضا هم متصل شوند.
-            if match and match.get("id"):
-                class_links = api.table_select("teacher_classes", {
-                    "teacher_id": f"eq.{int(match['id'])}", "active": "eq.1", "limit": "50"
-                }) or []
-                for link in class_links:
-                    students = api.table_select("students", {
-                        "class_name": f"eq.{link.get('class_name','')}",
-                        "grade": f"eq.{link.get('grade','')}", "limit": "500"
-                    }) or []
-                    for student in students:
-                        sid = student.get("id")
-                        if sid is None: continue
-                        exists = api.table_select("online_class_students", {
-                            "class_id": f"eq.{class_id}", "student_id": f"eq.{int(sid)}", "limit": "1"
-                        }) or []
-                        if not exists:
-                            name = (str(student.get("first_name") or "")+" "+str(student.get("last_name") or "")).strip()
-                            api.table_insert("online_class_students", {
-                                "class_id": class_id, "student_id": int(sid), "student_name": name
-                            }, return_representation=False)
+            if not match or not match.get("id"):
+                return self._error("دبیر انتخاب‌شده در سامانه پیدا نشد. نام و نام خانوادگی دبیر را دقیق وارد کنید.")
+            try:
+                class_id = int(api.rpc("create_online_class_with_members", {
+                    "p_teacher_id": int(match["id"]),
+                    "p_subject": subject_value,
+                    "p_start_time": start_value,
+                    "p_end_time": end_value,
+                    "p_join_url": join_url,
+                }))
+            except Exception as rpc_exc:
+                # Do not leave a half-created class behind if the atomic workflow fails.
+                try:
+                    api.table_delete("online_classes", {"id": f"eq.{class_id}"})
+                except Exception:
+                    pass
+                raise rpc_exc
             self._ok("کلاس ثبت شد؛ دبیر و دانش‌آموزان کلاس مربوطه به‌صورت واقعی متصل شدند. کد کلاس: "+str(class_id))
             self.show_home()
         except Exception as exc:
@@ -249,17 +235,19 @@ class OnlineClassScreen(Screen):
     def _edit_class(self,row):
         self._clear()
         self._label("ویرایش کلاس #"+str(row.get("id")),"21sp",PRIMARY,52,True)
-        teacher=self._field("نام دبیر"); teacher.text=str(row.get("teacher") or "")
-        subject=self._field("نام درس"); subject.text=str(row.get("subject") or row.get("lesson") or "")
-        start=self._field("زمان شروع"); start.text=str(row.get("start_clock") or row.get("start_time") or row.get("start_time_shamsi") or "")
-        end=self._field("زمان پایان"); end.text=str(row.get("end_clock") or row.get("end_time") or row.get("end_time_shamsi") or "")
+        teacher=self._field("نام دبیر"); teacher.set_logical_text(str(row.get("teacher") or ""))
+        subject=self._field("نام درس"); subject.set_logical_text(str(row.get("subject") or row.get("lesson") or ""))
+        start=self._field("زمان شروع"); start.set_logical_text(str(row.get("start_clock") or row.get("start_time") or row.get("start_time_shamsi") or ""))
+        end=self._field("زمان پایان"); end.set_logical_text(str(row.get("end_clock") or row.get("end_time") or row.get("end_time_shamsi") or ""))
         self._button("ذخیره ویرایش",lambda *_:self._save_class_edit(row.get("id"),teacher,subject,start,end),SUCCESS)
         self._button("بازگشت",lambda *_:self.show_home(),SECONDARY)
 
     def _save_class_edit(self,cid,teacher,subject,start,end):
         try:
-            teacher_value=teacher.text.strip(); subject_value=subject.text.strip()
-            start_value=start.text.strip(); end_value=end.text.strip()
+            teacher_value=(teacher.get_logical_text() if hasattr(teacher,"get_logical_text") else teacher.text).strip()
+            subject_value=(subject.get_logical_text() if hasattr(subject,"get_logical_text") else subject.text).strip()
+            start_value=(start.get_logical_text() if hasattr(start,"get_logical_text") else start.text).strip()
+            end_value=(end.get_logical_text() if hasattr(end,"get_logical_text") else end.text).strip()
             if not teacher_value or not subject_value or not start_value or not end_value:
                 return self._error("نام دبیر، نام درس، زمان شروع و زمان پایان الزامی است.")
             self.app_state.api.table_update("online_classes",{"id":f"eq.{cid}"},{
