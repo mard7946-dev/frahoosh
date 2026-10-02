@@ -1791,6 +1791,16 @@ class ModuleWorkspaceScreen(Screen):
                 if not isinstance(rows, list):
                     rows = []
                 safe_rows = [dict(r) for r in rows if isinstance(r, dict)]
+                if table == "messages" and safe_rows:
+                    username = str((getattr(self.app_state, "profile", {}) or {}).get("username") or "").strip()
+                    if username:
+                        for message in safe_rows:
+                            mid = message.get("id")
+                            if mid is not None:
+                                try:
+                                    api.table_insert("message_reads", {"message_id": mid, "username": username, "seen_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()}, return_representation=False)
+                                except Exception as read_exc:
+                                    print("MESSAGE READ RECEIPT ERROR:", repr(read_exc))
                 Clock.schedule_once(lambda *_: self._safe_loaded(safe_rows[:25], None), 0)
             except Exception as exc:
                 message = str(exc) or exc.__class__.__name__
@@ -2284,7 +2294,8 @@ class ModuleWorkspaceScreen(Screen):
                     if table == "module_activations":
                         if str(role).lower() not in {"manager","educational","executive","cultural"}:
                             raise RuntimeError("فقط مدیریت و معاونان مجاز به فعال‌سازی قابلیت‌ها هستند.")
-                        payload["activated_at"] = payload.get("activated_at") or "now()"
+                        from datetime import datetime, timezone
+                        payload["activated_at"] = payload.get("activated_at") or datetime.now(timezone.utc).isoformat()
                         auth_id = profile.get("auth_user_id") or profile.get("user_id")
                         if auth_id:
                             payload["activated_by"] = auth_id
