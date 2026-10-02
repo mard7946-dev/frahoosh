@@ -20,3 +20,6 @@ for each row execute function public.validate_teacher_exam_slot();
 -- Students may start an exam only when its active schedule targets their real class.
 -- The server remains the authoritative boundary even if the mobile UI is stale.
 -- (Function body is intentionally maintained in the existing canonical migration chain.)
+
+
+-- Server-side exam schedule integrity is installed by this migration.
