@@ -135,8 +135,7 @@ begin
   end loop;
 end $;
 
-create index if not exists idx_teacher_classes_teacher_id
-  on public.teacher_classes(teacher_id);
+-- teacher_classes already has its canonical teacher_id index.
 create index if not exists idx_assignments_student_teacher
   on public.assignments(student_id,teacher_id);
 create index if not exists idx_attendance_student_teacher
