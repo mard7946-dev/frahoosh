@@ -157,9 +157,9 @@ as $function$
      or lower(coalesce(ac.username,''))=lower(coalesce(a.student_username,''))
      or lower(coalesce(ac.national_code,''))=lower(coalesce(a.student_username,''))
    )
-   and q.id in (select x::integer from jsonb_array_elements_text(a.question_order) x)
+   and q.id in (select x.value::integer from jsonb_array_elements_text(a.question_order) AS x(value))
  order by array_position(
-   array(select x::integer from jsonb_array_elements_text(a.question_order)),q.id
+   array(select x.value::integer from jsonb_array_elements_text(a.question_order) AS x(value)),q.id
  );
 $function$;
 
