@@ -111,12 +111,30 @@ class OnlineClassScreen(Screen):
         self._create_form()
         self._button("بازگشت به فهرست کلاس‌ها",lambda *_:self.show_home(),SECONDARY,46)
     def _create_form(self):
-        # تشکیل کلاس عمداً ساده است: فقط چهار اطلاعات اصلی.
-        teacher=self._field("نام دبیر")
+        # دبیر از رکورد واقعی teachers انتخاب می‌شود؛ نام تایپی نیست.
+        try:
+            rows=self.app_state.api.table_select("teachers",{"order":"first_name.asc","limit":"500"}) or []
+        except Exception as exc:
+            self._error("فهرست دبیران بارگذاری نشد: "+str(exc))
+            return
+        if not rows:
+            self._error("هیچ دبیری در سامانه ثبت نشده است.")
+            return
+        self._create_teacher_map={}
+        for row in rows:
+            label=" ".join(str(row.get("first_name") or "").strip().split()+str(row.get("last_name") or "").strip().split()).strip()
+            if not label:
+                label=str(row.get("email") or "").strip()
+            if label and row.get("id") is not None:
+                self._create_teacher_map[fa_display(label)]=int(row["id"])
+        visual_labels=tuple(self._create_teacher_map.keys())
+        teacher=PersianSpinner(text=visual_labels[0],values=visual_labels,size_hint_y=None,height=dp(50),font_size="13sp")
+        self.body.add_widget(teacher)
         subject=self._field("نام درس")
         start=self._field("زمان شروع")
         end=self._field("زمان پایان")
         self._button("＋ تشکیل کلاس",lambda *_:self._create(teacher,subject,start,end),SUCCESS)
+
     def _create(self,teacher,subject,start,end):
         api=getattr(self.app_state,"api",None)
         if api is None:
@@ -127,40 +145,38 @@ class OnlineClassScreen(Screen):
         if not getattr(api,"access_token",""):
             return self._error("نشست ورود معتبر نیست؛ دوباره وارد فراهوش شوید.")
 
-        teacher_value=(teacher.get_logical_text() if hasattr(teacher,"get_logical_text") else teacher.text or "").strip()
+        teacher_label=str(teacher.text or "").strip()
+        teacher_id=getattr(self,"_create_teacher_map",{}).get(teacher_label)
         subject_value=(subject.get_logical_text() if hasattr(subject,"get_logical_text") else subject.text or "").strip()
         start_value=(start.get_logical_text() if hasattr(start,"get_logical_text") else start.text or "").strip()
         end_value=(end.get_logical_text() if hasattr(end,"get_logical_text") else end.text or "").strip()
-        if not teacher_value:
-            return self._error("نام دبیر الزامی است.")
+
+        if not teacher_id:
+            return self._error("دبیر انتخاب‌شده معتبر نیست.")
         if not subject_value:
-            return self._error("نام درس الزامی است.")
+            return self._error("نام درس را وارد کنید.")
         if not start_value or not end_value:
             return self._error("زمان شروع و پایان را وارد کنید.")
 
         try:
             import secrets
-            safe_key="-".join((subject_value+" "+teacher_value).split()).replace("/","-")
+            teacher_rows=api.table_select("teachers",{"id":"eq."+str(int(teacher_id)),"limit":"1"}) or []
+            if not teacher_rows:
+                return self._error("دبیر انتخاب‌شده در سامانه پیدا نشد.")
+            teacher_row=teacher_rows[0]
+            teacher_name=" ".join(
+                str(teacher_row.get("first_name") or "").strip().split()
+                + str(teacher_row.get("last_name") or "").strip().split()
+            ).strip()
+            safe_key="-".join((subject_value+" "+teacher_name).split()).replace("/","-")
             join_url="https://meet.jit.si/frahoosh-"+safe_key[:40]+"-"+secrets.token_hex(4)
 
-            # تشخیص دبیر با متن منطقی انجام می‌شود؛ TextInput متن نمایشیِ RTL را در .text نگه می‌دارد.
-            teachers=api.table_select("teachers",{"limit":"500"}) or []
-            normalized_teacher = " ".join(teacher_value.replace("ي","ی").replace("ك","ک").split())
-            match=next(
-                (t for t in teachers
-                 if str(t.get("email") or "").strip().lower()==normalized_teacher.lower()
-                 or " ".join(f"{t.get('first_name','')} {t.get('last_name','')}".split())==normalized_teacher
-                 or str(t.get("first_name") or "").strip()==normalized_teacher),
-                None,
-            )
-            if not match or not match.get("id"):
-                return self._error("دبیر انتخاب‌شده در سامانه پیدا نشد. نام و نام خانوادگی دبیر را دقیق وارد کنید.")
-            class_id = int(api.rpc("create_online_class_with_members", {
-                "p_teacher_id": int(match["id"]),
-                "p_subject": subject_value,
-                "p_start_time": start_value,
-                "p_end_time": end_value,
-                "p_join_url": join_url,
+            class_id=int(api.rpc("create_online_class_with_members", {
+                "p_teacher_id":int(teacher_id),
+                "p_subject":subject_value,
+                "p_start_time":start_value,
+                "p_end_time":end_value,
+                "p_join_url":join_url,
             }))
             self._ok("کلاس ثبت شد؛ دبیر و دانش‌آموزان کلاس مربوطه به‌صورت واقعی متصل شدند. کد کلاس: "+str(class_id))
             self.show_home()
