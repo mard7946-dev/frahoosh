@@ -133,7 +133,7 @@ begin
     idxname := left('idx_'||r.table_name||'_'||r.column_name||'_fk',60);
     execute format('create index if not exists %I on public.%I(%I)',idxname,r.table_name,r.column_name);
   end loop;
-end $;
+end $$;
 
 -- teacher_classes already has its canonical teacher_id index.
 create index if not exists idx_assignments_student_teacher
