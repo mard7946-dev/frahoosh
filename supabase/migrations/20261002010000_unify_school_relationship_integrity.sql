@@ -113,7 +113,7 @@ create index if not exists idx_parent_children_student_id
 drop index if exists public.idx_teacher_classes_teacher_id;
 
 -- برای تمام FKهای تک‌ستونه شاخص پوششی بساز؛ FK بدون index در مقیاس مدرسه کند می‌شود.
-do $
+do $$
 declare r record; idxname text;
 begin
   for r in
