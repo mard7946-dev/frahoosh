@@ -176,7 +176,6 @@ class OnlineClassScreen(Screen):
         self._button("＋ تشکیل کلاس",lambda *_:self._create(teacher,class_box,subject,start,end),SUCCESS)
 
     def _create(self,teacher,class_box,subject,start,end):
-    def _create(self,teacher,subject,start,end):
         api=getattr(self.app_state,"api",None)
         if api is None:
             return self._error("سرویس اتصال به پایگاه داده آماده نیست.")
@@ -188,12 +187,19 @@ class OnlineClassScreen(Screen):
 
         teacher_label=str(teacher.text or "").strip()
         teacher_id=getattr(self,"_create_teacher_map",{}).get(teacher_label)
+        class_label=str(class_box.text or "").strip()
+        class_info=getattr(self,"_create_class_map",{}).get(class_label)
         subject_value=(subject.get_logical_text() if hasattr(subject,"get_logical_text") else subject.text or "").strip()
         start_value=(start.get_logical_text() if hasattr(start,"get_logical_text") else start.text or "").strip()
         end_value=(end.get_logical_text() if hasattr(end,"get_logical_text") else end.text or "").strip()
 
         if not teacher_id:
             return self._error("دبیر انتخاب‌شده معتبر نیست.")
+        if not class_info:
+            return self._error("ابتدا یک پایه و کلاس واقعی متصل به دبیر را انتخاب کنید.")
+        grade_value,class_name_value=class_info
+        if not class_name_value:
+            return self._error("نام کلاس معتبر نیست.")
         if not subject_value:
             return self._error("نام درس را وارد کنید.")
         if not start_value or not end_value:
@@ -212,9 +218,14 @@ class OnlineClassScreen(Screen):
             safe_key="-".join((subject_value+" "+teacher_name).split()).replace("/","-")
             join_url="https://meet.jit.si/frahoosh-"+safe_key[:40]+"-"+secrets.token_hex(4)
 
+            # The server-side function requires the teacher's real class
+            # relationship. Pass both values explicitly; sending only the
+            # teacher used to leave the RPC without its required class scope.
             class_id=int(api.rpc("create_online_class_with_members", {
                 "p_teacher_id":int(teacher_id),
                 "p_subject":subject_value,
+                "p_grade":grade_value,
+                "p_class_name":class_name_value,
                 "p_start_time":start_value,
                 "p_end_time":end_value,
                 "p_join_url":join_url,
