@@ -142,26 +142,6 @@ class OnlineClassScreen(Screen):
             import secrets
             safe_key="-".join((subject_value+" "+teacher_value).split()).replace("/","-")
             join_url="https://meet.jit.si/frahoosh-"+safe_key[:40]+"-"+secrets.token_hex(4)
-            title_value=f"{subject_value} - {teacher_value}"
-            payload={
-                "title":title_value,
-                "subject":subject_value,
-                "lesson":subject_value,
-                "teacher":teacher_value,
-                "start_time":start_value,
-                "end_time":end_value,
-                "start_time_shamsi":start_value,
-                "end_time_shamsi":end_value,
-                "duration":0,
-                "status":"inactive",
-                "join_url":join_url,
-                "meeting_url":join_url,
-            }
-            result=api.table_insert("online_classes",payload,return_representation=True)
-            rows=result if isinstance(result,list) else ([result] if isinstance(result,dict) else [])
-            if not rows or not rows[0].get("id"):
-                return self._error("پاسخ ثبت کلاس از Supabase معتبر نبود؛ کلاس ذخیره نشد.")
-            class_id=int(rows[0]["id"])
 
             # تشخیص دبیر با متن منطقی انجام می‌شود؛ TextInput متن نمایشیِ RTL را در .text نگه می‌دارد.
             teachers=api.table_select("teachers",{"limit":"500"}) or []
@@ -175,21 +155,13 @@ class OnlineClassScreen(Screen):
             )
             if not match or not match.get("id"):
                 return self._error("دبیر انتخاب‌شده در سامانه پیدا نشد. نام و نام خانوادگی دبیر را دقیق وارد کنید.")
-            try:
-                class_id = int(api.rpc("create_online_class_with_members", {
-                    "p_teacher_id": int(match["id"]),
-                    "p_subject": subject_value,
-                    "p_start_time": start_value,
-                    "p_end_time": end_value,
-                    "p_join_url": join_url,
-                }))
-            except Exception as rpc_exc:
-                # Do not leave a half-created class behind if the atomic workflow fails.
-                try:
-                    api.table_delete("online_classes", {"id": f"eq.{class_id}"})
-                except Exception:
-                    pass
-                raise rpc_exc
+            class_id = int(api.rpc("create_online_class_with_members", {
+                "p_teacher_id": int(match["id"]),
+                "p_subject": subject_value,
+                "p_start_time": start_value,
+                "p_end_time": end_value,
+                "p_join_url": join_url,
+            }))
             self._ok("کلاس ثبت شد؛ دبیر و دانش‌آموزان کلاس مربوطه به‌صورت واقعی متصل شدند. کد کلاس: "+str(class_id))
             self.show_home()
         except Exception as exc:
