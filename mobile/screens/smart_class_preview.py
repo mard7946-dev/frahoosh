@@ -35,6 +35,7 @@ class SmartClassPreviewScreen(Screen):
         self.app_state = app_state
         self.class_id = None
         self.session_id = None
+        self.preview_log_id = None
         self.class_title = "کلاس هوشمند فراهوش"
         self.return_to = "dashboard"
 
@@ -147,6 +148,20 @@ class SmartClassPreviewScreen(Screen):
                     return
                 row = dict(rows[0])
                 self.class_id = row.get("id")
+                profile = getattr(self.app_state, "profile", {}) or {}
+                preview_payload = {
+                    "class_id": self.class_id,
+                    "student_id": profile.get("linked_student_id"),
+                    "teacher_id": profile.get("linked_teacher_id"),
+                    "mode": "preview",
+                }
+                preview_payload = {k:v for k,v in preview_payload.items() if v not in (None, "")}
+                try:
+                    created_preview = api.table_insert("smart_class_preview", preview_payload)
+                    if isinstance(created_preview, list) and created_preview:
+                        self.preview_log_id = created_preview[0].get("id")
+                except Exception as preview_exc:
+                    print("SMART CLASS PREVIEW LOG ERROR:", repr(preview_exc))
                 students = api.table_select("online_class_students", {"class_id":"eq."+str(self.class_id),"limit":"50"}) or []
                 teachers = api.table_select("online_class_teachers", {"class_id":"eq."+str(self.class_id),"limit":"10"}) or []
                 attendance = api.table_select("online_attendance", {"class_id":"eq."+str(self.class_id),"limit":"100"}) or []
@@ -237,10 +252,13 @@ class SmartClassPreviewScreen(Screen):
         def work():
             try:
                 import datetime
+                ended = datetime.datetime.now().isoformat()
                 if self.session_id:
-                    api.table_update("online_class_sessions",{"id":"eq."+str(self.session_id)},{"ended_at":datetime.datetime.now().isoformat()})
+                    api.table_update("online_class_sessions",{"id":"eq."+str(self.session_id)},{"ended_at":ended})
                 else:
-                    api.table_insert("online_class_sessions",{"class_id":self.class_id,"ended_at":datetime.datetime.now().isoformat()})
+                    api.table_insert("online_class_sessions",{"class_id":self.class_id,"ended_at":ended})
+                if self.preview_log_id:
+                    api.table_update("smart_class_preview",{"id":"eq."+str(self.preview_log_id)},{"closed_at":ended})
                 Clock.schedule_once(lambda *_: self.set_status("زمان پایان جلسه در سامانه ثبت شد.",SUCCESS),0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self.set_status("ثبت پایان جلسه ناموفق بود: "+str(exc),ERROR),0)
