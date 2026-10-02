@@ -216,12 +216,28 @@ class MeetingWorkflowScreen(BaseWorkflow):
         role=role_of(self.app_state); profile=getattr(self.app_state,"profile",{}) or {}
         label=self._value(self.target_role)
         target_role={"دبیر":"teacher","معاون آموزشی":"educational","معاون اجرایی":"executive","معاون پرورشی":"cultural","مشاور":"advisor","مدیریت":"manager","ولی":"parent","دانش‌آموز":"student"}.get(label,"staff")
+
+        # Parent requests are bound to a real child relationship. If the login
+        # profile does not carry linked_student_id, resolve the first child from
+        # parent_children instead of creating an orphan meeting request.
+        student_id=profile.get("linked_student_id") or profile.get("student_id")
+        if role == "parent" and not student_id:
+            try:
+                links=self.api().table_select(
+                    "parent_children",
+                    {"parent_username":f"eq.{self.username()}","limit":"50"}
+                ) or []
+                if links:
+                    student_id=links[0].get("student_id")
+            except Exception as exc:
+                print("MEETING PARENT CHILD LOOKUP ERROR:",repr(exc))
+
         now=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         payload={
             "title":vals[0],"requester_username":self.username(),
             "requester_name":getattr(self.app_state,"display_name","کاربر") or "کاربر",
             "requester_role":role,"target_username":self._value(self.target),"target_name":self._value(self.target),
-            "target_role":target_role,"student_id":profile.get("linked_student_id"),
+            "target_role":target_role,"student_id":student_id,
             "teacher_id":profile.get("linked_teacher_id") or profile.get("teacher_id"),
             "parent_id":profile.get("linked_parent_id") or profile.get("parent_id"),
             "parent_phone":profile.get("phone") or "","requested_day":self._value(self.day),
