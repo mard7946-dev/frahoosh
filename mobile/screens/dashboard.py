@@ -161,13 +161,10 @@ PANEL_HUBS = [
     ("معاون پرورشی","cultural"),
     ("مشاوره","advisor"),
     ("دبیران","teachers"),
-    ("کارمندان","staff"),
     ("دانش‌آموزان","students"),
     ("اولیا","parents"),
     ("مالی","finance"),
     ("کلاس‌های آنلاین","online"),
-    ("آزمون آنلاین","teacher_exams"),
-    ("ملاقات‌ها","meetings"),
     ("تابلو هوشمند","smart_board"),
     ("هوش مصنوعی","ai"),
     ("صندوق پیام‌ها","messages"),
@@ -177,7 +174,6 @@ PANEL_HUBS = [
     ("اطلاعات دانش‌آموز","student_info"),
     ("مشارکت","participation"),
 ]
-
 STUDENT_ALLOWED_PANELS = {"students"}
 PARENT_ALLOWED_PANELS = {"parents"}
 
