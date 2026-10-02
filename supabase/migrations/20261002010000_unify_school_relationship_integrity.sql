@@ -262,3 +262,49 @@ using (
       and private.frahoosh_current_parent_matches(pc.parent_username)
   )
 );
+
+
+-- حذف policyهای SELECT عمومی قدیمی از جداولی که رابطه دانش‌آموز/دبیر دارند
+-- و جایگزینی آن با دسترسی مدرسه‌ای برای مدیر و معاون‌ها.
+do $$
+declare t record; p record;
+begin
+  for t in
+    select distinct c.table_name
+      from information_schema.columns c
+     where c.table_schema='public'
+       and c.column_name in ('student_id','teacher_id')
+       and c.data_type in ('integer','bigint')
+       and c.table_name not in ('students','teachers')
+  loop
+    for p in
+      select policyname
+        from pg_policies
+       where schemaname='public'
+         and tablename=t.table_name
+         and cmd='SELECT'
+         and (qual='true' or with_check='true')
+    loop
+      execute format('drop policy if exists %I on public.%I',p.policyname,t.table_name);
+    end loop;
+  end loop;
+end $$;
+
+do $$
+declare r record;
+begin
+  for r in
+    select distinct c.table_name
+      from information_schema.columns c
+     where c.table_schema='public'
+       and c.column_name in ('student_id','teacher_id')
+       and c.data_type in ('integer','bigint')
+       and c.table_name not in ('students','teachers')
+  loop
+    execute format('drop policy if exists "frahoosh_management_related_read" on public.%I',r.table_name);
+    execute format(
+      'create policy "frahoosh_management_related_read" on public.%I for select to authenticated using (lower(coalesce(private.frahoosh_current_role(),'''')) in (''manager'',''مدیر'',''مدیریت'',''educational'',''معاون آموزشی'',''executive'',''معاون اجرایی'',''cultural'',''معاون پرورشی'',''advisor'',''مشاور''))',
+      r.table_name
+    );
+  end loop;
+end $$;
