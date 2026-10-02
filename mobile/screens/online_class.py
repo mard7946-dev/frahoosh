@@ -444,7 +444,7 @@ class OnlineClassScreen(Screen):
         except Exception as exc:
             self._error("حذف اتصال انجام نشد: "+str(exc))
     def _start(self,cid):
-        try:self.app_state.api.table_insert("online_class_sessions",{"class_id":cid,"started_at":datetime.now(timezone.utc).isoformat()}); self.app_state.api.table_update("online_classes",{"id":f"eq.{cid}"},{"status":"active"}); self._ok("جلسه شروع شد و در سامانه ثبت گردید."); self.show_home()
+        try:self.app_state.api.table_insert("online_class_sessions",{"class_id":cid,"started_at":datetime.now(timezone.utc).isoformat(),"ended_at":None,"created_at":datetime.now(timezone.utc).isoformat()}); self.app_state.api.table_update("online_classes",{"id":f"eq.{cid}"},{"status":"active","activated_at":datetime.now(timezone.utc).isoformat()}); self._ok("جلسه شروع شد و در سامانه ثبت گردید."); self.show_home()
         except Exception as exc:self._error("شروع جلسه انجام نشد: "+str(exc))
     def _end(self,cid):
         try:
@@ -501,7 +501,7 @@ class OnlineClassScreen(Screen):
             if role=="student" and student_id and class_id:
                 sessions=self.app_state.api.table_select(
                     "online_class_sessions",
-                    {"class_id":f"eq.{class_id}","ended_at":"is.null","order":"id.desc","limit":"1"}
+                    {"class_id":f"eq.{class_id}","order":"id.desc","limit":"1"}
                 ) or []
                 if sessions:
                     session=sessions[0]
