@@ -1941,6 +1941,68 @@ class ModuleWorkspaceScreen(Screen):
             b.bind(pos=lambda o,v:setattr(bg,'pos',v),size=lambda o,v:setattr(bg,'size',v))
         return b
 
+    def _relationship_options(self, field, existing):
+        """Build real foreign-key choices so modules connect by IDs, not free text."""
+        relation_tables = {
+            "student_id": "students", "teacher_id": "teachers", "class_id": "online_classes",
+            "assignment_id": "assignments", "exam_id": "teacher_exams", "quiz_id": "teacher_exams",
+            "activity_id": "activity_offers", "offer_id": "payment_offers", "question_id": "quiz_questions",
+            "attempt_id": "teacher_exam_attempts", "message_id": "messages",
+        }
+        table = relation_tables.get(field)
+        if not table:
+            return None
+        try:
+            rows = self.app_state.api.table_select(table, {"limit": "200", "order": "id.asc"}) or []
+        except Exception as exc:
+            print("RELATION OPTIONS ERROR:", field, repr(exc))
+            rows = []
+        if not rows:
+            return None
+
+        def display(row):
+            rid = row.get("id")
+            if field == "student_id":
+                name = f"{row.get('first_name','')} {row.get('last_name','')}".strip() or row.get("student_name") or "دانش‌آموز"
+                tail = row.get("class_name") or row.get("grade") or ""
+            elif field == "teacher_id":
+                name = f"{row.get('first_name','')} {row.get('last_name','')}".strip() or row.get("teacher_name") or "دبیر"
+                tail = row.get("subject") or ""
+            elif field == "class_id":
+                name = row.get("title") or "کلاس آنلاین"
+                tail = f"{row.get('teacher','')} {row.get('subject','')}".strip()
+            elif field in {"assignment_id"}:
+                name = row.get("title") or "تکلیف"
+                tail = row.get("subject") or ""
+            elif field in {"exam_id","quiz_id"}:
+                name = row.get("title") or "آزمون"
+                tail = row.get("subject") or ""
+            elif field == "activity_id":
+                name = row.get("title") or "فعالیت"
+                tail = row.get("category") or ""
+            elif field == "offer_id":
+                name = row.get("title") or "گزینه پرداخت"
+                tail = row.get("amount") or ""
+            elif field == "question_id":
+                name = row.get("question") or "سؤال"
+                tail = row.get("question_type") or ""
+            elif field == "attempt_id":
+                name = f"تلاش آزمون #{rid}"
+                tail = row.get("student_username") or row.get("status") or ""
+            else:
+                name = row.get("title") or f"رکورد #{rid}"
+                tail = row.get("status") or ""
+            return f"#{rid} | {name}" + (f" | {tail}" if str(tail or "").strip() else "")
+
+        labels = [display(r) for r in rows if r.get("id") is not None]
+        mapping = {}
+        for row, label in zip([r for r in rows if r.get("id") is not None], labels):
+            mapping[label] = row.get("id")
+            mapping[fa_display(label)] = row.get("id")
+        current = str(existing or "").strip()
+        selected = next((label for label, value in mapping.items() if str(value) == current), labels[0] if labels else "")
+        return labels, selected, mapping
+
     def editor(self,table,row):
         # The shared ZIP/Web contract is authoritative for forms too. This prevents
         # a module from silently falling back to decorative fields.
@@ -1973,7 +2035,19 @@ class ModuleWorkspaceScreen(Screen):
             existing = "" if row is None else str(row.get(f, ""))
             if existing and all(ch in "□�▯" for ch in existing.strip()):
                 existing = ""
-            if f in spinner_values:
+            relation = self._relationship_options(f, existing)
+            if relation:
+                relation_labels, relation_selected, relation_map = relation
+                ti = PersianSpinner(
+                    text=relation_selected,
+                    values=tuple(relation_labels),
+                    font_name=font_name(),
+                    font_size="11sp",
+                    size_hint_y=None,
+                    height=dp(44),
+                )
+                ti._frahoosh_relation_map = relation_map
+            elif f in spinner_values:
                 values = tuple(spinner_values[f])
                 selected = existing if existing and existing in spinner_values[f] else values[0]
                 ti = PersianSpinner(
@@ -2054,6 +2128,9 @@ class ModuleWorkspaceScreen(Screen):
         payload={}
         for k, widget in inputs.items():
             raw = (widget.get_logical_text() if hasattr(widget, "get_logical_text") else str(widget.text or "")).strip()
+            relation_map = getattr(widget, "_frahoosh_relation_map", None)
+            if relation_map and raw in relation_map:
+                raw = str(relation_map[raw])
             if raw:
                 payload[k] = self._payload_value(k, raw)
         if not payload:
@@ -2164,10 +2241,18 @@ class ModuleWorkspaceScreen(Screen):
                         sid = profile.get("linked_student_id") or profile.get("student_id")
                         if sid and not payload.get("student_id"):
                             payload["student_id"] = sid
-                    if role in ("parent","parents","ولی","اولیا") and table == "parent_activities":
+                    if role in ("parent","parents","ولی","اولیا"):
                         username = profile.get("username") or profile.get("national_code") or profile.get("email")
-                        if username and not payload.get("parent_username"):
+                        if username and not payload.get("parent_username") and table in {"parent_activities","transport_requests","payment_attempts","parent_meeting_requests"}:
                             payload["parent_username"] = username
+                        # Parent-facing workflows must always carry a real child relationship.
+                        if table in {"transport_requests","payment_attempts","meeting_requests","parent_meeting_requests"} and not payload.get("student_id"):
+                            try:
+                                links = api.table_select("parent_children", {"parent_username":f"eq.{username}","limit":"50"}) or []
+                                if links:
+                                    payload["student_id"] = links[0].get("student_id")
+                            except Exception as rel_exc:
+                                print("PARENT CHILD RELATION SAVE ERROR:", repr(rel_exc))
                     if row is None:
                         api.table_insert(table,payload); msg='رکورد جدید با موفقیت ثبت شد.'
                     else:
