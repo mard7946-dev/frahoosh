@@ -395,6 +395,17 @@ class SupabaseClient:
             response = _request(method, url, headers=headers, payload=payload, params=params or {}, timeout=API_TIMEOUT)
         return response
 
+    def invoke_function(self, function_name, payload=None):
+        if not self.configured or not self.access_token:
+            raise ApiError("نشست معتبر برای اجرای سرویس وجود ندارد.")
+        response = self._authenticated_request(
+            "POST", f"{self.url}/functions/v1/{function_name}", payload=payload or {}
+        )
+        if not response.ok:
+            raise ApiError(self._data_error(response, f"اجرای سرویس «{function_name}» انجام نشد."))
+        data = response.json()
+        return data
+
     def table_select(self, table, params=None):
         response = self._authenticated_request("GET", f"{self.url}/rest/v1/{table}", params=params)
         if not response.ok:
