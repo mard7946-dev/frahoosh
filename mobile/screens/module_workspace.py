@@ -2333,8 +2333,11 @@ class ModuleWorkspaceScreen(Screen):
                             payload["student_id"] = sid
                     if role in ("parent","parents","ولی","اولیا"):
                         username = profile.get("username") or profile.get("national_code") or profile.get("email")
-                        if username and not payload.get("parent_username") and table in {"parent_activities","transport_requests","payment_attempts","parent_meeting_requests"}:
+                        if username and not payload.get("parent_username") and table in {"parent_activities","transport_requests","payment_attempts","parent_meeting_requests","parent_children"}:
                             payload["parent_username"] = username
+                        if username and table == "survey_responses":
+                            payload["respondent_username"] = username
+                            payload["respondent_role"] = "parent"
                         # Parent-facing workflows must always carry a real child relationship.
                         if table in {"transport_requests","payment_attempts","meeting_requests","parent_meeting_requests"} and not payload.get("student_id"):
                             try:
