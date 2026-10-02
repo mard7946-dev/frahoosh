@@ -140,11 +140,11 @@ set search_path='public'
 as $function$
   select q.id,q.question,
     case when q.question_type='multiple_choice' then
-      (select jsonb_agg(x order by random())::text
+      (select jsonb_agg(value order by random())::text
        from jsonb_array_elements_text(
          case when q.options_json is null or q.options_json='' or q.options_json='[]'
               then jsonb_build_array(q.option1,q.option2,q.option3,q.option4)
-              else q.options_json::jsonb end) x)
+              else q.options_json::jsonb end ) AS x(value))
     when q.question_type='true_false' then '["صحیح","غلط"]'
     else '[]' end,
     q.points,q.question_type,q.image_url
