@@ -309,7 +309,23 @@ jobs:
           set -euo pipefail
           export ANDROID_NDK_HOME="${ANDROID_SDK_ROOT}/ndk/28.2.13676358"
           export ANDROID_NDK_ROOT="${ANDROID_SDK_ROOT}/ndk/28.2.13676358"
-          buildozer -v android debug
+
+          # SDL2_image/libjxl pulls skcms from skia.googlesource.com.
+          # The official GitHub mirror contains the same repository history and
+          # avoids transient 503 failures from the googlesource endpoint.
+          git config --global url."https://github.com/google/skcms.git".insteadOf "https://skia.googlesource.com/skcms"
+          git config --global url."https://github.com/google/skcms.git".insteadOf "https://skia.googlesource.com/skcms.git"
+
+          build_attempt=1
+          until buildozer -v android debug; do
+            if [ "$build_attempt" -ge 3 ]; then
+              echo "Buildozer failed after ${build_attempt} attempts."
+              exit 1
+            fi
+            build_attempt=$((build_attempt + 1))
+            echo "Build attempt failed; retrying (${build_attempt}/3)..."
+            sleep 10
+          done
 
       - name: Verify APK output
         shell: bash
