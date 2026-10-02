@@ -463,7 +463,15 @@ class SupabaseClient:
             raise ApiError("نشست معتبر برای اجرای عملیات وجود ندارد.")
         response = self._authenticated_request("POST", f"{self.url}/rest/v1/rpc/{function_name}", payload=payload or {})
         if not response.ok:
-            raise ApiError(self._error(response))
+            # RPC errors are domain/data errors, not authentication errors.
+            # Mapping every HTTP 400 through _error() used to turn online-class
+            # failures into the misleading "اطلاعات ورود..." message.
+            raise ApiError(
+                self._data_error(
+                    response,
+                    f"اجرای عملیات «{function_name}» در سامانه انجام نشد."
+                )
+            )
         return response.json()
 
     def table_delete(self, table, filters):
