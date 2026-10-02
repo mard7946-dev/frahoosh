@@ -2090,6 +2090,7 @@ class ModuleWorkspaceScreen(Screen):
         fields=[k for k in fields if k and k not in {"password","school_id"}]
         root=BoxLayout(orientation='vertical',padding=dp(10),spacing=dp(6)); sc=ScrollView(do_scroll_x=False); form=GridLayout(cols=1,spacing=dp(5),size_hint_y=None); form.bind(minimum_height=form.setter('height')); inputs={}
         spinner_values = {
+            "module_key": ("activity_registrations","student_council","school_mayor","school_ally","basij_registration","certificate_requests","parent_children","transport_requests","parent_activities","survey_responses","teacher_exams","online_classes"),
             "active": ("فعال", "غیرفعال"),
             "published": ("منتشرشده", "پیش‌نویس"),
             "secure_mode": ("فعال", "غیرفعال"),
