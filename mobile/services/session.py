@@ -4,90 +4,63 @@ from pathlib import Path
 
 
 def _session_file():
-
+    """Return a writable app-private session path on Android and desktop."""
+    candidates = []
     try:
         from kivy.app import App
-
         app = App.get_running_app()
-
         if app is not None:
-            base = Path(
-                app.user_data_dir
-            )
-        else:
-            base = (
-                Path.home()
-                / ".frahoosh"
-            )
-
-    except Exception:
-        base = (
-            Path.home()
-            / ".frahoosh"
-        )
+            candidates.append(Path(app.user_data_dir))
+    except Exception as exc:
+        print("SESSION KIVY PATH ERROR:", repr(exc))
 
     try:
-        base.mkdir(
-            parents=True,
-            exist_ok=True
-        )
+        from android.storage import app_storage_path
+        candidates.append(Path(app_storage_path()))
     except Exception:
         pass
 
-    return base / "session.json"
+    candidates.append(Path.home() / ".frahoosh")
+
+    for base in candidates:
+        try:
+            base.mkdir(parents=True, exist_ok=True)
+            probe = base / ".frahoosh_write_test"
+            probe.write_text("ok", encoding="utf-8")
+            probe.unlink()
+            return base / "session.json"
+        except Exception as exc:
+            print("SESSION PATH NOT WRITABLE:", str(base), repr(exc))
+
+    return candidates[-1] / "session.json"
 
 
-def _atomic_write(
-    path,
-    content
-):
-
-    temp = path.with_suffix(
-        ".tmp"
-    )
-
+def _atomic_write(path, content):
+    temp = path.with_name(path.name + ".tmp")
     try:
-
-        temp.write_text(
-            content,
-            encoding="utf-8"
-        )
-
-        os.replace(
-            str(temp),
-            str(path)
-        )
-
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temp.write_text(content, encoding="utf-8")
+        os.replace(str(temp), str(path))
         return True
-
     except Exception as exc:
-
-        print(
-            "SESSION ATOMIC WRITE ERROR:",
-            repr(exc)
-        )
-
-        # Some Android filesystems/sandboxes can reject os.replace even
-        # though the app-private directory itself is writable. Fall back to
-        # a direct write to the final file before declaring session storage
-        # unavailable.
+        print("SESSION ATOMIC WRITE ERROR:", repr(exc))
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content, encoding="utf-8")
+            try:
+                if temp.exists():
+                    temp.unlink()
+            except Exception:
+                pass
             return True
         except Exception as fallback_exc:
-            print(
-                "SESSION DIRECT WRITE ERROR:",
-                repr(fallback_exc)
-            )
-
-        try:
-            if temp.exists():
-                temp.unlink()
-        except Exception:
-            pass
-
-        return False
+            print("SESSION DIRECT WRITE ERROR:", repr(fallback_exc))
+            try:
+                if temp.exists():
+                    temp.unlink()
+            except Exception:
+                pass
+            return False
 
 
 def save_session(data):
