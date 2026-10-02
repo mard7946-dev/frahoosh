@@ -414,6 +414,18 @@ class FrahooshApp(App):
             print("SMART CLASS PREVIEW BUILD ERROR:", repr(exc))
             return None
 
+    def ensure_assignment_submission_workflow(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("assignment_submission")
+        except Exception:
+            pass
+        from mobile.screens.assignment_submission import AssignmentSubmissionScreen
+        screen = AssignmentSubmissionScreen(name="assignment_submission", app_state=self.app_state)
+        self.sm.add_widget(screen)
+        return screen
+
     def ensure_certificate_workflow(self):
         if self.sm is None:return None
         try:return self.sm.get_screen("certificate_workflow")
