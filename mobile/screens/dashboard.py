@@ -939,7 +939,7 @@ class DashboardScreen(Screen):
             if self.manager:self.manager.current="dashboard"
         elif route=="panels":
             if self.manager:self.manager.current="dashboard"
-            Clock.schedule_once(lambda *_: self.side_scroll.scroll_y = 1, 0)
+            Clock.schedule_once(lambda *_: setattr(self.side_scroll, "scroll_y", 1), 0)
         elif route=="modules":
             try:
                 self.open_route("panelhub:management")
