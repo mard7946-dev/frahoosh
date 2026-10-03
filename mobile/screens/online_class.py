@@ -812,7 +812,7 @@ class OnlineClassScreen(Screen):
                 from android.permissions import request_permissions, Permission
                 request_permissions([Permission.CAMERA, Permission.RECORD_AUDIO])
             except Exception as exc: print("ANDROID MEDIA PERMISSION REQUEST ERROR:",repr(exc))
-            html_path=Path(__file__).resolve().parent / "assets" / "online_class.html"
+            html_path=Path(__file__).resolve().parents[1] / "assets" / "online_class.html"
             html=html_path.read_text(encoding="utf-8")
             user=getattr(self.app_state,"user",{}) or {}
             user_id=str(user.get("id") or profile.get("user_id") or profile.get("id") or "")
