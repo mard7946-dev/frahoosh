@@ -87,23 +87,81 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
         return s
 
     def _accordion(self, text, table, index):
-        holder = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(52), spacing=dp(3))
-        header = Button(text=fa_display("باز کردن: " + text), font_name=font_name(), font_size="12sp", background_normal="", background_color=PRIMARY, color=WHITE, size_hint_y=None, height=dp(48), halign="center", valign="middle")
-        content = BoxLayout(orientation="vertical", size_hint_y=None, height=0, padding=dp(8), spacing=dp(5))
-        header.bind(on_release=lambda *_: self._toggle(holder, header, content, table, text))
+        # Match the dashboard PanelCard visual contract: a rounded module shell,
+        # strong header, metadata row, and a real expandable workspace.
+        holder = BoxLayout(
+            orientation="vertical",
+            padding=dp(10),
+            spacing=dp(0),
+            size_hint_y=None,
+        )
+        with holder.canvas.before:
+            Color(0.045, 0.11, 0.20, 0.98)
+            bg = RoundedRectangle(radius=[dp(20)])
+        holder.bind(
+            pos=lambda o, v, b=bg: setattr(b, "pos", v),
+            size=lambda o, v, b=bg: setattr(b, "size", v),
+        )
+
+        header = Button(
+            text=fa_display(f"باز کردن  |  {text}"),
+            font_name=font_name(),
+            font_size="17sp",
+            background_normal="",
+            background_color=(0.055, 0.20, 0.34, 1),
+            color=WHITE,
+            bold=True,
+            halign="right",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(64),
+        )
+        header.bind(size=lambda o, v: setattr(o, "text_size", v))
         holder.add_widget(header)
+
+        meta = Label(
+            text=fa_display(f"ماژول {index}  •  محیط عملیاتی"),
+            font_name=font_name(),
+            font_size="10sp",
+            color=(0.60, 0.82, 0.96, 1),
+            halign="right",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(30),
+        )
+        meta.bind(size=lambda o, v: setattr(o, "text_size", v))
+        holder.add_widget(meta)
+
+        content = BoxLayout(
+            orientation="vertical",
+            size_hint_y=None,
+            height=0,
+            padding=[dp(3), dp(7)],
+            spacing=dp(7),
+        )
         holder.add_widget(content)
+
+        header.bind(on_release=lambda *_: self._toggle(holder, header, meta, content, table, text))
+        self._set_module_collapsed(holder, content)
         return holder
 
-    def _toggle(self, holder, header, content, table, text):
+    def _set_module_collapsed(self, holder, content):
+        content.height = 0
+        holder.height = dp(64) + dp(30) + dp(10)
+
+    def _toggle(self, holder, header, meta, content, table, text):
         if content.height > 0:
             content.clear_widgets()
             content.height = 0
-            holder.height = dp(52)
-            header.text = fa_display("باز کردن: " + text)
+            holder.height = dp(64) + dp(30) + dp(10)
+            header.text = fa_display(f"باز کردن  |  {text}")
+            meta.text = fa_display("ماژول بسته است  •  برای ورود روی عنوان بزنید")
             return
+
         content.clear_widgets()
-        header.text = fa_display("بستن: " + text)
+        header.text = fa_display(f"بستن  |  {text}")
+        meta.text = fa_display("ماژول باز است  •  عملیات این بخش در زیر نمایش داده می‌شود")
+
         if table in ("teacher_exams", "quiz_questions", "online_classes", "online_class_sessions"):
             self._special_content(content, table)
         elif table in ("messages", "message_targets", "message_reads"):
@@ -111,10 +169,20 @@ class ProfessionalWorkspaceScreen(ModuleWorkspaceScreen):
         elif table in ("payment_offers", "finance_donations", "payment_records", "payment_attempts"):
             self._payment_content(content, table)
         else:
-            content.add_widget(self.btn("ورود به محیط عملیاتی این بخش", lambda *_: self.open_table(table), SUCCESS if self.can_write(table) else PRIMARY, dp(42)))
-            content.add_widget(self.label(self._purpose(table), "9sp", SECONDARY, False, "center"))
-        content.height = dp(max(86, 55 + len(content.children) * 45))
-        holder.height = dp(52) + content.height
+            content.add_widget(
+                self.btn(
+                    "ورود به محیط عملیاتی این بخش",
+                    lambda *_: self.open_table(table),
+                    SUCCESS if self.can_write(table) else PRIMARY,
+                    dp(48),
+                )
+            )
+            content.add_widget(
+                self.label(self._purpose(table), "10sp", SECONDARY, False, "center")
+            )
+
+        content.height = dp(max(108, 62 + len(content.children) * 48))
+        holder.height = dp(64) + dp(30) + content.height + dp(10)
 
     def _purpose(self, table):
         return {
