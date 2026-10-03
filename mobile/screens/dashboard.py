@@ -742,11 +742,16 @@ class DashboardScreen(Screen):
         # analysis/quick-access cards. Everything is native Kivy widgets.
         root=BoxLayout(orientation="horizontal", spacing=dp(0), padding=[dp(6),dp(6),dp(6),dp(8)])
 
-        main=BoxLayout(orientation="vertical", padding=[dp(10),dp(8),dp(10),dp(4)], spacing=dp(8))
+        main=BoxLayout(orientation="vertical", padding=[dp(10),dp(8),dp(10),dp(4)], spacing=dp(0))
         with main.canvas.before:
             Color(0.94,0.95,0.97,1)
             main_bg=RoundedRectangle(radius=[dp(18)])
         main.bind(pos=lambda o,v:setattr(main_bg,"pos",v), size=lambda o,v:setattr(main_bg,"size",v))
+
+        content=BoxLayout(orientation="vertical", padding=[dp(0),dp(0),dp(0),dp(8)], spacing=dp(8), size_hint_y=None)
+        content.bind(minimum_height=content.setter("height"))
+        content_scroll=ScrollView(do_scroll_x=False, do_scroll_y=True, bar_width=dp(3), size_hint_y=1)
+        content_scroll.add_widget(content)
 
         header=BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(78), padding=[dp(10),dp(6)])
         with header.canvas.before:
@@ -763,7 +768,7 @@ class DashboardScreen(Screen):
 
         logo=Image(source=str(BACKGROUND_PATH) if Path(str(BACKGROUND_PATH)).is_file() else "",size_hint_x=None,width=dp(72),allow_stretch=True,keep_ratio=True)
         header.add_widget(logo)
-        main.add_widget(header)
+        content.add_widget(header)
 
         # Compact live-school status badge: fixed height prevents a large blank
         # area and keeps the green status readable on the white workspace.
@@ -776,7 +781,7 @@ class DashboardScreen(Screen):
             self._alert_bg=RoundedRectangle(radius=[dp(12)])
         self.parent_alert.bind(pos=lambda o,v:setattr(self._alert_bg,"pos",v),
                                size=lambda o,v:setattr(self._alert_bg,"size",v))
-        main.add_widget(self.parent_alert)
+        content.add_widget(self.parent_alert)
 
         stats=GridLayout(cols=2,spacing=dp(8),size_hint_y=None,height=dp(150),padding=[dp(1),dp(1)])
         self.stat_widgets=[]
@@ -797,7 +802,7 @@ class DashboardScreen(Screen):
             card.bind(on_touch_up=lambda w,t,r=route: self._quick_route(w,t,r) or True)
             self.stat_widgets.append((route,value))
             stats.add_widget(card)
-        main.add_widget(stats)
+        content.add_widget(stats)
 
         lower=GridLayout(cols=1,spacing=dp(8),size_hint_y=None,padding=[dp(1),dp(1)])
         lower.bind(minimum_height=lower.setter("height"))
@@ -835,16 +840,23 @@ class DashboardScreen(Screen):
         self.grid_scroll.add_widget(self.grid)
         # Keep the canonical panel cards available below the reference dashboard
         # content on smaller screens.
-        main.add_widget(lower)
+        content.add_widget(lower)
 
-        footer=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(5),padding=[dp(2),dp(2)])
-        for caption,route in (("خانه","home"),("ماژول‌ها","modules"),("پیام‌ها","messages"),("پروفایل","profile")):
-            b=Button(text=fa_display(caption),font_name=font_name(),font_size="10sp",
-                     background_normal="",background_color=(0.09,0.20,0.30,1),color=WHITE)
+        # Bottom navigation is fixed inside the school workspace and sits above
+        # the Android system navigation/home area. On Kivy versions without a
+        # native safe-area API we keep a conservative 24dp reserve.
+        footer=BoxLayout(size_hint_y=None,height=dp(56),spacing=dp(5),padding=[dp(2),dp(2),dp(2),dp(4)])
+        for caption,route in (("خانه","home"),("پنل‌ها","panels"),("ماژول‌ها","modules"),("پیام‌ها","messages"),("پروفایل","profile")):
+            b=Button(text=fa_display(caption),font_name=font_name(),font_size="9.5sp",
+                     background_normal="",background_color=(0.09,0.20,0.30,1),color=WHITE,
+                     bold=True, halign="center", valign="middle")
             b.bind(size=lambda o,v:setattr(o,"text_size",v))
             b.bind(on_release=lambda *_a,r=route:self._bottom_nav(r))
             footer.add_widget(b)
+        content.add_widget(Widget(size_hint_y=None,height=dp(8)))
+        main.add_widget(content_scroll)
         main.add_widget(footer)
+        main.add_widget(Widget(size_hint_y=None,height=dp(18)))
         root.add_widget(main)
 
         # Right-side navigation, matching the supplied reference image.
@@ -925,8 +937,14 @@ class DashboardScreen(Screen):
     def _bottom_nav(self,route):
         if route=="home":
             if self.manager:self.manager.current="dashboard"
+        elif route=="panels":
+            if self.manager:self.manager.current="dashboard"
+            Clock.schedule_once(lambda *_: self.side_scroll.scroll_y = 1, 0)
         elif route=="modules":
-            self.grid_scroll.scroll_y = 1
+            try:
+                self.open_route("panelhub:management")
+            except Exception:
+                self.grid_scroll.scroll_y = 1
         elif route=="messages":
             self.open_route("messages")
         elif route=="profile":
