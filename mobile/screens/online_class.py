@@ -529,7 +529,10 @@ class OnlineClassScreen(Screen):
             # separate Kivy screens.
             if self._open_virtual_classroom(url,cid,profile,role):
                 return
-            self._error("جلسه در سامانه فعال شد، اما اتاق کامل کلاس روی دستگاه باز نشد.")
+            # _open_virtual_classroom already exposes the concrete launch error.
+            # Do not replace it with a generic message; otherwise Android/WebView
+            # failures become impossible to diagnose from the device.
+            return
         except Exception as exc:
             self._error("شروع جلسه انجام نشد: "+str(exc))
     def _end(self,cid):
@@ -818,7 +821,10 @@ class OnlineClassScreen(Screen):
             from pathlib import Path
             import json
             import os
-            PythonActivity=autoclass("org.kivy.android.PythonActivity")
+            try:
+                PythonActivity=autoclass("org.kivy.android.PythonActivity")
+            except Exception:
+                PythonActivity=autoclass("org.renpy.android.PythonActivity")
             WebView=autoclass("android.webkit.WebView")
             WebViewClient=autoclass("android.webkit.WebViewClient")
             LayoutParams=autoclass("android.view.ViewGroup$LayoutParams")
@@ -845,7 +851,21 @@ class OnlineClassScreen(Screen):
                 from android.permissions import request_permissions, Permission
                 request_permissions([Permission.CAMERA, Permission.RECORD_AUDIO])
             except Exception as exc: print("ANDROID MEDIA PERMISSION REQUEST ERROR:",repr(exc))
-            candidates=[Path(__file__).resolve().parents[1] / "assets" / "online_class.html", Path(__file__).resolve().parent / "assets" / "online_class.html", Path(os.environ.get("ANDROID_PRIVATE","")) / "assets" / "online_class.html", Path(os.environ.get("ANDROID_APP_PATH","")) / "assets" / "online_class.html"]
+            candidates=[]
+            try:
+                from kivy.resources import resource_find
+                for name in ("mobile/assets/online_class.html","assets/online_class.html","online_class.html"):
+                    found=resource_find(name, use_cache=False)
+                    if found:
+                        candidates.append(Path(found))
+            except Exception as exc:
+                print("KIVY RESOURCE LOOKUP ERROR:",repr(exc))
+            candidates.extend([
+                Path(__file__).resolve().parents[1] / "assets" / "online_class.html",
+                Path(__file__).resolve().parent / "assets" / "online_class.html",
+                Path(os.environ.get("ANDROID_PRIVATE","")) / "assets" / "online_class.html",
+                Path(os.environ.get("ANDROID_APP_PATH","")) / "assets" / "online_class.html",
+            ])
             html_path=next((p for p in candidates if str(p) and p.is_file()), None)
             if html_path is None: raise FileNotFoundError("online_class.html not found; checked: "+", ".join(str(p) for p in candidates))
             html=html_path.read_text(encoding="utf-8")
@@ -873,9 +893,9 @@ class OnlineClassScreen(Screen):
             def attach():
                 activity.addContentView(container,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
                 web.loadDataWithBaseURL("https://frahoosh.ir/online-class/",html,"text/html","UTF-8",None)
-            attach()
             self._active_webview=web
             self._active_webview_container=container
+            attach()
             return True
         except Exception as exc:
             import traceback
