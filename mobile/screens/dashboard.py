@@ -187,22 +187,37 @@ class PanelCard(BoxLayout):
 
     def _build_modules(self):
         self.body.clear_widgets()
-        for label, route in self.modules:
-            button = Button(
-                text=fa_display(f"  {label}"),
-                font_name=font_name(),
-                font_size="13sp",
-                background_normal="",
-                background_color=(0.08, 0.16, 0.25, 1),
-                color=WHITE,
-                halign="right",
-                valign="middle",
-                size_hint_y=None,
-                height=dp(48),
-            )
-            button.bind(size=lambda o, v: setattr(o, "text_size", v))
-            button.bind(on_release=lambda *_a, r=route: self.module_enter(r))
-            self.body.add_widget(button)
+        for category, items in self.modules:
+            if category:
+                head = Label(
+                    text=fa_display(category),
+                    font_name=font_name(),
+                    font_size="13sp",
+                    color=(0.55, 0.82, 1, 1),
+                    bold=True,
+                    halign="right",
+                    valign="middle",
+                    size_hint_y=None,
+                    height=dp(34),
+                )
+                head.bind(size=lambda o, v: setattr(o, "text_size", v))
+                self.body.add_widget(head)
+            for label, route in items:
+                button = Button(
+                    text=fa_display(f"  {label}"),
+                    font_name=font_name(),
+                    font_size="12.5sp",
+                    background_normal="",
+                    background_color=(0.08, 0.16, 0.25, 1),
+                    color=WHITE,
+                    halign="right",
+                    valign="middle",
+                    size_hint_y=None,
+                    height=dp(46),
+                )
+                button.bind(size=lambda o, v: setattr(o, "text_size", v))
+                button.bind(on_release=lambda *_a, r=route: self.module_enter(r))
+                self.body.add_widget(button)
 
     def toggle(self):
         self._set_expanded(not self.expanded)
@@ -224,26 +239,113 @@ class PanelCard(BoxLayout):
 
 PANEL_HUBS = [
     ("مدیریت","management"),
-    ("معاون آموزشی","educational"),
     ("معاون اجرایی","executive"),
+    ("معاون آموزشی","educational"),
     ("معاون پرورشی","cultural"),
     ("مشاوره","advisor"),
     ("دبیران","teachers"),
-    ("دانش‌آموزان","students"),
     ("اولیا","parents"),
+    ("دانش‌آموز","students"),
     ("مالی","finance"),
-    ("کلاس‌های آنلاین","online"),
     ("تابلو هوشمند","smart_board"),
     ("هوش مصنوعی","ai"),
     ("صندوق پیام‌ها","messages"),
-    ("گزارش‌ها","reports"),
-    ("برنامه‌ریزی / زمان‌بندی","schedule"),
     ("تنظیمات","settings"),
-    ("اطلاعات دانش‌آموز","student_info"),
-    ("مشارکت","participation"),
+    ("درباره برنامه","about"),
 ]
 STUDENT_ALLOWED_PANELS = {"students"}
 PARENT_ALLOWED_PANELS = {"parents"}
+
+# Professional module grouping. Route IDs stay canonical; only presentation changes.
+MODULE_CATEGORY_GROUPS = {
+    "management": [
+        ("فعالیت آموزشی", {"grades","report_cards","class_seat_assignments","exam_seat_assignments","exam_schedule","weekly_schedule","online_classes","school_class_config"}),
+        ("فعالیت‌های پرورشی", {"educational_activities","cultural_competitions","activity_registrations","student_council","basij_registration","school_mayor","morning_ceremony","activity_programs","cultural_activity_registrations"}),
+        ("دانش‌آموزان و پرونده‌ها", {"students","archive_items","certificates","student_cards","parent_children","discipline_records"}),
+        ("دبیران و کارکنان", {"teachers","staff"}),
+        ("کلاس و مدرسه", {"class_cards","assets","school_events"}),
+        ("ارتباطات", {"messages","meeting_requests"}),
+        ("مالی", {"payment_records","finance_transactions","finance_accounts","payment_offers"}),
+        ("گزارش‌ها و آمار", {"ai_smart_reports","surveys"}),
+        ("مدیریت سامانه", {"users","school_profile","module_activations"}),
+    ],
+    "executive": [
+        ("امور دانش‌آموزی", {"students","archive_items","student_cards","certificates","report_cards"}),
+        ("کلاس و برنامه‌ریزی", {"executive_classes","class_cards","class_seat_assignments","exam_seat_assignments","weekly_schedule","exam_schedule"}),
+        ("امور کارکنان", {"staff"}),
+        ("امور اجرایی", {"executive_operations","executive_requests"}),
+        ("کلاس آنلاین و ارتباطات", {"online_classes","messages"}),
+        ("گزارش‌ها", {"executive_reports"}),
+    ],
+    "educational": [
+        ("برنامه‌ریزی آموزشی", {"attendance","online_classes","exam_schedule","quiz_questions","grade_items"}),
+        ("ارزشیابی و آزمون", {"quiz_questions","exam_schedule","grade_items"}),
+        ("پیگیری آموزشی", {"student_referrals","educational_followups","academic_followups","discipline_records"}),
+        ("ارتباطات", {"meeting_requests","messages","message_targets"}),
+        ("گزارش‌های آموزشی", {"ai_smart_reports"}),
+        ("فعالیت‌های آموزشی", {"khwarizmi_registrations","module_activations"}),
+    ],
+    "cultural": [
+        ("فعالیت‌های پرورشی", {"morning_ceremony","activity_programs","educational_activities","activity_programs"}),
+        ("مسابقات و جشنواره‌ها", {"cultural_competitions","art_competitions","sport_competitions","khwarizmi_registrations"}),
+        ("تشکل‌های دانش‌آموزی", {"student_council","basij_registration","school_mayor","morning_leaders","qari_registration"}),
+        ("گزارش و انضباط", {"cultural_reports","discipline_records"}),
+        ("ارتباطات", {"messages","message_targets"}),
+        ("تنظیم قابلیت‌ها", {"module_activations"}),
+    ],
+    "advisor": [
+        ("پرونده مشاوره", {"counseling_records","counseling_followups","student_referrals"}),
+        ("جلسات و خانواده", {"parent_meetings","parent_activities","counseling_classes"}),
+        ("هدایت تحصیلی", {"counseling_guidance"}),
+        ("گزارش‌ها", {"ai_smart_reports","discipline_records"}),
+        ("ارتباطات", {"messages","message_targets"}),
+    ],
+    "teachers": [
+        ("کلاس و تدریس", {"teacher_classes","lesson_plans","grade_items"}),
+        ("ارزشیابی", {"grades","student_grades","teacher_exams","quiz_questions","teacher_exam_shares"}),
+        ("تکالیف", {"assignments","assignment_submissions"}),
+        ("کلاس آنلاین", {"online_classes","online_class_sessions","online_class_students","online_class_teachers","online_attendance"}),
+        ("ارتباط با اولیا", {"teacher_meetings","teacher_parent_meetings"}),
+        ("پیگیری دانش‌آموز", {"student_referrals","discipline_records"}),
+        ("ارتباطات", {"messages","message_targets"}),
+        ("گزارش‌ها", {"teacher_activities"}),
+    ],
+    "parents": [
+        ("فرزند من", {"parent_children","students","student_grades","attendance","monthly_report_cards","report_cards","discipline_records"}),
+        ("آموزش و برنامه", {"weekly_schedule","exam_schedule","teacher_exams"}),
+        ("ملاقات و ارتباط", {"parent_meeting_requests","teacher_parent_meetings","messages"}),
+        ("پرداخت و خدمات", {"payment_records","transport_requests"}),
+        ("فعالیت‌های اولیا", {"parent_activities","survey_responses"}),
+    ],
+    "students": [
+        ("آموزش من", {"students","student_class_info","attendance","student_grades","weekly_schedule","exam_schedule","class_seat_assignments","exam_seat_assignments","report_cards","teacher_exams"}),
+        ("تکالیف", {"assignments","assignment_submissions"}),
+        ("فعالیت‌های مدرسه", {"activity_registrations","student_council","basij_registration","school_ally","school_mayor"}),
+        ("درخواست‌ها", {"certificate_requests"}),
+        ("ارتباطات", {"messages"}),
+    ],
+    "finance": [
+        ("دریافت‌ها و پرداخت‌ها", {"payment_records","payment_offers","finance_transactions"}),
+        ("حساب‌ها", {"finance_accounts"}),
+        ("گزارش مالی", {"finance_transactions"}),
+    ],
+    "smart_board": [
+        ("تابلو و محتوای آموزشی", {"smart_board_whiteboards","smart_board_content","smart_board_files","smart_board_media"}),
+        ("ابزارهای تعاملی", {"smart_board_interactive_tools","smart_board_activities","smart_board_quizzes"}),
+    ],
+    "ai": [
+        ("دستیار هوشمند", {"ai_assistant_sessions","ai_questions"}),
+        ("تحلیل و گزارش", {"ai_educational_analysis","ai_smart_reports"}),
+    ],
+    "messages": [
+        ("صندوق پیام‌ها", {"messages","message_targets","message_reads"}),
+    ],
+    "settings": [
+        ("حساب و مدرسه", {"account_settings","school_profile"}),
+        ("پشتیبان‌گیری", {"backup_records"}),
+    ],
+    "about": [],
+}
 
 PANEL_MODULE_SOURCE = {
     "management":"management", "educational":"educational", "executive":"executive",
@@ -772,55 +874,24 @@ class DashboardScreen(Screen):
 
     def _build_reference_sidebar(self):
         self.side_list.clear_widgets()
-        role=self.role()
-        allowed = None
-        if role != "manager":
-            allowed = {
-                "executive":"executive",
-                "educational":"educational",
-                "cultural":"cultural",
-                "advisor":"advisor",
-                "teacher":"teachers",
-                "student":"students",
-                "parent":"parents",
-            }.get(role)
-        visible_panels = [(t,k) for t,k in PANEL_HUBS if allowed is None or k == allowed]
-        for title,key in visible_panels:
-            modules=self._panel_modules(role,key)
-            holder=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(45),spacing=dp(2))
-            head=Button(
+        self.stat_widgets = []
+        for title, route in PANEL_HUBS:
+            b = Button(
                 text=fa_display(title),
                 font_name=font_name(),
-                font_size="11sp",
+                font_size="11.5sp",
                 background_normal="",
-                background_color=(0.08,0.24,0.38,1),
+                background_color=(0.08, 0.20, 0.32, 1),
                 color=WHITE,
                 bold=True,
                 halign="right",
                 valign="middle",
                 size_hint_y=None,
-                height=dp(43),
+                height=dp(42),
             )
-            head.bind(size=lambda o,v:setattr(o,"text_size",v))
-            body=BoxLayout(orientation="vertical",size_hint_y=None,height=0,spacing=dp(2),padding=[dp(3),dp(1)])
-            for label,route in modules[:8]:
-                b=Button(text=fa_display(label),font_name=font_name(),font_size="9.5sp",
-                         background_normal="",background_color=(0.07,0.20,0.32,1),color=WHITE,
-                         halign="right",valign="middle",size_hint_y=None,height=dp(36))
-                b.bind(size=lambda o,v:setattr(o,"text_size",v))
-                b.bind(on_release=lambda *_a,r=route:self._quick_route(None,None,r))
-                body.add_widget(b)
-            def toggle(_btn, h=holder, b=body, mods=modules):
-                if b.height > 0:
-                    b.height=0
-                    h.height=dp(45)
-                else:
-                    b.height=sum(x.height for x in b.children)+max(0,len(b.children)-1)*dp(2)+dp(2)
-                    h.height=dp(45)+b.height
-            head.bind(on_release=toggle)
-            holder.add_widget(head)
-            holder.add_widget(body)
-            self.side_list.add_widget(holder)
+            b.bind(size=lambda o, v: setattr(o, "text_size", v))
+            b.bind(on_release=lambda *_a, r=route: self._quick_route(None, None, "panelhub:"+r) if r not in {"about"} else self.open_route("about"))
+            self.side_list.add_widget(b)
 
     def _refresh_reference_stats(self):
         # Keep the reference visual real: values are filled from app state when
@@ -906,6 +977,25 @@ class DashboardScreen(Screen):
             "participation":"فعالیت‌ها و مشارکت‌های ثبت‌شده."
         }.get(route,"محیط عملیاتی واقعی سامانه فراهوش.")
 
+    def _group_modules(self, panel_key, modules):
+        groups = MODULE_CATEGORY_GROUPS.get(panel_key) or []
+        if not groups:
+            return [("", modules)] if modules else []
+        remaining = list(modules)
+        grouped = []
+        for category, route_ids in groups:
+            selected = []
+            for item in list(remaining):
+                label, route = item
+                if route in route_ids:
+                    selected.append(item)
+                    remaining.remove(item)
+            if selected:
+                grouped.append((category, selected))
+        if remaining:
+            grouped.append(("سایر امکانات", remaining))
+        return grouped
+
     def _panel_modules(self, role, panel_key):
         catalog_key = {
             "management":"manager",
@@ -954,7 +1044,7 @@ class DashboardScreen(Screen):
         total=len(items)
         for i,(title,route) in enumerate(items,1):
             panel_key=route.split(":",1)[1] if str(route).startswith("panelhub:") else route
-            modules=self._panel_modules(role,panel_key)
+            modules=self._group_modules(panel_key, self._panel_modules(role,panel_key))
             card=PanelCard(
                 title,i,total,self.desc(panel_key),
                 lambda *_a,r=route:self.open_route(r),
