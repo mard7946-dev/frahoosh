@@ -19,6 +19,7 @@ android.ndk_api = 24
 android.archs = arm64-v8a,armeabi-v7a
 android.accept_sdk_license = True
 android.permissions = INTERNET,CAMERA,RECORD_AUDIO,MODIFY_AUDIO_SETTINGS
+android.add_src = java
 android.private_storage = True
 p4a.branch = develop
 p4a.commit = 5865575
