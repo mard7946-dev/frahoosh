@@ -883,7 +883,7 @@ class OnlineClassScreen(Screen):
             PythonActivity=autoclass("org.kivy.android.PythonActivity")
             WebView=autoclass("android.webkit.WebView")
             WebViewClient=autoclass("android.webkit.WebViewClient")
-            WebChromeClient=autoclass("android.webkit.WebChromeClient")
+            FrahooshWebChromeClient=autoclass("ir.frahoosh.FrahooshWebChromeClient")
             LayoutParams=autoclass("android.view.ViewGroup$LayoutParams")
             FrameLayout=autoclass("android.widget.FrameLayout")
             Button=autoclass("android.widget.Button")
@@ -894,8 +894,11 @@ class OnlineClassScreen(Screen):
             settings.setJavaScriptEnabled(True); settings.setDomStorageEnabled(True)
             settings.setMediaPlaybackRequiresUserGesture(False); settings.setAllowFileAccess(True); settings.setAllowContentAccess(True)
             web.setWebViewClient(WebViewClient())
-            try: web.setWebChromeClient(WebChromeClient())
-            except Exception: pass
+            web.setWebChromeClient(FrahooshWebChromeClient())
+            try:
+                from android.permissions import request_permissions, Permission
+                request_permissions([Permission.CAMERA, Permission.RECORD_AUDIO])
+            except Exception as exc: print("ANDROID MEDIA PERMISSION REQUEST ERROR:",repr(exc))
             html_path=Path(__file__).resolve().parent / "assets" / "online_class.html"
             html=html_path.read_text(encoding="utf-8")
             user=getattr(self.app_state,"user",{}) or {}
