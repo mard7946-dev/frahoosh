@@ -38,33 +38,94 @@ class SelectableRow(ButtonBehavior, BoxLayout):
 
 # One shared operational vocabulary for Android and the future web client.
 # Both clients must bind these keys to the same Supabase tables and field names.
+class ModuleItemCard(ButtonBehavior, BoxLayout):
+    """Small professional module card inside an expandable category."""
+    def __init__(self, label, route, module_enter, **kwargs):
+        super().__init__(orientation="horizontal", padding=dp(10), spacing=dp(6),
+                         size_hint_y=None, height=dp(54), **kwargs)
+        self.route = route
+        self.module_enter = module_enter
+        with self.canvas.before:
+            Color(0.08, 0.16, 0.25, 1)
+            self.bg = RoundedRectangle(radius=[dp(14)])
+        self.bind(pos=self._sync, size=self._sync)
+        self.title = Label(
+            text=fa_display(str(label)),
+            font_name=font_name(),
+            font_size="11.5sp",
+            color=WHITE,
+            bold=True,
+            halign="right",
+            valign="middle",
+        )
+        self.title.bind(size=lambda o, v: setattr(o, "text_size", v))
+        self.add_widget(self.title)
+
+    def on_release(self):
+        self.module_enter(self.route)
+
+    def _sync(self, *_):
+        self.bg.pos = self.pos
+        self.bg.size = self.size
+
+
 class ModuleCategoryCard(BoxLayout):
-    """Professional accordion category matching the dashboard PanelCard visual language."""
+    """Accordion category using the same visual language as the main PanelCard."""
     def __init__(self, title, index, total, modules, module_enter, **kwargs):
-        super().__init__(orientation='vertical', padding=dp(9), spacing=dp(0),
-                         size_hint_y=None, **kwargs)
+        super().__init__(
+            orientation="vertical",
+            padding=dp(10),
+            spacing=dp(0),
+            size_hint_y=None,
+            **kwargs,
+        )
         self.title_text = title
         self.modules = modules or []
         self.module_enter = module_enter
         self.expanded = False
+
         with self.canvas.before:
             Color(0.045, 0.11, 0.20, 0.98)
             self.bg = RoundedRectangle(radius=[dp(20)])
         self.bind(pos=self._sync, size=self._sync)
-        self.header = Button(text=fa_display(f'باز کردن  |  {title}'),
-            font_name=font_name(), font_size='15sp', background_normal='',
-            background_color=(0.055, 0.20, 0.34, 1), color=WHITE, bold=True,
-            halign='right', valign='middle', size_hint_y=None, height=dp(60))
-        self.header.bind(size=lambda o,v:setattr(o,'text_size',v))
+
+        self.header = Button(
+            text=fa_display(f"باز کردن  |  {title}"),
+            font_name=font_name(),
+            font_size="17sp",
+            background_normal="",
+            background_color=(0.055, 0.20, 0.34, 1),
+            color=WHITE,
+            bold=True,
+            halign="right",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(64),
+        )
+        self.header.bind(size=lambda o, v: setattr(o, "text_size", v))
         self.header.bind(on_release=lambda *_: self.toggle())
         self.add_widget(self.header)
-        self.meta = Label(text=fa_display(f'دسته {index} از {total}  -  {len(self.modules)} ماژول'),
-            font_name=font_name(), font_size='10sp', color=(0.60,0.82,0.96,1),
-            halign='right', valign='middle', size_hint_y=None, height=dp(28))
-        self.meta.bind(size=lambda o,v:setattr(o,'text_size',v))
+
+        self.meta = Label(
+            text=fa_display(f"دسته {index} از {total}  -  {len(self.modules)} ماژول"),
+            font_name=font_name(),
+            font_size="10sp",
+            color=(0.60, 0.82, 0.96, 1),
+            halign="right",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(30),
+        )
+        self.meta.bind(size=lambda o, v: setattr(o, "text_size", v))
         self.add_widget(self.meta)
-        self.body = BoxLayout(orientation='vertical', spacing=dp(5),
-                             padding=[dp(2),dp(5)], size_hint_y=None, height=0)
+
+        self.body = GridLayout(
+            cols=2,
+            spacing=dp(7),
+            padding=[dp(2), dp(5)],
+            size_hint_y=None,
+            height=0,
+        )
         self.add_widget(self.body)
         self._build_modules()
         self._set_expanded(False)
@@ -72,13 +133,7 @@ class ModuleCategoryCard(BoxLayout):
     def _build_modules(self):
         self.body.clear_widgets()
         for label, route in self.modules:
-            button = Button(text=fa_display(f'  {label}'), font_name=font_name(),
-                font_size='12.5sp', background_normal='',
-                background_color=(0.08,0.16,0.25,1), color=WHITE, bold=True,
-                halign='right', valign='middle', size_hint_y=None, height=dp(48))
-            button.bind(size=lambda o,v:setattr(o,'text_size',v))
-            button.bind(on_release=lambda *_a,r=route: self.module_enter(r))
-            self.body.add_widget(button)
+            self.body.add_widget(ModuleItemCard(label, route, self.module_enter))
 
     def toggle(self):
         self._set_expanded(not self.expanded)
@@ -86,13 +141,15 @@ class ModuleCategoryCard(BoxLayout):
     def _set_expanded(self, value):
         self.expanded = bool(value)
         if self.expanded:
-            self.header.text = fa_display(f'بستن  |  {self.title_text}')
-            self.body.height = sum(w.height for w in self.body.children) + max(0,len(self.body.children)-1)*dp(5) + dp(10)
-            self.height = dp(60)+dp(28)+self.body.height+dp(10)
+            self.header.text = fa_display(f"بستن  |  {self.title_text}")
+            count = len(self.body.children)
+            rows = (count + 1) // 2
+            self.body.height = rows * dp(54) + max(0, rows - 1) * dp(7) + dp(10)
+            self.height = dp(64) + dp(30) + self.body.height + dp(10)
         else:
-            self.header.text = fa_display(f'باز کردن  |  {self.title_text}')
+            self.header.text = fa_display(f"باز کردن  |  {self.title_text}")
             self.body.height = 0
-            self.height = dp(60)+dp(28)+dp(10)
+            self.height = dp(64) + dp(30) + dp(10)
 
     def _sync(self, *_):
         self.bg.pos = self.pos
@@ -1072,32 +1129,45 @@ class ModuleWorkspaceScreen(Screen):
             "teachers":"teacher", "teacher":"teacher", "staff":"staff"
         }.get(value, value)
 
+    def _panel_key(self):
+        panel = str(self.route or "").strip().lower()
+        return {
+            "manager": "management",
+            "management": "management",
+            "teacher": "teachers",
+            "teachers": "teachers",
+            "parent": "parents",
+            "parents": "parents",
+            "student": "students",
+            "students": "students",
+        }.get(panel, panel)
+
     def _panel_category_map(self):
-        # Categories follow the approved panel/module UX contract. Route ids
-        # remain the canonical backend ids; only their presentation grouping
-        # changes here.
+        # Category names/order come directly from the approved UI contract.
+        # Route ids remain the existing real modules; this method only groups them.
         return {
             "management": [
                 ("فعالیت آموزشی", {"report_cards","grades","class_seat_assignments","exam_seat_assignments","student_grades","teacher_exams","exam_schedule","weekly_schedule","teacher_classes","school_class_config"}),
                 ("فعالیت‌های پرورشی", {"activity_registrations","activity_offers","educational_activities","art_competitions","sport_competitions","cultural_competitions","activity_programs","school_events","student_council","school_ally","basij_registration","school_mayor"}),
-                ("دانش‌آموزان", {"students","archive_items","student_files","certificate_requests","discipline_records","attendance","executive_operations"}),
-                ("دبیران و کارکنان", {"teachers","staff","teacher_activities","lesson_plans","teacher_classes"}),
-                ("اولیا", {"parent_children","parent_meeting_requests","meeting_requests","parent_activities","messages","message_targets"}),
-                ("کلاس و مدرسه", {"executive_classes","school_class_config","weekly_schedule","online_classes","school_profile"}),
+                ("دانش‌آموزان", {"students","archive_items","student_files","certificate_requests","discipline_records","attendance"}),
+                ("دبیران و کارکنان", {"teachers","staff","teacher_activities","lesson_plans"}),
+                ("اولیا", {"parent_children","parent_meeting_requests","meeting_requests","parent_activities"}),
+                ("کلاس و مدرسه", {"executive_classes","online_classes","online_class_sessions","school_profile","smart_board_content"}),
+                ("ارتباطات", {"messages","message_targets","message_reads","message_delivery","school_events"}),
                 ("امور مالی", {"finance_accounts","finance_transactions","finance_donations","payment_offers","payment_attempts","payment_records","payment_transactions"}),
                 ("گزارش‌ها و آمار", {"ai_smart_reports","executive_reports","cultural_reports","report_card_snapshots","surveys"}),
                 ("مدیریت سامانه", {"users","account_settings","module_activations","backup_records"}),
             ],
             "executive": [
                 ("امور دانش‌آموزی", {"students","archive_items","certificate_requests","student_files","parent_children"}),
-                ("امور کلاس‌ها", {"executive_classes","school_class_config","weekly_schedule","class_seat_assignments","exam_seat_assignments","attendance"}),
-                ("امور امتحانات", {"exam_schedule","report_cards","exam_seat_assignments","teacher_exams"}),
+                ("امور کلاس‌ها", {"executive_classes","school_class_config","weekly_schedule","class_seat_assignments","exam_seat_assignments","attendance","discipline_records"}),
+                ("امور امتحانات", {"exam_schedule","report_cards","exam_seat_assignments"}),
                 ("امور کارکنان", {"staff","teachers","teacher_activities"}),
                 ("امور اولیا", {"parent_children","meeting_requests","parent_meeting_requests","executive_requests","messages"}),
                 ("اسناد و گزارش‌ها", {"archive_items","certificates","report_cards","executive_reports","ai_smart_reports"}),
             ],
             "educational": [
-                ("برنامه‌ریزی آموزشی", {"teacher_classes","school_class_config","weekly_schedule","lesson_plans","teachers","executive_classes"}),
+                ("برنامه‌ریزی آموزشی", {"teacher_classes","school_class_config","weekly_schedule","lesson_plans","teachers","staff"}),
                 ("ارزشیابی", {"grades","student_grades","report_cards","teacher_exams","exam_schedule","quiz_questions","grade_items"}),
                 ("آموزش آنلاین", {"online_classes","online_class_sessions","online_attendance","smart_board_whiteboards","assignments"}),
                 ("وضعیت تحصیلی", {"students","student_referrals","educational_followups","academic_followups","discipline_records"}),
@@ -1115,11 +1185,11 @@ class ModuleWorkspaceScreen(Screen):
                 ("جلسات", {"meeting_requests","parent_meetings","parent_meeting_requests","counseling_followups"}),
                 ("پیگیری دانش‌آموز", {"student_referrals","counseling_followups","educational_followups","academic_followups"}),
                 ("ارتباط با خانواده", {"parent_activities","parent_children","messages","message_targets"}),
-                ("گزارش‌های مشاوره", {"ai_smart_reports","counseling_guidance","discipline_records"}),
+                ("گزارش‌ها", {"ai_smart_reports","counseling_guidance","discipline_records"}),
             ],
             "teachers": [
-                ("کلاس‌های من", {"teacher_classes","weekly_schedule","grades","attendance"}),
-                ("ارزشیابی", {"grades","student_grades","teacher_exams","quiz_questions","grade_items"}),
+                ("آموزش", {"teacher_classes","weekly_schedule","grades","student_grades","grade_items"}),
+                ("ارزشیابی", {"grades","student_grades","teacher_exams","quiz_questions","exam_schedule","report_cards"}),
                 ("تکالیف", {"assignments","assignment_submissions"}),
                 ("کلاس آنلاین", {"online_classes","online_class_sessions","online_attendance","smart_board_whiteboards","online_class_chat"}),
                 ("دانش‌آموزان", {"students","student_referrals","teacher_activities","discipline_records"}),
@@ -1149,10 +1219,9 @@ class ModuleWorkspaceScreen(Screen):
                 ("گزارش مالی", {"finance_transactions","payment_records","payment_transactions"}),
             ],
             "smart_board": [
-                ("تابلو", {"smart_board_whiteboards","smart_board_content","smart_board_media"}),
+                ("تابلو", {"smart_board_whiteboards","smart_board_content","smart_board_media","smart_board_activities"}),
                 ("اطلاع‌رسانی", {"school_events","messages","message_targets"}),
-                ("محتوای آموزشی", {"smart_board_content","smart_board_files","smart_board_media","smart_board_activities","smart_board_interactive_tools"}),
-                ("آزمون و تعامل", {"smart_board_quizzes"}),
+                ("محتوای آموزشی", {"smart_board_content","smart_board_files","smart_board_media","smart_board_interactive_tools","smart_board_activities","smart_board_quizzes"}),
             ],
             "ai": [
                 ("دستیار هوشمند", {"ai_assistant_sessions","ai_questions"}),
@@ -1178,83 +1247,101 @@ class ModuleWorkspaceScreen(Screen):
         }
 
     def _module_category(self, table):
-        panel = str(self.route or "").strip().lower()
-        panel = {"management":"management","manager":"management","teachers":"teachers","teacher":"teachers","parents":"parents","parent":"parents","student":"students","دانش‌آموز":"students"}.get(panel, panel)
-        for category, routes in self._panel_category_map().get(panel, []):
+        for category, routes in self._panel_category_map().get(self._panel_key(), []):
             if table in routes:
                 return category
-        return "سایر امکانات"
+        # Never create a new visual category. Unknown legacy routes are placed
+        # in the closest existing category for that panel.
+        configured = self._panel_category_map().get(self._panel_key(), [])
+        return configured[-1][0] if configured else "مدیریت سامانه"
 
     def _group_module_items(self, items):
-        panel = str(self.route or "").strip().lower()
-        panel = {"management":"management","manager":"management","teachers":"teachers","teacher":"teachers","parents":"parents","parent":"parents","student":"students","دانش‌آموز":"students"}.get(panel, panel)
-        configured = self._panel_category_map().get(panel, [])
+        configured = self._panel_category_map().get(self._panel_key(), [])
         grouped = {category: [] for category, _ in configured}
-        grouped.setdefault("سایر امکانات", [])
         for item in items:
             if not item or len(item) < 2:
                 continue
-            grouped.setdefault(self._module_category(item[1]), []).append(item)
-        order = [category for category, _ in configured] + ["سایر امکانات"]
-        return [(category, grouped[category]) for category in order if grouped.get(category)]
+            category = self._module_category(item[1])
+            grouped.setdefault(category, []).append(item)
+        return [(category, grouped[category]) for category, _ in configured if grouped.get(category)]
+
+    def _panel_header_text(self):
+        titles = {
+            "management": ("پنل مدیریت", "مدیریت و نظارت یکپارچه مدرسه"),
+            "executive": ("پنل معاون اجرایی", "مدیریت امور اجرایی، دانش‌آموزی و اسناد مدرسه"),
+            "educational": ("پنل معاون آموزشی", "برنامه‌ریزی آموزشی، ارزشیابی و پیگیری تحصیلی"),
+            "cultural": ("پنل معاون پرورشی", "مدیریت فعالیت‌های پرورشی، فرهنگی و تشکل‌های دانش‌آموزی"),
+            "advisor": ("پنل مشاوره", "پرونده، جلسات و پیگیری وضعیت دانش‌آموزان"),
+            "teachers": ("پنل دبیران", "کلاس‌ها، تدریس، ارزشیابی و ارتباط با خانواده"),
+            "parents": ("پنل اولیا", "اطلاعات فرزند و خدمات ارتباطی والدین"),
+            "students": ("پنل دانش‌آموز", "آموزش، تکالیف، کلاس آنلاین و خدمات دانش‌آموزی"),
+            "finance": ("پنل مالی", "دریافت‌ها، پرداخت‌ها، حساب‌ها و گزارش مالی"),
+            "smart_board": ("پنل تابلو هوشمند", "محتوای آموزشی و اطلاع‌رسانی مدرسه"),
+            "ai": ("پنل هوش مصنوعی", "دستیار، آموزش هوشمند و تحلیل مدرسه"),
+            "messages": ("پنل صندوق پیام‌ها", "پیام‌های دریافتی، ارسالی و اطلاعیه‌های مدرسه"),
+            "settings": ("پنل تنظیمات", "تنظیمات مدرسه، کاربران، ظاهر و سامانه"),
+            "about": ("پنل درباره برنامه", "معرفی فراهوش، امکانات، اطلاعات و قوانین"),
+        }
+        return titles.get(self._panel_key(), (APP_NAME, "مدیریت هوشمند مدرسه"))
 
     def render(self):
         self._ensure_built()
         self.body.clear_widgets()
         self.subbar.clear_widgets()
+        self.subscroll.height = 0
+        self.subscroll.opacity = 0
+        items = SUBMENUS.get(self.route) or []
+        self.body.size_hint_y = 1
 
-        items = SUBMENUS.get(self.route) or [(FRIENDLY.get(self.route, self.route), self.route)]
-        current_title = items[0][0] if items else FRIENDLY.get(self.route, self.route)
-        self.title.text = fa_display(current_title)
-
-        # The horizontal strip is only a compact context bar. The real module
-        # navigation is the professional accordion workspace below.
-        for text, table in items:
-            b = self.btn(
-                text,
-                lambda *_a, t=table: self.open_table(t),
-                PRIMARY if table == self.table else (0.06, 0.25, 0.42, 0.94),
-                dp(39),
-                dp(max(92, len(str(text)) * 9 + 42))
-            )
-            self.subbar.add_widget(b)
+        panel_title, panel_desc = self._panel_header_text()
+        header = BoxLayout(
+            orientation="vertical",
+            size_hint_y=None,
+            height=dp(108),
+            padding=[dp(16), dp(10)],
+            spacing=dp(4),
+        )
+        with header.canvas.before:
+            Color(0.045, 0.11, 0.20, 0.98)
+            bg = RoundedRectangle(radius=[dp(20)])
+        header.bind(pos=lambda o,v: setattr(bg, "pos", v),
+                    size=lambda o,v: setattr(bg, "size", v))
+        header.add_widget(self.label(panel_title, "20sp", WHITE, True, "center"))
+        header.add_widget(self.label(panel_desc, "10sp", SECONDARY, False, "center"))
+        self.body.add_widget(header)
 
         if self.table:
             self.open_table(self.table, refresh_subbar=False)
             return
 
+        groups = self._group_module_items(items)
         scroll = ScrollView(
-            do_scroll_x=False, do_scroll_y=True, bar_width=dp(3),
-            size_hint_y=1
+            do_scroll_x=False,
+            do_scroll_y=True,
+            bar_width=dp(3),
         )
         content = BoxLayout(
             orientation="vertical",
-            spacing=dp(8),
-            padding=[dp(3), dp(4), dp(3), dp(12)],
-            size_hint_y=None
+            spacing=dp(10),
+            padding=[dp(3), dp(8)],
+            size_hint_y=None,
         )
         content.bind(minimum_height=content.setter("height"))
-
-        groups = self._group_module_items(items)
-        if not groups:
-            content.add_widget(self.label(
-                "ماژولی برای این پنل در قرارداد سامانه پیدا نشد.",
-                "11sp", SECONDARY, False, "center"
-            ))
-        else:
-            for index, (category, category_items) in enumerate(groups, 1):
-                content.add_widget(
-                    ModuleCategoryCard(
-                        category, index, len(groups),
-                        category_items, self.open_table
-                    )
+        for index, (category, category_items) in enumerate(groups, 1):
+            content.add_widget(
+                ModuleCategoryCard(
+                    category,
+                    index,
+                    len(groups),
+                    category_items,
+                    self.open_table,
                 )
-
+            )
         scroll.add_widget(content)
         self.body.add_widget(scroll)
+        self.title.text = fa_display(panel_title)
         self.status.text = fa_display(
-            f"{len(items)} ماژول تخصصی • {len(groups)} دسته حرفه‌ای • "
-            "برای باز کردن دسته روی سربرگ آن بزنید"
+            f"{len(items)} ماژول • {len(groups)} دسته کاری • برای ورود، دسته را باز کنید"
         )
 
     def _badge(self,w):
