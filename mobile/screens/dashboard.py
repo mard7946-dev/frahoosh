@@ -1,4 +1,4 @@
-from kivy.metrics import dp
+from kivy.metrics import dp, Metrics
 from kivy.uix.screenmanager import Screen
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.boxlayout import BoxLayout
@@ -17,6 +17,42 @@ import json
 
 from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, BACKGROUND_PATH, PRIMARY, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text, fa_display, bundled_login_background
+
+def _android_navigation_inset_dp():
+    """Return the Android navigation-bar inset in Kivy dp units.
+
+    Kivy 2.3.1 does not expose Window.safe_area, so read the real Android
+    WindowInsets when available and keep a conservative fallback for older
+    devices/desktop preview. This keeps the fixed footer above the system bar.
+    """
+    fallback = dp(24)
+    try:
+        from kivy.utils import platform
+        if platform != "android":
+            return dp(8)
+        from jnius import autoclass
+        Build = autoclass("android.os.Build")
+        Activity = autoclass("org.kivy.android.PythonActivity")
+        activity = Activity.mActivity
+        decor = activity.getWindow().getDecorView()
+        sdk = int(Build.VERSION.SDK_INT)
+        inset_px = 0
+        root_insets = decor.getRootWindowInsets()
+        if root_insets is not None:
+            if sdk >= 30:
+                WindowInsetsType = autoclass("android.view.WindowInsets$Type")
+                inset = root_insets.getInsetsIgnoringVisibility(
+                    WindowInsetsType.navigationBars()
+                )
+                inset_px = int(inset.bottom)
+            elif sdk >= 20:
+                inset_px = int(root_insets.getSystemWindowInsetBottom())
+        if inset_px > 0:
+            return max(dp(8), inset_px / float(Metrics.density or 1.0))
+    except Exception:
+        pass
+    return fallback
+
 
 ROLE_ALIASES = {
     "admin":"manager","administrator":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager",
@@ -845,6 +881,7 @@ class DashboardScreen(Screen):
         # Bottom navigation is fixed inside the school workspace and sits above
         # the Android system navigation/home area. On Kivy versions without a
         # native safe-area API we keep a conservative 24dp reserve.
+        nav_inset = _android_navigation_inset_dp()
         footer=BoxLayout(size_hint_y=None,height=dp(56),spacing=dp(5),padding=[dp(2),dp(2),dp(2),dp(4)])
         for caption,route in (("خانه","home"),("پنل‌ها","panels"),("ماژول‌ها","modules"),("پیام‌ها","messages"),("پروفایل","profile")):
             b=Button(text=fa_display(caption),font_name=font_name(),font_size="9.5sp",
@@ -856,7 +893,9 @@ class DashboardScreen(Screen):
         content.add_widget(Widget(size_hint_y=None,height=dp(8)))
         main.add_widget(content_scroll)
         main.add_widget(footer)
-        main.add_widget(Widget(size_hint_y=None,height=dp(18)))
+        # Reserve the actual Android navigation inset below the footer so the
+        # buttons never sit underneath the gesture/3-button navigation area.
+        main.add_widget(Widget(size_hint_y=None,height=nav_inset))
         root.add_widget(main)
 
         # Right-side navigation, matching the supplied reference image.
