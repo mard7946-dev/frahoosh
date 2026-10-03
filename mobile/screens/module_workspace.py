@@ -38,6 +38,66 @@ class SelectableRow(ButtonBehavior, BoxLayout):
 
 # One shared operational vocabulary for Android and the future web client.
 # Both clients must bind these keys to the same Supabase tables and field names.
+class ModuleCategoryCard(BoxLayout):
+    """Professional accordion category matching the dashboard PanelCard visual language."""
+    def __init__(self, title, index, total, modules, module_enter, **kwargs):
+        super().__init__(orientation='vertical', padding=dp(9), spacing=dp(0),
+                         size_hint_y=None, **kwargs)
+        self.title_text = title
+        self.modules = modules or []
+        self.module_enter = module_enter
+        self.expanded = False
+        with self.canvas.before:
+            Color(0.045, 0.11, 0.20, 0.98)
+            self.bg = RoundedRectangle(radius=[dp(20)])
+        self.bind(pos=self._sync, size=self._sync)
+        self.header = Button(text=fa_display(f'باز کردن  |  {title}'),
+            font_name=font_name(), font_size='15sp', background_normal='',
+            background_color=(0.055, 0.20, 0.34, 1), color=WHITE, bold=True,
+            halign='right', valign='middle', size_hint_y=None, height=dp(60))
+        self.header.bind(size=lambda o,v:setattr(o,'text_size',v))
+        self.header.bind(on_release=lambda *_: self.toggle())
+        self.add_widget(self.header)
+        self.meta = Label(text=fa_display(f'{len(self.modules)} ماژول'),
+            font_name=font_name(), font_size='10sp', color=(0.60,0.82,0.96,1),
+            halign='right', valign='middle', size_hint_y=None, height=dp(28))
+        self.meta.bind(size=lambda o,v:setattr(o,'text_size',v))
+        self.add_widget(self.meta)
+        self.body = BoxLayout(orientation='vertical', spacing=dp(5),
+                             padding=[dp(2),dp(5)], size_hint_y=None, height=0)
+        self.add_widget(self.body)
+        self._build_modules()
+        self._set_expanded(False)
+
+    def _build_modules(self):
+        self.body.clear_widgets()
+        for label, route in self.modules:
+            button = Button(text=fa_display(f'  {label}'), font_name=font_name(),
+                font_size='12.5sp', background_normal='',
+                background_color=(0.08,0.16,0.25,1), color=WHITE, bold=True,
+                halign='right', valign='middle', size_hint_y=None, height=dp(48))
+            button.bind(size=lambda o,v:setattr(o,'text_size',v))
+            button.bind(on_release=lambda *_a,r=route: self.module_enter(r))
+            self.body.add_widget(button)
+
+    def toggle(self):
+        self._set_expanded(not self.expanded)
+
+    def _set_expanded(self, value):
+        self.expanded = bool(value)
+        if self.expanded:
+            self.header.text = fa_display(f'بستن  |  {self.title_text}')
+            self.body.height = sum(w.height for w in self.body.children) + max(0,len(self.body.children)-1)*dp(5) + dp(10)
+            self.height = dp(60)+dp(28)+self.body.height+dp(10)
+        else:
+            self.header.text = fa_display(f'باز کردن  |  {self.title_text}')
+            self.body.height = 0
+            self.height = dp(60)+dp(28)+dp(10)
+
+    def _sync(self, *_):
+        self.bg.pos = self.pos
+        self.bg.size = self.size
+
 SUBMENUS = {
 "management":[("اطلاعات مدرسه","school_profile"),("دانش‌آموزان","students"),("دبیران","teachers"),("کادر و کارکنان","staff"),("پایه و کلاس‌ها","school_class_config"),("حساب‌های سامانه","users"),("رویدادها","school_events"),("صندوق پیام","messages"),("کارنامه‌ها","report_cards"),("برنامه هفتگی","weekly_schedule"),("آزمون آنلاین","teacher_exams"),("کلاس آنلاین","online_classes"),("مالی","finance_accounts"),("تابلو هوشمند","smart_board_content"),("نمونه کلاس هوشمند","smart_class_preview"),("ملاقات‌ها","meeting_requests"),("گزارش‌های مدیریتی","report_cards")],
 "educational":[("ملاقات‌ها","meeting_requests"),("پرونده اطلاعاتی دانش‌آموز","students"),("پرونده پرسنلی همکاران","staff"),("کلاس‌های دبیران","teacher_classes"),("فعال‌سازی کلاس آنلاین","online_classes"),("برنامه هفتگی","weekly_schedule"),("برنامه امتحانی","exam_schedule"),("پیگیری آموزشی","educational_followups"),("پیگیری درسی","academic_followups"),("پیگیری انضباطی","discipline_records"),("ثبت انضباطی","discipline_records"),("نمرات و کارنامه‌ها","student_grades"),("گزارش آموزشی هوشمند","ai_smart_reports"),("جشنواره خوارزمی","khwarizmi_registrations"),("آزمون آنلاین","teacher_exams"),("صندوق پیام","messages")],
@@ -1051,110 +1111,29 @@ class ModuleWorkspaceScreen(Screen):
         self.title.text = fa_display(current_title)
 
         for text, table in items:
-            b = self.btn(
-                text,
-                lambda *_a, t=table: self.open_table(t),
-                PRIMARY if table == self.table else (0.06, 0.25, 0.42, 0.94),
-                dp(39),
-                dp(max(92, len(text) * 9 + 42)),
-            )
+            b = self.btn(text, lambda *_a, t=table: self.open_table(t),
+                         PRIMARY if table == self.table else (0.06, 0.25, 0.42, 0.94),
+                         dp(39), dp(max(92, len(text) * 9 + 42)))
             self.subbar.add_widget(b)
 
         if self.table:
             self.open_table(self.table, refresh_subbar=False)
             return
 
-        # The module landing page follows the exact visual language of the
-        # panel page: professional category sections, rounded cards, vector
-        # icons, RTL labels and no flat amateur list.
-        panel = BoxLayout(
-            orientation="vertical",
-            size_hint_y=1,
-            padding=dp(9),
-            spacing=dp(7),
-        )
-        with panel.canvas.before:
-            Color(0.02, 0.08, 0.18, 0.72)
-            panel._panel_bg = RoundedRectangle(radius=[dp(18)])
-        panel.bind(
-            pos=lambda o, v: setattr(panel._panel_bg, "pos", v),
-            size=lambda o, v: setattr(panel._panel_bg, "size", v),
-        )
-
-        head = BoxLayout(size_hint_y=None, height=dp(52), spacing=dp(6))
-        head.add_widget(self.label(current_title, "18sp", WHITE, True, "center"))
-        panel.add_widget(head)
-
-        scroll = ScrollView(do_scroll_x=False, do_scroll_y=True)
-        content = BoxLayout(orientation="vertical", spacing=dp(8), size_hint_y=None,
-                            padding=[dp(2), dp(2)])
-        content.bind(minimum_height=content.setter("height"))
-
-        for category, category_items in self._group_module_items(items):
-            category_card = BoxLayout(
-                orientation="vertical",
-                size_hint_y=None,
-                padding=dp(9),
-                spacing=dp(5),
-            )
-            category_card.height = dp(45) + dp(160) * ((len(category_items) + 1) // 2)
-            with category_card.canvas.before:
-                Color(0.045, 0.11, 0.20, 0.98)
-                category_card._bg = RoundedRectangle(radius=[dp(18)])
-            category_card.bind(
-                pos=lambda o, v, bg=category_card._bg: setattr(bg, "pos", v),
-                size=lambda o, v, bg=category_card._bg: setattr(bg, "size", v),
-            )
-
-            category_card.add_widget(
-                self.label(category, "14sp", (0.55, 0.82, 1, 1), True, "right")
-            )
-
-            grid = GridLayout(cols=2, spacing=dp(7), size_hint_y=None)
-            grid.height = dp(150) * ((len(category_items) + 1) // 2)
-            for text, table in category_items:
-                card = BoxLayout(
-                    orientation="vertical",
-                    size_hint_y=None,
-                    height=dp(145),
-                    padding=dp(9),
-                    spacing=dp(4),
-                )
-                with card.canvas.before:
-                    Color(0.06, 0.16, 0.25, 0.98)
-                    card._bg = RoundedRectangle(radius=[dp(15)])
-                card.bind(
-                    pos=lambda o, v, bg=card._bg: setattr(bg, "pos", v),
-                    size=lambda o, v, bg=card._bg: setattr(bg, "size", v),
-                )
-
-                title_box = BoxLayout(size_hint_y=None, height=dp(38), spacing=dp(5))
-                title_box.add_widget(ModuleIcon(table))
-                title_box.add_widget(self.label(text, "10sp", WHITE, True, "center"))
-                card.add_widget(title_box)
-
-                purpose = MODULE_PURPOSES.get(table, FRIENDLY.get(table, table))
-                card.add_widget(self.label(purpose, "7sp", (0.78, 0.90, 1, 1), False, "center"))
-
-                writable = self.can_write(table)
-                card.add_widget(
-                    self.btn(
-                        "ورود به بخش عملیاتی" if writable else "مشاهده اطلاعات",
-                        lambda *_a, t=table: self.open_table(t),
-                        SUCCESS if writable else PRIMARY,
-                        dp(32),
-                    )
-                )
-                grid.add_widget(card)
-
-            category_card.add_widget(grid)
-            content.add_widget(category_card)
-
+        # Professional accordion: categories behave like the main PanelCard.
+        scroll = ScrollView(do_scroll_x=False, do_scroll_y=True, bar_width=dp(3))
+        content = BoxLayout(orientation='vertical', spacing=dp(8),
+                            padding=[dp(3), dp(4)], size_hint_y=None)
+        content.bind(minimum_height=content.setter('height'))
+        groups = self._group_module_items(items)
+        for index, (category, category_items) in enumerate(groups, 1):
+            content.add_widget(ModuleCategoryCard(category, index, len(groups),
+                                                   category_items, self.open_table))
         scroll.add_widget(content)
-        panel.add_widget(scroll)
-        self.body.add_widget(panel)
-        self.status.text = fa_display(f"{len(items)} ماژول تخصصی • دسته‌بندی حرفه‌ای • اتصال Supabase")
-
+        self.body.add_widget(scroll)
+        self.status.text = fa_display(
+            f'{len(items)} ماژول تخصصی • {len(groups)} دسته حرفه‌ای • برای مشاهده ماژول‌ها روی دسته بزنید'
+        )
     def _badge(self,w):
         with w.canvas.before:
             Color(*PRIMARY); bg=RoundedRectangle(radius=[dp(9)])
