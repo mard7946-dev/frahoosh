@@ -136,6 +136,8 @@ class OnlineClassScreen(Screen):
         subject=self._field("نام درس")
         start=self._field("زمان شروع")
         end=self._field("زمان پایان")
+        room=self._field("لینک کلاس مجازی croom.ir (الزامی)")
+        room.set_logical_text("https://croom.ir/")
 
         def refresh_classes(*_):
             tid=self._create_teacher_map.get(str(teacher.text).strip())
@@ -166,9 +168,9 @@ class OnlineClassScreen(Screen):
         teacher.bind(text=refresh_classes)
         refresh_classes()
 
-        self._button("＋ تشکیل کلاس",lambda *_:self._create(teacher,class_box,subject,start,end),SUCCESS)
+        self._button("＋ تشکیل کلاس",lambda *_:self._create(teacher,class_box,subject,start,end,room),SUCCESS)
 
-    def _create(self,teacher,class_box,subject,start,end):
+    def _create(self,teacher,class_box,subject,start,end,room):
         api=getattr(self.app_state,"api",None)
         if api is None:
             return self._error("سرویس اتصال به پایگاه داده آماده نیست.")
@@ -185,6 +187,7 @@ class OnlineClassScreen(Screen):
         subject_value=(subject.get_logical_text() if hasattr(subject,"get_logical_text") else subject.text or "").strip()
         start_value=(start.get_logical_text() if hasattr(start,"get_logical_text") else start.text or "").strip()
         end_value=(end.get_logical_text() if hasattr(end,"get_logical_text") else end.text or "").strip()
+        room_value=(room.get_logical_text() if hasattr(room,"get_logical_text") else room.text or "").strip()
 
         if not teacher_id:
             return self._error("دبیر انتخاب‌شده معتبر نیست.")
@@ -197,6 +200,8 @@ class OnlineClassScreen(Screen):
             return self._error("نام درس را وارد کنید.")
         if not start_value or not end_value:
             return self._error("زمان شروع و پایان را وارد کنید.")
+        if not room_value.startswith("https://croom.ir/"):
+            return self._error("لینک کلاس باید از croom.ir باشد.")
 
         try:
             import secrets
@@ -208,8 +213,7 @@ class OnlineClassScreen(Screen):
                 str(teacher_row.get("first_name") or "").strip().split()
                 + str(teacher_row.get("last_name") or "").strip().split()
             ).strip()
-            safe_key="-".join((subject_value+" "+teacher_name).split()).replace("/","-")
-            join_url="https://meet.jit.si/frahoosh-"+safe_key[:40]+"-"+secrets.token_hex(4)
+            join_url=room_value
 
             # The server-side function requires the teacher's real class
             # relationship. Pass both values explicitly; sending only the
