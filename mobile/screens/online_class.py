@@ -889,6 +889,7 @@ class OnlineClassScreen(Screen):
             PythonActivity = autoclass("org.kivy.android.PythonActivity")
             WebView = autoclass("android.webkit.WebView")
             WebViewClient = autoclass("android.webkit.WebViewClient")
+            WebChromeClient = autoclass("android.webkit.WebChromeClient")
             LayoutParams = autoclass("android.view.ViewGroup$LayoutParams")
             FrameLayout = autoclass("android.widget.FrameLayout")
             FrameLayoutParams = autoclass("android.widget.FrameLayout$LayoutParams")
@@ -905,6 +906,17 @@ class OnlineClassScreen(Screen):
             settings.setAllowFileAccess(True)
             settings.setAllowContentAccess(True)
             web.setWebViewClient(WebViewClient())
+            class FrahooshChrome(WebChromeClient, PythonJavaClass):
+                __javainterfaces__ = ["android/webkit/WebChromeClient"]
+                __javacontext__ = "app"
+                def onPermissionRequest(self, request):
+                    try:
+                        request.grant(request.getResources())
+                    except Exception as exc:
+                        print("WEBRTC PERMISSION ERROR:", repr(exc))
+            chrome=FrahooshChrome()
+            web.setWebChromeClient(chrome)
+            self._classroom_chrome=chrome
 
             class BackListener(PythonJavaClass):
                 __javainterfaces__ = ["android/view/View$OnClickListener"]
