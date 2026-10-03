@@ -1012,11 +1012,37 @@ class ModuleWorkspaceScreen(Screen):
             "teachers":"teacher", "teacher":"teacher", "staff":"staff"
         }.get(value, value)
 
+    def _module_category(self, table):
+        groups = {
+            "مدیریت و مدرسه": {"students","teachers","staff","school_profile","school_class_config","users","school_events","assets","archive_items","executive_classes","executive_operations","executive_requests","executive_reports"},
+            "آموزش و ارزشیابی": {"teacher_classes","lesson_plans","grades","student_grades","assignments","assignment_submissions","attendance","teacher_exams","quiz_questions","exam_schedule","weekly_schedule","report_cards","monthly_report_cards","grade_items"},
+            "کلاس آنلاین": {"online_classes","online_class_sessions","online_class_students","online_class_teachers","online_attendance","online_class_activity","online_class_notifications","online_class_settings","online_presence_checks","online_class_chat","online_class_board_events","online_class_ai_reports","smart_board_whiteboards"},
+            "پرورشی و فرهنگی": {"educational_activities","activity_offers","activity_registrations","cultural_activity_registrations","cultural_competitions","art_competitions","sport_competitions","student_council","basij_registration","school_ally","school_mayor","morning_leaders","qari_registration","morning_ceremony","cultural_reports","school_events"},
+            "مشاوره و پیگیری": {"counselor_board","counseling_records","counseling_followups","counseling_classes","counseling_guidance","student_referrals","educational_followups","academic_followups","discipline_records","parent_meetings","parent_meeting_requests"},
+            "ارتباطات": {"messages","message_targets","message_delivery","message_reads","meeting_requests","teacher_meetings","teacher_parent_meetings","parent_children","survey_responses"},
+            "مالی": {"finance_accounts","finance_transactions","finance_donations","payment_offers","payment_attempts","payment_records","payment_transactions"},
+            "تابلو و هوش مصنوعی": {"smart_board_content","smart_board_activities","smart_board_quizzes","smart_board_files","smart_board_media","smart_board_interactive_tools","ai_assistant_sessions","ai_educational_analysis","ai_smart_reports","ai_questions"},
+            "گزارش‌ها و تنظیمات": {"reports","executive_reports","cultural_reports","account_settings","module_activations","backup_records"},
+        }
+        for category, routes in groups.items():
+            if table in routes:
+                return category
+        return "سایر امکانات"
+
+    def _group_module_items(self, items):
+        order = [
+            "مدیریت و مدرسه","آموزش و ارزشیابی","کلاس آنلاین","پرورشی و فرهنگی",
+            "مشاوره و پیگیری","ارتباطات","مالی","تابلو و هوش مصنوعی","گزارش‌ها و تنظیمات","سایر امکانات"
+        ]
+        grouped = {key: [] for key in order}
+        for item in items:
+            if not item or len(item) < 2:
+                continue
+            grouped[self._module_category(item[1])].append(item)
+        return [(key, grouped[key]) for key in order if grouped[key]]
+
     def render(self):
         self._ensure_built()
-        # Use only stock Kivy layouts here.  This screen is the shared entry
-        # point for every panel, so a custom container must never be able to
-        # prevent the whole panel from opening on Android.
         self.body.clear_widgets()
         self.subbar.clear_widgets()
         items = SUBMENUS.get(self.route) or [(FRIENDLY.get(self.route, self.route), self.route)]
@@ -1038,11 +1064,14 @@ class ModuleWorkspaceScreen(Screen):
             self.open_table(self.table, refresh_subbar=False)
             return
 
+        # The module landing page follows the exact visual language of the
+        # panel page: professional category sections, rounded cards, vector
+        # icons, RTL labels and no flat amateur list.
         panel = BoxLayout(
             orientation="vertical",
             size_hint_y=1,
             padding=dp(9),
-            spacing=dp(6),
+            spacing=dp(7),
         )
         with panel.canvas.before:
             Color(0.02, 0.08, 0.18, 0.72)
@@ -1052,52 +1081,79 @@ class ModuleWorkspaceScreen(Screen):
             size=lambda o, v: setattr(panel._panel_bg, "size", v),
         )
 
-        head = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(4))
+        head = BoxLayout(size_hint_y=None, height=dp(52), spacing=dp(6))
         head.add_widget(self.label(current_title, "18sp", WHITE, True, "center"))
         panel.add_widget(head)
 
         scroll = ScrollView(do_scroll_x=False, do_scroll_y=True)
-        grid = GridLayout(cols=2, spacing=dp(7), padding=[dp(2), dp(2)], size_hint_y=None)
-        grid.bind(minimum_height=grid.setter("height"))
+        content = BoxLayout(orientation="vertical", spacing=dp(8), size_hint_y=None,
+                            padding=[dp(2), dp(2)])
+        content.bind(minimum_height=content.setter("height"))
 
-        for i, (text, table) in enumerate(items, 1):
-            card = BoxLayout(
+        for category, category_items in self._group_module_items(items):
+            category_card = BoxLayout(
                 orientation="vertical",
                 size_hint_y=None,
-                height=dp(220),
-                padding=dp(10),
-                spacing=dp(3),
+                padding=dp(9),
+                spacing=dp(5),
             )
-            with card.canvas.before:
-                Color(0.02, 0.10, 0.20, 0.90)
-                card._bg = RoundedRectangle(radius=[dp(16)])
-            card.bind(
-                pos=lambda o, v, bg=card._bg: setattr(bg, "pos", v),
-                size=lambda o, v, bg=card._bg: setattr(bg, "size", v),
+            category_card.height = dp(45) + dp(160) * ((len(category_items) + 1) // 2)
+            with category_card.canvas.before:
+                Color(0.045, 0.11, 0.20, 0.98)
+                category_card._bg = RoundedRectangle(radius=[dp(18)])
+            category_card.bind(
+                pos=lambda o, v, bg=category_card._bg: setattr(bg, "pos", v),
+                size=lambda o, v, bg=category_card._bg: setattr(bg, "size", v),
             )
-            card.opacity = 1
 
-            title_box = BoxLayout(size_hint_y=None, height=dp(34), spacing=dp(5))
-            title_box.add_widget(ModuleIcon(table))
-            title_box.add_widget(self.label(text, "10sp", WHITE, True, "center"))
-            card.add_widget(title_box)
-            purpose = MODULE_PURPOSES.get(table, FRIENDLY.get(table, table))
-            card.add_widget(self.label(purpose, "7sp", (0.78, 0.90, 1, 1), False, "center"))
-            writable = self.can_write(table)
-            card.add_widget(
-                self.btn(
-                    "ورود به بخش عملیاتی" if writable else "مشاهده اطلاعات",
-                    lambda *_a, t=table: self.open_table(t),
-                    SUCCESS if writable else PRIMARY,
-                    dp(32),
+            category_card.add_widget(
+                self.label(category, "14sp", (0.55, 0.82, 1, 1), True, "right")
+            )
+
+            grid = GridLayout(cols=2, spacing=dp(7), size_hint_y=None)
+            grid.height = dp(150) * ((len(category_items) + 1) // 2)
+            for text, table in category_items:
+                card = BoxLayout(
+                    orientation="vertical",
+                    size_hint_y=None,
+                    height=dp(145),
+                    padding=dp(9),
+                    spacing=dp(4),
                 )
-            )
-            grid.add_widget(card)
+                with card.canvas.before:
+                    Color(0.06, 0.16, 0.25, 0.98)
+                    card._bg = RoundedRectangle(radius=[dp(15)])
+                card.bind(
+                    pos=lambda o, v, bg=card._bg: setattr(bg, "pos", v),
+                    size=lambda o, v, bg=card._bg: setattr(bg, "size", v),
+                )
 
-        scroll.add_widget(grid)
+                title_box = BoxLayout(size_hint_y=None, height=dp(38), spacing=dp(5))
+                title_box.add_widget(ModuleIcon(table))
+                title_box.add_widget(self.label(text, "10sp", WHITE, True, "center"))
+                card.add_widget(title_box)
+
+                purpose = MODULE_PURPOSES.get(table, FRIENDLY.get(table, table))
+                card.add_widget(self.label(purpose, "7sp", (0.78, 0.90, 1, 1), False, "center"))
+
+                writable = self.can_write(table)
+                card.add_widget(
+                    self.btn(
+                        "ورود به بخش عملیاتی" if writable else "مشاهده اطلاعات",
+                        lambda *_a, t=table: self.open_table(t),
+                        SUCCESS if writable else PRIMARY,
+                        dp(32),
+                    )
+                )
+                grid.add_widget(card)
+
+            category_card.add_widget(grid)
+            content.add_widget(category_card)
+
+        scroll.add_widget(content)
         panel.add_widget(scroll)
         self.body.add_widget(panel)
-        self.status.text = fa_display(f"{len(items)} جدول تخصصی واقعی • اتصال Supabase در حال بررسی")
+        self.status.text = fa_display(f"{len(items)} ماژول تخصصی • دسته‌بندی حرفه‌ای • اتصال Supabase")
 
     def _badge(self,w):
         with w.canvas.before:
