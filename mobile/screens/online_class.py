@@ -771,8 +771,7 @@ class OnlineClassScreen(Screen):
             if self._open_virtual_classroom(str(url), class_id, profile, role):
                 self._ok("کلاس مجازی باز شد؛ حضور شما در سامانه ثبت شد.")
             else:
-                webbrowser.open(str(url))
-                self._ok("محیط کلاس مجازی در دستگاه در دسترس نبود؛ لینک کلاس باز شد.")
+                self._error("اتاق مجازی داخلی فراهوش روی این دستگاه باز نشد.")
         except Exception as exc:
             self._error("ورود به جلسه انجام نشد: "+str(exc))
     def _record_checkpoint(self, checkpoint_no, status="present"):
