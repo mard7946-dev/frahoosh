@@ -684,8 +684,8 @@ class OnlineClassScreen(Screen):
                     self._schedule_random_checkpoints(class_id)
             if self._open_virtual_classroom(str(url), class_id, profile, role):
                 self._ok("کلاس مجازی باز شد؛ حضور شما در سامانه ثبت شد.")
-            else:
-                self._error("اتاق مجازی داخلی فراهوش روی این دستگاه باز نشد.")
+            # _open_virtual_classroom writes the concrete launch error itself.
+            # Do not overwrite that diagnostic with the old generic message.
         except Exception as exc:
             self._error("ورود به جلسه انجام نشد: "+str(exc))
     def _record_checkpoint(self, checkpoint_no, status="present"):
@@ -841,11 +841,16 @@ class OnlineClassScreen(Screen):
             def attach():
                 activity.addContentView(container,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
                 web.loadDataWithBaseURL("https://frahoosh.ir/online-class/",html,"text/html","UTF-8",None)
-            attach(); self._active_webview=web; self._active_webview_container=container
+            attach()
+            self._active_webview=web
+            self._active_webview_container=container
             return True
         except Exception as exc:
-            print("FRAHOOSH INTERNAL CLASSROOM ERROR:",repr(exc))
-            try: self._error("اتاق داخلی باز نشد: "+str(exc))
+            import traceback
+            detail=f"{type(exc).__name__}: {exc}"
+            print("FRAHOOSH INTERNAL CLASSROOM ERROR:",detail)
+            print(traceback.format_exc())
+            try: self._error("اتاق داخلی باز نشد — "+detail)
             except Exception: pass
             return False
 
