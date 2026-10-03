@@ -1323,25 +1323,46 @@ class ModuleWorkspaceScreen(Screen):
         content = BoxLayout(
             orientation="vertical",
             spacing=dp(10),
-            padding=[dp(3), dp(8)],
+            padding=[dp(3), dp(8), dp(3), dp(16)],
             size_hint_y=None,
         )
         content.bind(minimum_height=content.setter("height"))
-        for index, (category, category_items) in enumerate(groups, 1):
-            content.add_widget(
-                ModuleCategoryCard(
-                    category,
-                    index,
-                    len(groups),
-                    category_items,
-                    self.open_table,
-                )
+        if not groups:
+            empty = BoxLayout(
+                orientation="vertical",
+                size_hint_y=None,
+                height=dp(96),
+                padding=[dp(12), dp(16)],
             )
+            with empty.canvas.before:
+                Color(0.045, 0.11, 0.20, 0.98)
+                empty_bg = RoundedRectangle(radius=[dp(18)])
+            empty.bind(
+                pos=lambda o, v: setattr(empty_bg, "pos", v),
+                size=lambda o, v: setattr(empty_bg, "size", v),
+            )
+            empty.add_widget(self.label(
+                "برای این پنل ماژول فعالی در قرارداد سامانه ثبت نشده است.",
+                "11sp", WHITE, True, "center"
+            ))
+            content.add_widget(empty)
+        else:
+            for index, (category, category_items) in enumerate(groups, 1):
+                content.add_widget(
+                    ModuleCategoryCard(
+                        category,
+                        index,
+                        len(groups),
+                        category_items,
+                        self.open_table,
+                    )
+                )
         scroll.add_widget(content)
         self.body.add_widget(scroll)
         self.title.text = fa_display(panel_title)
         self.status.text = fa_display(
-            f"{len(items)} ماژول • {len(groups)} دسته کاری • برای ورود، دسته را باز کنید"
+            f"{len(items)} ماژول • {len(groups)} دسته کاری • "
+            + ("برای ورود، دسته را باز کنید" if groups else "ماژولی برای نمایش وجود ندارد")
         )
 
     def _badge(self,w):
