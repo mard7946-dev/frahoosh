@@ -149,7 +149,7 @@ class PanelCard(BoxLayout):
         self.bind(pos=self._sync, size=self._sync)
 
         self.header = Button(
-            text=fa_display(f"⌄  {title}"),
+            text=fa_display(f"باز کردن  |  {title}"),
             font_name=font_name(),
             font_size="17sp",
             background_normal="",
@@ -166,7 +166,7 @@ class PanelCard(BoxLayout):
         self.add_widget(self.header)
 
         self.meta = Label(
-            text=fa_display(f"پنل {index} از {total}  •  {len(self.modules)} ماژول"),
+            text=fa_display(f"پنل {index} از {total}  -  {len(self.modules)} ماژول"),
             font_name=font_name(),
             font_size="10sp",
             color=(0.60, 0.82, 0.96, 1),
@@ -210,11 +210,11 @@ class PanelCard(BoxLayout):
     def _set_expanded(self, value):
         self.expanded = bool(value)
         if self.expanded:
-            self.header.text = fa_display(f"⌃  {self.title_text}")
+            self.header.text = fa_display(f"بستن  |  {self.title_text}")
             self.body.height = sum(w.height for w in self.body.children) + max(0, len(self.body.children)-1) * dp(6) + dp(8)
             self.height = dp(64) + dp(30) + self.body.height + dp(10)
         else:
-            self.header.text = fa_display(f"⌄  {self.title_text}")
+            self.header.text = fa_display(f"باز کردن  |  {self.title_text}")
             self.body.height = 0
             self.height = dp(64) + dp(30) + dp(10)
 
@@ -788,7 +788,7 @@ class DashboardScreen(Screen):
         role=self.role()
         items=self.items()
         self.welcome.text=fa_display(f"خوش آمدید، {getattr(self.app_state,'display_name','کاربر فراهوش')}")
-        self.role_text.text=fa_display(f"پنل {ROLE_TITLES.get(role,'کاربر')}  •  {len(items)} بخش اصلی")
+        self.role_text.text=fa_display(f"پنل {ROLE_TITLES.get(role,'کاربر')}  -  {len(items)} بخش اصلی")
         self.grid.clear_widgets()
         total=len(items)
         for i,(title,route) in enumerate(items,1):
