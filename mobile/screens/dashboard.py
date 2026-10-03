@@ -761,8 +761,21 @@ class DashboardScreen(Screen):
 
     def _build_reference_sidebar(self):
         self.side_list.clear_widgets()
-        for title,key in PANEL_HUBS:
-            modules=self._panel_modules(self.role(),key)
+        role=self.role()
+        allowed = None
+        if role != "manager":
+            allowed = {
+                "executive":"executive",
+                "educational":"educational",
+                "cultural":"cultural",
+                "advisor":"advisor",
+                "teacher":"teachers",
+                "student":"students",
+                "parent":"parents",
+            }.get(role)
+        visible_panels = [(t,k) for t,k in PANEL_HUBS if allowed is None or k == allowed]
+        for title,key in visible_panels:
+            modules=self._panel_modules(role,key)
             holder=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(45),spacing=dp(2))
             head=Button(
                 text=fa_display(title),
