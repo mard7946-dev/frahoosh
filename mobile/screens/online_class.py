@@ -186,8 +186,6 @@ class OnlineClassScreen(Screen):
                 if state!="active": self._button("شروع جلسه",lambda *_ ,x=cid:self._start(x),SUCCESS)
                 if state=="active": self._button("پایان جلسه",lambda *_ ,x=cid:self._end(x),ERROR)
                 self._button("حضور و غیاب",lambda *_ ,x=cid:self._attendance(x),PRIMARY)
-                self._button("گفت‌وگوی کلاس",lambda *_ ,x=cid:self._chat(x),PRIMARY)
-                self._button("تخته مشترک / نوشتن روی تخته",lambda *_ ,x=cid:self._board(x),PRIMARY)
                 self._button("اعلام غیبت به ولی",lambda *_ ,x=cid:self._absence_notice(x),PRIMARY)
             if state=="active":
                 url=r.get("join_url") or r.get("meeting_url")
@@ -506,8 +504,34 @@ class OnlineClassScreen(Screen):
         except Exception as exc:
             self._error("حذف اتصال انجام نشد: "+str(exc))
     def _start(self,cid):
-        try:self.app_state.api.table_insert("online_class_sessions",{"class_id":cid,"started_at":datetime.now(timezone.utc).isoformat(),"ended_at":None,"created_at":datetime.now(timezone.utc).isoformat()}); self.app_state.api.table_update("online_classes",{"id":f"eq.{cid}"},{"status":"active","activated_at":datetime.now(timezone.utc).isoformat()}); self._ok("جلسه شروع شد و در سامانه ثبت گردید."); self.show_home()
-        except Exception as exc:self._error("شروع جلسه انجام نشد: "+str(exc))
+        try:
+            now=datetime.now(timezone.utc).isoformat()
+            self.app_state.api.table_insert("online_class_sessions",{
+                "class_id":cid,"started_at":now,"ended_at":None,"created_at":now
+            })
+            self.app_state.api.table_update("online_classes",{
+                "id":f"eq.{cid}"
+            },{
+                "status":"active","activated_at":now
+            })
+            rows=self.app_state.api.table_select(
+                "online_classes",{"id":f"eq.{cid}","limit":"1"}
+            ) or []
+            row=rows[0] if rows else {}
+            url=str(row.get("join_url") or row.get("meeting_url") or "").strip()
+            if not url:
+                url=f"frahoosh://online-class/{cid}"
+            profile=getattr(self.app_state,"profile",{}) or {}
+            role=role_of(self.app_state)
+            # Starting a session is the single entry point to the complete
+            # classroom. The WebView contains board, participants, chat,
+            # microphone, camera and screen sharing; do not open those as
+            # separate Kivy screens.
+            if self._open_virtual_classroom(url,cid,profile,role):
+                return
+            self._error("جلسه در سامانه فعال شد، اما اتاق کامل کلاس روی دستگاه باز نشد.")
+        except Exception as exc:
+            self._error("شروع جلسه انجام نشد: "+str(exc))
     def _end(self,cid):
         try:
             rows=self.app_state.api.table_select("online_class_sessions",{"class_id":f"eq.{cid}","order":"id.desc","limit":"1"});
