@@ -626,15 +626,114 @@ class OnlineClassScreen(Screen):
         try:self.app_state.api.table_insert("messages",{"sender_name":"کاربر فراهوش","title":f"کلاس #{cid} — گفت‌وگو","body":text.text.strip(),"audience_type":"online_class","audience_value":str(cid)}); self._ok("پیام ثبت شد."); self._chat(cid)
         except Exception as exc:self._error(str(exc))
     def _board(self,cid):
-        self._clear(); self._label(f"تخته مشترک کلاس #{cid}","21sp",PRIMARY,50,True); self._label("محتوای تخته به صورت واقعی در پایگاه داده ذخیره می‌شود و در بازخوانی جلسه قابل مشاهده است.",height=62)
-        try:rows=self.app_state.api.table_select("smart_board_whiteboards",{"class_id":f"eq.{cid}","order":"id.asc","limit":"100"})
-        except Exception:rows=[]
-        for r in rows:self._label(str(r.get("content") or r.get("text") or ""),height=65)
-        text=self._field("متن / یادداشت روی تخته",100,True); self._button("ثبت روی تخته",lambda *_:self._save_board(cid,text),SUCCESS); self._button("بازگشت",lambda *_:self.show_home())
-    def _save_board(self,cid,text):
-        if not text.text.strip():return self._error("متن تخته خالی است.")
-        try:self.app_state.api.table_insert("smart_board_whiteboards",{"class_id":cid,"content":text.text.strip(),"created_at":datetime.now(timezone.utc).isoformat()}); self._ok("محتوای تخته ذخیره شد."); self._board(cid)
-        except Exception as exc:self._error(str(exc))
+        from kivy.uix.widget import Widget
+        from kivy.graphics import Color, Line, Ellipse, Rectangle
+        self._clear()
+        self._label(f"تخته هوشمند مشترک کلاس #{cid}","21sp",PRIMARY,50,True)
+        toolbar=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(5))
+        for name,tool in (("قلم","pen"),("پاک‌کن","eraser"),("خط","line"),("مستطیل","rect"),("دایره","ellipse")):
+            b=Button(text=fa_display(name),font_name=font_name(),font_size="11sp",background_normal="",background_color=PRIMARY if tool=="pen" else SECONDARY,color=WHITE)
+            b.bind(on_release=lambda *_t,t=tool:self._set_board_tool(t))
+            toolbar.add_widget(b)
+        self.body.add_widget(toolbar)
+        pages=BoxLayout(size_hint_y=None,height=dp(46),spacing=dp(5))
+        self._board_page_label=Label(text=fa_display("صفحه 1"),font_name=font_name(),font_size="12sp",color=PRIMARY)
+        pages.add_widget(self._board_page_label)
+        for title,delta in (("صفحه قبلی",-1),("صفحه بعدی",1)):
+            b=Button(text=fa_display(title),font_name=font_name(),font_size="11sp",background_normal="",background_color=SECONDARY,color=WHITE,size_hint_x=None,width=dp(105))
+            b.bind(on_release=lambda *_ ,d=delta:self._change_board_page(cid,d))
+            pages.add_widget(b)
+        clear=Button(text=fa_display("پاک‌کردن صفحه"),font_name=font_name(),font_size="11sp",background_normal="",background_color=ERROR,color=WHITE,size_hint_x=None,width=dp(110))
+        clear.bind(on_release=lambda *_:self._clear_board_page(cid))
+        pages.add_widget(clear); self.body.add_widget(pages)
+        board=Widget(size_hint_y=None,height=dp(390))
+        with board.canvas.before:
+            Color(0.98,0.98,0.98,1); board._bg=Rectangle(pos=board.pos,size=board.size)
+        board.bind(pos=lambda o,v:setattr(board._bg,"pos",v),size=lambda o,v:setattr(board._bg,"size",v))
+        self._board_widget=board; self._board_class_id=int(cid); self._board_page=int(getattr(self,"_board_page",1) or 1); self._board_tool="pen"; self._board_start=None
+        board.bind(on_touch_down=lambda w,t:self._board_touch_down(w,t),on_touch_move=lambda w,t:self._board_touch_move(w,t),on_touch_up=lambda w,t:self._board_touch_up(w,t))
+        self.body.add_widget(board)
+        self._load_board_page(cid)
+        self._label("تخته برای دبیر و دانش‌آموز مشترک است؛ هر خط/شکل در Supabase ذخیره می‌شود و با بازکردن صفحه دوباره قابل مشاهده است.",height=62)
+        self._button("بازخوانی تخته",lambda *_:self._board(cid),PRIMARY)
+        self._button("بازگشت",lambda *_:self.show_home(),SECONDARY)
+
+    def _set_board_tool(self,tool):
+        self._board_tool=str(tool or "pen")
+
+    def _change_board_page(self,cid,delta):
+        self._board_page=max(1,int(getattr(self,"_board_page",1))+int(delta))
+        self._board(cid)
+
+    def _load_board_page(self,cid):
+        try:
+            rows=self.app_state.api.table_select("smart_board_whiteboards",{"class_id":f"eq.{cid}","page_no":f"eq.{int(self._board_page)}","order":"id.asc","limit":"500"}) or []
+            for row in rows:
+                payload=str(row.get("payload") or "")
+                if not payload: continue
+                import json
+                data=json.loads(payload)
+                self._draw_saved(data)
+        except Exception as exc:
+            self._error("خواندن تخته انجام نشد: "+str(exc))
+
+    def _draw_saved(self,data):
+        from kivy.graphics import Color, Line, Ellipse, Rectangle
+        b=self._board_widget; tool=str(data.get("tool") or "pen"); pts=data.get("points") or []
+        if tool in ("pen","eraser","line") and len(pts)>=4:
+            with b.canvas:
+                Color(0.98,0.98,0.98,1) if tool=="eraser" else Color(0.05,0.12,0.25,1)
+                Line(points=pts,width=8 if tool=="eraser" else 2.5)
+        elif tool=="ellipse" and len(pts)>=4:
+            x1,y1,x2,y2=pts[:4]
+            with b.canvas: Color(0.05,0.12,0.25,1); Line(ellipse=(min(x1,x2),min(y1,y2),abs(x2-x1),abs(y2-y1)),width=2)
+        elif tool=="rect" and len(pts)>=4:
+            x1,y1,x2,y2=pts[:4]
+            with b.canvas: Color(0.05,0.12,0.25,1); Line(rectangle=(min(x1,x2),min(y1,y2),abs(x2-x1),abs(y2-y1)),width=2)
+
+    def _board_touch_down(self,widget,touch):
+        if not widget.collide_point(*touch.pos): return False
+        self._board_start=touch.pos; self._board_points=[touch.x,touch.y]; return True
+
+    def _board_touch_move(self,widget,touch):
+        if self._board_start is None: return False
+        if self._board_tool not in ("pen","eraser"): return True
+        self._board_points += [touch.x,touch.y]
+        from kivy.graphics import Color, Line
+        with widget.canvas:
+            Color(0.98,0.98,0.98,1) if self._board_tool=="eraser" else Color(0.05,0.12,0.25,1)
+            Line(points=self._board_points,width=8 if self._board_tool=="eraser" else 2.5)
+        return True
+
+    def _board_touch_up(self,widget,touch):
+        if self._board_start is None: return False
+        x1,y1=self._board_start; x2,y2=touch.pos; tool=self._board_tool
+        if tool=="line":
+            from kivy.graphics import Color, Line
+            with widget.canvas: Color(0.05,0.12,0.25,1); Line(points=[x1,y1,x2,y2],width=2.5)
+            points=[x1,y1,x2,y2]
+        elif tool in ("rect","ellipse"):
+            points=[x1,y1,x2,y2]; self._draw_saved({"tool":tool,"points":points})
+        else: points=list(getattr(self,"_board_points",[x1,y1,x2,y2]))
+        self._save_board_payload(self._board_class_id,self._board_page,tool,points)
+        self._board_start=None; self._board_points=[]; return True
+
+    def _save_board_payload(self,cid,page,tool,points):
+        try:
+            import json
+            self.app_state.api.table_insert("smart_board_whiteboards",{
+                "class_id":int(cid),"page_no":int(page),"tool":str(tool),
+                "payload":json.dumps({"tool":tool,"points":points},ensure_ascii=False,separators=(",",":")),
+                "shared":True,"title":f"صفحه {page}","content":"","created_at":datetime.now(timezone.utc).isoformat()
+            },return_representation=False)
+        except Exception as exc: self._error("ذخیره تخته انجام نشد: "+str(exc))
+
+    def _clear_board_page(self,cid):
+        try:
+            self.app_state.api.table_delete("smart_board_whiteboards",{"class_id":f"eq.{cid}","page_no":f"eq.{int(self._board_page)}"})
+            self._board(cid)
+        except Exception as exc: self._error("پاک‌کردن صفحه انجام نشد: "+str(exc))
+
     def _absence_notice(self,cid):
         try:
             members=self.app_state.api.table_select("online_class_students",{"class_id":f"eq.{cid}","limit":"100"})
