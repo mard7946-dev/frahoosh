@@ -663,7 +663,17 @@ class DashboardScreen(Screen):
         header.add_widget(logo)
         main.add_widget(header)
 
-        self.parent_alert=self.label("","10sp",(0.08,0.35,0.20,1),True,True)
+        # Compact live-school status badge: fixed height prevents a large blank
+        # area and keeps the green status readable on the white workspace.
+        self.parent_alert=self.label("", "10sp", (0.07,0.38,0.22,1), True, True)
+        self.parent_alert.size_hint_y=None
+        self.parent_alert.height=dp(42)
+        self.parent_alert.padding=[dp(10),dp(4)]
+        with self.parent_alert.canvas.before:
+            Color(0.86,0.97,0.90,1)
+            self._alert_bg=RoundedRectangle(radius=[dp(12)])
+        self.parent_alert.bind(pos=lambda o,v:setattr(self._alert_bg,"pos",v),
+                               size=lambda o,v:setattr(self._alert_bg,"size",v))
         main.add_widget(self.parent_alert)
 
         stats=GridLayout(cols=2,spacing=dp(8),size_hint_y=None,height=dp(150),padding=[dp(1),dp(1)])
@@ -710,7 +720,7 @@ class DashboardScreen(Screen):
         qrow=GridLayout(cols=2,spacing=dp(6))
         for caption,route in (("دانش‌آموزان","students"),("کلاس آنلاین","online"),("آزمون‌ها","teacher_exams"),("صندوق پیام‌ها","messages")):
             b=Button(text=fa_display(caption),font_name=font_name(),font_size="11sp",
-                     background_normal="",background_color=(0.07,0.31,0.52,1),color=WHITE)
+                     background_normal="",background_color=(0.08,0.36,0.58,1),color=WHITE)
             b.bind(size=lambda o,v:setattr(o,"text_size",v))
             b.bind(on_release=lambda *_a,r=route:self._quick_route(None,None,r))
             qrow.add_widget(b)
@@ -736,15 +746,16 @@ class DashboardScreen(Screen):
         root.add_widget(main)
 
         # Right-side navigation, matching the supplied reference image.
-        side=BoxLayout(orientation="vertical",size_hint_x=None,width=dp(190),padding=[dp(8),dp(8)],spacing=dp(5))
+        # Compact navigation rail gives the white workspace more width.
+        side=BoxLayout(orientation="vertical",size_hint_x=None,width=dp(148),padding=[dp(7),dp(8)],spacing=dp(5))
         with side.canvas.before:
-            Color(0.045,0.12,0.22,1)
+            Color(0.035,0.11,0.20,1)
             sb=RoundedRectangle(radius=[dp(18)])
         side.bind(pos=lambda o,v:setattr(sb,"pos",v),size=lambda o,v:setattr(sb,"size",v))
 
         brand=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(76),padding=[dp(4),dp(4)])
-        brand.add_widget(self.label("فراهوش","24sp",WHITE,True,True))
-        brand.add_widget(self.label("سامانه مدیریت هوشمند مدرسه","9sp",(0.70,0.84,0.95,1),False,True))
+        brand.add_widget(self.label("فراهوش","25sp",WHITE,True,True))
+        brand.add_widget(self.label("سامانه مدیریت هوشمند مدرسه","8.5sp",(0.72,0.86,0.96,1),False,True))
         side.add_widget(brand)
 
         self.side_scroll=ScrollView(do_scroll_x=False,do_scroll_y=True,bar_width=dp(2))
@@ -782,8 +793,9 @@ class DashboardScreen(Screen):
                 font_name=font_name(),
                 font_size="11sp",
                 background_normal="",
-                background_color=(0.07,0.20,0.33,1),
+                background_color=(0.08,0.24,0.38,1),
                 color=WHITE,
+                bold=True,
                 halign="right",
                 valign="middle",
                 size_hint_y=None,
@@ -792,9 +804,9 @@ class DashboardScreen(Screen):
             head.bind(size=lambda o,v:setattr(o,"text_size",v))
             body=BoxLayout(orientation="vertical",size_hint_y=None,height=0,spacing=dp(2),padding=[dp(3),dp(1)])
             for label,route in modules[:8]:
-                b=Button(text=fa_display(label),font_name=font_name(),font_size="9sp",
-                         background_normal="",background_color=(0.09,0.25,0.38,1),color=WHITE,
-                         halign="right",valign="middle",size_hint_y=None,height=dp(34))
+                b=Button(text=fa_display(label),font_name=font_name(),font_size="9.5sp",
+                         background_normal="",background_color=(0.07,0.20,0.32,1),color=WHITE,
+                         halign="right",valign="middle",size_hint_y=None,height=dp(36))
                 b.bind(size=lambda o,v:setattr(o,"text_size",v))
                 b.bind(on_release=lambda *_a,r=route:self._quick_route(None,None,r))
                 body.add_widget(b)
@@ -1069,7 +1081,7 @@ class DashboardScreen(Screen):
     def _set_parent_alert(self,message):
         try:
             self.parent_alert.text=fa_display(message)
-            self.parent_alert.color=(0.72,1,0.82,1)
+            self.parent_alert.color=(0.07,0.38,0.22,1)
         except Exception:
             pass
 
@@ -1105,7 +1117,7 @@ class DashboardScreen(Screen):
     def _set_parent_alert(self,message):
         try:
             self.parent_alert.text=rtl_text(message)
-            self.parent_alert.color=(0.72,1,0.82,1)
+            self.parent_alert.color=(0.07,0.38,0.22,1)
         except Exception:
             pass
 
