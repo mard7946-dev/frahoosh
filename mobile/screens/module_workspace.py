@@ -1072,68 +1072,132 @@ class ModuleWorkspaceScreen(Screen):
             "teachers":"teacher", "teacher":"teacher", "staff":"staff"
         }.get(value, value)
 
-    def _module_category(self, table):
-        groups = {
-            "مدیریت و مدرسه": {"students","teachers","staff","school_profile","school_class_config","users","school_events","assets","archive_items","executive_classes","executive_operations","executive_requests","executive_reports"},
-            "آموزش و ارزشیابی": {"teacher_classes","lesson_plans","grades","student_grades","assignments","assignment_submissions","attendance","teacher_exams","quiz_questions","exam_schedule","weekly_schedule","report_cards","monthly_report_cards","grade_items"},
-            "کلاس آنلاین": {"online_classes","online_class_sessions","online_class_students","online_class_teachers","online_attendance","online_class_activity","online_class_notifications","online_class_settings","online_presence_checks","online_class_chat","online_class_board_events","online_class_ai_reports","smart_board_whiteboards"},
-            "پرورشی و فرهنگی": {"educational_activities","activity_offers","activity_registrations","cultural_activity_registrations","cultural_competitions","art_competitions","sport_competitions","student_council","basij_registration","school_ally","school_mayor","morning_leaders","qari_registration","morning_ceremony","cultural_reports","school_events"},
-            "مشاوره و پیگیری": {"counselor_board","counseling_records","counseling_followups","counseling_classes","counseling_guidance","student_referrals","educational_followups","academic_followups","discipline_records","parent_meetings","parent_meeting_requests"},
-            "ارتباطات": {"messages","message_targets","message_delivery","message_reads","meeting_requests","teacher_meetings","teacher_parent_meetings","parent_children","survey_responses"},
-            "مالی": {"finance_accounts","finance_transactions","finance_donations","payment_offers","payment_attempts","payment_records","payment_transactions"},
-            "تابلو و هوش مصنوعی": {"smart_board_content","smart_board_activities","smart_board_quizzes","smart_board_files","smart_board_media","smart_board_interactive_tools","ai_assistant_sessions","ai_educational_analysis","ai_smart_reports","ai_questions"},
-            "گزارش‌ها و تنظیمات": {"reports","executive_reports","cultural_reports","account_settings","module_activations","backup_records"},
+    def _panel_category_map(self):
+        # Categories follow the approved panel/module UX contract. Route ids
+        # remain the canonical backend ids; only their presentation grouping
+        # changes here.
+        return {
+            "management": [
+                ("فعالیت آموزشی", {"report_cards","grades","class_seat_assignments","exam_seat_assignments","student_grades","teacher_exams","exam_schedule","weekly_schedule","teacher_classes","school_class_config"}),
+                ("فعالیت‌های پرورشی", {"activity_registrations","activity_offers","educational_activities","art_competitions","sport_competitions","cultural_competitions","activity_programs","school_events","student_council","school_ally","basij_registration","school_mayor"}),
+                ("دانش‌آموزان", {"students","archive_items","student_files","certificate_requests","discipline_records","attendance","executive_operations"}),
+                ("دبیران و کارکنان", {"teachers","staff","teacher_activities","lesson_plans","teacher_classes"}),
+                ("اولیا", {"parent_children","parent_meeting_requests","meeting_requests","parent_activities","messages","message_targets"}),
+                ("کلاس و مدرسه", {"executive_classes","school_class_config","weekly_schedule","online_classes","school_profile"}),
+                ("امور مالی", {"finance_accounts","finance_transactions","finance_donations","payment_offers","payment_attempts","payment_records","payment_transactions"}),
+                ("گزارش‌ها و آمار", {"ai_smart_reports","executive_reports","cultural_reports","report_card_snapshots","surveys"}),
+                ("مدیریت سامانه", {"users","account_settings","module_activations","backup_records"}),
+            ],
+            "executive": [
+                ("امور دانش‌آموزی", {"students","archive_items","certificate_requests","student_files","parent_children"}),
+                ("امور کلاس‌ها", {"executive_classes","school_class_config","weekly_schedule","class_seat_assignments","exam_seat_assignments","attendance"}),
+                ("امور امتحانات", {"exam_schedule","report_cards","exam_seat_assignments","teacher_exams"}),
+                ("امور کارکنان", {"staff","teachers","teacher_activities"}),
+                ("امور اولیا", {"parent_children","meeting_requests","parent_meeting_requests","executive_requests","messages"}),
+                ("اسناد و گزارش‌ها", {"archive_items","certificates","report_cards","executive_reports","ai_smart_reports"}),
+            ],
+            "educational": [
+                ("برنامه‌ریزی آموزشی", {"teacher_classes","school_class_config","weekly_schedule","lesson_plans","teachers","executive_classes"}),
+                ("ارزشیابی", {"grades","student_grades","report_cards","teacher_exams","exam_schedule","quiz_questions","grade_items"}),
+                ("آموزش آنلاین", {"online_classes","online_class_sessions","online_attendance","smart_board_whiteboards","assignments"}),
+                ("وضعیت تحصیلی", {"students","student_referrals","educational_followups","academic_followups","discipline_records"}),
+                ("گزارش‌های آموزشی", {"ai_smart_reports","executive_reports","student_grades","grade_items"}),
+            ],
+            "cultural": [
+                ("فعالیت‌های پرورشی", {"educational_activities","activity_registrations","activity_programs","morning_ceremony","qari_registration","morning_leaders"}),
+                ("مسابقات و جشنواره‌ها", {"cultural_competitions","art_competitions","sport_competitions","competitions","activity_offers"}),
+                ("تشکل‌های دانش‌آموزی", {"student_council","school_ally","school_mayor","basij_registration"}),
+                ("مناسبت‌ها و برنامه‌ها", {"school_events","messages","message_targets"}),
+                ("گزارش پرورشی", {"cultural_reports","ai_smart_reports","discipline_records"}),
+            ],
+            "advisor": [
+                ("پرونده مشاوره", {"counseling_records","students","parent_children","counseling_classes"}),
+                ("جلسات", {"meeting_requests","parent_meetings","parent_meeting_requests","counseling_followups"}),
+                ("پیگیری دانش‌آموز", {"student_referrals","counseling_followups","educational_followups","academic_followups"}),
+                ("ارتباط با خانواده", {"parent_activities","parent_children","messages","message_targets"}),
+                ("گزارش‌های مشاوره", {"ai_smart_reports","counseling_guidance","discipline_records"}),
+            ],
+            "teachers": [
+                ("کلاس‌های من", {"teacher_classes","weekly_schedule","grades","attendance"}),
+                ("ارزشیابی", {"grades","student_grades","teacher_exams","quiz_questions","grade_items"}),
+                ("تکالیف", {"assignments","assignment_submissions"}),
+                ("کلاس آنلاین", {"online_classes","online_class_sessions","online_attendance","smart_board_whiteboards","online_class_chat"}),
+                ("دانش‌آموزان", {"students","student_referrals","teacher_activities","discipline_records"}),
+                ("ارتباطات", {"messages","message_targets","teacher_meetings","teacher_parent_meetings"}),
+            ],
+            "parents": [
+                ("فرزند من", {"parent_children","students","student_grades","report_cards","monthly_report_cards","attendance","assignments","teacher_exams"}),
+                ("ملاقات‌ها", {"meeting_requests","parent_meeting_requests","teacher_parent_meetings"}),
+                ("پرداخت‌ها", {"finance_donations","payment_attempts","payment_records","payment_transactions"}),
+                ("ارتباط با مدرسه", {"messages","message_targets","message_reads","school_events"}),
+                ("خدمات دانش‌آموز", {"transport_requests","parent_children"}),
+                ("فعالیت‌های اولیا", {"parent_activities","survey_responses"}),
+            ],
+            "students": [
+                ("آموزش من", {"student_class_info","weekly_schedule","student_grades","report_cards","teacher_exams","exam_schedule","online_classes"}),
+                ("تکالیف", {"assignments","assignment_submissions"}),
+                ("کلاس آنلاین", {"online_classes","online_class_sessions","online_attendance","smart_board_whiteboards"}),
+                ("فعالیت‌های مدرسه", {"activity_registrations","cultural_activity_registrations","student_council","school_ally","school_mayor","basij_registration"}),
+                ("درخواست‌ها", {"certificate_requests","student_referrals"}),
+                ("ارتباطات", {"messages","message_reads","school_events"}),
+                ("پرداخت", {"payment_attempts","payment_records","payment_transactions"}),
+            ],
+            "finance": [
+                ("دریافت‌ها", {"finance_donations","payment_records","finance_transactions","payment_transactions"}),
+                ("درخواست‌های مالی", {"payment_attempts","payment_offers"}),
+                ("تنظیمات مالی", {"finance_accounts","payment_offers"}),
+                ("گزارش مالی", {"finance_transactions","payment_records","payment_transactions"}),
+            ],
+            "smart_board": [
+                ("تابلو", {"smart_board_whiteboards","smart_board_content","smart_board_media"}),
+                ("اطلاع‌رسانی", {"school_events","messages","message_targets"}),
+                ("محتوای آموزشی", {"smart_board_content","smart_board_files","smart_board_media","smart_board_activities","smart_board_interactive_tools"}),
+                ("آزمون و تعامل", {"smart_board_quizzes"}),
+            ],
+            "ai": [
+                ("دستیار هوشمند", {"ai_assistant_sessions","ai_questions"}),
+                ("آموزش هوشمند", {"ai_questions","teacher_exams","quiz_questions","ai_educational_analysis"}),
+                ("تحلیل مدرسه", {"ai_educational_analysis","ai_smart_reports"}),
+            ],
+            "messages": [
+                ("پیام‌ها", {"messages","message_reads","message_delivery"}),
+                ("ارسال پیام", {"message_targets"}),
+                ("اطلاعیه‌ها", {"school_events"}),
+            ],
+            "settings": [
+                ("مدرسه", {"school_profile","school_class_config","weekly_schedule","exam_schedule"}),
+                ("کاربران و دسترسی", {"users","permissions","account_settings"}),
+                ("ظاهر سامانه", {"school_profile","account_settings"}),
+                ("تنظیمات عمومی", {"messages","payment_offers","online_classes","module_activations","backup_records"}),
+            ],
+            "about": [
+                ("معرفی", {"about_frahoosh","app_features","app_version"}),
+                ("اطلاعات", {"school_profile","app_info","school_year"}),
+                ("قوانین", {"usage_rules","privacy_policy"}),
+            ],
         }
-        for category, routes in groups.items():
+
+    def _module_category(self, table):
+        panel = str(self.route or "").strip().lower()
+        panel = {"management":"management","manager":"management","teachers":"teachers","teacher":"teachers","parents":"parents","parent":"parents","student":"students","دانش‌آموز":"students"}.get(panel, panel)
+        for category, routes in self._panel_category_map().get(panel, []):
             if table in routes:
                 return category
         return "سایر امکانات"
 
     def _group_module_items(self, items):
-        order = [
-            "مدیریت و مدرسه","آموزش و ارزشیابی","کلاس آنلاین","پرورشی و فرهنگی",
-            "مشاوره و پیگیری","ارتباطات","مالی","تابلو و هوش مصنوعی","گزارش‌ها و تنظیمات","سایر امکانات"
-        ]
-        grouped = {key: [] for key in order}
+        panel = str(self.route or "").strip().lower()
+        panel = {"management":"management","manager":"management","teachers":"teachers","teacher":"teachers","parents":"parents","parent":"parents","student":"students","دانش‌آموز":"students"}.get(panel, panel)
+        configured = self._panel_category_map().get(panel, [])
+        grouped = {category: [] for category, _ in configured}
+        grouped.setdefault("سایر امکانات", [])
         for item in items:
             if not item or len(item) < 2:
                 continue
-            grouped[self._module_category(item[1])].append(item)
-        return [(key, grouped[key]) for key in order if grouped[key]]
+            grouped.setdefault(self._module_category(item[1]), []).append(item)
+        order = [category for category, _ in configured] + ["سایر امکانات"]
+        return [(category, grouped[category]) for category in order if grouped.get(category)]
 
-    def render(self):
-        self._ensure_built()
-        self.body.clear_widgets()
-        self.subbar.clear_widgets()
-        items = SUBMENUS.get(self.route) or [(FRIENDLY.get(self.route, self.route), self.route)]
-        self.body.size_hint_y = 1 if self.table else .60
-        current_title = dict(items).get(items[0][1], items[0][0]) if items else self.route
-        self.title.text = fa_display(current_title)
-
-        for text, table in items:
-            b = self.btn(text, lambda *_a, t=table: self.open_table(t),
-                         PRIMARY if table == self.table else (0.06, 0.25, 0.42, 0.94),
-                         dp(39), dp(max(92, len(text) * 9 + 42)))
-            self.subbar.add_widget(b)
-
-        if self.table:
-            self.open_table(self.table, refresh_subbar=False)
-            return
-
-        # Professional accordion: categories behave like the main PanelCard.
-        scroll = ScrollView(do_scroll_x=False, do_scroll_y=True, bar_width=dp(3))
-        content = BoxLayout(orientation='vertical', spacing=dp(8),
-                            padding=[dp(3), dp(4)], size_hint_y=None)
-        content.bind(minimum_height=content.setter('height'))
-        groups = self._group_module_items(items)
-        for index, (category, category_items) in enumerate(groups, 1):
-            content.add_widget(ModuleCategoryCard(category, index, len(groups),
-                                                   category_items, self.open_table))
-        scroll.add_widget(content)
-        self.body.add_widget(scroll)
-        self.status.text = fa_display(
-            f'{len(items)} ماژول تخصصی • {len(groups)} دسته حرفه‌ای • برای مشاهده ماژول‌ها روی دسته بزنید'
-        )
     def _badge(self,w):
         with w.canvas.before:
             Color(*PRIMARY); bg=RoundedRectangle(radius=[dp(9)])
