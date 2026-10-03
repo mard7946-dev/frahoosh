@@ -102,129 +102,43 @@ class OnlineClassScreen(Screen):
         self._create_form()
         self._button("بازگشت به فهرست کلاس‌ها",lambda *_:self.show_home(),SECONDARY,46)
     def _create_form(self):
-        # The class is selected from the real teacher_classes relationship.
-        # A teacher name alone is not enough to bind the correct students.
-        try:
-            teacher_rows=self.app_state.api.table_select("teachers",{"order":"first_name.asc","limit":"500"}) or []
-        except Exception as exc:
-            self._error("فهرست دبیران بارگذاری نشد: "+str(exc))
-            return
-        if not teacher_rows:
-            self._error("هیچ دبیری در سامانه ثبت نشده است.")
-            return
-
-        self._create_teacher_rows=teacher_rows
-        self._create_teacher_map={}
-        labels=[]
-        for row in teacher_rows:
-            label=" ".join(str(row.get("first_name") or "").strip().split()+str(row.get("last_name") or "").strip().split()).strip()
-            if not label:
-                label=str(row.get("email") or "").strip()
-            if label and row.get("id") is not None:
-                display=fa_display(label)
-                self._create_teacher_map[display]=int(row["id"])
-                labels.append(display)
-
-        teacher=PersianSpinner(text=labels[0],values=tuple(labels),size_hint_y=None,height=dp(50),font_size="13sp")
-        self.body.add_widget(teacher)
-
-        class_box=PersianSpinner(text="ابتدا دبیر را انتخاب کنید",values=("ابتدا دبیر را انتخاب کنید",),size_hint_y=None,height=dp(50),font_size="13sp")
-        self.body.add_widget(class_box)
-
+        self._label("تشکیل کلاس آنلاین","21sp",PRIMARY,52,True)
+        grade=self._field("پایه تحصیلی")
+        class_name=self._field("نام کلاس")
         subject=self._field("نام درس")
         start=self._field("زمان شروع")
         end=self._field("زمان پایان")
-
-        def refresh_classes(*_):
-            tid=self._create_teacher_map.get(str(teacher.text).strip())
-            try:
-                rel=self.app_state.api.table_select("teacher_classes",{
-                    "teacher_id":"eq."+str(int(tid)),
-                    "active":"eq.1",
-                    "order":"grade.asc,class_name.asc",
-                    "limit":"200"
-                }) if tid else []
-            except Exception as exc:
-                return self._error("کلاس‌های دبیر بارگذاری نشد: "+str(exc))
-            self._create_class_rows=rel or []
-            values=[]
-            self._create_class_map={}
-            for row in self._create_class_rows:
-                grade=str(row.get("grade") or "").strip()
-                cname=str(row.get("class_name") or "").strip()
-                if not cname: continue
-                label=fa_display((grade+" — " if grade else "")+cname)
-                self._create_class_map[label]=(grade,cname)
-                values.append(label)
-            if not values:
-                values=["برای این دبیر کلاس واقعی ثبت نشده است"]
-            class_box.values=tuple(values)
-            class_box.text=values[0]
-
-        teacher.bind(text=refresh_classes)
-        refresh_classes()
-
-        self._button("＋ تشکیل کلاس",lambda *_:self._create(teacher,class_box,subject,start,end),SUCCESS)
-
-    def _create(self,teacher,class_box,subject,start,end):
+        self._label("پس از ثبت کلاس، دبیران و دانش‌آموزان را می‌توانید به‌صورت دستی یا Excel متصل کنید.","12sp",SECONDARY,58,True)
+        self._button("＋ ثبت کلاس",lambda *_:self._create(grade,class_name,subject,start,end),SUCCESS)
+    def _create(self,grade,class_name,subject,start,end):
         api=getattr(self.app_state,"api",None)
-        if api is None:
-            return self._error("سرویس اتصال به پایگاه داده آماده نیست.")
+        if api is None: return self._error("سرویس اتصال به پایگاه داده آماده نیست.")
         role=role_of(self.app_state)
-        if role not in CLASS_CREATORS:
-            return self._error("فقط مدیر، معاون اجرایی و معاون آموزشی اجازه تشکیل کلاس آنلاین دارند.")
-        if not getattr(api,"access_token",""):
-            return self._error("نشست ورود معتبر نیست؛ دوباره وارد فراهوش شوید.")
-
-        teacher_label=str(teacher.text or "").strip()
-        teacher_id=getattr(self,"_create_teacher_map",{}).get(teacher_label)
-        class_label=str(class_box.text or "").strip()
-        class_info=getattr(self,"_create_class_map",{}).get(class_label)
-        subject_value=(subject.get_logical_text() if hasattr(subject,"get_logical_text") else subject.text or "").strip()
-        start_value=(start.get_logical_text() if hasattr(start,"get_logical_text") else start.text or "").strip()
-        end_value=(end.get_logical_text() if hasattr(end,"get_logical_text") else end.text or "").strip()
-
-        if not teacher_id:
-            return self._error("دبیر انتخاب‌شده معتبر نیست.")
-        if not class_info:
-            return self._error("ابتدا یک پایه و کلاس واقعی متصل به دبیر را انتخاب کنید.")
-        grade_value,class_name_value=class_info
-        if not class_name_value:
-            return self._error("نام کلاس معتبر نیست.")
-        if not subject_value:
-            return self._error("نام درس را وارد کنید.")
-        if not start_value or not end_value:
-            return self._error("زمان شروع و پایان را وارد کنید.")
-
+        if role not in CLASS_CREATORS: return self._error("فقط مدیر، معاون اجرایی و معاون آموزشی اجازه تشکیل کلاس آنلاین دارند.")
+        if not getattr(api,"access_token",""): return self._error("نشست ورود معتبر نیست؛ دوباره وارد فراهوش شوید.")
+        vals=[]
+        for w in (grade,class_name,subject,start,end):
+            vals.append((w.get_logical_text() if hasattr(w,"get_logical_text") else w.text or "").strip())
+        grade_value,class_value,subject_value,start_value,end_value=vals
+        if not all(vals): return self._error("پایه، نام کلاس، نام درس، زمان شروع و زمان پایان الزامی است.")
         try:
-            import secrets
-            teacher_rows=api.table_select("teachers",{"id":"eq."+str(int(teacher_id)),"limit":"1"}) or []
-            if not teacher_rows:
-                return self._error("دبیر انتخاب‌شده در سامانه پیدا نشد.")
-            teacher_row=teacher_rows[0]
-            teacher_name=" ".join(
-                str(teacher_row.get("first_name") or "").strip().split()
-                + str(teacher_row.get("last_name") or "").strip().split()
-            ).strip()
-
-            # The server-side function requires the teacher's real class
-            # relationship. Pass both values explicitly; sending only the
-            # teacher used to leave the RPC without its required class scope.
-            class_id=int(api.rpc("create_online_class_with_members", {
-                "p_teacher_id":int(teacher_id),
+            class_id=int(api.rpc("create_online_class_with_members",{
+                "p_teacher_id":None,
                 "p_subject":subject_value,
                 "p_grade":grade_value,
-                "p_class_name":class_name_value,
+                "p_class_name":class_value,
                 "p_start_time":start_value,
                 "p_end_time":end_value,
                 "p_join_url":"frahoosh://pending",
             }))
-            api.table_update("online_classes",{"id":"eq."+str(class_id)},{"join_url":"frahoosh://online-class/"+str(class_id),"meeting_url":"frahoosh://online-class/"+str(class_id)})
-            self._ok("کلاس ثبت شد؛ اتاق مجازی داخلی فراهوش ساخته شد. کد کلاس: "+str(class_id))
-            self.show_home()
+            api.table_update("online_classes",{"id":"eq."+str(class_id)},{
+                "join_url":"frahoosh://online-class/"+str(class_id),
+                "meeting_url":"frahoosh://online-class/"+str(class_id)
+            })
+            self._ok("کلاس ساخته شد؛ اکنون می‌توانید چند دبیر و چند دانش‌آموز را دستی یا با Excel متصل کنید. کد کلاس: "+str(class_id))
+            self._members(class_id)
         except Exception as exc:
             self._error("ثبت کلاس در Supabase انجام نشد: "+str(exc))
-
     def _load_classes(self):
         api=self.app_state.api
         role=role_of(self.app_state)
