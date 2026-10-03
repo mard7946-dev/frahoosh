@@ -39,20 +39,42 @@ class SelectableRow(ButtonBehavior, BoxLayout):
 # One shared operational vocabulary for Android and the future web client.
 # Both clients must bind these keys to the same Supabase tables and field names.
 class ModuleItemCard(ButtonBehavior, BoxLayout):
-    """Small professional module card inside an expandable category."""
+    """Professional inner module card; visually subordinate to the category card."""
     def __init__(self, label, route, module_enter, **kwargs):
-        super().__init__(orientation="horizontal", padding=dp(10), spacing=dp(6),
-                         size_hint_y=None, height=dp(54), **kwargs)
+        super().__init__(
+            orientation="horizontal",
+            padding=[dp(12), dp(7)],
+            spacing=dp(8),
+            size_hint_y=None,
+            height=dp(58),
+            **kwargs,
+        )
         self.route = route
         self.module_enter = module_enter
         with self.canvas.before:
-            Color(0.08, 0.16, 0.25, 1)
+            Color(0.065, 0.14, 0.23, 1)
             self.bg = RoundedRectangle(radius=[dp(14)])
+            Color(0.10, 0.42, 0.62, 0.85)
+            self.accent = RoundedRectangle(radius=[dp(5)])
         self.bind(pos=self._sync, size=self._sync)
+
+        self.icon = Label(
+            text=fa_display("◆"),
+            font_name=font_name(),
+            font_size="10sp",
+            color=(0.55, 0.84, 1, 1),
+            size_hint_x=None,
+            width=dp(20),
+            halign="center",
+            valign="middle",
+        )
+        self.icon.bind(size=lambda o, v: setattr(o, "text_size", v))
+        self.add_widget(self.icon)
+
         self.title = Label(
             text=fa_display(str(label)),
             font_name=font_name(),
-            font_size="11.5sp",
+            font_size="12sp",
             color=WHITE,
             bold=True,
             halign="right",
@@ -67,10 +89,50 @@ class ModuleItemCard(ButtonBehavior, BoxLayout):
     def _sync(self, *_):
         self.bg.pos = self.pos
         self.bg.size = self.size
+        self.accent.pos = (self.x + dp(3), self.y + dp(8))
+        self.accent.size = (dp(3), max(dp(1), self.height - dp(16)))
 
 
 class ModuleCategoryCard(BoxLayout):
-    """Accordion category using the same visual language as the main PanelCard."""
+    """Category card deliberately follows the dashboard PanelCard visual pattern."""
+    CATEGORY_ICONS = {
+        "فعالیت آموزشی": "▣",
+        "فعالیت‌های پرورشی": "✦",
+        "دانش‌آموزان و پرونده‌ها": "◆",
+        "دبیران و کارکنان": "●",
+        "کلاس و مدرسه": "■",
+        "ارتباطات": "✉",
+        "مالی": "◇",
+        "گزارش‌ها و آمار": "▤",
+        "مدیریت سامانه": "⚙",
+        "امور دانش‌آموزی": "◆",
+        "کلاس و برنامه‌ریزی": "▦",
+        "امور کارکنان": "●",
+        "امور اجرایی": "■",
+        "کلاس آنلاین و ارتباطات": "▣",
+        "گزارش‌ها": "▤",
+        "برنامه‌ریزی آموزشی": "▦",
+        "ارزشیابی و آزمون": "✓",
+        "پیگیری آموزشی": "↗",
+        "گزارش‌های آموزشی": "▤",
+        "فعالیت‌های آموزشی": "✦",
+        "مسابقات و جشنواره‌ها": "★",
+        "تشکل‌های دانش‌آموزی": "●",
+        "گزارش و انضباط": "▤",
+        "تنظیم قابلیت‌ها": "⚙",
+        "پرونده مشاوره": "◆",
+        "جلسات و خانواده": "●",
+        "هدایت تحصیلی": "↗",
+        "کلاس و تدریس": "▣",
+        "ارزشیابی": "✓",
+        "تکالیف": "✎",
+        "کلاس آنلاین": "▦",
+        "ارتباط با اولیا": "●",
+        "پیگیری دانش‌آموز": "↗",
+        "فرزند من": "◆",
+        "آموزش و برنامه": "▦",
+    }
+
     def __init__(self, title, index, total, modules, module_enter, **kwargs):
         super().__init__(
             orientation="vertical",
@@ -84,10 +146,31 @@ class ModuleCategoryCard(BoxLayout):
         self.module_enter = module_enter
         self.expanded = False
 
+        # Same dark rounded shell, header proportions and accordion behavior as PanelCard.
         with self.canvas.before:
             Color(0.045, 0.11, 0.20, 0.98)
             self.bg = RoundedRectangle(radius=[dp(20)])
         self.bind(pos=self._sync, size=self._sync)
+
+        header_row = BoxLayout(
+            orientation="horizontal",
+            spacing=dp(8),
+            size_hint_y=None,
+            height=dp(64),
+        )
+
+        self.icon = Label(
+            text=fa_display(self.CATEGORY_ICONS.get(title, "◆")),
+            font_name=font_name(),
+            font_size="20sp",
+            color=(0.55, 0.84, 1, 1),
+            size_hint_x=None,
+            width=dp(42),
+            halign="center",
+            valign="middle",
+        )
+        self.icon.bind(size=lambda o, v: setattr(o, "text_size", v))
+        header_row.add_widget(self.icon)
 
         self.header = Button(
             text=fa_display(f"باز کردن  |  {title}"),
@@ -99,15 +182,14 @@ class ModuleCategoryCard(BoxLayout):
             bold=True,
             halign="right",
             valign="middle",
-            size_hint_y=None,
-            height=dp(64),
         )
         self.header.bind(size=lambda o, v: setattr(o, "text_size", v))
         self.header.bind(on_release=lambda *_: self.toggle())
-        self.add_widget(self.header)
+        header_row.add_widget(self.header)
+        self.add_widget(header_row)
 
         self.meta = Label(
-            text=fa_display(f"دسته {index} از {total}  -  {len(self.modules)} ماژول"),
+            text=fa_display(f"دسته {index} از {total}  •  {len(self.modules)} ماژول"),
             font_name=font_name(),
             font_size="10sp",
             color=(0.60, 0.82, 0.96, 1),
@@ -121,12 +203,13 @@ class ModuleCategoryCard(BoxLayout):
 
         self.body = GridLayout(
             cols=2,
-            spacing=dp(7),
-            padding=[dp(2), dp(5)],
+            spacing=dp(8),
+            padding=[dp(3), dp(7)],
             size_hint_y=None,
             height=0,
         )
         self.add_widget(self.body)
+
         self._build_modules()
         self._set_expanded(False)
 
@@ -144,7 +227,7 @@ class ModuleCategoryCard(BoxLayout):
             self.header.text = fa_display(f"بستن  |  {self.title_text}")
             count = len(self.body.children)
             rows = (count + 1) // 2
-            self.body.height = rows * dp(54) + max(0, rows - 1) * dp(7) + dp(10)
+            self.body.height = rows * dp(58) + max(0, rows - 1) * dp(8) + dp(14)
             self.height = dp(64) + dp(30) + self.body.height + dp(10)
         else:
             self.header.text = fa_display(f"باز کردن  |  {self.title_text}")
