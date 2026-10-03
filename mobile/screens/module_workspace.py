@@ -58,7 +58,7 @@ class ModuleCategoryCard(BoxLayout):
         self.header.bind(size=lambda o,v:setattr(o,'text_size',v))
         self.header.bind(on_release=lambda *_: self.toggle())
         self.add_widget(self.header)
-        self.meta = Label(text=fa_display(f'{len(self.modules)} ماژول'),
+        self.meta = Label(text=fa_display(f'دسته {index} از {total}  -  {len(self.modules)} ماژول'),
             font_name=font_name(), font_size='10sp', color=(0.60,0.82,0.96,1),
             halign='right', valign='middle', size_hint_y=None, height=dp(28))
         self.meta.bind(size=lambda o,v:setattr(o,'text_size',v))
@@ -1197,6 +1197,65 @@ class ModuleWorkspaceScreen(Screen):
             grouped.setdefault(self._module_category(item[1]), []).append(item)
         order = [category for category, _ in configured] + ["سایر امکانات"]
         return [(category, grouped[category]) for category in order if grouped.get(category)]
+
+    def render(self):
+        self._ensure_built()
+        self.body.clear_widgets()
+        self.subbar.clear_widgets()
+
+        items = SUBMENUS.get(self.route) or [(FRIENDLY.get(self.route, self.route), self.route)]
+        current_title = items[0][0] if items else FRIENDLY.get(self.route, self.route)
+        self.title.text = fa_display(current_title)
+
+        # The horizontal strip is only a compact context bar. The real module
+        # navigation is the professional accordion workspace below.
+        for text, table in items:
+            b = self.btn(
+                text,
+                lambda *_a, t=table: self.open_table(t),
+                PRIMARY if table == self.table else (0.06, 0.25, 0.42, 0.94),
+                dp(39),
+                dp(max(92, len(str(text)) * 9 + 42))
+            )
+            self.subbar.add_widget(b)
+
+        if self.table:
+            self.open_table(self.table, refresh_subbar=False)
+            return
+
+        scroll = ScrollView(
+            do_scroll_x=False, do_scroll_y=True, bar_width=dp(3),
+            size_hint_y=1
+        )
+        content = BoxLayout(
+            orientation="vertical",
+            spacing=dp(8),
+            padding=[dp(3), dp(4), dp(3), dp(12)],
+            size_hint_y=None
+        )
+        content.bind(minimum_height=content.setter("height"))
+
+        groups = self._group_module_items(items)
+        if not groups:
+            content.add_widget(self.label(
+                "ماژولی برای این پنل در قرارداد سامانه پیدا نشد.",
+                "11sp", SECONDARY, False, "center"
+            ))
+        else:
+            for index, (category, category_items) in enumerate(groups, 1):
+                content.add_widget(
+                    ModuleCategoryCard(
+                        category, index, len(groups),
+                        category_items, self.open_table
+                    )
+                )
+
+        scroll.add_widget(content)
+        self.body.add_widget(scroll)
+        self.status.text = fa_display(
+            f"{len(items)} ماژول تخصصی • {len(groups)} دسته حرفه‌ای • "
+            "برای باز کردن دسته روی سربرگ آن بزنید"
+        )
 
     def _badge(self,w):
         with w.canvas.before:
