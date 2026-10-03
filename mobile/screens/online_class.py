@@ -793,6 +793,7 @@ class OnlineClassScreen(Screen):
             from android.runnable import run_on_ui_thread
             from pathlib import Path
             import json
+            import os
             PythonActivity=autoclass("org.kivy.android.PythonActivity")
             WebView=autoclass("android.webkit.WebView")
             WebViewClient=autoclass("android.webkit.WebViewClient")
@@ -812,7 +813,9 @@ class OnlineClassScreen(Screen):
                 from android.permissions import request_permissions, Permission
                 request_permissions([Permission.CAMERA, Permission.RECORD_AUDIO])
             except Exception as exc: print("ANDROID MEDIA PERMISSION REQUEST ERROR:",repr(exc))
-            html_path=Path(__file__).resolve().parents[1] / "assets" / "online_class.html"
+            candidates=[Path(__file__).resolve().parents[1] / "assets" / "online_class.html", Path(__file__).resolve().parent / "assets" / "online_class.html", Path(os.environ.get("ANDROID_PRIVATE","")) / "assets" / "online_class.html", Path(os.environ.get("ANDROID_APP_PATH","")) / "assets" / "online_class.html"]
+            html_path=next((p for p in candidates if str(p) and p.is_file()), None)
+            if html_path is None: raise FileNotFoundError("online_class.html not found; checked: "+", ".join(str(p) for p in candidates))
             html=html_path.read_text(encoding="utf-8")
             user=getattr(self.app_state,"user",{}) or {}
             user_id=str(user.get("id") or profile.get("user_id") or profile.get("id") or "")
@@ -841,7 +844,10 @@ class OnlineClassScreen(Screen):
             attach(); self._active_webview=web; self._active_webview_container=container
             return True
         except Exception as exc:
-            print("FRAHOOSH INTERNAL CLASSROOM ERROR:",repr(exc)); return False
+            print("FRAHOOSH INTERNAL CLASSROOM ERROR:",repr(exc))
+            try: self._error("اتاق داخلی باز نشد: "+str(exc))
+            except Exception: pass
+            return False
 
     def _toggle_mic(self):self.mic=not self.mic; self.show_home()
     def _toggle_camera(self):self.camera=not self.camera; self.show_home()
