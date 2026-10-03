@@ -858,14 +858,21 @@ class OnlineClassScreen(Screen):
             detail=f"{type(exc).__name__}: {exc}"
             print("FRAHOOSH INTERNAL CLASSROOM ERROR:",detail)
             print(traceback.format_exc())
-            try: self._error("اتاق داخلی باز نشد — "+detail)
+            try: self._error("اتاق داخلی باز نشد\n"+detail)
             except Exception: pass
             return False
 
     def _toggle_mic(self):self.mic=not self.mic; self.show_home()
     def _toggle_camera(self):self.camera=not self.camera; self.show_home()
     def _ok(self,text):self.status.color=SUCCESS;self.status.text=fa_display(text)
-    def _error(self,text):self.status.color=ERROR;self.status.text=fa_display(text)
+    def _error(self,text):
+        self.status.color=ERROR
+        value=str(text or "")
+        # Exception diagnostics contain paths, Java/Python class names and
+        # punctuation. Do not pass them through Arabic reshaping: some
+        # Android text providers render those shaped forms as square glyphs.
+        diagnostic_tokens=("Error:","Exception:","FileNotFoundError:","ImportError:","JavaException:","AttributeError:","TypeError:","RuntimeError:")
+        self.status.text=value if any(token in value for token in diagnostic_tokens) else fa_display(value)
     def _back(self):
         if self.manager:
             self.manager.current="dashboard"
