@@ -636,59 +636,195 @@ class DashboardScreen(Screen):
 
 
     def _build(self):
-        # Clean, static mobile surface. The bottom navigation is part of the
-        # vertical layout instead of an overlay, so Android's system navigation
-        # bar can never cover it.
-        root=BoxLayout(orientation="vertical", padding=[dp(12),dp(10),dp(12),dp(8)], spacing=dp(8))
-        with root.canvas.before:
-            Color(0.035,0.07,0.12,1)
-            self.dashboard_bg=RoundedRectangle()
-        root.bind(pos=lambda o,v:setattr(self.dashboard_bg,"pos",v),
-                  size=lambda o,v:setattr(self.dashboard_bg,"size",v))
+        # Reference layout: right navigation rail + top header + statistics +
+        # analysis/quick-access cards. Everything is native Kivy widgets.
+        root=BoxLayout(orientation="horizontal", spacing=dp(0), padding=[dp(6),dp(6),dp(6),dp(8)])
 
-        hero=BoxLayout(orientation="vertical", size_hint_y=None, height=dp(92), padding=[dp(14),dp(8)])
-        with hero.canvas.before:
-            Color(0.055,0.20,0.34,1)
-            self.hero_bg=RoundedRectangle(radius=[dp(22)])
-        hero.bind(pos=lambda o,v:setattr(self.hero_bg,"pos",v),
-                  size=lambda o,v:setattr(self.hero_bg,"size",v))
-        self.welcome=self.label("خوش آمدید","22sp",WHITE,True,True)
-        self.role_text=self.label("","11sp",(0.78,0.91,1,1),False,True)
-        hero.add_widget(self.welcome)
-        hero.add_widget(self.role_text)
-        root.add_widget(hero)
+        main=BoxLayout(orientation="vertical", padding=[dp(10),dp(8),dp(10),dp(4)], spacing=dp(8))
+        with main.canvas.before:
+            Color(0.94,0.95,0.97,1)
+            main_bg=RoundedRectangle(radius=[dp(18)])
+        main.bind(pos=lambda o,v:setattr(main_bg,"pos",v), size=lambda o,v:setattr(main_bg,"size",v))
 
-        self.parent_alert=self.label("","10sp",(0.70,1,0.80,1),True,True)
-        root.add_widget(self.parent_alert)
+        header=BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(78), padding=[dp(10),dp(6)])
+        with header.canvas.before:
+            Color(1,1,1,1)
+            header_bg=RoundedRectangle(radius=[dp(14)])
+        header.bind(pos=lambda o,v:setattr(header_bg,"pos",v), size=lambda o,v:setattr(header_bg,"size",v))
 
-        self.grid_scroll=ScrollView(do_scroll_x=False,do_scroll_y=True,bar_width=dp(3))
-        self.grid=GridLayout(cols=1,spacing=dp(8),padding=[dp(1),dp(2)],size_hint_y=None)
+        title_box=BoxLayout(orientation="vertical", padding=[dp(6),dp(3)])
+        self.header_title=self.label("سامانه مدیریت هوشمند دبیرستان","20sp",(0.06,0.12,0.20,1),True,False)
+        self.header_subtitle=self.label(f"{SCHOOL_NAME}  |  {SCHOOL_YEAR}","10sp",(0.30,0.38,0.46,1),False,False)
+        title_box.add_widget(self.header_title)
+        title_box.add_widget(self.header_subtitle)
+        header.add_widget(title_box)
+
+        logo=Image(source=str(BACKGROUND_PATH) if Path(str(BACKGROUND_PATH)).is_file() else "",size_hint_x=None,width=dp(72),allow_stretch=True,keep_ratio=True)
+        header.add_widget(logo)
+        main.add_widget(header)
+
+        self.parent_alert=self.label("","10sp",(0.08,0.35,0.20,1),True,True)
+        main.add_widget(self.parent_alert)
+
+        stats=GridLayout(cols=2,spacing=dp(8),size_hint_y=None,height=dp(150),padding=[dp(1),dp(1)])
+        self.stat_widgets=[]
+        for caption,route in (
+            ("تعداد دانش‌آموزان","students"),
+            ("تعداد دبیران و کارکنان","staff"),
+            ("تعداد کلاس‌ها","school_class_config"),
+            ("پیام‌های جدید","messages"),
+        ):
+            card=BoxLayout(orientation="vertical",padding=[dp(12),dp(7)],spacing=dp(2))
+            with card.canvas.before:
+                Color(1,1,1,1)
+                cb=RoundedRectangle(radius=[dp(14)])
+            card.bind(pos=lambda o,v,bg=cb:setattr(bg,"pos",v),size=lambda o,v,bg=cb:setattr(bg,"size",v))
+            value=self.label("—","24sp",(0.05,0.25,0.45,1),True,True)
+            caption_w=self.label(caption,"10sp",(0.32,0.38,0.45,1),False,True)
+            card.add_widget(value); card.add_widget(caption_w)
+            card.bind(on_touch_up=lambda w,t,r=route: self._quick_route(w,t,r) or True)
+            self.stat_widgets.append((route,value))
+            stats.add_widget(card)
+        main.add_widget(stats)
+
+        lower=GridLayout(cols=1,spacing=dp(8),size_hint_y=None,padding=[dp(1),dp(1)])
+        lower.bind(minimum_height=lower.setter("height"))
+
+        analysis=BoxLayout(orientation="vertical",padding=[dp(12),dp(8)],spacing=dp(4),size_hint_y=None,height=dp(145))
+        with analysis.canvas.before:
+            Color(1,1,1,1)
+            ab=RoundedRectangle(radius=[dp(14)])
+        analysis.bind(pos=lambda o,v:setattr(ab,"pos",v),size=lambda o,v:setattr(ab,"size",v))
+        analysis.add_widget(self.label("تحلیل و گزارش هوشمند","15sp",(0.06,0.12,0.20,1),True,False))
+        analysis.add_widget(self.label("نمای کلی وضعیت آموزشی و مدیریتی مدرسه","10sp",(0.35,0.40,0.46,1),False,False))
+        self.analysis_text=self.label("برای مشاهده جزئیات، از پنل‌های سمت راست استفاده کنید.","11sp",(0.16,0.23,0.30,1),False,False)
+        analysis.add_widget(self.analysis_text)
+        lower.add_widget(analysis)
+
+        quick=BoxLayout(orientation="vertical",padding=[dp(12),dp(8)],spacing=dp(6),size_hint_y=None,height=dp(190))
+        with quick.canvas.before:
+            Color(1,1,1,1)
+            qb=RoundedRectangle(radius=[dp(14)])
+        quick.bind(pos=lambda o,v:setattr(qb,"pos",v),size=lambda o,v:setattr(qb,"size",v))
+        quick.add_widget(self.label("دسترسی سریع","15sp",(0.06,0.12,0.20,1),True,False))
+        qrow=GridLayout(cols=2,spacing=dp(6))
+        for caption,route in (("دانش‌آموزان","students"),("کلاس آنلاین","online"),("آزمون‌ها","teacher_exams"),("صندوق پیام‌ها","messages")):
+            b=Button(text=fa_display(caption),font_name=font_name(),font_size="11sp",
+                     background_normal="",background_color=(0.07,0.31,0.52,1),color=WHITE)
+            b.bind(size=lambda o,v:setattr(o,"text_size",v))
+            b.bind(on_release=lambda *_a,r=route:self._quick_route(None,None,r))
+            qrow.add_widget(b)
+        quick.add_widget(qrow)
+        lower.add_widget(quick)
+
+        self.grid_scroll=ScrollView(do_scroll_x=False,do_scroll_y=True,bar_width=dp(3),size_hint_y=None,height=dp(1))
+        self.grid=GridLayout(cols=1,spacing=dp(8),size_hint_y=None)
         self.grid.bind(minimum_height=self.grid.setter("height"))
         self.grid_scroll.add_widget(self.grid)
-        root.add_widget(self.grid_scroll)
+        # Keep the canonical panel cards available below the reference dashboard
+        # content on smaller screens.
+        main.add_widget(lower)
 
-        nav=BoxLayout(size_hint_y=None,height=dp(58),spacing=dp(5),padding=dp(4))
-        with nav.canvas.before:
-            Color(0.055,0.12,0.20,1)
-            self.nav_bg=RoundedRectangle(radius=[dp(22)])
-        nav.bind(pos=lambda o,v:setattr(self.nav_bg,"pos",v),
-                 size=lambda o,v:setattr(self.nav_bg,"size",v))
-        for title,route in (("خانه","home"),("ماژول‌ها","modules"),("پیام‌ها","messages"),("پروفایل","profile")):
-            b=Button(
-                text=fa_display(title),
-                font_name=font_name(),
-                font_size="12sp",
-                background_normal="",
-                background_color=(0.08,0.18,0.28,1),
-                color=WHITE,
-                halign="center",
-                valign="middle",
-            )
+        footer=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(5),padding=[dp(2),dp(2)])
+        for caption,route in (("خانه","home"),("ماژول‌ها","modules"),("پیام‌ها","messages"),("پروفایل","profile")):
+            b=Button(text=fa_display(caption),font_name=font_name(),font_size="10sp",
+                     background_normal="",background_color=(0.09,0.20,0.30,1),color=WHITE)
             b.bind(size=lambda o,v:setattr(o,"text_size",v))
             b.bind(on_release=lambda *_a,r=route:self._bottom_nav(r))
-            nav.add_widget(b)
-        root.add_widget(nav)
+            footer.add_widget(b)
+        main.add_widget(footer)
+        root.add_widget(main)
+
+        # Right-side navigation, matching the supplied reference image.
+        side=BoxLayout(orientation="vertical",size_hint_x=None,width=dp(190),padding=[dp(8),dp(8)],spacing=dp(5))
+        with side.canvas.before:
+            Color(0.045,0.12,0.22,1)
+            sb=RoundedRectangle(radius=[dp(18)])
+        side.bind(pos=lambda o,v:setattr(sb,"pos",v),size=lambda o,v:setattr(sb,"size",v))
+
+        brand=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(76),padding=[dp(4),dp(4)])
+        brand.add_widget(self.label("فراهوش","24sp",WHITE,True,True))
+        brand.add_widget(self.label("سامانه مدیریت هوشمند مدرسه","9sp",(0.70,0.84,0.95,1),False,True))
+        side.add_widget(brand)
+
+        self.side_scroll=ScrollView(do_scroll_x=False,do_scroll_y=True,bar_width=dp(2))
+        self.side_list=BoxLayout(orientation="vertical",spacing=dp(5),size_hint_y=None,padding=[dp(1),dp(1)])
+        self.side_list.bind(minimum_height=self.side_list.setter("height"))
+        self.side_scroll.add_widget(self.side_list)
+        side.add_widget(self.side_scroll)
+
+        root.add_widget(side)
         self.add_widget(root)
+
+        self._build_reference_sidebar()
+        self._refresh_reference_stats()
+
+    def _build_reference_sidebar(self):
+        self.side_list.clear_widgets()
+        for title,key in PANEL_HUBS:
+            modules=self._panel_modules(self.role(),key)
+            holder=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(45),spacing=dp(2))
+            head=Button(
+                text=fa_display(title),
+                font_name=font_name(),
+                font_size="11sp",
+                background_normal="",
+                background_color=(0.07,0.20,0.33,1),
+                color=WHITE,
+                halign="right",
+                valign="middle",
+                size_hint_y=None,
+                height=dp(43),
+            )
+            head.bind(size=lambda o,v:setattr(o,"text_size",v))
+            body=BoxLayout(orientation="vertical",size_hint_y=None,height=0,spacing=dp(2),padding=[dp(3),dp(1)])
+            for label,route in modules[:8]:
+                b=Button(text=fa_display(label),font_name=font_name(),font_size="9sp",
+                         background_normal="",background_color=(0.09,0.25,0.38,1),color=WHITE,
+                         halign="right",valign="middle",size_hint_y=None,height=dp(34))
+                b.bind(size=lambda o,v:setattr(o,"text_size",v))
+                b.bind(on_release=lambda *_a,r=route:self._quick_route(None,None,r))
+                body.add_widget(b)
+            def toggle(_btn, h=holder, b=body, mods=modules):
+                if b.height > 0:
+                    b.height=0
+                    h.height=dp(45)
+                else:
+                    b.height=sum(x.height for x in b.children)+max(0,len(b.children)-1)*dp(2)+dp(2)
+                    h.height=dp(45)+b.height
+            head.bind(on_release=toggle)
+            holder.add_widget(head)
+            holder.add_widget(body)
+            self.side_list.add_widget(holder)
+
+    def _refresh_reference_stats(self):
+        # Keep the reference visual real: values are filled from app state when
+        # already available, otherwise shown as a neutral dash instead of fake data.
+        profile=getattr(self.app_state,"profile",{}) or {}
+        values={
+            "students": profile.get("student_count") or profile.get("students_count"),
+            "staff": profile.get("staff_count") or profile.get("teacher_count"),
+            "school_class_config": profile.get("class_count") or profile.get("classes_count"),
+            "messages": profile.get("unread_count") or profile.get("message_count"),
+        }
+        for route,w in getattr(self,"stat_widgets",[]):
+            value=values.get(route)
+            w.text=fa_display(str(value) if value is not None else "—")
+
+    def _quick_route(self, widget, touch, route):
+        if touch is not None and widget is not None and not widget.collide_point(*touch.pos):
+            return False
+        if route in {"students","staff","school_class_config","messages","online","teacher_exams"}:
+            try:
+                self.open_route("panelhub:"+({"students":"students","staff":"management","school_class_config":"executive"}.get(route,route)))
+                return True
+            except Exception:
+                pass
+        try:
+            self.open_route(route)
+            return True
+        except Exception:
+            return False
 
     def _bottom_nav(self,route):
         if route=="home":
