@@ -797,7 +797,6 @@ class OnlineClassScreen(Screen):
             PythonActivity=autoclass("org.kivy.android.PythonActivity")
             WebView=autoclass("android.webkit.WebView")
             WebViewClient=autoclass("android.webkit.WebViewClient")
-            FrahooshWebChromeClient=autoclass("ir.frahoosh.FrahooshWebChromeClient")
             LayoutParams=autoclass("android.view.ViewGroup$LayoutParams")
             FrameLayout=autoclass("android.widget.FrameLayout")
             Button=autoclass("android.widget.Button")
@@ -808,7 +807,16 @@ class OnlineClassScreen(Screen):
             settings.setJavaScriptEnabled(True); settings.setDomStorageEnabled(True)
             settings.setMediaPlaybackRequiresUserGesture(False); settings.setAllowFileAccess(True); settings.setAllowContentAccess(True)
             web.setWebViewClient(WebViewClient())
-            web.setWebChromeClient(FrahooshWebChromeClient())
+            # The custom ChromeClient is required for WebRTC media permissions.
+            # Keep a plain WebChromeClient fallback so a missing/old Java helper
+            # cannot prevent the classroom WebView itself from opening.
+            try:
+                FrahooshWebChromeClient=autoclass("ir.frahoosh.FrahooshWebChromeClient")
+                web.setWebChromeClient(FrahooshWebChromeClient())
+            except Exception as exc:
+                print("FRAHOOSH WEB CHROME CLIENT FALLBACK:",repr(exc))
+                WebChromeClient=autoclass("android.webkit.WebChromeClient")
+                web.setWebChromeClient(WebChromeClient())
             try:
                 from android.permissions import request_permissions, Permission
                 request_permissions([Permission.CAMERA, Permission.RECORD_AUDIO])
