@@ -133,26 +133,94 @@ class PanelIcon(Widget):
         return [cx-s,cy,cx+s,cy,cx,cy-s,cx,cy+s]
 
 class PanelCard(BoxLayout):
-    def __init__(self, title, index, total, desc, enter, route=None, **kwargs):
-        super().__init__(orientation="vertical", padding=dp(14), spacing=dp(7), **kwargs)
+    """Static expandable panel card. Tapping the header reveals its real modules."""
+    def __init__(self, title, index, total, desc, enter, route=None, modules=None, module_enter=None, **kwargs):
+        super().__init__(orientation="vertical", padding=dp(10), spacing=dp(0), size_hint_y=None, **kwargs)
+        self.title_text = title
+        self.route = route or "about"
+        self.desc_text = desc
+        self.enter = enter
+        self.modules = modules or []
+        self.module_enter = module_enter or enter
+        self.expanded = False
         with self.canvas.before:
-            Color(0.02, 0.10, 0.20, 0.90)
-            self.bg = RoundedRectangle(radius=[dp(18)])
+            Color(0.045, 0.11, 0.20, 0.98)
+            self.bg = RoundedRectangle(radius=[dp(20)])
         self.bind(pos=self._sync, size=self._sync)
-        self.add_widget(PanelIcon(route or "about"))
-        self.add_widget(Label(text=fa_display(title),font_name=font_name(),font_size="17sp",color=WHITE,bold=True,
-                              halign="center",valign="middle",size_hint_y=None,height=dp(52)))
-        self.add_widget(Label(text=fa_display(f"پنل {index} از {total}"),font_name=font_name(),font_size="10sp",color=(0.55,0.85,1,1),
-                              halign="center",valign="middle",size_hint_y=None,height=dp(26)))
-        self.add_widget(Label(text=fa_display(desc),font_name=font_name(),font_size="9sp",color=WHITE,
-                              halign="center",valign="middle"))
-        b=Button(text=fa_display("ورود به پنل"),font_name=font_name(),font_size="14sp",background_normal="",
-                 background_color=PRIMARY,color=WHITE,size_hint_y=None,height=dp(50),
-                 halign="center",valign="middle")
-        b.bind(on_release=enter)
-        self.add_widget(b)
-    def _sync(self,*_):
-        self.bg.pos=self.pos; self.bg.size=self.size
+
+        self.header = Button(
+            text=fa_display(f"⌄  {title}"),
+            font_name=font_name(),
+            font_size="17sp",
+            background_normal="",
+            background_color=(0.055, 0.20, 0.34, 1),
+            color=WHITE,
+            bold=True,
+            halign="right",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(64),
+        )
+        self.header.bind(size=lambda o, v: setattr(o, "text_size", v))
+        self.header.bind(on_release=lambda *_: self.toggle())
+        self.add_widget(self.header)
+
+        self.meta = Label(
+            text=fa_display(f"پنل {index} از {total}  •  {len(self.modules)} ماژول"),
+            font_name=font_name(),
+            font_size="10sp",
+            color=(0.60, 0.82, 0.96, 1),
+            halign="right",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(30),
+        )
+        self.meta.bind(size=lambda o, v: setattr(o, "text_size", v))
+        self.add_widget(self.meta)
+
+        self.body = BoxLayout(orientation="vertical", spacing=dp(6), padding=[dp(2), dp(4)], size_hint_y=None)
+        self.body.height = 0
+        self.add_widget(self.body)
+
+        self._build_modules()
+        self._set_expanded(False)
+
+    def _build_modules(self):
+        self.body.clear_widgets()
+        for label, route in self.modules:
+            button = Button(
+                text=fa_display(f"  {label}"),
+                font_name=font_name(),
+                font_size="13sp",
+                background_normal="",
+                background_color=(0.08, 0.16, 0.25, 1),
+                color=WHITE,
+                halign="right",
+                valign="middle",
+                size_hint_y=None,
+                height=dp(48),
+            )
+            button.bind(size=lambda o, v: setattr(o, "text_size", v))
+            button.bind(on_release=lambda *_a, r=route: self.module_enter(r))
+            self.body.add_widget(button)
+
+    def toggle(self):
+        self._set_expanded(not self.expanded)
+
+    def _set_expanded(self, value):
+        self.expanded = bool(value)
+        if self.expanded:
+            self.header.text = fa_display(f"⌃  {self.title_text}")
+            self.body.height = sum(w.height for w in self.body.children) + max(0, len(self.body.children)-1) * dp(6) + dp(8)
+            self.height = dp(64) + dp(30) + self.body.height + dp(10)
+        else:
+            self.header.text = fa_display(f"⌄  {self.title_text}")
+            self.body.height = 0
+            self.height = dp(64) + dp(30) + dp(10)
+
+    def _sync(self, *_):
+        self.bg.pos = self.pos
+        self.bg.size = self.size
 
 PANEL_HUBS = [
     ("مدیریت","management"),
@@ -568,39 +636,59 @@ class DashboardScreen(Screen):
 
 
     def _build(self):
-        root=FloatLayout()
-        # The dashboard is intentionally independent of the login artwork.
-        # A full-screen image made the panel UI look washed-out/gray on some
-        # Android devices and reduced contrast.  Use a clean professional
-        # surface so the actual panels are the visual focus.
+        # Clean, static mobile surface. The bottom navigation is part of the
+        # vertical layout instead of an overlay, so Android's system navigation
+        # bar can never cover it.
+        root=BoxLayout(orientation="vertical", padding=[dp(12),dp(10),dp(12),dp(8)], spacing=dp(8))
         with root.canvas.before:
-            Color(0.025,0.07,0.14,1)
+            Color(0.035,0.07,0.12,1)
             self.dashboard_bg=RoundedRectangle()
         root.bind(pos=lambda o,v:setattr(self.dashboard_bg,"pos",v),
                   size=lambda o,v:setattr(self.dashboard_bg,"size",v))
-        content=BoxLayout(orientation="vertical",padding=[dp(14),dp(12),dp(14),dp(84)],spacing=dp(8))
-        head=BoxLayout(size_hint_y=None,height=dp(56))
-        head.add_widget(self.label(APP_NAME,"25sp",WHITE,True,True)); content.add_widget(head)
-        self.welcome=self.label("خوش آمدید","14sp",WHITE,True,True); content.add_widget(self.welcome)
-        self.role_text=self.label("","10sp",(0.88,0.96,1,1),False,True); content.add_widget(self.role_text)
-        self.parent_alert=self.label("","11sp",WHITE,True,True); content.add_widget(self.parent_alert)
-        frame=BoxLayout(orientation="vertical",padding=dp(8))
-        with frame.canvas.before:
-            Color(0.02,0.08,0.18,0.64); self.frame_bg=RoundedRectangle(radius=[dp(22)])
-        frame.bind(pos=lambda o,v:setattr(self.frame_bg,"pos",v),size=lambda o,v:setattr(self.frame_bg,"size",v))
+
+        hero=BoxLayout(orientation="vertical", size_hint_y=None, height=dp(92), padding=[dp(14),dp(8)])
+        with hero.canvas.before:
+            Color(0.055,0.20,0.34,1)
+            self.hero_bg=RoundedRectangle(radius=[dp(22)])
+        hero.bind(pos=lambda o,v:setattr(self.hero_bg,"pos",v),
+                  size=lambda o,v:setattr(self.hero_bg,"size",v))
+        self.welcome=self.label("خوش آمدید","22sp",WHITE,True,True)
+        self.role_text=self.label("","11sp",(0.78,0.91,1,1),False,True)
+        hero.add_widget(self.welcome)
+        hero.add_widget(self.role_text)
+        root.add_widget(hero)
+
+        self.parent_alert=self.label("","10sp",(0.70,1,0.80,1),True,True)
+        root.add_widget(self.parent_alert)
+
         self.grid_scroll=ScrollView(do_scroll_x=False,do_scroll_y=True,bar_width=dp(3))
-        self.grid=GridLayout(cols=2,spacing=dp(10),padding=dp(4),size_hint_y=None)
+        self.grid=GridLayout(cols=1,spacing=dp(8),padding=[dp(1),dp(2)],size_hint_y=None)
         self.grid.bind(minimum_height=self.grid.setter("height"))
-        self.grid_scroll.add_widget(self.grid); frame.add_widget(self.grid_scroll); content.add_widget(frame)
-        root.add_widget(content)
-        nav=BoxLayout(size_hint=(.90,None),height=dp(56),pos_hint={"center_x":.5,"y":.02},spacing=dp(3),padding=dp(3))
+        self.grid_scroll.add_widget(self.grid)
+        root.add_widget(self.grid_scroll)
+
+        nav=BoxLayout(size_hint_y=None,height=dp(58),spacing=dp(5),padding=dp(4))
         with nav.canvas.before:
-            Color(0.01,0.08,0.17,0.92); self.nav_bg=RoundedRectangle(radius=[dp(24)])
-        nav.bind(pos=lambda o,v:setattr(self.nav_bg,"pos",v),size=lambda o,v:setattr(self.nav_bg,"size",v))
+            Color(0.055,0.12,0.20,1)
+            self.nav_bg=RoundedRectangle(radius=[dp(22)])
+        nav.bind(pos=lambda o,v:setattr(self.nav_bg,"pos",v),
+                 size=lambda o,v:setattr(self.nav_bg,"size",v))
         for title,route in (("خانه","home"),("ماژول‌ها","modules"),("پیام‌ها","messages"),("پروفایل","profile")):
-            b=Button(text=rtl_text(title),font_name=font_name(),font_size="10sp",background_normal="",background_color=(0,0,0,0),color=WHITE)
-            b.bind(on_release=lambda *_a,r=route:self._bottom_nav(r)); nav.add_widget(b)
-        root.add_widget(nav); self.add_widget(root)
+            b=Button(
+                text=fa_display(title),
+                font_name=font_name(),
+                font_size="12sp",
+                background_normal="",
+                background_color=(0.08,0.18,0.28,1),
+                color=WHITE,
+                halign="center",
+                valign="middle",
+            )
+            b.bind(size=lambda o,v:setattr(o,"text_size",v))
+            b.bind(on_release=lambda *_a,r=route:self._bottom_nav(r))
+            nav.add_widget(b)
+        root.add_widget(nav)
+        self.add_widget(root)
 
     def _bottom_nav(self,route):
         if route=="home":
@@ -657,17 +745,63 @@ class DashboardScreen(Screen):
             "participation":"فعالیت‌ها و مشارکت‌های ثبت‌شده."
         }.get(route,"محیط عملیاتی واقعی سامانه فراهوش.")
 
+    def _panel_modules(self, role, panel_key):
+        catalog_key = {
+            "management":"manager",
+            "teachers":"teacher",
+            "students":"student",
+            "parents":"parent",
+        }.get(panel_key, panel_key)
+        catalog = MOTHER_PANEL_CATALOG.get(catalog_key) or {}
+        raw_items = catalog.get("items") or []
+        if panel_key == "staff":
+            raw_items = [("کادر و کارکنان","staff")]
+        if panel_key == "online":
+            raw_items = [("کلاس‌های آنلاین","online_classes"),("جلسات","online_class_sessions"),
+                         ("دانش‌آموزان کلاس","online_class_students"),("دبیران کلاس","online_class_teachers"),
+                         ("حضور آنلاین","online_attendance"),("تخته کلاس","smart_board_whiteboards")]
+        if panel_key == "teacher_exams":
+            raw_items = [("آزمون‌های آنلاین","teacher_exams"),("بانک سؤال","quiz_questions"),("زمان‌بندی آزمون","exam_schedule")]
+        if panel_key == "messages":
+            raw_items = [("صندوق پیام‌ها","messages")]
+        if panel_key == "finance":
+            raw_items = [("پرداخت‌ها","payment_records"),("تراکنش‌ها","finance_transactions"),
+                         ("حساب‌ها","finance_accounts"),("گزارش مالی","reports"),("تعریف گزینه پرداخت","payment_offers")]
+        if panel_key == "smart_board":
+            raw_items = [("تخته آموزشی","smart_board_whiteboards"),("فایل‌ها","smart_board_content"),
+                         ("تصاویر و ویدئوها","smart_board_media"),("ابزارهای تعاملی","smart_board_activities")]
+        if panel_key == "ai":
+            raw_items = [("دستیار هوشمند","ai_assistant_sessions"),("تحلیل آموزشی","ai_smart_reports"),
+                         ("گزارش هوشمند","ai_smart_reports"),("پرسش و پاسخ","ai_questions")]
+        if panel_key == "settings":
+            raw_items = [("تنظیمات حساب","account_settings"),("تنظیمات مدرسه","school_profile"),("پشتیبان‌گیری","account_settings")]
+        result=[]
+        for item in raw_items:
+            if not item or len(item) < 2 or not item[0]:
+                continue
+            label, fallback = str(item[0]), str(item[1])
+            result.append((label, self.resolve_module_route(role, label, fallback)))
+        return result
+
     def refresh(self):
         if self.app_state is None or not getattr(self.app_state,"logged_in",False): return False
-        role=self.role(); items=self.items()
+        role=self.role()
+        items=self.items()
         self.welcome.text=fa_display(f"خوش آمدید، {getattr(self.app_state,'display_name','کاربر فراهوش')}")
-        self.role_text.text=fa_display(f"پنل {ROLE_TITLES.get(role,'کاربر')} - دسترسی فعال")
+        self.role_text.text=fa_display(f"پنل {ROLE_TITLES.get(role,'کاربر')}  •  {len(items)} بخش اصلی")
         self.grid.clear_widgets()
         total=len(items)
         for i,(title,route) in enumerate(items,1):
-            real_route = self.resolve_module_route(role, title, route)
-            card=PanelCard(title,i,total,self.desc(real_route),lambda *_a,r=real_route:self.open_route(r),
-                           route=real_route,size_hint_y=None,height=dp(170))
+            panel_key=route.split(":",1)[1] if str(route).startswith("panelhub:") else route
+            modules=self._panel_modules(role,panel_key)
+            card=PanelCard(
+                title,i,total,self.desc(panel_key),
+                lambda *_a,r=route:self.open_route(r),
+                route=panel_key,
+                modules=modules,
+                module_enter=self.open_route,
+                size_hint_y=None,
+            )
             self.grid.add_widget(card)
         return True
 
