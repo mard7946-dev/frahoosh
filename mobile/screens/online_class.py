@@ -1,6 +1,4 @@
 from datetime import datetime, timezone
-import webbrowser
-import urllib.parse
 import random
 
 from kivy.clock import Clock
@@ -136,8 +134,6 @@ class OnlineClassScreen(Screen):
         subject=self._field("نام درس")
         start=self._field("زمان شروع")
         end=self._field("زمان پایان")
-        room=self._field("لینک کلاس مجازی croom.ir (الزامی)")
-        room.set_logical_text("https://croom.ir/")
 
         def refresh_classes(*_):
             tid=self._create_teacher_map.get(str(teacher.text).strip())
@@ -168,9 +164,9 @@ class OnlineClassScreen(Screen):
         teacher.bind(text=refresh_classes)
         refresh_classes()
 
-        self._button("＋ تشکیل کلاس",lambda *_:self._create(teacher,class_box,subject,start,end,room),SUCCESS)
+        self._button("＋ تشکیل کلاس",lambda *_:self._create(teacher,class_box,subject,start,end),SUCCESS)
 
-    def _create(self,teacher,class_box,subject,start,end,room):
+    def _create(self,teacher,class_box,subject,start,end):
         api=getattr(self.app_state,"api",None)
         if api is None:
             return self._error("سرویس اتصال به پایگاه داده آماده نیست.")
@@ -187,7 +183,6 @@ class OnlineClassScreen(Screen):
         subject_value=(subject.get_logical_text() if hasattr(subject,"get_logical_text") else subject.text or "").strip()
         start_value=(start.get_logical_text() if hasattr(start,"get_logical_text") else start.text or "").strip()
         end_value=(end.get_logical_text() if hasattr(end,"get_logical_text") else end.text or "").strip()
-        room_value=(room.get_logical_text() if hasattr(room,"get_logical_text") else room.text or "").strip()
 
         if not teacher_id:
             return self._error("دبیر انتخاب‌شده معتبر نیست.")
@@ -200,8 +195,6 @@ class OnlineClassScreen(Screen):
             return self._error("نام درس را وارد کنید.")
         if not start_value or not end_value:
             return self._error("زمان شروع و پایان را وارد کنید.")
-        if not room_value.startswith("https://croom.ir/"):
-            return self._error("لینک کلاس باید از croom.ir باشد.")
 
         try:
             import secrets
@@ -213,7 +206,6 @@ class OnlineClassScreen(Screen):
                 str(teacher_row.get("first_name") or "").strip().split()
                 + str(teacher_row.get("last_name") or "").strip().split()
             ).strip()
-            join_url=room_value
 
             # The server-side function requires the teacher's real class
             # relationship. Pass both values explicitly; sending only the
@@ -225,9 +217,10 @@ class OnlineClassScreen(Screen):
                 "p_class_name":class_name_value,
                 "p_start_time":start_value,
                 "p_end_time":end_value,
-                "p_join_url":join_url,
+                "p_join_url":"frahoosh://pending",
             }))
-            self._ok("کلاس ثبت شد؛ دبیر و دانش‌آموزان کلاس مربوطه به‌صورت واقعی متصل شدند. کد کلاس: "+str(class_id))
+            api.table_update("online_classes",{"id":"eq."+str(class_id)},{"join_url":"frahoosh://online-class/"+str(class_id),"meeting_url":"frahoosh://online-class/"+str(class_id)})
+            self._ok("کلاس ثبت شد؛ اتاق مجازی داخلی فراهوش ساخته شد. کد کلاس: "+str(class_id))
             self.show_home()
         except Exception as exc:
             self._error("ثبت کلاس در Supabase انجام نشد: "+str(exc))
@@ -881,107 +874,58 @@ class OnlineClassScreen(Screen):
         self._error(reason or "کلاس بسته شد.")
 
     def _open_virtual_classroom(self, url, class_id, profile, role):
-        """Open the live WebRTC classroom inside Android instead of a bare browser meeting."""
+        """Open the complete Frahoosh classroom locally inside the Android app."""
         try:
-            from jnius import autoclass, PythonJavaClass, java_method
+            from jnius import autoclass
             from android.runnable import run_on_ui_thread
-
-            PythonActivity = autoclass("org.kivy.android.PythonActivity")
-            WebView = autoclass("android.webkit.WebView")
-            WebViewClient = autoclass("android.webkit.WebViewClient")
-            WebChromeClient = autoclass("android.webkit.WebChromeClient")
-            LayoutParams = autoclass("android.view.ViewGroup$LayoutParams")
-            FrameLayout = autoclass("android.widget.FrameLayout")
-            FrameLayoutParams = autoclass("android.widget.FrameLayout$LayoutParams")
-            Button = autoclass("android.widget.Button")
-            Color = autoclass("android.graphics.Color")
-
-            activity = PythonActivity.mActivity
-            web = WebView(activity)
-            web.setBackgroundColor(Color.BLACK)
-            settings = web.getSettings()
-            settings.setJavaScriptEnabled(True)
-            settings.setDomStorageEnabled(True)
-            settings.setMediaPlaybackRequiresUserGesture(False)
-            settings.setAllowFileAccess(True)
-            settings.setAllowContentAccess(True)
+            from pathlib import Path
+            import json
+            PythonActivity=autoclass("org.kivy.android.PythonActivity")
+            WebView=autoclass("android.webkit.WebView")
+            WebViewClient=autoclass("android.webkit.WebViewClient")
+            WebChromeClient=autoclass("android.webkit.WebChromeClient")
+            LayoutParams=autoclass("android.view.ViewGroup$LayoutParams")
+            FrameLayout=autoclass("android.widget.FrameLayout")
+            Button=autoclass("android.widget.Button")
+            Color=autoclass("android.graphics.Color")
+            activity=PythonActivity.mActivity
+            web=WebView(activity)
+            settings=web.getSettings()
+            settings.setJavaScriptEnabled(True); settings.setDomStorageEnabled(True)
+            settings.setMediaPlaybackRequiresUserGesture(False); settings.setAllowFileAccess(True); settings.setAllowContentAccess(True)
             web.setWebViewClient(WebViewClient())
-            class FrahooshChrome(WebChromeClient, PythonJavaClass):
-                __javainterfaces__ = ["android/webkit/WebChromeClient"]
-                __javacontext__ = "app"
-                def onPermissionRequest(self, request):
-                    try:
-                        request.grant(request.getResources())
-                    except Exception as exc:
-                        print("WEBRTC PERMISSION ERROR:", repr(exc))
-            chrome=FrahooshChrome()
-            web.setWebChromeClient(chrome)
-            self._classroom_chrome=chrome
-
-            class BackListener(PythonJavaClass):
-                __javainterfaces__ = ["android/view/View$OnClickListener"]
-                __javacontext__ = "app"
-                def __init__(self, activity, webview, container, button):
-                    super().__init__()
-                    self.activity = activity
-                    self.webview = webview
-                    self.container = container
-                    self.button = button
-                @java_method("(Landroid/view/View;)V")
-                def onClick(self, view):
-                    try:
-                        self._close()
-                    except Exception as exc:
-                        print("VIRTUAL CLASSROOM CLOSE ERROR:", repr(exc))
-                def _close(self):
-                    try:
-                        parent = self.container.getParent()
-                        if parent is not None:
-                            parent.removeView(self.container)
-                    finally:
-                        self._active = False
-
-            name = str(profile.get("display_name") or getattr(self.app_state, "display_name", "") or "کاربر فراهوش")
-            encoded_name = urllib.parse.quote(name)
-            sep = "&" if "?" in url else "?"
-            room_url = (
-                url + sep
-                + "config.prejoinPageEnabled=false"
-                + "&config.disableAP=true"
-                + "&config.toolbarButtons=%5B%22microphone%22,%22camera%22,%22chat%22,%22participants-pane%22,%22desktop%22,%22raisehand%22,%22tileview%22,%22fullscreen%22,%22whiteboard%22%5D"
-                + "&userInfo.displayName=" + encoded_name
-            )
-
-            container = FrameLayout(activity)
-            container.setBackgroundColor(Color.BLACK)
-            container.addView(web, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-
-            back_button = Button(activity)
-            back_button.setText("بازگشت به فراهوش")
-            button_params = FrameLayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
-            button_params.leftMargin = 18
-            button_params.topMargin = 24
-            container.addView(back_button, button_params)
-
-            listener = BackListener(activity, web, container, back_button)
-            back_button.setOnClickListener(listener)
-            self._classroom_back_listener = listener
-
+            try: web.setWebChromeClient(WebChromeClient())
+            except Exception: pass
+            html_path=Path(__file__).resolve().parent / "assets" / "online_class.html"
+            html=html_path.read_text(encoding="utf-8")
+            user=getattr(self.app_state,"user",{}) or {}
+            user_id=str(user.get("id") or profile.get("user_id") or profile.get("id") or "")
+            token=str(getattr(getattr(self.app_state,"api",None),"access_token","") or "")
+            from mobile.config import SUPABASE_URL,SUPABASE_ANON_KEY
+            name=str(profile.get("display_name") or getattr(self.app_state,"display_name","") or "کاربر فراهوش")
+            cfg=json.dumps({"url":SUPABASE_URL,"anon":SUPABASE_ANON_KEY,"token":token,"userId":user_id,"classId":int(class_id),"name":name},ensure_ascii=False,separators=(",",":"))
+            html=html.replace("__CONFIG__",cfg)
+            container=FrameLayout(activity); container.setBackgroundColor(Color.BLACK)
+            container.addView(web,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
+            back=Button(activity); back.setText("بازگشت به فراهوش")
+            params=FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT); params.topMargin=20; params.leftMargin=18
+            container.addView(back,params)
+            @run_on_ui_thread
+            def close(*_):
+                try:
+                    parent=container.getParent()
+                    if parent is not None: parent.removeView(container)
+                    web.destroy()
+                except Exception as exc: print("VIRTUAL CLASSROOM CLOSE ERROR:",repr(exc))
+            back.setOnClickListener(lambda *_:close())
             @run_on_ui_thread
             def attach():
-                activity.addContentView(
-                    container,
-                    LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-                )
-                web.loadUrl(room_url)
-
-            attach()
-            self._active_webview = web
-            self._active_webview_container = container
+                activity.addContentView(container,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
+                web.loadDataWithBaseURL("https://frahoosh.ir/online-class/",html,"text/html","UTF-8",None)
+            attach(); self._active_webview=web; self._active_webview_container=container
             return True
         except Exception as exc:
-            print("VIRTUAL CLASSROOM WEBVIEW ERROR:", repr(exc))
-            return False
+            print("FRAHOOSH INTERNAL CLASSROOM ERROR:",repr(exc)); return False
 
     def _toggle_mic(self):self.mic=not self.mic; self.show_home()
     def _toggle_camera(self):self.camera=not self.camera; self.show_home()
