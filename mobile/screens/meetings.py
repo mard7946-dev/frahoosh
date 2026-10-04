@@ -274,7 +274,22 @@ class MeetingsScreen(Screen):
         api=getattr(self.app_state,"api",None)
         if api is None:return
         try:
-            rows=api.table_select("meeting_requests",{"requester_username":"eq."+self._username(),"order":"id.desc","limit":"50"}) or []
+            profile = getattr(self.app_state, "profile", {}) or {}
+            keys = []
+            for value in (self._username(), profile.get("national_code"), getattr(self.app_state, "national_code", "")):
+                value = str(value or "").strip()
+                if value and value not in keys:
+                    keys.append(value)
+            rows = []
+            seen = set()
+            for key in keys:
+                found = api.table_select("meeting_requests",{"requester_username":"eq."+key,"order":"id.desc","limit":"50"}) or []
+                for row in found:
+                    if row.get("id") not in seen:
+                        seen.add(row.get("id"))
+                        rows.append(row)
+            rows.sort(key=lambda row: int(row.get("id") or 0), reverse=True)
+            rows = rows[:50]
         except Exception as exc:
             root.add_widget(self._label("خواندن درخواست‌های قبلی انجام نشد: "+str(exc),color=ERROR,height=50)); return
         root.add_widget(self._label("درخواست‌های ثبت‌شده من","15sp",PRIMARY,38,True,True))
@@ -312,13 +327,43 @@ class MeetingsScreen(Screen):
         if not all(str(x.text or "").strip() for x in [title,date,time,reason]):
             return self._message("عنوان، تاریخ، ساعت و موضوع الزامی است.",ERROR)
         try:
-            self.app_state.api.table_update("meeting_requests",{"id":"eq."+str(rid),"requester_username":"eq."+self._username()},{"title":title.text.strip(),"requested_day":str(day.text).strip(),"requested_date":date.text.strip(),"requested_time":time.text.strip(),"reason":reason.text.strip(),"description":desc.text.strip(),"status":"pending_manager","manager_status":"pending"})
+            keys = []
+            profile = getattr(self.app_state, "profile", {}) or {}
+            for value in (self._username(), profile.get("national_code"), getattr(self.app_state, "national_code", "")):
+                value = str(value or "").strip()
+                if value and value not in keys:
+                    keys.append(value)
+            updated = False
+            for key in keys:
+                result = self.app_state.api.table_update(
+                    "meeting_requests",
+                    {"id":"eq."+str(rid),"requester_username":"eq."+key},
+                    {"title":title.text.strip(),"requested_day":str(day.text).strip(),"requested_date":date.text.strip(),"requested_time":time.text.strip(),"reason":reason.text.strip(),"description":desc.text.strip(),"status":"pending_manager","manager_status":"pending"}
+                )
+                if result:
+                    updated = True
+                    break
+            if not updated:
+                raise RuntimeError("درخواست متعلق به حساب فعلی نیست.")
             self._message("درخواست ویرایش و دوباره برای بررسی مدیر ارسال شد.",SUCCESS)
         except Exception as exc:self._message("ویرایش انجام نشد: "+str(exc),ERROR)
 
     def _delete_request(self,row):
         try:
-            self.app_state.api.table_delete("meeting_requests",{"id":"eq."+str(row.get("id")),"requester_username":"eq."+self._username()})
+            keys = []
+            profile = getattr(self.app_state, "profile", {}) or {}
+            for value in (self._username(), profile.get("national_code"), getattr(self.app_state, "national_code", "")):
+                value = str(value or "").strip()
+                if value and value not in keys:
+                    keys.append(value)
+            deleted = False
+            for key in keys:
+                result = self.app_state.api.table_delete("meeting_requests",{"id":"eq."+str(row.get("id")),"requester_username":"eq."+key})
+                if result:
+                    deleted = True
+                    break
+            if not deleted:
+                raise RuntimeError("درخواست متعلق به حساب فعلی نیست.")
             self._message("درخواست ملاقات حذف شد.",SUCCESS)
         except Exception as exc:self._message("حذف انجام نشد: "+str(exc),ERROR)
 
@@ -455,7 +500,12 @@ class MeetingsScreen(Screen):
         if not all(str(x or "").strip() for x in [student_name, target_name, title, day, date, time, reason]):
             return self._message("عنوان، مخاطب، روز، تاریخ، ساعت و علت ملاقات الزامی است.", ERROR)
         payload = {
-            "requester_username": self._username(),
+            "requester_username": (
+                str(((getattr(self.app_state, "profile", {}) or {}).get("national_code")
+                     or getattr(self.app_state, "national_code", "")
+                     or self._username()).strip())
+                if requester_role == "parent" else self._username()
+            ),
             "requester_role": requester_role,
             "requester_name": getattr(self.app_state, "display_name", None) or ((getattr(self.app_state,"profile",{}) or {}).get("display_name") or self._username() or "کاربر"),
             "target_username": str(extra.get("target_username") or "").strip() or None,
