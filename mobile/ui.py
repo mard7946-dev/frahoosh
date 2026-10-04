@@ -146,9 +146,11 @@ def bundled_login_background():
 
 
 def title_font_name():
-    # Modern Noto Sans Arabic is more legible than the decorative BTitr face
-    # on small Android screens. Keep BTitr bundled for compatibility, but do not
-    # force it onto UI headings.
+    # Frahoosh identity headings intentionally use the bundled BTitr face.
+    # Body/input text remains on the Persian-safe Noto Sans Arabic face.
+    register_fonts()
+    if _FONT_TITLE:
+        return _FONT_TITLE
     return font_name()
 
 
