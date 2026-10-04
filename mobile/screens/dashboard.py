@@ -81,6 +81,8 @@ MOTHER_PANEL_CATALOG = {
     "online": {"title":"کلاس آنلاین","items":[["کلاس‌های آنلاین","online_classes"],["جلسات","online_class_sessions"],["دانش‌آموزان کلاس","online_class_students"],["دبیران کلاس","online_class_teachers"],["حضور آنلاین","online_attendance"],["تخته کلاس","smart_board_whiteboards"]]},
     "teacher_exams": {"title":"آزمون آنلاین","items":[["آزمون‌های آنلاین","teacher_exams"],["بانک سؤال","quiz_questions"],["زمان‌بندی آزمون","exam_schedule"]]},
     "ai": {"title":"هوش مصنوعی","items":[["دستیار هوشمند","ai_assistant_sessions"],["تحلیل آموزشی","ai_smart_reports"],["گزارش هوشمند","ai_smart_reports"],["پرسش و پاسخ","ai_questions"]]},
+    "reports": {"title":"گزارش‌ها","items":[["کارنامه‌ها","report_cards"],["نمرات","student_grades"],["حضور و غیاب","attendance"],["گزارش آموزشی هوشمند","ai_smart_reports"],["گزارش اجرایی","executive_reports"]]},
+    "schedule": {"title":"برنامه هفتگی","items":[["برنامه هفتگی","weekly_schedule"],["برنامه امتحانات","exam_schedule"],["چیدمان صندلی کلاس","class_seat_assignments"],["چیدمان صندلی آزمون","exam_seat_assignments"]]},
     "settings": {"title":"تنظیمات","items":[["تنظیمات حساب","account_settings"],["تنظیمات مدرسه","school_profile"],["پشتیبان‌گیری","account_settings"]]}
 }
 
@@ -286,6 +288,10 @@ PANEL_HUBS = [
     ("مالی","finance"),
     ("تابلو هوشمند","smart_board"),
     ("هوش مصنوعی","ai"),
+    ("کلاس‌های آنلاین","online"),
+    ("آزمون آنلاین","teacher_exams"),
+    ("گزارش‌ها","reports"),
+    ("برنامه هفتگی","schedule"),
     ("صندوق پیام‌ها","messages"),
     ("تنظیمات","settings"),
     ("درباره برنامه","about"),
@@ -1126,6 +1132,8 @@ class DashboardScreen(Screen):
             "payment":"گزینه‌های پرداخت، درخواست و سوابق تراکنش.",
             "online":"کلاس‌های آنلاین، جلسات، دانش‌آموزان، دبیران و حضور سه‌مرحله‌ای.",
             "teacher_exams":"ایجاد، زمان‌بندی، انتشار و تصحیح آزمون آنلاین.",
+            "reports":"کارنامه، نمرات، حضور و گزارش‌های اجرایی و هوشمند.",
+            "schedule":"برنامه هفتگی، امتحانات و چیدمان صندلی‌ها.",
             "smart_board":"محتوای آموزشی، تخته، فایل، فعالیت و آزمونک.",
             "ai":"پرسش هوشمند، جلسات دستیار و گزارش‌های تحلیلی.",
             "reports":"کارنامه، نمرات، حضور و گزارش‌های هوشمند.",
@@ -1235,6 +1243,9 @@ class DashboardScreen(Screen):
             # workspaces. Do not route the teacher through a generic/empty
             # panel hub: open the real creation center directly.
             if route == "online":
+                if self.role() == "parent":
+                    print("DASHBOARD ACCESS DENIED: parent online class")
+                    return
                 self.app_state.panel_role = self.role()
                 screen=app.ensure_online_workflow()
                 if screen is None:
@@ -1242,6 +1253,9 @@ class DashboardScreen(Screen):
                 app.sm.current=screen.name
                 return
             if route == "teacher_exams":
+                if self.role() == "parent":
+                    print("DASHBOARD ACCESS DENIED: parent online exam")
+                    return
                 self.app_state.panel_role = self.role()
                 screen=app.ensure_exam_authoring()
                 if screen is None:
