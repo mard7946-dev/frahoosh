@@ -1565,6 +1565,11 @@ class ModuleWorkspaceScreen(Screen):
         # workflows so they can never reach a staff CRUD screen.
         role = self.role()
         logical_table = str(table or "").strip()
+        # Parent accounts must never enter the live-class or exam workspaces.
+        if role == "parent" and logical_table in {"online","online_classes","virtual","online_class_sessions","teacher_exams","exams","quiz_questions"}:
+            self.status.text = fa_display("این بخش برای حساب اولیا فعال نیست.")
+            self.status.color = (.75, .18, .18, 1)
+            return
         # Student/parent messaging has a dedicated composer with a recipient
         # dropdown; do not downgrade it to a generic CRUD table.
         if table in ("online", "online_classes", "virtual", "online_class_sessions"):
