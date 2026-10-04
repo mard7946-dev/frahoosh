@@ -284,17 +284,23 @@ class MeetingWorkflowScreen(BaseWorkflow):
         try:
             if not all(self._value(x) for x in [self.title_field,self.target,self.date,self.time,self.reason]):
                 self.msg("فیلدهای اصلی را کامل کنید.",ERROR); return
-            self.api().table_update("meeting_requests",{"id":f"eq.{self.edit_id}"},{
-                "title":self._value(self.title_field),"target_name":self._value(self.target),"target_username":self._value(self.target),
-                "requested_day":self._value(self.day),"requested_date":self._value(self.date),
-                "requested_time":self._value(self.time),"reason":self._value(self.reason),"description":self._value(self.details)
+            self.api().rpc("update_meeting_request",{
+                "p_id":int(self.edit_id),
+                "p_title":self._value(self.title_field),
+                "p_target_username":self._value(self.target),
+                "p_target_name":self._value(self.target),
+                "p_requested_day":self._value(self.day),
+                "p_requested_date":self._value(self.date),
+                "p_requested_time":self._value(self.time),
+                "p_reason":self._value(self.reason),
+                "p_description":self._value(self.details),
             })
             self.msg("درخواست ملاقات ویرایش شد.",SUCCESS); self.build()
         except Exception as exc:self.msg("ویرایش انجام نشد: "+str(exc),ERROR)
 
     def delete_request(self,row):
         try:
-            self.api().table_delete("meeting_requests",{"id":f"eq.{row.get('id')}"})
+            self.api().rpc("delete_meeting_request",{"p_id":int(row.get("id"))})
             self.msg("درخواست ملاقات حذف شد.",SUCCESS); self.build()
         except Exception as exc:self.msg("حذف انجام نشد: "+str(exc),ERROR)
 
