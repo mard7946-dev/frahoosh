@@ -17,7 +17,7 @@ from threading import Thread
 import json
 
 from mobile.config import APP_NAME, SCHOOL_NAME, SCHOOL_YEAR, BACKGROUND_PATH, PRIMARY, SECONDARY, SUCCESS, WHITE
-from mobile.ui import font_name, rtl_text, fa_display, bundled_login_background
+from mobile.ui import font_name, title_font_name, rtl_text, fa_display, bundled_login_background
 
 def _android_navigation_inset_dp():
     """Return the Android navigation-bar inset in Kivy dp units.
@@ -439,7 +439,7 @@ class PanelHubScreen(Screen):
 
         self.info_text = Label(
             text=fa_display("راهنمای کاربردی و نکته‌های کوتاه مربوط به پنل انتخاب‌شده در این قسمت نمایش داده می‌شود."),
-            font_name=font_name(), font_size="14sp", color=(0.13,0.25,0.40,1),
+            font_name=font_name(), font_size="13sp", color=(0.13,0.25,0.40,1),
             halign="right", valign="top", line_height=1.25,
             padding=[dp(2), dp(4)])
         def _sync_info_text(widget, size):
