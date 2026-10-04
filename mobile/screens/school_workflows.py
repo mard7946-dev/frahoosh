@@ -345,6 +345,7 @@ class MeetingWorkflowScreen(BaseWorkflow):
 class OnlineClassWorkflowScreen(BaseWorkflow):
     """Operational online-class lifecycle shared by manager, deputies, teachers and students."""
     STAFF_ROLES = {"manager", "educational", "executive", "cultural", "advisor", "counselor", "teacher"}
+    CLASS_CREATORS = {"manager", "executive"}
 
     def on_pre_enter(self, *_):
         self.build()
@@ -354,7 +355,7 @@ class OnlineClassWorkflowScreen(BaseWorkflow):
         root = BoxLayout(orientation="vertical", padding=dp(8), spacing=dp(5))
         root.add_widget(self.lab("کلاس آنلاین واقعی", 48, "20sp", PRIMARY, True))
         role = role_of(self.app_state)
-        if role in self.STAFF_ROLES:
+        if role in self.CLASS_CREATORS:
             root.add_widget(self.btn("ایجاد کلاس آنلاین", self.show_create_form, SUCCESS))
             self._create_area = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(0), spacing=dp(4))
             root.add_widget(self._create_area)
@@ -384,7 +385,7 @@ class OnlineClassWorkflowScreen(BaseWorkflow):
         title = row.get("title") or "کلاس آنلاین"
         meta = " | ".join(str(x or "") for x in (row.get("subject"), row.get("class_name"), row.get("teacher"), row.get("start_time_shamsi"), row.get("end_time_shamsi")) if str(x or "").strip())
         self.list_box.add_widget(self.lab(f"#{row.get('id')} • {title} • {meta}", 42, "10sp", WHITE, True))
-        if role in {"manager", "educational", "executive", "cultural", "advisor", "counselor"}:
+        if role in {"manager", "executive"}:
             status = str(row.get("status") or "inactive")
             if status != "active":
                 self.list_box.add_widget(self.btn("فعال‌سازی کلاس", lambda *_a, r=row: self.activate(r), SUCCESS, 40))
@@ -429,7 +430,10 @@ class OnlineClassWorkflowScreen(BaseWorkflow):
         try: payload["duration"] = int(payload.get("duration") or 60)
         except ValueError: payload["duration"] = 60
         role = role_of(self.app_state)
-        payload["status"] = "active" if role in {"manager","educational","executive","cultural","advisor","counselor"} else "pending"
+        if role not in self.CLASS_CREATORS:
+            self.msg("فقط مدیر و معاون اجرایی اجازه تشکیل کلاس آنلاین دارند.", ERROR)
+            return
+        payload["status"] = "inactive"
         if not payload.get("teacher"): payload["teacher"] = getattr(self.app_state,"display_name","") or self.username()
         created = (self.api().table_insert("online_classes", payload) or [{}])[0]
         class_id = created.get("id")
