@@ -2696,3 +2696,66 @@ class ModuleWorkspaceScreen(Screen):
     def go_back(self,*_): self.go_dashboard()
 
 # UI contract: module categories intentionally use the same vertical accordion pattern as dashboard panels.
+
+# FINAL PROFESSIONAL MODULE CARD OVERRIDE
+# The module entries themselves must visually belong to the same professional
+# card family as dashboard panels. They are intentionally not tiny 46dp rows.
+class ModuleItemCard(ButtonBehavior, BoxLayout):
+    """Professional module card matching the dashboard panel visual language."""
+    def __init__(self, label, route, module_enter, **kwargs):
+        super().__init__(
+            orientation="vertical",
+            padding=dp(10),
+            spacing=dp(0),
+            size_hint_y=None,
+            height=dp(94),
+            **kwargs,
+        )
+        self.route = route
+        self.module_enter = module_enter
+
+        with self.canvas.before:
+            Color(0.055, 0.125, 0.215, 0.98)
+            self.bg = RoundedRectangle(radius=[dp(18)])
+        self.bind(pos=self._sync, size=self._sync)
+
+        self.header = Button(
+            text=fa_display(str(label)),
+            font_name=font_name(),
+            font_size="15sp",
+            background_normal="",
+            background_color=(0.07, 0.235, 0.38, 1),
+            color=WHITE,
+            bold=True,
+            halign="right",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(58),
+        )
+        self.header.bind(size=lambda o, v: setattr(o, "text_size", v))
+        self.header.bind(on_release=self._open)
+        self.add_widget(self.header)
+
+        self.meta = Label(
+            text=fa_display("ماژول عملیاتی  •  ورود به بخش"),
+            font_name=font_name(),
+            font_size="9.5sp",
+            color=(0.60, 0.82, 0.96, 1),
+            halign="right",
+            valign="middle",
+            size_hint_y=None,
+            height=dp(26),
+        )
+        self.meta.bind(size=lambda o, v: setattr(o, "text_size", v))
+        self.add_widget(self.meta)
+
+    def _open(self, *_):
+        self.module_enter(self.route)
+
+    def on_release(self):
+        self.module_enter(self.route)
+
+    def _sync(self, *_):
+        self.bg.pos = self.pos
+        self.bg.size = self.size
+
