@@ -1072,18 +1072,11 @@ class ModuleWorkspaceScreen(Screen):
         }.get(panel_role, panel_role)
         if panel_role in {"manager","educational","executive","cultural","advisor","teacher","staff"}:
             role = panel_role
-        # A manager is the owner of the school data contract.  Do not let a
-        # stale/partial module permission set hide CRUD controls from the manager.
-        if role in {"manager","educational","executive","cultural","advisor","teacher","staff","counselor"}:
-            return True
-        # Consumer roles are deliberately informational by default. Only the
-        # explicitly approved workflows in EDITABLE expose write controls.
-        if role in {"student", "parent"}:
-            return resolved in EDITABLE.get(role, set())
-        # Staff panels are never decorative: their backend roles control access.
-        if role not in {"student", "parent"}:
-            return True
-        return False
+        # The UI must mirror the same role/table contract as Supabase RLS.
+        # Never show write controls for a table merely because the account is
+        # a school staff member; that was the source of "not authorized"
+        # errors on restricted workflows such as online-class creation.
+        return resolved in EDITABLE.get(role, set())
 
     def set_module(self,route,return_to="dashboard"):
         self._ensure_built()
@@ -1735,15 +1728,9 @@ class ModuleWorkspaceScreen(Screen):
         hero.add_widget(line); self.body.add_widget(hero)
         can_write = self.can_write(table)
         consumer = self.role() in {"student", "parent"}
-        # These are the full operational school roles. Their table modules must
-        # always expose the complete real toolbar: ثبت، ویرایش، حذف، ورودی اکسل،
-        # خروجی اکسل and PDF. Parent/student remain intentionally excluded.
-        panel_role = str(getattr(self, "panel_role", "") or "").strip().lower()
-        full_operational_role = panel_role in {
-            "manager", "educational", "executive", "cultural", "advisor",
-            "teacher", "staff"
-        }
-        if can_write or full_operational_role:
+        # Only modules explicitly writable for the active role receive CRUD.
+        # Every authenticated role may still use read-only exports where allowed. 
+        if can_write:
             def _guard_write(action):
                 def _run(*_args):
                     if not self.can_write(table):
@@ -1770,7 +1757,8 @@ class ModuleWorkspaceScreen(Screen):
                 row1.add_widget(self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1),dp(38)))
                 row1.add_widget(self.btn("خروجی اکسل",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
                 row2.add_widget(self.btn("ورودی اکسل",_guard_write(self.import_excel),(0.42,.30,.62,1),dp(38)))
-                row2.add_widget(self.btn("خروجی PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
+                row2.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.64,1),dp(38)))
+                row2.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
                 bar.add_widget(row1); bar.add_widget(row2)
                 self.body.add_widget(bar)
                 self.status.text = fa_display("عملیات واقعی فعال است و به پایگاه داده مدرسه متصل است")
