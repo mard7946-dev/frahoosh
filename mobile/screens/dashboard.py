@@ -439,9 +439,12 @@ class PanelHubScreen(Screen):
 
         self.info_text = Label(
             text=fa_display("راهنمای کاربردی و نکته‌های کوتاه مربوط به پنل انتخاب‌شده در این قسمت نمایش داده می‌شود."),
-            font_name=font_name(), font_size="16sp", color=(0.13,0.25,0.40,1),
-            halign="right", valign="top")
-        self.info_text.bind(size=lambda o,v:setattr(o,"text_size",(v[0],None)))
+            font_name=font_name(), font_size="14sp", color=(0.13,0.25,0.40,1),
+            halign="right", valign="top", line_height=1.25,
+            padding=[dp(2), dp(4)])
+        def _sync_info_text(widget, size):
+            widget.text_size = (max(dp(80), size[0] - dp(4)), None)
+        self.info_text.bind(size=_sync_info_text)
         self.info_panel.add_widget(self.info_text)
 
         self.info_hint = Label(text=fa_display("نکته‌ها به‌صورت خودکار تغییر می‌کنند"),
@@ -610,7 +613,7 @@ class PanelHubScreen(Screen):
                 heading.add_widget(heading_label)
                 section.add_widget(heading)
             for index,(label,route) in enumerate(group_items):
-                row=Button(text=fa_display(str(label)+"     ‹"),
+                row=Button(text=fa_display(str(label)),
                            font_name=font_name(),font_size="13sp",
                            background_normal="",background_down="",
                            background_color=(1,1,1,0),
