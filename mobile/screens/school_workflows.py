@@ -45,15 +45,19 @@ class BaseWorkflow(Screen):
     def username(self):
         p=getattr(self.app_state,"profile",{}) or {}
         u=getattr(self.app_state,"user",{}) or {}
-        # School relationships and meeting targets use the canonical username
-        # (national code). Auth email is only the credential, not the business key.
         metadata = u.get("user_metadata") if isinstance(u.get("user_metadata"), dict) else {}
+        raw_role = str(p.get("role") or getattr(self.app_state,"role","") or "").strip().lower()
+        parent_role = raw_role in {"parent","parents","ولی","اولیا"}
+        # Parent relationships use the national-code business key; other school
+        # roles use account_settings.username. Auth email is never the business key.
+        if parent_role and p.get("national_code"):
+            return str(p.get("national_code")).strip()
         return str(
             p.get("username")
-            or p.get("national_code")
             or metadata.get("username")
             or u.get("email")
             or p.get("email")
+            or p.get("national_code")
             or ""
         ).strip()
     def back(self,*_):
@@ -146,7 +150,9 @@ class MeetingWorkflowScreen(BaseWorkflow):
         role=role_of(self.app_state)
         if role in {"parent","teacher","staff","counselor","advisor","educational","executive","cultural","manager","student"}:
             self.request(body)
-        if role in {"manager","educational","executive","cultural","advisor"}:
+        # The approval chain is manager -> educational confirmation. Other roles
+        # may submit requests but must not see a misleading empty approval queue.
+        if role in {"manager","educational"}:
             self.review(body,role)
         body.add_widget(self.lab("تاریخ ثبت درخواست به‌صورت خودکار ثبت می‌شود. پس از ثبت، درخواست در صندوق پیام مخاطب نیز اطلاع‌رسانی می‌شود.",58,"10sp",SECONDARY))
         root.add_widget(self.btn("بازگشت",self.back,SECONDARY))
@@ -321,7 +327,7 @@ class MeetingWorkflowScreen(BaseWorkflow):
 
     def approve(self,row):
         try:
-            self.api().table_update("meeting_requests",{"id":f"eq.{row.get('id')}"},{"status":"approved","manager_status":"approved"})
+            self.api().table_update("meeting_requests",{"id":f"eq.{row.get('id')}"},{"status":"manager_approved","manager_status":"approved"})
             self._notify(row,"درخواست ملاقات شما تأیید شد.")
             self.msg("درخواست تأیید شد.",SUCCESS); self.build()
         except Exception as exc:self.msg("تأیید انجام نشد: "+str(exc),ERROR)
