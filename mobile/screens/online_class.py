@@ -915,109 +915,185 @@ class OnlineClassScreen(Screen):
         self._checkpoint_session_id=None
         self._error(reason or "کلاس بسته شد.")
 
-    def _open_virtual_classroom(self, url, class_id, profile, role):
-        """Open the complete Frahoosh classroom locally inside the Android app."""
+    def _open_virtual_classroom(self,url,class_id,profile,role):
+        """
+        Open the real smart-classroom WebView on Android's UI thread.
+
+        WebView is an Android UI object and must be constructed on the thread
+        that owns the Activity UI.  Creating it from Kivy's Python thread was
+        the reason the app could activate the Supabase session while failing
+        to open the actual room on some phones.
+        """
         try:
-            from jnius import autoclass
-            from android.runnable import run_on_ui_thread
             from pathlib import Path
-            import json
-            import os
-            PythonActivity=autoclass("org.kivy.android.PythonActivity")
-            WebView=autoclass("android.webkit.WebView")
-            WebViewClient=autoclass("android.webkit.WebViewClient")
-            LayoutParams=autoclass("android.view.ViewGroup$LayoutParams")
-            FrameLayout=autoclass("android.widget.FrameLayout")
-            Button=autoclass("android.widget.Button")
-            Color=autoclass("android.graphics.Color")
-            activity=PythonActivity.mActivity
-            web=WebView(activity)
-            settings=web.getSettings()
-            # Android WebView must be configured before loading the classroom.
-            # The classroom is an HTTPS origin even though its HTML is bundled
-            # inside the APK, which keeps WebRTC getUserMedia in a secure context.
-            settings.setJavaScriptEnabled(True)
-            settings.setDomStorageEnabled(True)
-            settings.setDatabaseEnabled(True)
-            settings.setMediaPlaybackRequiresUserGesture(False)
-            settings.setAllowFileAccess(True)
-            settings.setAllowContentAccess(True)
-            try:
-                settings.setJavaScriptCanOpenWindowsAutomatically(True)
-                settings.setSupportMultipleWindows(True)
-                settings.setBuiltInZoomControls(False)
-                settings.setDisplayZoomControls(False)
-                settings.setLoadWithOverviewMode(True)
-                settings.setUseWideViewPort(True)
-                settings.setCacheMode(1)
-            except Exception as exc:
-                print("WEBVIEW OPTIONAL SETTINGS ERROR:",repr(exc))
-            try:
-                from android.view import View
-                web.setLayerType(View.LAYER_TYPE_HARDWARE, None)
-            except Exception as exc:
-                print("WEBVIEW HARDWARE LAYER ERROR:",repr(exc))
-            web.setWebViewClient(WebViewClient())
-            # The custom ChromeClient grants camera/microphone only to the
-            # Frahoosh HTTPS origin. Fall back safely if the Java helper is
-            # unavailable in an older APK.
-            try:
-                FrahooshWebChromeClient=autoclass("ir.frahoosh.FrahooshWebChromeClient")
-                web.setWebChromeClient(FrahooshWebChromeClient())
-            except Exception as exc:
-                print("FRAHOOSH WEB CHROME CLIENT FALLBACK:",repr(exc))
-                WebChromeClient=autoclass("android.webkit.WebChromeClient")
-                web.setWebChromeClient(WebChromeClient())
+            import json, os
+            from jnius import autoclass
+            from android.runnable import Runnable
+
+            html_path = next((p for p in (
+                Path(__file__).resolve().parents[1] / "assets" / "online_class.html",
+                Path(__file__).resolve().parent / "assets" / "online_class.html",
+                Path(os.environ.get("ANDROID_PRIVATE","")) / "assets" / "online_class.html",
+                Path(os.environ.get("ANDROID_APP_PATH","")) / "assets" / "online_class.html",
+            ) if str(p) and p.is_file()), None)
+            if html_path is None:
+                raise FileNotFoundError("online_class.html not found")
+
+            html = html_path.read_text(encoding="utf-8")
+            user = getattr(self.app_state,"user",{}) or {}
+            user_id = str(user.get("id") or profile.get("user_id") or profile.get("id") or "")
+            token = str(getattr(getattr(self.app_state,"api",None),"access_token","") or "")
+            from mobile.config import SUPABASE_URL,SUPABASE_ANON_KEY
+            name = str(profile.get("display_name") or getattr(self.app_state,"display_name","") or "کاربر فراهوش")
+            cfg = json.dumps({
+                "url":SUPABASE_URL,
+                "anon":SUPABASE_ANON_KEY,
+                "token":token,
+                "userId":user_id,
+                "classId":int(class_id),
+                "name":name,
+                "role":role,
+                "school":"فراهوش",
+                "maxBoardPages":15
+            },ensure_ascii=False,separators=(",",":"))
+            html = html.replace("__CONFIG__",cfg)
+
+            # Android camera/microphone runtime permissions must be requested
+            # before WebView's WebChromeClient grants the corresponding web
+            # resources.
             try:
                 from android.permissions import request_permissions, Permission
                 request_permissions([Permission.CAMERA, Permission.RECORD_AUDIO])
             except Exception as exc:
                 print("ANDROID MEDIA PERMISSION REQUEST ERROR:",repr(exc))
-            candidates=[Path(__file__).resolve().parents[1] / "assets" / "online_class.html", Path(__file__).resolve().parent / "assets" / "online_class.html", Path(os.environ.get("ANDROID_PRIVATE","")) / "assets" / "online_class.html", Path(os.environ.get("ANDROID_APP_PATH","")) / "assets" / "online_class.html"]
-            html_path=next((p for p in candidates if str(p) and p.is_file()), None)
-            if html_path is None: raise FileNotFoundError("online_class.html not found; checked: "+", ".join(str(p) for p in candidates))
-            html=html_path.read_text(encoding="utf-8")
-            user=getattr(self.app_state,"user",{}) or {}
-            user_id=str(user.get("id") or profile.get("user_id") or profile.get("id") or "")
-            token=str(getattr(getattr(self.app_state,"api",None),"access_token","") or "")
-            from mobile.config import SUPABASE_URL,SUPABASE_ANON_KEY
-            name=str(profile.get("display_name") or getattr(self.app_state,"display_name","") or "کاربر فراهوش")
-            cfg=json.dumps({
-                "url":SUPABASE_URL,"anon":SUPABASE_ANON_KEY,"token":token,
-                "userId":user_id,"classId":int(class_id),"name":name,
-                "role":role,"school":"فراهوش","maxBoardPages":15
-            },ensure_ascii=False,separators=(",",":"))
-            html=html.replace("__CONFIG__",cfg)
-            container=FrameLayout(activity); container.setBackgroundColor(Color.BLACK)
-            container.addView(web,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
-            back=Button(activity); back.setText("بازگشت به فراهوش")
-            params=FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT); params.topMargin=20; params.leftMargin=18
-            container.addView(back,params)
-            @run_on_ui_thread
-            def close(*_):
+
+            owner = self
+
+            def create_ui():
                 try:
-                    parent=container.getParent()
-                    if parent is not None: parent.removeView(container)
-                    web.destroy()
-                except Exception as exc: print("VIRTUAL CLASSROOM CLOSE ERROR:",repr(exc))
-            back.setOnClickListener(lambda *_:close())
-            @run_on_ui_thread
-            def attach():
-                activity.addContentView(container,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
-                # Keep the document origin at the site root. This is important
-                # for Android WebView secure-context/WebRTC permission checks.
-                web.loadDataWithBaseURL("https://frahoosh.ir/",html,"text/html","UTF-8","https://frahoosh.ir/online-class/")
-            attach()
-            self._active_webview=web
-            self._active_webview_container=container
+                    PythonActivity=autoclass("org.kivy.android.PythonActivity")
+                    WebView=autoclass("android.webkit.WebView")
+                    WebViewClient=autoclass("android.webkit.WebViewClient")
+                    LayoutParams=autoclass("android.view.ViewGroup$LayoutParams")
+                    FrameLayout=autoclass("android.widget.FrameLayout")
+                    Button=autoclass("android.widget.Button")
+                    Color=autoclass("android.graphics.Color")
+                    activity=PythonActivity.mActivity
+
+                    # Remove an older room before creating a new native view.
+                    old_container=getattr(owner,"_active_webview_container",None)
+                    old_web=getattr(owner,"_active_webview",None)
+                    if old_container is not None:
+                        try:
+                            parent=old_container.getParent()
+                            if parent is not None:
+                                parent.removeView(old_container)
+                        except Exception:
+                            pass
+                    if old_web is not None:
+                        try: old_web.destroy()
+                        except Exception: pass
+
+                    web=WebView(activity)
+                    settings=web.getSettings()
+                    settings.setJavaScriptEnabled(True)
+                    settings.setDomStorageEnabled(True)
+                    settings.setDatabaseEnabled(True)
+                    settings.setMediaPlaybackRequiresUserGesture(False)
+                    settings.setAllowFileAccess(False)
+                    settings.setAllowContentAccess(False)
+                    try:
+                        settings.setJavaScriptCanOpenWindowsAutomatically(True)
+                        settings.setSupportMultipleWindows(True)
+                        settings.setBuiltInZoomControls(False)
+                        settings.setDisplayZoomControls(False)
+                        settings.setLoadWithOverviewMode(True)
+                        settings.setUseWideViewPort(True)
+                        settings.setCacheMode(1)
+                    except Exception as exc:
+                        print("WEBVIEW OPTIONAL SETTINGS ERROR:",repr(exc))
+
+                    try:
+                        from android.view import View
+                        web.setLayerType(View.LAYER_TYPE_HARDWARE,None)
+                    except Exception as exc:
+                        print("WEBVIEW HARDWARE LAYER ERROR:",repr(exc))
+
+                    web.setWebViewClient(WebViewClient())
+                    try:
+                        FrahooshWebChromeClient=autoclass("ir.frahoosh.FrahooshWebChromeClient")
+                        web.setWebChromeClient(FrahooshWebChromeClient())
+                    except Exception as exc:
+                        print("FRAHOOSH WEB CHROME CLIENT FALLBACK:",repr(exc))
+                        WebChromeClient=autoclass("android.webkit.WebChromeClient")
+                        web.setWebChromeClient(WebChromeClient())
+
+                    web.setBackgroundColor(Color.BLACK)
+                    container=FrameLayout(activity)
+                    container.setBackgroundColor(Color.BLACK)
+                    container.addView(web,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
+
+                    back=Button(activity)
+                    back.setText("بازگشت به فراهوش")
+                    params=FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT)
+                    params.topMargin=20
+                    params.leftMargin=18
+                    container.addView(back,params)
+
+                    def close_room(*_):
+                        try:
+                            parent=container.getParent()
+                            if parent is not None:
+                                parent.removeView(container)
+                            web.stopLoading()
+                            web.destroy()
+                        except Exception as exc:
+                            print("VIRTUAL CLASSROOM CLOSE ERROR:",repr(exc))
+                        owner._active_webview=None
+                        owner._active_webview_container=None
+
+                    back.setOnClickListener(close_room)
+
+                    activity.addContentView(
+                        container,
+                        LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT)
+                    )
+
+                    # HTTPS base URL gives the bundled document a valid,
+                    # trusted origin for fetch/WebRTC while keeping the HTML
+                    # itself inside the APK.
+                    web.loadDataWithBaseURL(
+                        "https://frahoosh.ir/",
+                        html,
+                        "text/html",
+                        "UTF-8",
+                        "https://frahoosh.ir/online-class/"
+                    )
+                    owner._active_webview=web
+                    owner._active_webview_container=container
+                    print("FRAHOOSH SMART CLASSROOM WEBVIEW READY",class_id)
+                except Exception as exc:
+                    import traceback
+                    detail=f"{type(exc).__name__}: {exc}"
+                    print("FRAHOOSH INTERNAL CLASSROOM UI ERROR:",detail)
+                    print(traceback.format_exc())
+                    Clock.schedule_once(
+                        lambda dt,msg=detail: owner._error("اتاق مجازی باز نشد؛ "+msg),
+                        0
+                    )
+
+            # All WebView construction/loading is now explicitly scheduled on
+            # Android's UI thread. This is the critical fix for the launch
+            # failure seen after "جلسه در سامانه فعال شد".
+            Runnable(create_ui)()
+            self._ok("جلسه فعال شد؛ در حال باز کردن اتاق مجازی...")
             return True
         except Exception as exc:
             import traceback
             detail=f"{type(exc).__name__}: {exc}"
             print("FRAHOOSH INTERNAL CLASSROOM ERROR:",detail)
             print(traceback.format_exc())
-            try: self._error("اتاق داخلی باز نشد\n"+detail)
-            except Exception: pass
+            self._error("اتاق مجازی باز نشد؛ "+detail)
             return False
 
     def _toggle_mic(self):self.mic=not self.mic; self.show_home()
