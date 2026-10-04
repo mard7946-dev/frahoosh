@@ -408,6 +408,7 @@ TABLE_FIELDS = {
 "teachers":["first_name","last_name","national_code","phone","email","subject","grades","employee_code","employment_status"],
 "staff":["first_name","last_name","role","phone","work_experience","employee_code","national_code","religion","sect","employment_status","teaching_hours"],
 "parents":["parent_username","student_id"],"parent_children":["parent_username","student_id"],
+"school_relationships":["source_username","target_username","target_role","relationship_type","active"],
 "teacher_classes":["teacher_id","teacher_name","subject","grade","class_name","active"],
 "attendance":["student_id","teacher_id","class_name","subject","attendance_date","status"],
 "grades":["student_id","teacher_id","subject","exam_name","score","grade_type","term","max_score","grade_date","title"],
