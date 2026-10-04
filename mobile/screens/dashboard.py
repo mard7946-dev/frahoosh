@@ -545,6 +545,11 @@ class PanelHubScreen(Screen):
                      "smart_board":"smart_board","ai":"ai"}.get(self.panel_key,self.panel_key)
         catalog=MOTHER_PANEL_CATALOG.get(catalog_key) or {}
         items=list(catalog.get("items") or [])
+        # Parent accounts must never be offered the online-exam workspace.
+        # Keep the canonical shared catalog intact, but enforce the school
+        # access contract at the Android presentation boundary as well.
+        if self.panel_key=="parents":
+            items=[item for item in items if str(item[1]) not in {"teacher_exams","online","online_classes","online_class_sessions"}]
         if self.panel_key=="staff":
             items=[("کادر و کارکنان","staff")]
         if self.panel_key=="meetings":
@@ -1172,6 +1177,8 @@ class DashboardScreen(Screen):
         }.get(panel_key, panel_key)
         catalog = MOTHER_PANEL_CATALOG.get(catalog_key) or {}
         raw_items = catalog.get("items") or []
+        if panel_key == "parents":
+            raw_items = [item for item in raw_items if str(item[1]) not in {"teacher_exams","online","online_classes","online_class_sessions"}]
         if panel_key == "staff":
             raw_items = [("کادر و کارکنان","staff")]
         if panel_key == "online":
