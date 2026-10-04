@@ -321,7 +321,9 @@ COLUMNS.update({
     "registration_end_shamsi":"پایان ثبت‌نام", "sport_type":"رشته ورزشی", "fixed_amount":"مبلغ ثابت",
     "role":"نقش", "weekly_sessions":"جلسات هفتگی", "session_no":"شماره جلسه", "teaching_amount":"میزان تدریس",
     "teaching_date":"تاریخ تدریس", "teaching_title":"عنوان تدریس", "activity_type":"نوع فعالیت",
-    "school_year":"سال تحصیلی", "classroom_seat":"صندلی کلاسی", "exam_seat":"صندلی امتحانی",
+    "school_year":"سال تحصیلی",
+    "source_username":"کاربر مبدأ", "target_username":"کاربر مقصد",
+    "relationship_type":"نوع ارتباط", "target_role":"نقش مقصد", "active":"فعال", "classroom_seat":"صندلی کلاسی", "exam_seat":"صندلی امتحانی",
     "parent_id":"شناسه ولی", "parent_name":"نام ولی", "target_role":"نقش مخاطب", "target_name":"نام مخاطب",
     "requested_date_shamsi":"تاریخ درخواست شمسی", "requested_time":"ساعت درخواست", "educational_approval":"تأیید معاون آموزشی",
     "manager_approval":"تأیید مدیریت", "registration_date":"تاریخ ثبت", "certificate_type":"نوع گواهی",
@@ -543,7 +545,7 @@ EDITABLE = {
     "executive": {
         "students","executive_classes","staff","archive_items","executive_operations","executive_reports",
         "report_cards","online_classes","messages","weekly_schedule","discipline_records",
-        "certificate_requests","school_class_config","parent_children","assets","student_cards","class_cards",
+        "certificate_requests","school_class_config","parent_children","school_relationships","assets","student_cards","class_cards",
         "certificates","executive_requests","surveys","module_activations"
     },
     "cultural": {
@@ -658,6 +660,7 @@ FORMS = {
     "messages":["title","description","status"],
     "module_activations":["module_key","active","activated_by","activated_at","settings"],
     "school_profile":["title","description"],
+    "school_relationships":["source_username","target_username","target_role","relationship_type","active"],
     "discipline_records":["student_id","discipline_type","record_date","decision_type","deduct_score","referral_to","description"],
     "educational_followups":["student_id","followup_date","followup_items","decision"],
     "academic_followups":["student_id","followup_date","followup_items","decision"],
@@ -752,6 +755,7 @@ MODULE_PURPOSES = {
     "message_targets":"انتخاب مخاطبان پیام",
     "message_reads":"پیگیری وضعیت خواندن پیام",
     "account_settings":"تنظیمات حساب کاربری",
+    "school_relationships":"ارتباط افراد مدرسه؛ اتصال ولی، دانش‌آموز، دبیر و کارکنان",
 }
 
 class ModuleIcon(Widget):
@@ -1152,6 +1156,7 @@ class ModuleWorkspaceScreen(Screen):
         # Route ids remain the existing real modules; this method only groups them.
         return {
             "management": [
+                ("ارتباطات افراد", {"school_relationships"}),
                 ("فعالیت آموزشی", {"report_cards","grades","class_seat_assignments","exam_seat_assignments","student_grades","teacher_exams","exam_schedule","weekly_schedule","teacher_classes","school_class_config"}),
                 ("فعالیت‌های پرورشی", {"activity_registrations","activity_offers","educational_activities","art_competitions","sport_competitions","cultural_competitions","activity_programs","school_events","student_council","school_ally","basij_registration","school_mayor"}),
                 ("دانش‌آموزان", {"students","archive_items","student_files","certificate_requests","discipline_records","attendance"}),
@@ -1164,6 +1169,7 @@ class ModuleWorkspaceScreen(Screen):
                 ("مدیریت سامانه", {"users","account_settings","module_activations","backup_records"}),
             ],
             "executive": [
+                ("ارتباطات افراد", {"school_relationships","parent_children"}),
                 ("امور دانش‌آموزی", {"students","archive_items","certificate_requests","student_files","parent_children"}),
                 ("امور کلاس‌ها", {"executive_classes","school_class_config","weekly_schedule","class_seat_assignments","exam_seat_assignments","attendance","discipline_records"}),
                 ("امور امتحانات", {"exam_schedule","report_cards","exam_seat_assignments"}),
