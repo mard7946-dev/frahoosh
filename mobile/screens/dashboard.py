@@ -402,46 +402,48 @@ class PanelHubScreen(Screen):
         Clock.schedule_once(lambda *_: self.refresh(), 0)
 
     def _build(self):
-        root=BoxLayout(orientation="vertical",padding=dp(12),spacing=dp(8))
-        with root.canvas.before:
-            Color(0.02,0.08,0.18,0.96)
-            self.bg=RoundedRectangle(radius=[dp(18)])
-        root.bind(pos=lambda o,v:setattr(self.bg,"pos",v),size=lambda o,v:setattr(self.bg,"size",v))
-        title={route: title for title, route in PANEL_HUBS}.get(self.panel_key,self.panel_key)
-        head=BoxLayout(size_hint_y=None,height=dp(58))
-        head.add_widget(Label(text=fa_display(title),font_name=font_name(),font_size="18sp",color=WHITE,bold=True))
-        back=Button(text=fa_display("بازگشت"),font_name=font_name(),size_hint_x=None,width=dp(78),
-                    background_normal="",background_color=PRIMARY,color=WHITE)
-        back.bind(on_release=lambda *_: setattr(self.manager,"current","dashboard") if self.manager else None)
-        head.add_widget(back); root.add_widget(head)
-        # Dedicated creation actions for the two first-class teaching workspaces.
-        # Keep them visible at the top of their panel, before the module list.
-        if self.panel_key == "meetings":
-            create=Button(text=fa_display("＋ ثبت یا پیگیری ملاقات"),font_name=font_name(),font_size="14sp",
-                           background_normal="",background_color=SUCCESS,color=WHITE,
-                           size_hint_y=None,height=dp(52))
-            create.bind(on_release=lambda *_: self._open_meeting_workflow())
-            root.add_widget(create)
-        elif self.panel_key == "online":
-            active_role = self._active_role()
-            if active_role in {"manager","educational","executive"}:
-                create=Button(text=fa_display("＋ تشکیل کلاس جدید"),font_name=font_name(),font_size="14sp",
-                               background_normal="",background_color=SUCCESS,color=WHITE,
-                               size_hint_y=None,height=dp(52))
-                create.bind(on_release=lambda *_: self._open_online_create())
-                root.add_widget(create)
-        elif self.panel_key == "teacher_exams":
-            create=Button(text=fa_display("＋ ساخت آزمون جدید"),font_name=font_name(),font_size="14sp",
-                           background_normal="",background_color=SUCCESS,color=WHITE,
-                           size_hint_y=None,height=dp(52))
-            create.bind(on_release=lambda *_: self._open_exam_create())
-            root.add_widget(create)
-        self.scroll=ScrollView(do_scroll_x=False)
-        self.grid=GridLayout(cols=2,spacing=dp(8),padding=dp(4),size_hint_y=None)
-        self.grid.bind(minimum_height=self.grid.setter("height"))
-        self.scroll.add_widget(self.grid); root.add_widget(self.scroll)
-        self.add_widget(root)
+        root=BoxLayout(orientation='horizontal',padding=dp(12),spacing=dp(12))
+        self.info_panel=BoxLayout(orientation='vertical',padding=[dp(20),dp(24)],spacing=dp(14),size_hint_x=0.43)
+        with self.info_panel.canvas.before:
+            Color(0.035,0.12,0.21,0.98)
+            self.info_bg=RoundedRectangle(radius=[dp(22)])
+        self.info_panel.bind(pos=lambda o,v:setattr(self.info_bg,'pos',v),size=lambda o,v:setattr(self.info_bg,'size',v))
+        self.info_title=Label(text=fa_display('آیا می‌دانید؟'),font_name=font_name(),font_size='22sp',bold=True,color=(0.70,0.90,1,1),halign='right',valign='middle',size_hint_y=None,height=dp(52))
+        self.info_title.bind(size=lambda o,v:setattr(o,'text_size',v))
+        self.info_panel.add_widget(self.info_title)
+        self.info_text=Label(text=fa_display('در این قسمت امکانات پنل انتخاب‌شده، راهنمای استفاده و نکات کاربردی فراهوش نمایش داده می‌شود.'),font_name=font_name(),font_size='16sp',color=WHITE,halign='right',valign='top')
+        self.info_text.bind(size=lambda o,v:setattr(o,'text_size',(v[0],None)))
+        self.info_panel.add_widget(self.info_text)
+        self.info_hint=Label(text=fa_display('راهنمای سریع فراهوش'),font_name=font_name(),font_size='12sp',color=(0.62,0.78,0.88,1),halign='right',valign='bottom',size_hint_y=None,height=dp(40))
+        self.info_hint.bind(size=lambda o,v:setattr(o,'text_size',v))
+        self.info_panel.add_widget(self.info_hint)
+        self._tips=[]; self._tip_index=0; self._tip_event=None
+        root.add_widget(self.info_panel)
+        right=BoxLayout(orientation='vertical',spacing=dp(8),size_hint_x=0.57)
+        head=BoxLayout(size_hint_y=None,height=dp(58),spacing=dp(8))
+        title={route:title for title,route in PANEL_HUBS}.get(self.panel_key,self.panel_key)
+        self.panel_title=Label(text=fa_display('ماژورهای '+title),font_name=font_name(),font_size='20sp',bold=True,color=WHITE,halign='right',valign='middle')
+        self.panel_title.bind(size=lambda o,v:setattr(o,'text_size',v)); head.add_widget(self.panel_title)
+        back=Button(text=fa_display('بازگشت'),font_name=font_name(),font_size='12sp',size_hint_x=None,width=dp(82),background_normal='',background_color=PRIMARY,color=WHITE)
+        back.bind(on_release=lambda *_: setattr(self.manager,'current','dashboard') if self.manager else None); head.add_widget(back); right.add_widget(head)
+        self.module_scroll=ScrollView(do_scroll_x=False,bar_width=dp(5))
+        self.module_box=BoxLayout(orientation='vertical',spacing=dp(12),padding=[dp(4),dp(4)],size_hint_y=None)
+        self.module_box.bind(minimum_height=self.module_box.setter('height')); self.module_scroll.add_widget(self.module_box); right.add_widget(self.module_scroll)
+        root.add_widget(right); self.add_widget(root)
 
+    def _start_info_tips(self):
+        if self._tip_event is not None: self._tip_event.cancel()
+        self._tip_event=Clock.schedule_interval(self._next_info_tip,5.5); Clock.schedule_once(self._next_info_tip,0)
+
+    def _next_info_tip(self,*_):
+        if not self._tips: return
+        value=self._tips[self._tip_index % len(self._tips)]; self._tip_index+=1
+        try:
+            Animation(opacity=0.15,duration=0.22).start(self.info_text)
+            def reveal(_dt):
+                self.info_text.text=fa_display(value); Animation(opacity=1,duration=0.38).start(self.info_text)
+            Clock.schedule_once(reveal,0.24)
+        except Exception: self.info_text.text=fa_display(value)
     def _has_panel_access(self, panel_key):
         role = self._active_role()
         if role == "manager":
@@ -458,82 +460,38 @@ class PanelHubScreen(Screen):
         return panel_key in role_panels.get(role, set())
 
     def refresh(self):
-        # Hard role boundary: only the manager receives the school-wide
-        # directory. Every other role receives exactly its own panel.
         if not self._has_panel_access(self.panel_key):
-            try:
-                self.manager.current = "dashboard"
-            except Exception:
-                pass
-            print("PANEL ACCESS DENIED:", self._active_role(), self.panel_key)
-            return
-        # The uploaded v16.12 mother ZIP is the single source of truth for
-        # panel/module membership.  Do not derive this screen from the backend
-        # catalog or from a secondary navigation map.
-        catalog_key = {
-            "management": "manager",
-            "executive": "executive",
-            "educational": "educational",
-            "cultural": "cultural",
-            "advisor": "advisor",
-            "teachers": "teacher",
-            "staff": "staff",
-            "students": "student",
-            "parents": "parent",
-            "finance": "finance",
-            "smart_board": "smart_board",
-            "ai": "ai",
-        }.get(self.panel_key, self.panel_key)
-        catalog = MOTHER_PANEL_CATALOG.get(catalog_key) or {}
-        items = catalog.get("items") or []
-        if self.panel_key == "staff":
-            items = [("کادر و کارکنان", "staff")]
-
-        # These are first-class operational centers, not generic CRUD tables.
-        # Always expose their real workflow entry point even if the mother ZIP
-        # catalog has no dedicated navigation section for them.
-        if self.panel_key == "meetings":
-            items = [("ثبت و پیگیری ملاقات", "meeting_requests")]
-        elif self.panel_key == "teacher_exams":
-            items = [("مرکز طراحی آزمون آنلاین", "teacher_exams")]
-        elif self.panel_key == "online":
-            items = [("مرکز کلاس آنلاین", "online_classes")]
-        self.grid.clear_widgets()
+            try: self.manager.current='dashboard'
+            except Exception: pass
+            print('PANEL ACCESS DENIED:',self._active_role(),self.panel_key); return
+        catalog_key={'management':'manager','executive':'executive','educational':'educational','cultural':'cultural','advisor':'advisor','teachers':'teacher','staff':'staff','students':'student','parents':'parent','finance':'finance','smart_board':'smart_board','ai':'ai'}.get(self.panel_key,self.panel_key)
+        catalog=MOTHER_PANEL_CATALOG.get(catalog_key) or {}; items=list(catalog.get('items') or [])
+        if self.panel_key=='staff': items=[('کادر و کارکنان','staff')]
+        if self.panel_key=='meetings': items=[('ثبت و پیگیری ملاقات','meeting_requests')]
+        elif self.panel_key=='teacher_exams': items=[('مرکز طراحی آزمون آنلاین','teacher_exams')]
+        elif self.panel_key=='online': items=[('مرکز کلاس آنلاین','online_classes')]
+        self.module_box.clear_widgets()
+        self._tips=['آیا می‌دانید؟ این قسمت دسترسی سریع به ماژورهای پنل انتخاب‌شده را فراهم می‌کند.','نکته فراهوش: هر گزینه مستقیماً شما را به بخش عملیاتی همان ماژور می‌برد.','راهنمای سریع: برای برگشت به فهرست پنل‌ها از دکمه بازگشت استفاده کنید.','اطلاع‌رسانی: این نکات به‌صورت خودکار تغییر می‌کنند.']
         if not items:
-            # Keep a visible diagnostic instead of silently rendering an empty
-            # panel when a panel key is ever mistyped.
-            b=Button(
-                text=rtl_text("ماژول‌های این پنل در قرارداد مادر پیدا نشد"),
-                font_name=font_name(), font_size="13sp",
-                background_normal="", background_color=(0.65,0.12,0.12,1),
-                color=WHITE, size_hint_y=None, height=dp(58),
-            )
-            self.grid.add_widget(b)
-            print("MOTHER PANEL EMPTY:", self.panel_key, catalog_key)
-            return
-        for label,route in items:
-            card=BoxLayout(orientation="vertical",padding=dp(8),spacing=dp(5),size_hint_y=None,height=dp(132))
-            with card.canvas.before:
-                Color(0.03,0.14,0.25,0.96)
-                card_bg=RoundedRectangle(radius=[dp(14)])
-            card.bind(pos=lambda o,v,bg=card_bg:setattr(bg,"pos",v),size=lambda o,v,bg=card_bg:setattr(bg,"size",v))
-            card.add_widget(Label(text=fa_display(label),font_name=font_name(),font_size="13sp",bold=True,color=WHITE,
-                                  halign="center",valign="middle",size_hint_y=None,height=dp(34)))
-            card.add_widget(Label(text=fa_display(self._module_purpose(label,route)),font_name=font_name(),font_size="8sp",
-                                  color=(0.75,0.9,1,1),halign="center",valign="middle"))
-            actions=BoxLayout(size_hint_y=None,height=dp(42),spacing=dp(4))
-            # Every mother module has one operational entry point.  Excel/PDF
-            # is an export/import utility, not the module itself, and showing it
-            # beside every module was the source of the generic "ورودی و خروجی"
-            # page being mistaken for the real module workspace.
-            enter=Button(text=fa_display("ورود به جدول تخصصی و عملیات"),
-                         font_name=font_name(),font_size="10sp",
-                         background_normal="",background_color=SUCCESS,color=WHITE,
-                         halign="center",valign="middle")
-            enter.bind(on_release=lambda *_a,r=route:self._open(r))
-            actions.add_widget(enter); card.add_widget(actions)
-            self.grid.add_widget(card)
-
+            self.module_box.add_widget(Label(text=fa_display('ماژوری برای این پنل ثبت نشده است.'),font_name=font_name(),font_size='14sp',color=WHITE,halign='right',valign='middle',size_hint_y=None,height=dp(52))); self._start_info_tips(); return
+        grouped=[]; groups=MODULE_CATEGORY_GROUPS.get(self.panel_key) or []; remaining=list(items)
+        for category,route_ids in groups:
+            selected=[]
+            for item in list(remaining):
+                label,route=item
+                if route in route_ids: selected.append(item); remaining.remove(item)
+            if selected: grouped.append((category,selected))
+        if remaining: grouped.append(('سایر امکانات',remaining))
+        if not grouped: grouped=[('',items)]
+        for category,group_items in grouped:
+            if category:
+                heading=Label(text=fa_display(category),font_name=font_name(),font_size='14sp',bold=True,color=(0.42,0.76,0.98,1),halign='right',valign='middle',size_hint_y=None,height=dp(36)); heading.bind(size=lambda o,v:setattr(o,'text_size',v)); self.module_box.add_widget(heading)
+            for label,route in group_items:
+                row=Button(text=fa_display('──  '+str(label)),font_name=font_name(),font_size='13sp',background_normal='',background_color=(0.055,0.18,0.29,1),color=WHITE,halign='right',valign='middle',size_hint_y=None,height=dp(48))
+                row.bind(size=lambda o,v:setattr(o,'text_size',v)); row.bind(on_release=lambda *_a,r=route:self._open(r)); self.module_box.add_widget(row)
+        title={route:title for title,route in PANEL_HUBS}.get(self.panel_key,self.panel_key)
+        self._tips=[f'آیا می‌دانید؟ پنل «{title}» برای دسترسی سریع به بخش‌های مرتبط طراحی شده است.','هر عنوان یک ماژور عملیاتی است و با انتخاب آن وارد بخش مربوط می‌شوید.','نکته فراهوش: ماژورها بر اساس موضوع دسته‌بندی شده‌اند.','راهنمای سریع: گزینه‌های این صفحه به عملیات واقعی سامانه متصل هستند.']
+        self._start_info_tips()
     def _module_purpose(self,label,route):
         return {
             "دانش‌آموزان":"پرونده، اطلاعات هویتی، کلاس و سوابق دانش‌آموز.",
