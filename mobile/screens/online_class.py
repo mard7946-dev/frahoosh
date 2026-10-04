@@ -954,6 +954,8 @@ class OnlineClassScreen(Screen):
                 "name":name,
                 "role":role,
                 "school":"فراهوش",
+                "studentId":profile.get("linked_student_id") or profile.get("student_id"),
+                "teacherId":profile.get("linked_teacher_id") or profile.get("teacher_id"),
                 "maxBoardPages":15
             },ensure_ascii=False,separators=(",",":"))
             html = html.replace("__CONFIG__",cfg)
