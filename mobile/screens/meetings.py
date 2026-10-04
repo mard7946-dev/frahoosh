@@ -142,22 +142,46 @@ class MeetingsScreen(Screen):
         api = getattr(self.app_state, "api", None)
         if api is None:
             return []
-        username = self._username()
+        profile = getattr(self.app_state, "profile", {}) or {}
+        identifiers = []
+        for value in (
+            profile.get("username"),
+            profile.get("national_code"),
+            getattr(self.app_state, "national_code", ""),
+            self._username(),
+        ):
+            value = str(value or "").strip()
+            if value and value not in identifiers:
+                identifiers.append(value)
         try:
-            links = api.table_select("parent_children", {"parent_username": f"eq.{username}", "limit": "100"})
+            links = []
+            seen_links = set()
+            for identifier in identifiers:
+                found = api.table_select(
+                    "parent_children",
+                    {"parent_username": f"eq.{identifier}", "limit": "100"},
+                ) or []
+                for link in found:
+                    key = (str(link.get("parent_username") or ""), str(link.get("student_id") or ""))
+                    if key not in seen_links:
+                        seen_links.add(key)
+                        links.append(link)
             rows = []
-            for link in links or []:
+            seen_students = set()
+            for link in links:
                 sid = link.get("student_id")
-                if sid is None:
+                if sid is None or str(sid) in seen_students:
                     continue
                 try:
                     students = api.table_select("students", {"id": f"eq.{sid}", "limit": "1"})
                     if students:
                         rows.append(students[0])
+                        seen_students.add(str(sid))
                 except Exception:
                     pass
             # Never fall back to the whole student table: a parent must only
-            # see children explicitly linked to the authenticated account.
+            # see children explicitly linked to one of the authenticated
+            # account's canonical identity keys.
             self._student_rows = rows
             return rows
         except Exception as exc:
