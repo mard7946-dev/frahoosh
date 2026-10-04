@@ -27,6 +27,7 @@ from mobile.config import (
 
 _FONT_REGISTERED = False
 _FONT_FAMILY = "FrahooshPersian"
+_FONT_TITLE = "FrahooshTitle"
 
 
 def register_fonts():
@@ -62,6 +63,7 @@ def register_fonts():
 
     regular = next((p for p in regular_candidates if p.is_file()), None)
     bold = next((p for p in bold_candidates if p.is_file()), None) or regular
+    title_font = asset_dir / "BTitrBd.ttf"
     if regular is None:
         print("PERSIAN FONT FILE NOT FOUND:", [str(p) for p in regular_candidates])
         return ""
@@ -72,6 +74,12 @@ def register_fonts():
             fn_regular=str(regular),
             fn_bold=str(bold),
         )
+        if title_font.is_file():
+            LabelBase.register(
+                name=_FONT_TITLE,
+                fn_regular=str(title_font),
+                fn_bold=str(title_font),
+            )
         _FONT_REGISTERED = True
         print("FRAHOOH PERSIAN FONT REGISTERED:", str(regular), "bold:", str(bold))
         return _FONT_FAMILY
@@ -135,6 +143,12 @@ def bundled_login_background():
         print("LOGIN ART RESOURCE ERROR:", repr(exc))
     return None
 
+
+
+def title_font_name():
+    register_fonts()
+    title_path = Path(__file__).resolve().parent / "assets" / "BTitrBd.ttf"
+    return _FONT_TITLE if title_path.is_file() else font_name()
 
 
 def rtl_text(value):
