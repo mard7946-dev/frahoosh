@@ -74,4 +74,170 @@ class LoginScreen(Screen):
         field.bind(pos=sync, size=sync)
         return field
 
+    def _remember_changed(self, *_args):
+        pass
 
+    def _toggle_remember(self, *_):
+        self.remember_checkbox.active = not self.remember_checkbox.active
+
+    def _set_status(self, text, color=WHITE):
+        self.status.text = fa_display(text)
+        self.status.color = color
+
+    @staticmethod
+    def _normalize_digits(value):
+        value = str(value or "")
+        return value.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
+
+    @staticmethod
+    def _readable_error(exc):
+        message = str(exc or "").strip()
+        lower = message.lower()
+        if "invalid login credentials" in lower:
+            return "نام کاربری یا رمز عبور صحیح نیست."
+        if "email not confirmed" in lower:
+            return "حساب کاربری هنوز تأیید نشده است."
+        if "user not found" in lower:
+            return "کاربری با این مشخصات پیدا نشد."
+        if "pgrst202" in lower or "could not find the function" in lower:
+            return "سرویس ورود با کد ملی روی سرور فعال نشده است."
+        if "permission denied" in lower or "not allowed" in lower:
+            return "دسترسی سرویس ورود از سرور مجاز نیست."
+        if "too many requests" in lower:
+            return "تعداد تلاش‌ها زیاد است؛ کمی بعد دوباره تلاش کنید."
+        if "timed out" in lower or "timeout" in lower:
+            return "ارتباط با سرور زمان‌بر شد؛ دوباره تلاش کنید."
+        if "urlopen error" in lower or "network" in lower or "certificate" in lower or "dns" in lower:
+            return "ارتباط با سرور برقرار نشد. اینترنت و دسترسی شبکه را بررسی کنید."
+        if message and any("\u0600" <= ch <= "\u06ff" for ch in message):
+            return message
+        return "خطای ورود: " + message if message else "خطای ورود؛ دوباره تلاش کنید."
+
+    def login(self, *_):
+        if self._busy:
+            return
+        identifier = self._normalize_digits(self.identifier.text).strip()
+        password = self.password.get_logical_text() if hasattr(self.password, "get_logical_text") else (self.password.text or "")
+        remember = bool(self.remember_checkbox.active)
+
+        if identifier != self.identifier.text:
+            self.identifier.text = identifier
+        if not identifier:
+            self._set_status("نام کاربری یا کد ملی را وارد کنید.", ERROR)
+            return
+        if "@" not in identifier and (len(identifier) != 10 or not identifier.isdigit()):
+            self._set_status("نام کاربری باید کد ملی ۱۰ رقمی باشد.", ERROR)
+            return
+        if not password:
+            self._set_status("رمز عبور را وارد کنید.", ERROR)
+            return
+        if self.app_state is None or self.app_state.api is None:
+            self._set_status("سرویس اتصال آماده نیست.", ERROR)
+            return
+        if not self.app_state.api.configured:
+            self._set_status("تنظیمات اتصال سرور در برنامه وجود ندارد.", ERROR)
+            return
+
+        self._busy = True
+        self.login_button.disabled = True
+        self._set_status("در حال بررسی اطلاعات...", MUTED)
+        Thread(target=self._authenticate, args=(identifier, password, remember), daemon=True).start()
+
+    def _authenticate(self, identifier, password, remember):
+        try:
+            session = self.app_state.api.sign_in(identifier, password)
+            if not session:
+                raise RuntimeError("نشست ایجاد نشد.")
+            session["login_identifier"] = self._normalize_digits(identifier).strip()
+            self.app_state.set_session(session, remember=remember)
+            Clock.schedule_once(lambda dt: self._login_success(), 0)
+        except Exception as exc:
+            print("LOGIN ERROR:", repr(exc))
+            message = self._readable_error(exc)
+            Clock.schedule_once(lambda dt, msg=message: self._login_failed(msg), 0)
+
+    def _login_success(self):
+        self._busy = False
+        self.login_button.disabled = False
+        self._set_status("ورود موفق بود.", SUCCESS)
+        try:
+            app = App.get_running_app()
+            if app is not None and hasattr(app, "open_dashboard"):
+                if app.open_dashboard():
+                    return
+                raise RuntimeError("داشبورد باز نشد.")
+            if self.manager:
+                self.manager.current = "dashboard"
+        except Exception as exc:
+            print("DASHBOARD ERROR:", repr(exc))
+            self._set_status("ورود موفق شد اما داشبورد باز نشد.", ERROR)
+
+    def _login_failed(self, message):
+        self._busy = False
+        self.login_button.disabled = False
+        self._set_status(message if message and len(str(message)) < 120 else "ارتباط با سرور برقرار نشد. دوباره تلاش کنید.", ERROR)
+
+    def forgot_password(self, *_):
+        if self._busy:
+            return
+        identifier = self._normalize_digits(self.identifier.text).strip()
+        if not identifier:
+            self._set_status("ابتدا نام کاربری یا کد ملی را وارد کنید.", ERROR)
+            return
+        if "@" not in identifier and (len(identifier) != 10 or not identifier.isdigit()):
+            self._set_status("برای بازیابی رمز، کد ملی ۱۰ رقمی را وارد کنید.", ERROR)
+            return
+        if self.app_state is None or self.app_state.api is None or not self.app_state.api.configured:
+            self._set_status("سرویس اتصال آماده نیست.", ERROR)
+            return
+
+        self._busy = True
+        self.login_button.disabled = True
+        self._set_status("در حال ارسال لینک بازیابی رمز...", MUTED)
+        Thread(target=self._send_recovery, args=(identifier,), daemon=True).start()
+
+    def _send_recovery(self, identifier):
+        try:
+            self.app_state.api.send_password_recovery(identifier)
+            Clock.schedule_once(lambda dt: self._recovery_success(), 0)
+        except Exception as exc:
+            print("PASSWORD RECOVERY ERROR:", repr(exc))
+            message = self._readable_error(exc)
+            Clock.schedule_once(lambda dt, msg=message: self._recovery_failed(msg), 0)
+
+    def _recovery_success(self):
+        self._busy = False
+        self.login_button.disabled = False
+        self._set_status("لینک بازیابی رمز به ایمیل ثبت‌شده ارسال شد.", SUCCESS)
+
+    def _recovery_failed(self, message):
+        self._busy = False
+        self.login_button.disabled = False
+        self._set_status(message, ERROR)
+
+    def on_pre_enter(self, *args):
+        self._busy = False
+        try:
+            self.login_button.disabled = False
+        except Exception:
+            pass
+        self._auto_login_checked = True
+        try:
+            if self.app_state is not None and getattr(self.app_state, "logged_in", False):
+                self.app_state.logout()
+        except Exception:
+            pass
+        return super().on_pre_enter(*args)
+
+    def _open_saved_session(self):
+        try:
+            app = App.get_running_app()
+            if app is not None and hasattr(app, "open_dashboard"):
+                if app.open_dashboard():
+                    return
+            self._set_status("نشست ذخیره‌شده دیگر معتبر نیست.", ERROR)
+            if self.app_state:
+                self.app_state.logout()
+        except Exception as exc:
+            print("AUTO LOGIN ERROR:", repr(exc))
+            self._set_status("ورود خودکار انجام نشد.", ERROR)
