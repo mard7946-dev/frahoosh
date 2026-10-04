@@ -236,34 +236,24 @@ class MeetingWorkflowScreen(BaseWorkflow):
             except Exception as exc:
                 print("MEETING PARENT CHILD LOOKUP ERROR:",repr(exc))
 
-        now=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         payload={
-            "title":vals[0],"requester_username":self.username(),
-            "requester_name":getattr(self.app_state,"display_name","کاربر") or "کاربر",
-            "requester_role":role,"target_username":self._value(self.target),"target_name":self._value(self.target),
-            "target_role":target_role,"student_id":student_id,
-            "teacher_id":profile.get("linked_teacher_id") or profile.get("teacher_id"),
-            "parent_id":profile.get("linked_parent_id") or profile.get("parent_id"),
-            "parent_phone":profile.get("phone") or "","requested_day":self._value(self.day),
-            "requested_date":self._value(self.date),"requested_time":self._value(self.time),
-            "reason":self._value(self.reason),"description":self._value(self.details),
-            "status":"pending_manager","manager_status":"pending"
+            "p_title":vals[0],
+            "p_target_role":target_role,
+            "p_target_username":self._value(self.target),
+            "p_target_name":self._value(self.target),
+            "p_student_id":student_id,
+            "p_requested_day":self._value(self.day),
+            "p_requested_date":self._value(self.date),
+            "p_requested_time":self._value(self.time),
+            "p_reason":self._value(self.reason),
+            "p_description":self._value(self.details),
+            "p_requester_name":getattr(self.app_state,"display_name","کاربر") or "کاربر",
         }
         try:
-            created=self.api().table_insert("meeting_requests",payload,return_representation=True)
-            row=created[0] if isinstance(created,list) and created else (created if isinstance(created,dict) else {})
-            # Immediate inbox delivery when the target is a known username.
-            target_username=self._value(self.target)
-            try:
-                if target_username:
-                    self.api().table_insert("messages",{
-                        "sender":self.username(),"sender_name":getattr(self.app_state,"display_name","کاربر") or "کاربر",
-                        "receiver":target_username,"title":"درخواست جدید ملاقات",
-                        "body":f"درخواست ملاقات «{vals[0]}» برای {self._value(self.date)} ساعت {self._value(self.time)} ثبت شد.",
-                        "audience_type":"user","audience_value":target_username
-                    })
-            except Exception as notify_exc:
-                print("MEETING TARGET NOTIFICATION ERROR:",repr(notify_exc))
+            # Use the hardened Supabase workflow RPC. It validates the caller,
+            # parent-child relationship and creates the inbox notification in
+            # one transaction, avoiding a client-side RLS race.
+            self.api().rpc("create_meeting_request",payload)
             self.msg("درخواست ملاقات با موفقیت ثبت شد و اطلاع‌رسانی آن انجام شد.",SUCCESS)
             self.build()
         except Exception as exc:
