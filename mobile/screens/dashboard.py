@@ -10,6 +10,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.widget import Widget
 from kivy.graphics import Color, RoundedRectangle, Rectangle
 from kivy.clock import Clock
+from kivy.animation import Animation
 from kivy.app import App
 from pathlib import Path
 from threading import Thread
@@ -402,7 +403,7 @@ class PanelHubScreen(Screen):
         Clock.schedule_once(lambda *_: self.refresh(), 0)
 
     def _build(self):
-        root = BoxLayout(orientation="horizontal", padding=dp(14), spacing=dp(14))
+        root = BoxLayout(orientation="horizontal", padding=[dp(12),dp(12),dp(12),dp(12)], spacing=dp(12))
 
         # LEFT: quiet, editorial-style rotating guidance area.
         self.info_panel = BoxLayout(orientation="vertical", padding=[dp(22), dp(24)],
@@ -452,19 +453,27 @@ class PanelHubScreen(Screen):
         self._tips=[]; self._tip_index=0; self._tip_event=None
         root.add_widget(self.info_panel)
 
-        # RIGHT: clear hierarchy with section headers and flat clickable rows.
-        right = BoxLayout(orientation="vertical", spacing=dp(10), size_hint_x=0.60)
-        head = BoxLayout(size_hint_y=None, height=dp(62), spacing=dp(10))
+        # RIGHT: professional module workspace; categories and rows stay flat/linear.
+        right = BoxLayout(orientation="vertical", spacing=dp(8), padding=[dp(14),dp(12)], size_hint_x=0.60)
+        with right.canvas.before:
+            Color(0.98,0.99,1,1)
+            self.right_bg = RoundedRectangle(radius=[dp(18)])
+        right.bind(pos=lambda o,v:setattr(self.right_bg,"pos",v), size=lambda o,v:setattr(self.right_bg,"size",v))
+        head = BoxLayout(size_hint_y=None, height=dp(58), spacing=dp(10), padding=[dp(10),dp(4)])
+        with head.canvas.before:
+            Color(0.035,0.11,0.20,1)
+            self.head_bg = RoundedRectangle(radius=[dp(12)])
+        head.bind(pos=lambda o,v:setattr(self.head_bg,"pos",v), size=lambda o,v:setattr(self.head_bg,"size",v))
         title = {route:title for title,route in PANEL_HUBS}.get(self.panel_key,self.panel_key)
         self.panel_title = Label(text=fa_display("ماژورهای "+title),
-                                 font_name=font_name(), font_size="20sp", bold=True,
-                                 color=(0.08,0.19,0.34,1), halign="right", valign="middle")
+                                 font_name=font_name(), font_size="17sp", bold=True,
+                                 color=WHITE, halign="right", valign="middle")
         self.panel_title.bind(size=lambda o,v:setattr(o,"text_size",v))
         head.add_widget(self.panel_title)
-        back = Button(text=fa_display("بازگشت"), font_name=font_name(), font_size="12sp",
-                      size_hint_x=None, width=dp(78), height=dp(38), size_hint_y=None,
-                      background_normal="", background_down="", background_color=(0.88,0.93,0.99,1),
-                      color=(0.12,0.34,0.62,1))
+        back = Button(text=fa_display("بازگشت"), font_name=font_name(), font_size="11sp",
+                      size_hint_x=None, width=dp(72), height=dp(34), size_hint_y=None,
+                      background_normal="", background_down="", background_color=(0.08,0.20,0.32,1),
+                      color=(0.78,0.90,1,1))
         back.bind(on_release=lambda *_: setattr(self.manager,"current","dashboard") if self.manager else None)
         head.add_widget(back)
         right.add_widget(head)
@@ -586,16 +595,16 @@ class PanelHubScreen(Screen):
 
         for category,group_items in grouped:
             section=BoxLayout(orientation="vertical",spacing=0,
-                              padding=[dp(10),dp(4)],size_hint_y=None)
-            with section.canvas.before:
-                Color(1,1,1,1)
-                section_bg=RoundedRectangle(radius=[dp(12)])
-            section.bind(pos=lambda o,v,bg=section_bg:setattr(bg,"pos",v),
-                         size=lambda o,v,bg=section_bg:setattr(bg,"size",v))
+                              padding=[dp(4),dp(2)],size_hint_y=None)
             if category:
-                heading=BoxLayout(size_hint_y=None,height=dp(38),padding=[dp(5),0])
+                heading=BoxLayout(size_hint_y=None,height=dp(36),padding=[dp(8),0])
+                with heading.canvas.before:
+                    Color(0.90,0.95,0.99,1)
+                    heading_bg=RoundedRectangle(radius=[dp(7)])
+                heading.bind(pos=lambda o,v,bg=heading_bg:setattr(bg,"pos",v),
+                             size=lambda o,v,bg=heading_bg:setattr(bg,"size",v))
                 heading_label=Label(text=fa_display(category),font_name=font_name(),
-                                    font_size="13sp",bold=True,color=(0.12,0.35,0.62,1),
+                                    font_size="12.5sp",bold=True,color=(0.08,0.30,0.54,1),
                                     halign="right",valign="middle")
                 heading_label.bind(size=lambda o,v:setattr(o,"text_size",v))
                 heading.add_widget(heading_label)
@@ -605,9 +614,9 @@ class PanelHubScreen(Screen):
                            font_name=font_name(),font_size="13sp",
                            background_normal="",background_down="",
                            background_color=(1,1,1,0),
-                           color=(0.13,0.22,0.34,1),
+                           color=(0.12,0.20,0.30,1),
                            halign="right",valign="middle",
-                           size_hint_y=None,height=dp(43))
+                           size_hint_y=None,height=dp(45))
                 row.bind(size=lambda o,v:setattr(o,"text_size",(v[0]-dp(12),v[1])))
                 row.bind(on_release=lambda *_a,r=route:self._open(r))
                 section.add_widget(row)
