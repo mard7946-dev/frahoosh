@@ -133,9 +133,30 @@ class OnlineClassScreen(Screen):
             }))
             api.table_update("online_classes",{"id":"eq."+str(class_id)},{
                 "join_url":"frahoosh://online-class/"+str(class_id),
-                "meeting_url":"frahoosh://online-class/"+str(class_id)
+                "meeting_url":"frahoosh://online-class/"+str(class_id),
+                "pages":15,
+                "smart_board":1,
+                "quiz":1,
+                "camera":1,
+                "microphone":1,
+                "record":1
             })
-            self._ok("کلاس ساخته شد؛ اکنون می‌توانید چند دبیر و چند دانش‌آموز را دستی یا با Excel متصل کنید. کد کلاس: "+str(class_id))
+            # A class is born as a smart classroom: 15 persistent board pages,
+            # media sharing, quiz, camera/microphone and screen sharing enabled.
+            api.table_insert("online_class_settings",{
+                "class_id":int(class_id),
+                "public_chat_enabled":1,
+                "private_chat_enabled":1,
+                "board_enabled":1,
+                "file_share_enabled":1,
+                "media_enabled":1,
+                "quiz_enabled":1,
+                "camera_enabled":1,
+                "microphone_enabled":1,
+                "screen_share_enabled":1,
+                "updated_at_shamsi":datetime.now().strftime("%Y-%m-%d %H:%M")
+            },return_representation=False)
+            self._ok("کلاس هوشمند ساخته شد؛ ۱۵ صفحه تخته، صدا/تصویر، اشتراک صفحه/فایل و کوئیز فعال است. اکنون دبیر و دانش‌آموزان را متصل کنید. کد کلاس: "+str(class_id))
             self._members(class_id)
         except Exception as exc:
             self._error("ثبت کلاس در Supabase انجام نشد: "+str(exc))
@@ -183,10 +204,13 @@ class OnlineClassScreen(Screen):
                 self._button("اعضای کلاس",lambda *_ ,x=cid:self._members(x),PRIMARY)
                 self._button("خروجی اکسل کلاس‌ها",lambda *_:self._export_excel(),PRIMARY)
                 self._button("ورودی اکسل کلاس‌ها",lambda *_:self._import_excel(),PRIMARY)
-                if state!="active": self._button("شروع جلسه",lambda *_ ,x=cid:self._start(x),SUCCESS)
+                if state!="active": self._button("شروع جلسه هوشمند",lambda *_ ,x=cid:self._start(x),SUCCESS)
                 if state=="active": self._button("پایان جلسه",lambda *_ ,x=cid:self._end(x),ERROR)
-                self._button("حضور و غیاب",lambda *_ ,x=cid:self._attendance(x),PRIMARY)
-                self._button("اعلام غیبت به ولی",lambda *_ ,x=cid:self._absence_notice(x),PRIMARY)
+            # Teacher, manager, executive and educational deputy all need the
+            # real attendance chain: student list -> verification -> referral
+            # to educational deputy -> parent notification.
+            if role in {"teacher","manager","executive","educational"}:
+                self._button("حضور و غیاب و صحت‌سنجی",lambda *_ ,x=cid:self._attendance(x),PRIMARY)
             if state=="active":
                 url=r.get("join_url") or r.get("meeting_url")
                 if url:self._button("ورود به جلسه و فعال‌سازی دوربین/میکروفون",lambda *_ ,u=url,x=cid:self._join(u,x),SUCCESS)
@@ -512,7 +536,15 @@ class OnlineClassScreen(Screen):
             self.app_state.api.table_update("online_classes",{
                 "id":f"eq.{cid}"
             },{
-                "status":"active","activated_at":now
+                "status":"active","activated_at":now,"pages":15,"smart_board":1,"quiz":1,
+                "camera":1,"microphone":1,"record":1
+            })
+            # Keep the smart-class controls enabled for every live session.
+            self.app_state.api.table_update("online_class_settings",{"class_id":f"eq.{cid}"},{
+                "public_chat_enabled":1,"private_chat_enabled":1,"board_enabled":1,
+                "file_share_enabled":1,"media_enabled":1,"quiz_enabled":1,
+                "camera_enabled":1,"microphone_enabled":1,"screen_share_enabled":1,
+                "updated_at_shamsi":datetime.now().strftime("%Y-%m-%d %H:%M")
             })
             rows=self.app_state.api.table_select(
                 "online_classes",{"id":f"eq.{cid}","limit":"1"}
@@ -539,16 +571,88 @@ class OnlineClassScreen(Screen):
             self.app_state.api.table_update("online_classes",{"id":f"eq.{cid}"},{"status":"ended"}); self._ok("جلسه پایان یافت و زمان پایان ثبت شد."); self.show_home()
         except Exception as exc:self._error("پایان جلسه انجام نشد: "+str(exc))
     def _attendance(self,cid):
-        self._clear(); self._label(f"حضور و غیاب جلسه #{cid}","21sp",PRIMARY,50,True)
-        try:members=self.app_state.api.table_select("online_class_students",{"class_id":f"eq.{cid}","limit":"100"})
-        except Exception as exc:return self._error(str(exc))
-        if not members:self._label("دانش‌آموزان کلاس را می‌توان از جدول online_class_students به جلسه متصل کرد.",height=70)
+        self._clear()
+        role=role_of(self.app_state)
+        self._label(f"حضور و غیاب و صحت‌سنجی کلاس #{cid}","21sp",PRIMARY,50,True)
+        self._label("ثبت این صفحه به فهرست واقعی دانش‌آموزان کلاس وصل است. غیبت برای ولی اطلاع‌رسانی می‌شود و دبیر می‌تواند مورد را به معاون آموزشی ارجاع دهد.",height=76)
+        try:
+            members=self.app_state.api.table_select("online_class_students",{"class_id":f"eq.{cid}","limit":"100"}) or []
+            sessions=self.app_state.api.table_select("online_class_sessions",{"class_id":f"eq.{cid}","order":"id.desc","limit":"1"}) or []
+            session_id=sessions[0].get("id") if sessions else None
+            attendance=[]
+            if session_id:
+                attendance=self.app_state.api.table_select("online_attendance",{"class_id":f"eq.{cid}","session_id":f"eq.{session_id}","order":"id.desc","limit":"500"}) or []
+            latest={}
+            for row in attendance:
+                sid=str(row.get("student_id"))
+                if sid not in latest: latest[sid]=row
+        except Exception as exc:
+            return self._error(str(exc))
+        if not members:
+            self._label("هنوز دانش‌آموزی به این کلاس متصل نشده است.",height=70)
         for m in members:
-            sid=m.get("student_id"); name=m.get("student_name") or str(sid); self._button(f"{name} — حاضر",lambda *_ ,s=sid:self._mark(s,cid,"present"),SUCCESS,42); self._button(f"{name} — غایب",lambda *_ ,s=sid:self._mark(s,cid,"absent"),ERROR,42)
-        self._button("بازگشت به کلاس‌ها",lambda *_:self.show_home())
-    def _mark(self,sid,cid,status):
-        try:self.app_state.api.table_insert("attendance",{"student_id":sid,"class_name":f"online:{cid}","subject":"کلاس آنلاین","attendance_date":datetime.now(timezone.utc).isoformat(),"status":status}); self._ok("حضور و غیاب ثبت شد.")
+            sid=m.get("student_id"); name=m.get("student_name") or str(sid)
+            state=str(latest.get(str(sid),{}).get("status") or "ثبت نشده")
+            color=SUCCESS if state=="present" else (ERROR if state.startswith("absent") else SECONDARY)
+            self._label(f"{name}  • وضعیت فعلی: {state}",height=44,bold=True,color=color)
+            if role in {"teacher","manager","executive","educational"}:
+                self._button("ثبت حاضر",lambda *_ ,s=sid:self._mark(s,cid,"present",session_id),SUCCESS,40)
+                self._button("ثبت غایب + اطلاع ولی",lambda *_ ,s=sid:self._mark(s,cid,"absent",session_id),ERROR,40)
+                if role=="teacher":
+                    self._button("ارجاع به معاون آموزشی",lambda *_ ,s=sid,n=name:self._refer_educational(s,cid,n),PRIMARY,40)
+        self._button("بازخوانی فهرست",lambda *_:self._attendance(cid),SECONDARY,42)
+        self._button("بازگشت به کلاس‌ها",lambda *_:self.show_home(),SECONDARY,42)
+
+    def _mark(self,sid,cid,status,session_id=None):
+        try:
+            now=datetime.now(timezone.utc).isoformat()
+            if not session_id:
+                sessions=self.app_state.api.table_select("online_class_sessions",{"class_id":f"eq.{cid}","order":"id.desc","limit":"1"}) or []
+                session_id=sessions[0].get("id") if sessions else None
+            payload={"class_id":int(cid),"student_id":int(sid),"student_name":"","status":status,
+                     "session_id":session_id,"source":"teacher_attendance","event_time":now,"recorded_at":now,
+                     "checkpoint_no":0}
+            student_rows=self.app_state.api.table_select("students",{"id":f"eq.{sid}","limit":"1"}) or []
+            student=student_rows[0] if student_rows else {}
+            payload["student_name"]=(str(student.get("first_name") or "")+" "+str(student.get("last_name") or "")).strip()
+            self.app_state.api.table_insert("online_attendance",payload,return_representation=False)
+            # Keep the legacy attendance ledger synchronized for school reports.
+            try:self.app_state.api.table_insert("attendance",{"student_id":sid,"class_name":f"online:{cid}","subject":"کلاس آنلاین","attendance_date":now,"status":status},return_representation=False)
+            except Exception: pass
+            if status=="absent":
+                self._notify_parents(sid,cid,payload["student_name"])
+            self._ok(("حاضر" if status=="present" else "غایب")+" ثبت شد؛ مسیر اطلاع‌رسانی اجرا شد.")
         except Exception as exc:self._error(str(exc))
+
+    def _notify_parents(self,sid,cid,student_name):
+        try:
+            parents=self.app_state.api.table_select("parent_children",{"student_id":f"eq.{sid}","limit":"50"}) or []
+            for parent in parents:
+                self.app_state.api.table_insert("online_class_notifications",{
+                    "class_id":int(cid),"student_id":int(sid),
+                    "recipient":parent.get("parent_username") or "",
+                    "recipient_role":"parent","title":"غیبت در کلاس آنلاین",
+                    "message":f"دانش‌آموز {student_name or sid} در کلاس آنلاین #{cid} غایب ثبت شد.",
+                    "created_at":datetime.now(timezone.utc).isoformat()
+                },return_representation=False)
+        except Exception as exc: print("ONLINE CLASS PARENT NOTICE ERROR:",repr(exc))
+
+    def _refer_educational(self,sid,cid,student_name):
+        try:
+            deputies=self.app_state.api.table_select("account_settings",{"role":"eq.educational","limit":"20"}) or []
+            if not deputies:
+                deputies=self.app_state.api.table_select("account_settings",{"role":"eq.معاون آموزشی","limit":"20"}) or []
+            if not deputies: return self._error("حساب معاون آموزشی در سامانه پیدا نشد.")
+            for d in deputies:
+                self.app_state.api.table_insert("online_class_notifications",{
+                    "class_id":int(cid),"student_id":int(sid),
+                    "recipient":d.get("username") or d.get("email") or "",
+                    "recipient_role":"educational","title":"ارجاع وضعیت حضور دانش‌آموز",
+                    "message":f"دبیر وضعیت حضور {student_name or sid} را در کلاس آنلاین #{cid} برای بررسی ارجاع داده است.",
+                    "created_at":datetime.now(timezone.utc).isoformat()
+                },return_representation=False)
+            self._ok("وضعیت دانش‌آموز به معاون آموزشی ارجاع شد.")
+        except Exception as exc:self._error("ارجاع انجام نشد: "+str(exc))
     def _chat(self,cid):
         self._clear(); self._label(f"گفت‌وگوی کلاس #{cid}","21sp",PRIMARY,50,True)
         try:rows=self.app_state.api.table_select("messages",{"order":"id.desc","limit":"50"})
@@ -854,7 +958,11 @@ class OnlineClassScreen(Screen):
             token=str(getattr(getattr(self.app_state,"api",None),"access_token","") or "")
             from mobile.config import SUPABASE_URL,SUPABASE_ANON_KEY
             name=str(profile.get("display_name") or getattr(self.app_state,"display_name","") or "کاربر فراهوش")
-            cfg=json.dumps({"url":SUPABASE_URL,"anon":SUPABASE_ANON_KEY,"token":token,"userId":user_id,"classId":int(class_id),"name":name},ensure_ascii=False,separators=(",",":"))
+            cfg=json.dumps({
+                "url":SUPABASE_URL,"anon":SUPABASE_ANON_KEY,"token":token,
+                "userId":user_id,"classId":int(class_id),"name":name,
+                "role":role,"school":"فراهوش","maxBoardPages":15
+            },ensure_ascii=False,separators=(",",":"))
             html=html.replace("__CONFIG__",cfg)
             container=FrameLayout(activity); container.setBackgroundColor(Color.BLACK)
             container.addView(web,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
