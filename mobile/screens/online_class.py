@@ -16,9 +16,9 @@ from kivy.uix.scrollview import ScrollView
 from mobile.config import APP_NAME, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput, PersianSpinner
 
-MANAGERS={"manager","educational","executive"}
-CLASS_CREATORS={"manager","educational","executive"}
-CLASS_MANAGERS={"manager","educational","executive"}
+MANAGERS={"manager","executive"}
+CLASS_CREATORS={"manager","executive"}
+CLASS_MANAGERS={"manager","executive"}
 
 
 def role_of(state):
@@ -85,7 +85,7 @@ class OnlineClassScreen(Screen):
     def show_home(self):
         self._clear(); role=role_of(self.app_state); self._label("کلاس آنلاین واقعی","21sp",PRIMARY,52,True); self._label("ساخت کلاس، شروع/پایان جلسه، حضور و غیاب، گفت‌وگو، تخته مشترک، کنترل دوربین/میکروفون و اطلاع غیبت به ولی در همین پنل ثبت می‌شود.",height=82)
         if role in CLASS_CREATORS:
-            # Only manager, executive deputy and educational deputy can form classes.
+            # Only manager and executive deputy can form classes.
             # Teachers/students/parents may use the classes but cannot create them.
             # Keep the creation action above the class list so it is visible
             # immediately on a phone-sized screen.
@@ -97,7 +97,7 @@ class OnlineClassScreen(Screen):
         self._clear()
         role=role_of(self.app_state)
         if role not in CLASS_CREATORS:
-            return self._error("فقط مدیر، معاون اجرایی و معاون آموزشی اجازه تشکیل کلاس آنلاین دارند.")
+            return self._error("فقط مدیر و معاون اجرایی اجازه تشکیل کلاس آنلاین دارند.")
         self._label("ساخت و تولید کلاس آنلاین","21sp",PRIMARY,52,True)
         self._create_form()
         self._button("بازگشت به فهرست کلاس‌ها",lambda *_:self.show_home(),SECONDARY,46)
