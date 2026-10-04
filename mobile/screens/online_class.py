@@ -1079,6 +1079,29 @@ class OnlineClassScreen(Screen):
                     detail=f"{type(exc).__name__}: {exc}"
                     print("FRAHOOSH INTERNAL CLASSROOM UI ERROR:",detail)
                     print(traceback.format_exc())
+                    # Do not leave a ghost active session when the native room
+                    # itself could not be created.
+                    def rollback():
+                        try:
+                            owner.app_state.api.table_update(
+                                "online_classes",
+                                {"id":f"eq.{int(class_id)}"},
+                                {"status":"inactive"}
+                            )
+                            rows=owner.app_state.api.table_select(
+                                "online_class_sessions",
+                                {"class_id":f"eq.{int(class_id)}","order":"id.desc","limit":"1"}
+                            ) or []
+                            if rows and rows[0].get("id") is not None:
+                                owner.app_state.api.table_update(
+                                    "online_class_sessions",
+                                    {"id":f"eq.{rows[0]['id']}"},
+                                    {"ended_at":datetime.now(timezone.utc).isoformat()}
+                                )
+                        except Exception as rollback_exc:
+                            print("CLASSROOM LAUNCH ROLLBACK ERROR:",repr(rollback_exc))
+                    from threading import Thread
+                    Thread(target=rollback,daemon=True).start()
                     Clock.schedule_once(
                         lambda dt,msg=detail: owner._error("اتاق مجازی باز نشد؛ "+msg),
                         0
