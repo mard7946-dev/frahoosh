@@ -2,7 +2,7 @@ from threading import Thread
 
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.graphics import Color, RoundedRectangle, Line, Rectangle
+from kivy.graphics import Color, RoundedRectangle, Line, Rectangle, Ellipse
 from kivy.metrics import dp
 from kivy.resources import resource_find
 from kivy.uix.boxlayout import BoxLayout
@@ -119,12 +119,20 @@ class LoginScreen(Screen):
             root.add_widget(bg)
 
         with root.canvas.before:
-            Color(0.01, 0.04, 0.11, 0.58)
+            Color(0.01, 0.035, 0.10, 0.72)
             self._overlay = Rectangle(pos=root.pos, size=root.size)
+            Color(0.02, 0.65, 0.90, 0.10)
+            self._glow1 = Ellipse()
+            Color(0.95, 0.68, 0.16, 0.08)
+            self._glow2 = Ellipse()
 
         def overlay_sync(*_):
             self._overlay.pos = root.pos
             self._overlay.size = root.size
+            self._glow1.pos = (root.x - dp(80), root.top - dp(260))
+            self._glow1.size = (dp(360), dp(360))
+            self._glow2.pos = (root.right - dp(220), root.y + dp(80))
+            self._glow2.size = (dp(300), dp(300))
         root.bind(pos=overlay_sync, size=overlay_sync)
         Clock.schedule_once(overlay_sync, 0)
 
@@ -156,11 +164,11 @@ class LoginScreen(Screen):
         root.add_widget(brand)
 
         card = BoxLayout(orientation="vertical", padding=[dp(20), dp(18)], spacing=dp(8),
-                         size_hint=(.88, .49), pos_hint={"center_x": .5, "center_y": .40})
+                         size_hint=(.88, .50), pos_hint={"center_x": .5, "center_y": .39})
         with card.canvas.before:
-            Color(0.02, 0.08, 0.18, 0.94)
+            Color(0.018, 0.09, 0.20, 0.96)
             card._card = RoundedRectangle(radius=[dp(24)])
-            Color(0.20, 0.78, 0.96, 0.55)
+            Color(0.18, 0.78, 0.98, 0.78)
             card._line = Line(rounded_rectangle=(0, 0, 0, 0, dp(24)), width=1.0)
 
         def card_sync(*_):
@@ -170,7 +178,7 @@ class LoginScreen(Screen):
         card.bind(pos=card_sync, size=card_sync)
 
         welcome = Label(text=fa_display("ورود به سامانه"), font_name=title_font_name(),
-                        font_size="18sp", color=WHITE, bold=True,
+                        font_size="20sp", color=WHITE, bold=True,
                         halign="center", valign="middle", size_hint_y=None, height=dp(36))
         welcome.bind(size=lambda o, v: setattr(o, "text_size", v))
         card.add_widget(welcome)
@@ -192,12 +200,12 @@ class LoginScreen(Screen):
         self.remember_checkbox.bind(active=self._remember_changed)
         row.add_widget(self.remember_checkbox)
 
-        remember = Button(text=fa_display("مرا به خاطر بسپار"), font_name=font_name(), font_size="10sp",
+        remember = Button(text=fa_display("مرا به خاطر بسپار"), font_name=font_name(), font_size="10.5sp",
                           color=WHITE, background_normal="", background_color=(0, 0, 0, 0))
         remember.bind(on_press=self._toggle_remember)
         row.add_widget(remember)
 
-        forgot = Button(text=fa_display("بازیابی رمز"), font_name=font_name(), font_size="10sp",
+        forgot = Button(text=fa_display("بازیابی رمز"), font_name=font_name(), font_size="10.5sp",
                         color=GOLD, background_normal="", background_color=(0, 0, 0, 0))
         forgot.bind(on_press=self.forgot_password)
         row.add_widget(forgot)
@@ -205,9 +213,9 @@ class LoginScreen(Screen):
 
         self.login_button = Button(text=fa_display("ورود به فراهوش"), font_name=title_font_name(),
                                    font_size="15sp", bold=True,
-                                   background_normal="", background_color=CYAN,
+                                   background_normal="", background_down=(0.02, 0.58, 0.78, 1), background_color=CYAN,
                                    color=(0.01, 0.06, 0.12, 1),
-                                   size_hint_y=None, height=dp(50))
+                                   size_hint_y=None, height=dp(54))
         self.login_button.bind(on_press=self.login)
         card.add_widget(self.login_button)
 
@@ -219,7 +227,7 @@ class LoginScreen(Screen):
 
         footer = Label(text=fa_display(f"{SCHOOL_NAME} - سال تحصیلی ۱۴۰۵–۱۴۰۶"),
                        font_name=font_name(), font_size="8sp",
-                       color=(.82, .91, .98, 1), size_hint=(.92, None), height=dp(26),
+                       color=(.78, .90, .98, 1), size_hint=(.92, None), height=dp(28),
                        pos_hint={"center_x": .5, "y": .025}, halign="center", valign="middle")
         footer.bind(size=lambda o, v: setattr(o, "text_size", v))
         root.add_widget(footer)
