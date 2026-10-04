@@ -402,48 +402,103 @@ class PanelHubScreen(Screen):
         Clock.schedule_once(lambda *_: self.refresh(), 0)
 
     def _build(self):
-        root=BoxLayout(orientation='horizontal',padding=dp(12),spacing=dp(12))
-        self.info_panel=BoxLayout(orientation='vertical',padding=[dp(20),dp(24)],spacing=dp(14),size_hint_x=0.43)
+        root = BoxLayout(orientation="horizontal", padding=dp(14), spacing=dp(14))
+
+        # LEFT: quiet, editorial-style rotating guidance area.
+        self.info_panel = BoxLayout(orientation="vertical", padding=[dp(22), dp(24)],
+                                    spacing=dp(14), size_hint_x=0.40)
         with self.info_panel.canvas.before:
-            Color(0.035,0.12,0.21,0.98)
-            self.info_bg=RoundedRectangle(radius=[dp(22)])
-        self.info_panel.bind(pos=lambda o,v:setattr(self.info_bg,'pos',v),size=lambda o,v:setattr(self.info_bg,'size',v))
-        self.info_title=Label(text=fa_display('آیا می‌دانید؟'),font_name=font_name(),font_size='22sp',bold=True,color=(0.70,0.90,1,1),halign='right',valign='middle',size_hint_y=None,height=dp(52))
-        self.info_title.bind(size=lambda o,v:setattr(o,'text_size',v))
+            Color(0.91, 0.95, 1.0, 1)
+            self.info_bg = RoundedRectangle(radius=[dp(20)])
+        self.info_panel.bind(pos=lambda o,v:setattr(self.info_bg,"pos",v),
+                             size=lambda o,v:setattr(self.info_bg,"size",v))
+
+        self.info_kicker = Label(text=fa_display("FRAHOOSH  •  راهنمای هوشمند"),
+                                 font_name=font_name(), font_size="11sp",
+                                 color=(0.20,0.43,0.72,1), bold=True,
+                                 halign="right", valign="middle",
+                                 size_hint_y=None, height=dp(34))
+        self.info_kicker.bind(size=lambda o,v:setattr(o,"text_size",v))
+        self.info_panel.add_widget(self.info_kicker)
+
+        self.info_title = Label(text=fa_display("آیا می‌دانید؟"),
+                                font_name=font_name(), font_size="23sp", bold=True,
+                                color=(0.07,0.22,0.43,1), halign="right",
+                                valign="middle", size_hint_y=None, height=dp(58))
+        self.info_title.bind(size=lambda o,v:setattr(o,"text_size",v))
         self.info_panel.add_widget(self.info_title)
-        self.info_text=Label(text=fa_display('در این قسمت امکانات پنل انتخاب‌شده، راهنمای استفاده و نکات کاربردی فراهوش نمایش داده می‌شود.'),font_name=font_name(),font_size='16sp',color=WHITE,halign='right',valign='top')
-        self.info_text.bind(size=lambda o,v:setattr(o,'text_size',(v[0],None)))
+
+        self.info_rule = BoxLayout(size_hint_y=None, height=dp(3))
+        with self.info_rule.canvas.before:
+            Color(0.30,0.57,0.91,0.75)
+            self.info_rule_bg = RoundedRectangle(radius=[dp(2)])
+        self.info_rule.bind(pos=lambda o,v:setattr(self.info_rule_bg,"pos",v),
+                            size=lambda o,v:setattr(self.info_rule_bg,"size",v))
+        self.info_panel.add_widget(self.info_rule)
+
+        self.info_text = Label(
+            text=fa_display("راهنمای کاربردی و نکته‌های کوتاه مربوط به پنل انتخاب‌شده در این قسمت نمایش داده می‌شود."),
+            font_name=font_name(), font_size="16sp", color=(0.13,0.25,0.40,1),
+            halign="right", valign="top")
+        self.info_text.bind(size=lambda o,v:setattr(o,"text_size",(v[0],None)))
         self.info_panel.add_widget(self.info_text)
-        self.info_hint=Label(text=fa_display('راهنمای سریع فراهوش'),font_name=font_name(),font_size='12sp',color=(0.62,0.78,0.88,1),halign='right',valign='bottom',size_hint_y=None,height=dp(40))
-        self.info_hint.bind(size=lambda o,v:setattr(o,'text_size',v))
+
+        self.info_hint = Label(text=fa_display("نکته‌ها به‌صورت خودکار تغییر می‌کنند"),
+                               font_name=font_name(), font_size="11sp",
+                               color=(0.31,0.45,0.61,1), halign="right",
+                               valign="bottom", size_hint_y=None, height=dp(38))
+        self.info_hint.bind(size=lambda o,v:setattr(o,"text_size",v))
         self.info_panel.add_widget(self.info_hint)
         self._tips=[]; self._tip_index=0; self._tip_event=None
         root.add_widget(self.info_panel)
-        right=BoxLayout(orientation='vertical',spacing=dp(8),size_hint_x=0.57)
-        head=BoxLayout(size_hint_y=None,height=dp(58),spacing=dp(8))
-        title={route:title for title,route in PANEL_HUBS}.get(self.panel_key,self.panel_key)
-        self.panel_title=Label(text=fa_display('ماژورهای '+title),font_name=font_name(),font_size='20sp',bold=True,color=WHITE,halign='right',valign='middle')
-        self.panel_title.bind(size=lambda o,v:setattr(o,'text_size',v)); head.add_widget(self.panel_title)
-        back=Button(text=fa_display('بازگشت'),font_name=font_name(),font_size='12sp',size_hint_x=None,width=dp(82),background_normal='',background_color=PRIMARY,color=WHITE)
-        back.bind(on_release=lambda *_: setattr(self.manager,'current','dashboard') if self.manager else None); head.add_widget(back); right.add_widget(head)
-        self.module_scroll=ScrollView(do_scroll_x=False,bar_width=dp(5))
-        self.module_box=BoxLayout(orientation='vertical',spacing=dp(12),padding=[dp(4),dp(4)],size_hint_y=None)
-        self.module_box.bind(minimum_height=self.module_box.setter('height')); self.module_scroll.add_widget(self.module_box); right.add_widget(self.module_scroll)
-        root.add_widget(right); self.add_widget(root)
+
+        # RIGHT: clear hierarchy with section headers and flat clickable rows.
+        right = BoxLayout(orientation="vertical", spacing=dp(10), size_hint_x=0.60)
+        head = BoxLayout(size_hint_y=None, height=dp(62), spacing=dp(10))
+        title = {route:title for title,route in PANEL_HUBS}.get(self.panel_key,self.panel_key)
+        self.panel_title = Label(text=fa_display("ماژورهای "+title),
+                                 font_name=font_name(), font_size="20sp", bold=True,
+                                 color=(0.08,0.19,0.34,1), halign="right", valign="middle")
+        self.panel_title.bind(size=lambda o,v:setattr(o,"text_size",v))
+        head.add_widget(self.panel_title)
+        back = Button(text=fa_display("بازگشت"), font_name=font_name(), font_size="12sp",
+                      size_hint_x=None, width=dp(78), height=dp(38), size_hint_y=None,
+                      background_normal="", background_down="", background_color=(0.88,0.93,0.99,1),
+                      color=(0.12,0.34,0.62,1))
+        back.bind(on_release=lambda *_: setattr(self.manager,"current","dashboard") if self.manager else None)
+        head.add_widget(back)
+        right.add_widget(head)
+
+        self.module_scroll = ScrollView(do_scroll_x=False, bar_width=dp(4),
+                                        scroll_type=["bars","content"])
+        self.module_box = BoxLayout(orientation="vertical", spacing=dp(10),
+                                    padding=[dp(2),dp(2)], size_hint_y=None)
+        self.module_box.bind(minimum_height=self.module_box.setter("height"))
+        self.module_scroll.add_widget(self.module_box)
+        right.add_widget(self.module_scroll)
+        root.add_widget(right)
+        self.add_widget(root)
 
     def _start_info_tips(self):
-        if self._tip_event is not None: self._tip_event.cancel()
-        self._tip_event=Clock.schedule_interval(self._next_info_tip,5.5); Clock.schedule_once(self._next_info_tip,0)
+        if self._tip_event is not None:
+            self._tip_event.cancel()
+        self._tip_index=0
+        self._tip_event=Clock.schedule_interval(self._next_info_tip,6.5)
+        Clock.schedule_once(self._next_info_tip,0)
 
     def _next_info_tip(self,*_):
-        if not self._tips: return
-        value=self._tips[self._tip_index % len(self._tips)]; self._tip_index+=1
+        if not self._tips:
+            return
+        value=self._tips[self._tip_index % len(self._tips)]
+        self._tip_index+=1
         try:
-            Animation(opacity=0.15,duration=0.22).start(self.info_text)
+            Animation(opacity=0.12,duration=0.24).start(self.info_text)
             def reveal(_dt):
-                self.info_text.text=fa_display(value); Animation(opacity=1,duration=0.38).start(self.info_text)
-            Clock.schedule_once(reveal,0.24)
-        except Exception: self.info_text.text=fa_display(value)
+                self.info_text.text=fa_display(value)
+                Animation(opacity=1,duration=0.42).start(self.info_text)
+            Clock.schedule_once(reveal,0.26)
+        except Exception:
+            self.info_text.text=fa_display(value)
     def _has_panel_access(self, panel_key):
         role = self._active_role()
         if role == "manager":
@@ -461,36 +516,112 @@ class PanelHubScreen(Screen):
 
     def refresh(self):
         if not self._has_panel_access(self.panel_key):
-            try: self.manager.current='dashboard'
+            try: self.manager.current="dashboard"
             except Exception: pass
-            print('PANEL ACCESS DENIED:',self._active_role(),self.panel_key); return
-        catalog_key={'management':'manager','executive':'executive','educational':'educational','cultural':'cultural','advisor':'advisor','teachers':'teacher','staff':'staff','students':'student','parents':'parent','finance':'finance','smart_board':'smart_board','ai':'ai'}.get(self.panel_key,self.panel_key)
-        catalog=MOTHER_PANEL_CATALOG.get(catalog_key) or {}; items=list(catalog.get('items') or [])
-        if self.panel_key=='staff': items=[('کادر و کارکنان','staff')]
-        if self.panel_key=='meetings': items=[('ثبت و پیگیری ملاقات','meeting_requests')]
-        elif self.panel_key=='teacher_exams': items=[('مرکز طراحی آزمون آنلاین','teacher_exams')]
-        elif self.panel_key=='online': items=[('مرکز کلاس آنلاین','online_classes')]
+            print("PANEL ACCESS DENIED:",self._active_role(),self.panel_key)
+            return
+
+        catalog_key={"management":"manager","executive":"executive","educational":"educational",
+                     "cultural":"cultural","advisor":"advisor","teachers":"teacher","staff":"staff",
+                     "students":"student","parents":"parent","finance":"finance",
+                     "smart_board":"smart_board","ai":"ai"}.get(self.panel_key,self.panel_key)
+        catalog=MOTHER_PANEL_CATALOG.get(catalog_key) or {}
+        items=list(catalog.get("items") or [])
+        if self.panel_key=="staff":
+            items=[("کادر و کارکنان","staff")]
+        if self.panel_key=="meetings":
+            items=[("ثبت و پیگیری ملاقات","meeting_requests")]
+        elif self.panel_key=="teacher_exams":
+            items=[("مرکز طراحی آزمون آنلاین","teacher_exams")]
+        elif self.panel_key=="online":
+            items=[("مرکز کلاس آنلاین","online_classes")]
+
         self.module_box.clear_widgets()
-        self._tips=['آیا می‌دانید؟ این قسمت دسترسی سریع به ماژورهای پنل انتخاب‌شده را فراهم می‌کند.','نکته فراهوش: هر گزینه مستقیماً شما را به بخش عملیاتی همان ماژور می‌برد.','راهنمای سریع: برای برگشت به فهرست پنل‌ها از دکمه بازگشت استفاده کنید.','اطلاع‌رسانی: این نکات به‌صورت خودکار تغییر می‌کنند.']
+        title={route:title for title,route in PANEL_HUBS}.get(self.panel_key,self.panel_key)
+        tip_map={
+            "teachers":["آیا می‌دانید؟ می‌توانید فعالیت‌های آموزشی، حضور و غیاب و نمرات کلاس‌های خود را از همین پنل پیگیری کنید.",
+                        "نکته: برای دسترسی سریع‌تر، ماژورها بر اساس موضوع آموزشی و ارتباطی مرتب شده‌اند.",
+                        "یادآوری: پس از ثبت اطلاعات، نتیجه را در همان بخش عملیاتی بررسی کنید."],
+            "management":["آیا می‌دانید؟ امکانات مدیریتی برای نظارت یکپارچه بر بخش‌های مختلف مدرسه گردآوری شده‌اند.",
+                          "نکته: گزارش‌های هر بخش را از ماژور مرتبط با همان موضوع دنبال کنید."],
+            "executive":["آیا می‌دانید؟ امور پرونده، کلاس‌بندی و درخواست‌های اجرایی از این پنل قابل پیگیری‌اند.",
+                         "نکته: برای پیگیری درخواست‌ها، وضعیت و سوابق هر مورد را در بخش مربوط بررسی کنید."],
+            "educational":["آیا می‌دانید؟ برنامه‌ریزی آموزشی، ارزشیابی و کلاس‌های مدرسه در این پنل دسته‌بندی شده‌اند.",
+                           "نکته: اطلاعات آموزشی را در ماژور مرتبط با پایه، کلاس یا درس ثبت کنید."],
+            "parents":["آیا می‌دانید؟ از این پنل می‌توانید وضعیت آموزشی و درخواست‌های مرتبط با فرزندتان را پیگیری کنید.",
+                       "نکته: برای پیگیری پاسخ مدرسه، صندوق پیام‌ها و وضعیت درخواست را بررسی کنید."],
+            "students":["آیا می‌دانید؟ تکالیف، آزمون‌ها و درخواست‌های دانش‌آموزی از این پنل در دسترس هستند.",
+                        "نکته: پس از ارسال تکلیف یا درخواست، وضعیت ثبت آن را پیگیری کنید."]
+        }
+        self._tips=tip_map.get(self.panel_key,[
+            f"آیا می‌دانید؟ پنل «{title}» امکانات مرتبط با مسئولیت‌های این بخش را یکجا در دسترس قرار می‌دهد.",
+            "راهنمای فراهوش: هر گزینه شما را مستقیماً به بخش عملیاتی مربوط هدایت می‌کند.",
+            "برای پیدا کردن سریع‌تر امکانات، عنوان دسته‌بندی‌ها را دنبال کنید."
+        ])
+
         if not items:
-            self.module_box.add_widget(Label(text=fa_display('ماژوری برای این پنل ثبت نشده است.'),font_name=font_name(),font_size='14sp',color=WHITE,halign='right',valign='middle',size_hint_y=None,height=dp(52))); self._start_info_tips(); return
-        grouped=[]; groups=MODULE_CATEGORY_GROUPS.get(self.panel_key) or []; remaining=list(items)
+            empty=Label(text=fa_display("برای این پنل هنوز ماژوری تعریف نشده است."),
+                        font_name=font_name(),font_size="14sp",color=(0.38,0.47,0.58,1),
+                        halign="right",valign="middle",size_hint_y=None,height=dp(56))
+            self.module_box.add_widget(empty)
+            self._start_info_tips()
+            return
+
+        grouped=[]
+        groups=MODULE_CATEGORY_GROUPS.get(self.panel_key) or []
+        remaining=list(items)
         for category,route_ids in groups:
             selected=[]
             for item in list(remaining):
                 label,route=item
-                if route in route_ids: selected.append(item); remaining.remove(item)
-            if selected: grouped.append((category,selected))
-        if remaining: grouped.append(('سایر امکانات',remaining))
-        if not grouped: grouped=[('',items)]
+                if route in route_ids:
+                    selected.append(item)
+                    remaining.remove(item)
+            if selected:
+                grouped.append((category,selected))
+        if remaining:
+            grouped.append(("سایر امکانات",remaining))
+        if not grouped:
+            grouped=[("",items)]
+
         for category,group_items in grouped:
+            section=BoxLayout(orientation="vertical",spacing=0,
+                              padding=[dp(10),dp(4)],size_hint_y=None)
+            with section.canvas.before:
+                Color(1,1,1,1)
+                section_bg=RoundedRectangle(radius=[dp(12)])
+            section.bind(pos=lambda o,v,bg=section_bg:setattr(bg,"pos",v),
+                         size=lambda o,v,bg=section_bg:setattr(bg,"size",v))
             if category:
-                heading=Label(text=fa_display(category),font_name=font_name(),font_size='14sp',bold=True,color=(0.42,0.76,0.98,1),halign='right',valign='middle',size_hint_y=None,height=dp(36)); heading.bind(size=lambda o,v:setattr(o,'text_size',v)); self.module_box.add_widget(heading)
-            for label,route in group_items:
-                row=Button(text=fa_display('──  '+str(label)),font_name=font_name(),font_size='13sp',background_normal='',background_color=(0.055,0.18,0.29,1),color=WHITE,halign='right',valign='middle',size_hint_y=None,height=dp(48))
-                row.bind(size=lambda o,v:setattr(o,'text_size',v)); row.bind(on_release=lambda *_a,r=route:self._open(r)); self.module_box.add_widget(row)
-        title={route:title for title,route in PANEL_HUBS}.get(self.panel_key,self.panel_key)
-        self._tips=[f'آیا می‌دانید؟ پنل «{title}» برای دسترسی سریع به بخش‌های مرتبط طراحی شده است.','هر عنوان یک ماژور عملیاتی است و با انتخاب آن وارد بخش مربوط می‌شوید.','نکته فراهوش: ماژورها بر اساس موضوع دسته‌بندی شده‌اند.','راهنمای سریع: گزینه‌های این صفحه به عملیات واقعی سامانه متصل هستند.']
+                heading=BoxLayout(size_hint_y=None,height=dp(38),padding=[dp(5),0])
+                heading_label=Label(text=fa_display(category),font_name=font_name(),
+                                    font_size="13sp",bold=True,color=(0.12,0.35,0.62,1),
+                                    halign="right",valign="middle")
+                heading_label.bind(size=lambda o,v:setattr(o,"text_size",v))
+                heading.add_widget(heading_label)
+                section.add_widget(heading)
+            for index,(label,route) in enumerate(group_items):
+                row=Button(text=fa_display(str(label)+"     ‹"),
+                           font_name=font_name(),font_size="13sp",
+                           background_normal="",background_down="",
+                           background_color=(1,1,1,0),
+                           color=(0.13,0.22,0.34,1),
+                           halign="right",valign="middle",
+                           size_hint_y=None,height=dp(43))
+                row.bind(size=lambda o,v:setattr(o,"text_size",(v[0]-dp(12),v[1])))
+                row.bind(on_release=lambda *_a,r=route:self._open(r))
+                section.add_widget(row)
+                if index < len(group_items)-1:
+                    divider=BoxLayout(size_hint_y=None,height=dp(1))
+                    with divider.canvas.before:
+                        Color(0.91,0.94,0.97,1)
+                        line=Rectangle(pos=divider.pos,size=divider.size)
+                    divider.bind(pos=lambda o,v,ln=line:setattr(ln,"pos",v),
+                                 size=lambda o,v,ln=line:setattr(ln,"size",v))
+                    section.add_widget(divider)
+            section.height=sum(w.height for w in section.children)+dp(8)
+            self.module_box.add_widget(section)
+
         self._start_info_tips()
     def _module_purpose(self,label,route):
         return {
