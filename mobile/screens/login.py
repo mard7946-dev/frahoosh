@@ -124,7 +124,7 @@ class LoginScreen(Screen):
         subtitle=Label(text=fa_display("سامانه هوشمند آموزشی یکپارچه مدرسه"),font_name=font_name(),font_size="12sp",bold=True,
                       color=CYAN,size_hint=(.94,None),height=dp(34),pos_hint={"center_x":.5,"center_y":.815},halign="center")
         subtitle.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(subtitle)
-        slogan=Label(text=fa_display("یادگیری هوشمند، مدرسه یکپارچه، دانش آموز خلاق"),font_name=font_name(),font_size="10sp",
+        slogan=Label(text=fa_display("آموزش خلاقانه"),font_name=font_name(),font_size="11sp",bold=True,
                      color=MUTED,size_hint=(.94,None),height=dp(30),pos_hint={"center_x":.5,"center_y":.775},halign="center")
         slogan.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(slogan)
         school=Label(text=fa_display("دبیرستان سردار شهید حاجی زاده ۲"),font_name=font_name(),font_size="10sp",bold=True,
@@ -141,7 +141,7 @@ class LoginScreen(Screen):
             card._line.rounded_rectangle=(card.x,card.y,card.width,card.height,dp(28))
         card.bind(pos=card_sync,size=card_sync)
 
-        welcome=Label(text=fa_display("ورود به حساب کاربری"),font_name=font_name(),font_size="18sp",
+        welcome=Label(text=fa_display("ورود امن به سامانه"),font_name=font_name(),font_size="18sp",
                       color=WHITE,bold=True,size_hint_y=None,height=dp(38),halign="center")
         welcome.bind(size=lambda o,v:setattr(o,"text_size",v)); card.add_widget(welcome)
         self.identifier=self._field(LOGIN_USERNAME_HINT or "نام کاربری / کد ملی / ایمیل",False)
