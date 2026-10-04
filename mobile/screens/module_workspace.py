@@ -536,7 +536,7 @@ for _key, _value in _CATALOG_FIELD_LABELS.items():
 EDITABLE = {
     "manager": {table for items in SUBMENUS.values() for _, table in items},
     "educational": {
-        "attendance","student_referrals","meeting_requests","ai_smart_reports","online_classes",
+        "attendance","student_referrals","meeting_requests","ai_smart_reports",
         "messages","message_targets","exam_schedule","quiz_questions","teacher_classes","students",
         "educational_followups","academic_followups","khwarizmi_registrations","module_activations"
     },
@@ -560,7 +560,7 @@ EDITABLE = {
         "academic_followups","parent_meeting_requests"
     },
     "teacher": {
-        "teacher_classes","attendance","grades","assignments","teacher_exams","online_classes",
+        "teacher_classes","attendance","grades","assignments","teacher_exams",
         "lesson_plans","teacher_meetings","teacher_activities","grade_items","discipline_records",
         "messages","message_targets","student_referrals"
     },
