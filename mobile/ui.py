@@ -146,9 +146,10 @@ def bundled_login_background():
 
 
 def title_font_name():
-    register_fonts()
-    title_path = Path(__file__).resolve().parent / "assets" / "BTitrBd.ttf"
-    return _FONT_TITLE if title_path.is_file() else font_name()
+    # Modern Noto Sans Arabic is more legible than the decorative BTitr face
+    # on small Android screens. Keep BTitr bundled for compatibility, but do not
+    # force it onto UI headings.
+    return font_name()
 
 
 def rtl_text(value):
