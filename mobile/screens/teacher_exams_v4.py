@@ -148,7 +148,7 @@ class TeacherExamsV4Screen(Screen):
 
     def show_home(self):
         self._clear(); self.title.text=fa_display("مرکز آزمون آنلاین")
-        if role_of(self.app_state) in {"teacher","manager","educational","executive"}:
+        if role_of(self.app_state) in {"teacher","manager"}:
             self._label("مرکز طراحی و مدیریت آزمون","22sp",PRIMARY,54,True)
             self._label("آزمون را یک‌بار استاندارد طراحی کنید، سپس برای هر کلاس زمان متفاوت بدهید یا همان آزمون را با لینک امن برای دانش‌آموزان مدرسه دیگر به اشتراک بگذارید.",height=78)
             self._button("＋ ساخت آزمون جدید",lambda *_:self._new_exam(),SUCCESS)
