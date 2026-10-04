@@ -9,13 +9,14 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.label import Label
+from kivy.uix.image import Image
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 from mobile.config import (
     APP_NAME, SCHOOL_NAME, APP_SLOGAN, SYSTEM_TITLE, LOGIN_USERNAME_HINT, LOGIN_PASSWORD_HINT,
     SUCCESS, WHITE, ERROR,
 )
-from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput, CredentialTextInput
+from mobile.ui import font_name, title_font_name, rtl_text, fa_display, bundled_login_background, PersianTextInput, CredentialTextInput
 
 
 NAVY = (0.015, 0.07, 0.18, 1)
@@ -107,67 +108,121 @@ class LoginScreen(Screen):
     def _build(self):
         from kivy.uix.floatlayout import FloatLayout
 
-        root=FloatLayout()
+        root = FloatLayout()
+
+        # Professional entry artwork: use the bundled Frahoosh portrait with
+        # a controlled dark overlay so Persian text stays crisp and readable.
+        background = bundled_login_background()
+        if background:
+            bg = Image(source=background, allow_stretch=True, keep_ratio=False,
+                       size_hint=(1, 1), pos_hint={"x": 0, "y": 0})
+            root.add_widget(bg)
+
         with root.canvas.before:
-            Color(0.015,0.06,0.16,1); self._bg=Rectangle(pos=root.pos,size=root.size)
-            Color(0.03,0.30,0.58,0.30); self._glow1=RoundedRectangle(radius=[dp(180)])
-            Color(0.00,0.78,0.94,0.16); self._glow2=RoundedRectangle(radius=[dp(150)])
-        def sync(*_):
-            self._bg.pos=root.pos; self._bg.size=root.size
-            self._glow1.pos=(root.width*.48,root.height*.67); self._glow1.size=(root.width*.62,root.width*.62)
-            self._glow2.pos=(-root.width*.28,root.height*.15); self._glow2.size=(root.width*.56,root.width*.56)
-        root.bind(pos=sync,size=sync); Clock.schedule_once(sync,0)
+            Color(0.01, 0.04, 0.11, 0.58)
+            self._overlay = Rectangle(pos=root.pos, size=root.size)
 
-        title=Label(text=fa_display("فراهوش"),font_name=font_name(),font_size="30sp",bold=True,color=WHITE,
-                    size_hint=(.94,None),height=dp(48),pos_hint={"center_x":.5,"center_y":.86},halign="center")
-        title.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(title)
-        subtitle=Label(text=fa_display("سامانه هوشمند آموزشی یکپارچه مدرسه"),font_name=font_name(),font_size="12sp",bold=True,
-                      color=CYAN,size_hint=(.94,None),height=dp(34),pos_hint={"center_x":.5,"center_y":.815},halign="center")
-        subtitle.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(subtitle)
-        slogan=Label(text=fa_display("آموزش خلاقانه"),font_name=font_name(),font_size="11sp",bold=True,
-                     color=MUTED,size_hint=(.94,None),height=dp(30),pos_hint={"center_x":.5,"center_y":.775},halign="center")
-        slogan.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(slogan)
-        school=Label(text=fa_display("دبیرستان سردار شهید حاجی زاده ۲"),font_name=font_name(),font_size="10sp",bold=True,
-                     color=GOLD,size_hint=(.94,None),height=dp(30),pos_hint={"center_x":.5,"center_y":.735},halign="center")
-        school.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(school)
+        def overlay_sync(*_):
+            self._overlay.pos = root.pos
+            self._overlay.size = root.size
+        root.bind(pos=overlay_sync, size=overlay_sync)
+        Clock.schedule_once(overlay_sync, 0)
 
-        card=BoxLayout(orientation="vertical",padding=[dp(22),dp(20)],spacing=dp(9),
-                       size_hint=(.88,.48),pos_hint={"center_x":.5,"center_y":.47})
+        brand = BoxLayout(orientation="vertical", spacing=dp(2),
+                          size_hint=(.88, .28), pos_hint={"center_x": .5, "top": .97},
+                          padding=[dp(8), dp(2)])
+        logo_path = resource_find("mobile/assets/frahoosh_logo.png") or resource_find("assets/frahoosh_logo.png")
+        if logo_path:
+            brand.add_widget(Image(source=logo_path, size_hint_y=None, height=dp(66),
+                                   allow_stretch=True, keep_ratio=True))
+        title = Label(text=fa_display("فراهوش"), font_name=title_font_name(),
+                      font_size="28sp", bold=True, color=WHITE,
+                      halign="center", valign="middle", size_hint_y=None, height=dp(42))
+        title.bind(size=lambda o, v: setattr(o, "text_size", v))
+        brand.add_widget(title)
+
+        subtitle = Label(text=fa_display("سامانه هوشمند آموزشی یکپارچه مدرسه"),
+                         font_name=font_name(), font_size="11sp", bold=True,
+                         color=(0.80, 0.95, 1, 1), halign="center", valign="middle",
+                         size_hint_y=None, height=dp(30))
+        subtitle.bind(size=lambda o, v: setattr(o, "text_size", v))
+        brand.add_widget(subtitle)
+
+        school = Label(text=fa_display(SCHOOL_NAME), font_name=font_name(), font_size="10sp",
+                       bold=True, color=GOLD, halign="center", valign="middle",
+                       size_hint_y=None, height=dp(28))
+        school.bind(size=lambda o, v: setattr(o, "text_size", v))
+        brand.add_widget(school)
+        root.add_widget(brand)
+
+        card = BoxLayout(orientation="vertical", padding=[dp(20), dp(18)], spacing=dp(8),
+                         size_hint=(.88, .49), pos_hint={"center_x": .5, "center_y": .40})
         with card.canvas.before:
-            Color(0.01,0.09,0.22,0.93); card._card=RoundedRectangle(radius=[dp(28)])
-            Color(0.04,0.66,0.92,0.65); card._line=Line(rounded_rectangle=(0,0,0,0,dp(28)),width=1.2)
+            Color(0.02, 0.08, 0.18, 0.94)
+            card._card = RoundedRectangle(radius=[dp(24)])
+            Color(0.20, 0.78, 0.96, 0.55)
+            card._line = Line(rounded_rectangle=(0, 0, 0, 0, dp(24)), width=1.0)
+
         def card_sync(*_):
-            card._card.pos=card.pos; card._card.size=card.size
-            card._line.rounded_rectangle=(card.x,card.y,card.width,card.height,dp(28))
-        card.bind(pos=card_sync,size=card_sync)
+            card._card.pos = card.pos
+            card._card.size = card.size
+            card._line.rounded_rectangle = (card.x, card.y, card.width, card.height, dp(24))
+        card.bind(pos=card_sync, size=card_sync)
 
-        welcome=Label(text=fa_display("ورود امن به سامانه"),font_name=font_name(),font_size="18sp",
-                      color=WHITE,bold=True,size_hint_y=None,height=dp(38),halign="center")
-        welcome.bind(size=lambda o,v:setattr(o,"text_size",v)); card.add_widget(welcome)
-        self.identifier=self._field(LOGIN_USERNAME_HINT or "نام کاربری / کد ملی / ایمیل",False)
-        self.password=self._field(LOGIN_PASSWORD_HINT or "رمز عبور",True)
-        card.add_widget(self.identifier); card.add_widget(self.password)
+        welcome = Label(text=fa_display("ورود به سامانه"), font_name=title_font_name(),
+                        font_size="18sp", color=WHITE, bold=True,
+                        halign="center", valign="middle", size_hint_y=None, height=dp(36))
+        welcome.bind(size=lambda o, v: setattr(o, "text_size", v))
+        card.add_widget(welcome)
 
-        row=BoxLayout(size_hint_y=None,height=dp(36),spacing=dp(5))
-        self.remember_checkbox=CheckBox(active=False,size_hint=(None,None),size=(dp(30),dp(30)),color=CYAN)
-        self.remember_checkbox.bind(active=self._remember_changed); row.add_widget(self.remember_checkbox)
-        remember=Button(text=fa_display("مرا به خاطر بسپار"),font_name=font_name(),font_size="10sp",color=WHITE,background_normal="",background_color=(0,0,0,0))
-        remember.bind(on_press=self._toggle_remember); row.add_widget(remember)
-        forgot=Button(text=fa_display("فراموشی رمز"),font_name=font_name(),font_size="10sp",color=GOLD,background_normal="",background_color=(0,0,0,0))
-        forgot.bind(on_press=self.forgot_password); row.add_widget(forgot)
+        hint = Label(text=fa_display("اطلاعات حساب کاربری خود را وارد کنید"),
+                     font_name=font_name(), font_size="10sp",
+                     color=(0.70, 0.82, 0.94, 1), halign="center", valign="middle",
+                     size_hint_y=None, height=dp(25))
+        hint.bind(size=lambda o, v: setattr(o, "text_size", v))
+        card.add_widget(hint)
+
+        self.identifier = self._field(LOGIN_USERNAME_HINT or "نام کاربری / کد ملی / رایانامه", False)
+        self.password = self._field(LOGIN_PASSWORD_HINT or "رمز عبور", True)
+        card.add_widget(self.identifier)
+        card.add_widget(self.password)
+
+        row = BoxLayout(size_hint_y=None, height=dp(34), spacing=dp(5))
+        self.remember_checkbox = CheckBox(active=False, size_hint=(None, None), size=(dp(30), dp(30)), color=CYAN)
+        self.remember_checkbox.bind(active=self._remember_changed)
+        row.add_widget(self.remember_checkbox)
+
+        remember = Button(text=fa_display("مرا به خاطر بسپار"), font_name=font_name(), font_size="10sp",
+                          color=WHITE, background_normal="", background_color=(0, 0, 0, 0))
+        remember.bind(on_press=self._toggle_remember)
+        row.add_widget(remember)
+
+        forgot = Button(text=fa_display("بازیابی رمز"), font_name=font_name(), font_size="10sp",
+                        color=GOLD, background_normal="", background_color=(0, 0, 0, 0))
+        forgot.bind(on_press=self.forgot_password)
+        row.add_widget(forgot)
         card.add_widget(row)
 
-        self.login_button=Button(text=fa_display("ورود به فراهوش"),font_name=font_name(),font_size="16sp",bold=True,
-                                 background_normal="",background_color=CYAN,color=(0.01,0.06,0.12,1),
-                                 size_hint_y=None,height=dp(52))
-        self.login_button.bind(on_press=self.login); card.add_widget(self.login_button)
-        self.status=self.label("", "9sp", MUTED, False, "center")
-        self.status.size_hint_y=None; self.status.height=dp(26); card.add_widget(self.status)
+        self.login_button = Button(text=fa_display("ورود به فراهوش"), font_name=title_font_name(),
+                                   font_size="15sp", bold=True,
+                                   background_normal="", background_color=CYAN,
+                                   color=(0.01, 0.06, 0.12, 1),
+                                   size_hint_y=None, height=dp(50))
+        self.login_button.bind(on_press=self.login)
+        card.add_widget(self.login_button)
+
+        self.status = self.label("", "9sp", MUTED, False, "center")
+        self.status.size_hint_y = None
+        self.status.height = dp(25)
+        card.add_widget(self.status)
         root.add_widget(card)
 
-        footer=Label(text=fa_display(f"{SCHOOL_NAME} - سال تحصیلی ۱۴۰۵–۱۴۰۶"),font_name=font_name(),font_size="8sp",
-                     color=(.60,.78,.92,1),size_hint=(.92,None),height=dp(28),pos_hint={"center_x":.5,"y":.035},halign="center")
-        footer.bind(size=lambda o,v:setattr(o,"text_size",v)); root.add_widget(footer)
+        footer = Label(text=fa_display(f"{SCHOOL_NAME} - سال تحصیلی ۱۴۰۵–۱۴۰۶"),
+                       font_name=font_name(), font_size="8sp",
+                       color=(.82, .91, .98, 1), size_hint=(.92, None), height=dp(26),
+                       pos_hint={"center_x": .5, "y": .025}, halign="center", valign="middle")
+        footer.bind(size=lambda o, v: setattr(o, "text_size", v))
+        root.add_widget(footer)
         self.add_widget(root)
 
     def _remember_changed(self, *_args):
