@@ -983,9 +983,10 @@ class DashboardScreen(Screen):
         # the Android system navigation/home area. On Kivy versions without a
         # native safe-area API we keep a conservative 24dp reserve.
         nav_inset = _android_navigation_inset_dp()
-        footer=BoxLayout(size_hint_y=None,height=dp(56),spacing=dp(5),padding=[dp(2),dp(2),dp(2),dp(4)])
+        footer=BoxLayout(size_hint_y=None,height=dp(68),spacing=dp(5),padding=[dp(2),dp(6),dp(2),dp(10)])
         for caption,route in (("خانه","home"),("پنل‌ها","panels"),("ماژول‌ها","modules"),("پیام‌ها","messages"),("پروفایل","profile")):
             b=Button(text=fa_display(caption),font_name=font_name(),font_size="9.5sp",
+                     padding=[dp(2),dp(3)],
                      background_normal="",background_color=(0.09,0.20,0.30,1),color=WHITE,
                      bold=True, halign="center", valign="middle")
             b.bind(size=lambda o,v:setattr(o,"text_size",v))
