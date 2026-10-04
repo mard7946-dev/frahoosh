@@ -406,32 +406,32 @@ class PanelHubScreen(Screen):
         root = BoxLayout(orientation="horizontal", padding=[dp(12),dp(12),dp(12),dp(12)], spacing=dp(12))
 
         # LEFT: quiet, editorial-style rotating guidance area.
-        self.info_panel = BoxLayout(orientation="vertical", padding=[dp(22), dp(24)],
-                                    spacing=dp(14), size_hint_x=0.40)
+        self.info_panel = BoxLayout(orientation="vertical", padding=[dp(20), dp(22)],
+                                    spacing=dp(12), size_hint_x=0.40)
         with self.info_panel.canvas.before:
-            Color(0.91, 0.95, 1.0, 1)
+            Color(0.925, 0.965, 0.995, 1)
             self.info_bg = RoundedRectangle(radius=[dp(20)])
         self.info_panel.bind(pos=lambda o,v:setattr(self.info_bg,"pos",v),
                              size=lambda o,v:setattr(self.info_bg,"size",v))
 
-        self.info_kicker = Label(text=fa_display("FRAHOOSH  •  راهنمای هوشمند"),
+        self.info_kicker = Label(text=fa_display("راهنمای سریع فراهوش"),
                                  font_name=font_name(), font_size="11sp",
-                                 color=(0.20,0.43,0.72,1), bold=True,
+                                 color=(0.08,0.36,0.66,1), bold=True,
                                  halign="right", valign="middle",
                                  size_hint_y=None, height=dp(34))
         self.info_kicker.bind(size=lambda o,v:setattr(o,"text_size",v))
         self.info_panel.add_widget(self.info_kicker)
 
-        self.info_title = Label(text=fa_display("آیا می‌دانید؟"),
-                                font_name=font_name(), font_size="23sp", bold=True,
-                                color=(0.07,0.22,0.43,1), halign="right",
+        self.info_title = Label(text=fa_display("نکته کاربردی"),
+                                font_name=font_name(), font_size="21sp", bold=True,
+                                color=(0.05,0.25,0.48,1), halign="right",
                                 valign="middle", size_hint_y=None, height=dp(58))
         self.info_title.bind(size=lambda o,v:setattr(o,"text_size",v))
         self.info_panel.add_widget(self.info_title)
 
         self.info_rule = BoxLayout(size_hint_y=None, height=dp(3))
         with self.info_rule.canvas.before:
-            Color(0.30,0.57,0.91,0.75)
+            Color(0.16,0.50,0.86,0.85)
             self.info_rule_bg = RoundedRectangle(radius=[dp(2)])
         self.info_rule.bind(pos=lambda o,v:setattr(self.info_rule_bg,"pos",v),
                             size=lambda o,v:setattr(self.info_rule_bg,"size",v))
@@ -439,7 +439,7 @@ class PanelHubScreen(Screen):
 
         self.info_text = Label(
             text="",
-            font_name=font_name(), font_size="13sp", color=(0.13,0.25,0.40,1),
+            font_name=font_name(), font_size="13sp", color=(0.10,0.23,0.38,1),
             halign="right", valign="top", line_height=1.25,
             padding=[dp(2), dp(4)])
         def _sync_info_text(widget, size):
@@ -447,9 +447,9 @@ class PanelHubScreen(Screen):
         self.info_text.bind(size=_sync_info_text)
         self.info_panel.add_widget(self.info_text)
 
-        self.info_hint = Label(text=fa_display("نکته‌ها به‌صورت خودکار تغییر می‌کنند"),
-                               font_name=font_name(), font_size="11sp",
-                               color=(0.31,0.45,0.61,1), halign="right",
+        self.info_hint = Label(text=fa_display("نکته‌ها به‌صورت خودکار جابه‌جا می‌شوند"),
+                               font_name=font_name(), font_size="10.5sp",
+                               color=(0.24,0.40,0.58,1), halign="right",
                                valign="bottom", size_hint_y=None, height=dp(38))
         self.info_hint.bind(size=lambda o,v:setattr(o,"text_size",v))
         self.info_panel.add_widget(self.info_hint)
