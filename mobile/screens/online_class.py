@@ -932,12 +932,34 @@ class OnlineClassScreen(Screen):
             activity=PythonActivity.mActivity
             web=WebView(activity)
             settings=web.getSettings()
-            settings.setJavaScriptEnabled(True); settings.setDomStorageEnabled(True)
-            settings.setMediaPlaybackRequiresUserGesture(False); settings.setAllowFileAccess(True); settings.setAllowContentAccess(True)
+            # Android WebView must be configured before loading the classroom.
+            # The classroom is an HTTPS origin even though its HTML is bundled
+            # inside the APK, which keeps WebRTC getUserMedia in a secure context.
+            settings.setJavaScriptEnabled(True)
+            settings.setDomStorageEnabled(True)
+            settings.setDatabaseEnabled(True)
+            settings.setMediaPlaybackRequiresUserGesture(False)
+            settings.setAllowFileAccess(True)
+            settings.setAllowContentAccess(True)
+            try:
+                settings.setJavaScriptCanOpenWindowsAutomatically(True)
+                settings.setSupportMultipleWindows(True)
+                settings.setBuiltInZoomControls(False)
+                settings.setDisplayZoomControls(False)
+                settings.setLoadWithOverviewMode(True)
+                settings.setUseWideViewPort(True)
+                settings.setCacheMode(1)
+            except Exception as exc:
+                print("WEBVIEW OPTIONAL SETTINGS ERROR:",repr(exc))
+            try:
+                from android.view import View
+                web.setLayerType(View.LAYER_TYPE_HARDWARE, None)
+            except Exception as exc:
+                print("WEBVIEW HARDWARE LAYER ERROR:",repr(exc))
             web.setWebViewClient(WebViewClient())
-            # The custom ChromeClient is required for WebRTC media permissions.
-            # Keep a plain WebChromeClient fallback so a missing/old Java helper
-            # cannot prevent the classroom WebView itself from opening.
+            # The custom ChromeClient grants camera/microphone only to the
+            # Frahoosh HTTPS origin. Fall back safely if the Java helper is
+            # unavailable in an older APK.
             try:
                 FrahooshWebChromeClient=autoclass("ir.frahoosh.FrahooshWebChromeClient")
                 web.setWebChromeClient(FrahooshWebChromeClient())
@@ -948,7 +970,8 @@ class OnlineClassScreen(Screen):
             try:
                 from android.permissions import request_permissions, Permission
                 request_permissions([Permission.CAMERA, Permission.RECORD_AUDIO])
-            except Exception as exc: print("ANDROID MEDIA PERMISSION REQUEST ERROR:",repr(exc))
+            except Exception as exc:
+                print("ANDROID MEDIA PERMISSION REQUEST ERROR:",repr(exc))
             candidates=[Path(__file__).resolve().parents[1] / "assets" / "online_class.html", Path(__file__).resolve().parent / "assets" / "online_class.html", Path(os.environ.get("ANDROID_PRIVATE","")) / "assets" / "online_class.html", Path(os.environ.get("ANDROID_APP_PATH","")) / "assets" / "online_class.html"]
             html_path=next((p for p in candidates if str(p) and p.is_file()), None)
             if html_path is None: raise FileNotFoundError("online_class.html not found; checked: "+", ".join(str(p) for p in candidates))
@@ -980,7 +1003,9 @@ class OnlineClassScreen(Screen):
             @run_on_ui_thread
             def attach():
                 activity.addContentView(container,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
-                web.loadDataWithBaseURL("https://frahoosh.ir/online-class/",html,"text/html","UTF-8",None)
+                # Keep the document origin at the site root. This is important
+                # for Android WebView secure-context/WebRTC permission checks.
+                web.loadDataWithBaseURL("https://frahoosh.ir/",html,"text/html","UTF-8","https://frahoosh.ir/online-class/")
             attach()
             self._active_webview=web
             self._active_webview_container=container
