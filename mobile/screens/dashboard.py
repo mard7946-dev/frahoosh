@@ -1036,10 +1036,31 @@ class DashboardScreen(Screen):
         self._build_reference_sidebar()
         self._refresh_reference_stats()
 
+    def _allowed_panel_keys(self):
+        role = self.role()
+        if role == "manager":
+            return {route for _title, route in PANEL_HUBS}
+        role_panel = {
+            "executive": "executive",
+            "educational": "educational",
+            "cultural": "cultural",
+            "advisor": "advisor",
+            "teacher": "teachers",
+            "student": "students",
+            "parent": "parents",
+        }.get(role)
+        allowed = {"about"}
+        if role_panel:
+            allowed.add(role_panel)
+        return allowed
+
     def _build_reference_sidebar(self):
         self.side_list.clear_widgets()
         self.stat_widgets = []
+        allowed = self._allowed_panel_keys()
         for title, route in PANEL_HUBS:
+            if route not in allowed:
+                continue
             b = Button(
                 text=fa_display(title),
                 font_name=font_name(),
@@ -1094,7 +1115,17 @@ class DashboardScreen(Screen):
             Clock.schedule_once(lambda *_: setattr(self.side_scroll, "scroll_y", 1), 0)
         elif route=="modules":
             try:
-                self.open_route("panelhub:management")
+                role_panel = {
+                    "manager": "management",
+                    "executive": "executive",
+                    "educational": "educational",
+                    "cultural": "cultural",
+                    "advisor": "advisor",
+                    "teacher": "teachers",
+                    "student": "students",
+                    "parent": "parents",
+                }.get(self.role(), "management")
+                self.open_route("panelhub:" + role_panel)
             except Exception:
                 self.grid_scroll.scroll_y = 1
         elif route=="messages":
@@ -1215,6 +1246,7 @@ class DashboardScreen(Screen):
         self.welcome.text=fa_display(f"خوش آمدید، {getattr(self.app_state,'display_name','کاربر فراهوش')}")
         self.role_text.text=fa_display(f"پنل {ROLE_TITLES.get(role,'کاربر')}  -  {len(items)} بخش اصلی")
         self.grid.clear_widgets()
+        self._build_reference_sidebar()
         total=len(items)
         for i,(title,route) in enumerate(items,1):
             panel_key=route.split(":",1)[1] if str(route).startswith("panelhub:") else route
