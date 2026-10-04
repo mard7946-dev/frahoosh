@@ -17,7 +17,17 @@ from mobile.config import (
 )
 from mobile.ui import font_name, title_font_name, fa_display, PersianTextInput, CredentialTextInput
 
-\n\nINK = (0.055, 0.10, 0.18, 1)\nMUTED = (0.39, 0.46, 0.56, 1)\nBLUE = (0.06, 0.43, 0.86, 1)\nBLUE_DARK = (0.035, 0.24, 0.58, 1)\nFIELD_BG = (0.965, 0.978, 0.995, 1)\nBORDER = (0.84, 0.88, 0.94, 1)\nWHITE = (1, 1, 1, 1)\n\nclass LoginScreen(Screen):
+
+
+INK = (0.055, 0.10, 0.18, 1)
+MUTED = (0.39, 0.46, 0.56, 1)
+BLUE = (0.06, 0.43, 0.86, 1)
+BLUE_DARK = (0.035, 0.24, 0.58, 1)
+FIELD_BG = (0.965, 0.978, 0.995, 1)
+BORDER = (0.84, 0.88, 0.94, 1)
+WHITE = (1, 1, 1, 1)
+
+class LoginScreen(Screen):
     # Credential fields use LTR direction for account identifiers.
     """Responsive Android login. Authentication and remember-me use the real app services."""
 
@@ -41,4 +51,27 @@ from mobile.ui import font_name, title_font_name, fa_display, PersianTextInput, 
         w.bind(size=lambda o, v: setattr(o, "text_size", v))
         return w
 
-    def _field(self, hint, password=False):\n        common = dict(\n            hint_text=str(hint), font_name=font_name(), font_size="13sp", multiline=False,\n            size_hint_y=None, height=dp(46), halign="right", padding=[dp(13), dp(9)],\n            background_normal="", background_active="", background_color=(0, 0, 0, 0),\n            foreground_color=INK, hint_text_color=(0.56, 0.62, 0.70, 1),\n            cursor_color=BLUE, selection_color=(0.10, 0.43, 0.86, 0.18),\n        )\n        if password:\n            field = CredentialTextInput(masked=True, **common)\n        else:\n            field = PersianTextInput(password=False, **common)\n        with field.canvas.before:\n            Color(*FIELD_BG)\n            field._bg = RoundedRectangle(radius=[dp(13)])\n            Color(*BORDER)\n            field._border = Line(rounded_rectangle=(0, 0, 0, 0, dp(13)), width=0.8)\n        def sync(*_):\n            field._bg.pos = field.pos; field._bg.size = field.size\n            field._border.rounded_rectangle = (field.x, field.y, field.width, field.height, dp(13))\n        field.bind(pos=sync, size=sync)\n        return field\n\n
+    def _field(self, hint, password=False):
+        common = dict(
+            hint_text=str(hint), font_name=font_name(), font_size="13sp", multiline=False,
+            size_hint_y=None, height=dp(46), halign="right", padding=[dp(13), dp(9)],
+            background_normal="", background_active="", background_color=(0, 0, 0, 0),
+            foreground_color=INK, hint_text_color=(0.56, 0.62, 0.70, 1),
+            cursor_color=BLUE, selection_color=(0.10, 0.43, 0.86, 0.18),
+        )
+        if password:
+            field = CredentialTextInput(masked=True, **common)
+        else:
+            field = PersianTextInput(password=False, **common)
+        with field.canvas.before:
+            Color(*FIELD_BG)
+            field._bg = RoundedRectangle(radius=[dp(13)])
+            Color(*BORDER)
+            field._border = Line(rounded_rectangle=(0, 0, 0, 0, dp(13)), width=0.8)
+        def sync(*_):
+            field._bg.pos = field.pos; field._bg.size = field.size
+            field._border.rounded_rectangle = (field.x, field.y, field.width, field.height, dp(13))
+        field.bind(pos=sync, size=sync)
+        return field
+
+
