@@ -74,6 +74,135 @@ class LoginScreen(Screen):
         field.bind(pos=sync, size=sync)
         return field
 
+
+    def _build(self):
+        from kivy.uix.floatlayout import FloatLayout
+
+        root = FloatLayout()
+        with root.canvas.before:
+            Color(0.965, 0.978, 0.995, 1)
+            self._background = Rectangle(pos=root.pos, size=root.size)
+            Color(0.06, 0.43, 0.86, 0.045)
+            self._orb1 = RoundedRectangle(radius=[dp(90)])
+            Color(0.08, 0.68, 0.95, 0.035)
+            self._orb2 = RoundedRectangle(radius=[dp(90)])
+
+        def background_sync(*_):
+            self._background.pos = root.pos
+            self._background.size = root.size
+            self._orb1.pos = (root.x - dp(150), root.top - dp(180))
+            self._orb1.size = (dp(280), dp(150))
+            self._orb2.pos = (root.right - dp(130), root.y + dp(30))
+            self._orb2.size = (dp(230), dp(140))
+        root.bind(pos=background_sync, size=background_sync)
+        Clock.schedule_once(background_sync, 0)
+
+        content = BoxLayout(orientation="vertical", spacing=dp(8),
+                            size_hint=(0.88, 0.94), pos_hint={"center_x": .5, "center_y": .5},
+                            padding=[0, dp(6), 0, dp(4)])
+
+        logo_path = resource_find("mobile/assets/frahoosh_logo.png") or resource_find("assets/frahoosh_logo.png")
+        if logo_path:
+            content.add_widget(Image(source=logo_path, size_hint_y=None, height=dp(62),
+                                     allow_stretch=True, keep_ratio=True))
+
+        title = Label(text=fa_display("فراهوش"), font_name=title_font_name(),
+                      font_size="31sp", bold=True, color=BLUE_DARK,
+                      halign="center", valign="middle", size_hint_y=None, height=dp(40))
+        title.bind(size=lambda o, v: setattr(o, "text_size", v))
+        content.add_widget(title)
+
+        subtitle = Label(text=fa_display("سامانه هوشمند آموزشی یکپارچه مدرسه"),
+                         font_name=font_name(), font_size="11sp", color=INK,
+                         halign="center", valign="middle", size_hint_y=None, height=dp(25))
+        subtitle.bind(size=lambda o, v: setattr(o, "text_size", v))
+        content.add_widget(subtitle)
+
+        school = Label(text=fa_display(SCHOOL_NAME), font_name=font_name(), font_size="9sp",
+                       color=MUTED, halign="center", valign="middle", size_hint_y=None, height=dp(22))
+        school.bind(size=lambda o, v: setattr(o, "text_size", v))
+        content.add_widget(school)
+
+        form = BoxLayout(orientation="vertical", padding=[dp(20), dp(17)], spacing=dp(7),
+                         size_hint_y=None, height=dp(352))
+        with form.canvas.before:
+            Color(*WHITE)
+            form._card = RoundedRectangle(radius=[dp(24)])
+            Color(*BORDER)
+            form._line = Line(rounded_rectangle=(0, 0, 0, 0, dp(24)), width=0.9)
+        def form_sync(*_):
+            form._card.pos = form.pos
+            form._card.size = form.size
+            form._line.rounded_rectangle = (form.x, form.y, form.width, form.height, dp(24))
+        form.bind(pos=form_sync, size=form_sync)
+
+        heading = Label(text=fa_display("ورود به سامانه"), font_name=title_font_name(),
+                        font_size="20sp", color=INK, bold=True,
+                        halign="right", valign="middle", size_hint_y=None, height=dp(30))
+        heading.bind(size=lambda o, v: setattr(o, "text_size", v))
+        form.add_widget(heading)
+
+        desc = Label(text=fa_display("برای ادامه، اطلاعات حساب خود را وارد کنید"),
+                     font_name=font_name(), font_size="9sp", color=MUTED,
+                     halign="right", valign="middle", size_hint_y=None, height=dp(21))
+        desc.bind(size=lambda o, v: setattr(o, "text_size", v))
+        form.add_widget(desc)
+
+        user_label = self.label("نام کاربری / کد ملی / رایانامه", "8.5sp", MUTED, True, "right")
+        user_label.size_hint_y = None
+        user_label.height = dp(18)
+        form.add_widget(user_label)
+        self.identifier = self._field(LOGIN_USERNAME_HINT or "نام کاربری یا کد ملی", False)
+        form.add_widget(self.identifier)
+
+        pass_label = self.label("رمز عبور", "8.5sp", MUTED, True, "right")
+        pass_label.size_hint_y = None
+        pass_label.height = dp(18)
+        form.add_widget(pass_label)
+        self.password = self._field(LOGIN_PASSWORD_HINT or "رمز عبور", True)
+        form.add_widget(self.password)
+
+        row = BoxLayout(size_hint_y=None, height=dp(27), spacing=dp(4))
+        self.remember_checkbox = CheckBox(active=False, size_hint=(None, None), size=(dp(27), dp(27)), color=BLUE)
+        self.remember_checkbox.bind(active=self._remember_changed)
+        row.add_widget(self.remember_checkbox)
+        remember = Button(text=fa_display("مرا به خاطر بسپار"), font_name=font_name(), font_size="8.5sp",
+                          color=MUTED, background_normal="", background_color=(0, 0, 0, 0))
+        remember.bind(on_press=self._toggle_remember)
+        row.add_widget(remember)
+        forgot = Button(text=fa_display("بازیابی رمز"), font_name=font_name(), font_size="8.5sp",
+                        color=BLUE, background_normal="", background_color=(0, 0, 0, 0))
+        forgot.bind(on_press=self.forgot_password)
+        row.add_widget(forgot)
+        form.add_widget(row)
+
+        self.login_button = Button(text=fa_display("ورود به فراهوش"), font_name=title_font_name(),
+                                   font_size="14sp", bold=True, background_normal="",
+                                   background_down=BLUE_DARK, background_color=BLUE, color=WHITE,
+                                   size_hint_y=None, height=dp(47))
+        self.login_button.bind(on_press=self.login)
+        form.add_widget(self.login_button)
+
+        self.status = self.label("", "8.5sp", MUTED, False, "center")
+        self.status.size_hint_y = None
+        self.status.height = dp(23)
+        form.add_widget(self.status)
+        content.add_widget(form)
+
+        slogan = Label(text=fa_display("آموزش خلاقانه"), font_name=font_name(), font_size="9.5sp",
+                       color=BLUE_DARK, bold=True, halign="center", valign="middle",
+                       size_hint_y=None, height=dp(22))
+        slogan.bind(size=lambda o, v: setattr(o, "text_size", v))
+        content.add_widget(slogan)
+
+        footer = Label(text=fa_display("دبیرستان سردار حاجی زاده ۲  •  سال تحصیلی ۱۴۰۵–۱۴۰۶"),
+                       font_name=font_name(), font_size="7.5sp", color=MUTED,
+                       halign="center", valign="middle", size_hint_y=None, height=dp(20))
+        footer.bind(size=lambda o, v: setattr(o, "text_size", v))
+        content.add_widget(footer)
+        root.add_widget(content)
+        self.add_widget(root)
+
     def _remember_changed(self, *_args):
         pass
 
