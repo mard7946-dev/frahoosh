@@ -81,3 +81,8 @@ with check (lower(coalesce(private.frahoosh_current_role(),'')) in ('educational
        and status in ('manager_approved','confirmed'));
 
 drop policy if exists "staff full access teacher_exams" on public.teacher_exams;
+-- Remove legacy visibility policies that bypass the manager-approval gate.
+drop policy if exists frahoosh_parent_child_read on public.meeting_requests;
+drop policy if exists frahoosh_student_own_read on public.meeting_requests;
+drop policy if exists frahoosh_teacher_own_read on public.meeting_requests;
+drop policy if exists frahoosh_teacher_student_read on public.meeting_requests;
