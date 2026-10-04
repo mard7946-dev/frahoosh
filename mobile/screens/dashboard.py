@@ -459,13 +459,13 @@ class PanelHubScreen(Screen):
         # RIGHT: professional module workspace; categories and rows stay flat/linear.
         right = BoxLayout(orientation="vertical", spacing=dp(8), padding=[dp(14),dp(12)], size_hint_x=0.60)
         with right.canvas.before:
-            Color(0.98,0.99,1,1)
-            self.right_bg = RoundedRectangle(radius=[dp(18)])
+            Color(0.965,0.985,1,1)
+            self.right_bg = RoundedRectangle(radius=[dp(22)])
         right.bind(pos=lambda o,v:setattr(self.right_bg,"pos",v), size=lambda o,v:setattr(self.right_bg,"size",v))
         head = BoxLayout(size_hint_y=None, height=dp(58), spacing=dp(10), padding=[dp(10),dp(4)])
         with head.canvas.before:
-            Color(0.035,0.11,0.20,1)
-            self.head_bg = RoundedRectangle(radius=[dp(12)])
+            Color(0.07,0.32,0.52,1)
+            self.head_bg = RoundedRectangle(radius=[dp(15)])
         head.bind(pos=lambda o,v:setattr(self.head_bg,"pos",v), size=lambda o,v:setattr(self.head_bg,"size",v))
         title = {route:title for title,route in PANEL_HUBS}.get(self.panel_key,self.panel_key)
         self.panel_title = Label(text=fa_display("ماژورهای "+title),
@@ -475,7 +475,7 @@ class PanelHubScreen(Screen):
         head.add_widget(self.panel_title)
         back = Button(text=fa_display("بازگشت"), font_name=font_name(), font_size="11sp",
                       size_hint_x=None, width=dp(72), height=dp(34), size_hint_y=None,
-                      background_normal="", background_down="", background_color=(0.08,0.20,0.32,1),
+                      background_normal="", background_down="", background_color=(0.12,0.43,0.64,1),
                       color=(0.78,0.90,1,1))
         back.bind(on_release=lambda *_: setattr(self.manager,"current","dashboard") if self.manager else None)
         head.add_widget(back)
@@ -602,8 +602,8 @@ class PanelHubScreen(Screen):
             if category:
                 heading=BoxLayout(size_hint_y=None,height=dp(36),padding=[dp(8),0])
                 with heading.canvas.before:
-                    Color(0.90,0.95,0.99,1)
-                    heading_bg=RoundedRectangle(radius=[dp(7)])
+                    Color(0.91,0.965,0.995,1)
+                    heading_bg=RoundedRectangle(radius=[dp(10)])
                 heading.bind(pos=lambda o,v,bg=heading_bg:setattr(bg,"pos",v),
                              size=lambda o,v,bg=heading_bg:setattr(bg,"size",v))
                 heading_label=Label(text=fa_display(category),font_name=font_name(),
@@ -619,14 +619,14 @@ class PanelHubScreen(Screen):
                            background_color=(1,1,1,0),
                            color=(0.12,0.20,0.30,1),
                            halign="right",valign="middle",
-                           size_hint_y=None,height=dp(45))
+                           size_hint_y=None,height=dp(52))
                 row.bind(size=lambda o,v:setattr(o,"text_size",(max(dp(80),v[0]-dp(24)),v[1])))
                 row.bind(on_release=lambda *_a,r=route:self._open(r))
                 section.add_widget(row)
                 if index < len(group_items)-1:
                     divider=BoxLayout(size_hint_y=None,height=dp(1))
                     with divider.canvas.before:
-                        Color(0.91,0.94,0.97,1)
+                        Color(0.88,0.93,0.97,1)
                         line=Rectangle(pos=divider.pos,size=divider.size)
                     divider.bind(pos=lambda o,v,ln=line:setattr(ln,"pos",v),
                                  size=lambda o,v,ln=line:setattr(ln,"size",v))
@@ -882,7 +882,7 @@ class DashboardScreen(Screen):
         main=BoxLayout(orientation="vertical", padding=[dp(10),dp(8),dp(10),dp(4)], spacing=dp(0))
         with main.canvas.before:
             Color(0.94,0.95,0.97,1)
-            main_bg=RoundedRectangle(radius=[dp(18)])
+            main_bg=RoundedRectangle(radius=[dp(22)])
         main.bind(pos=lambda o,v:setattr(main_bg,"pos",v), size=lambda o,v:setattr(main_bg,"size",v))
 
         content=BoxLayout(orientation="vertical", padding=[dp(0),dp(0),dp(0),dp(8)], spacing=dp(8), size_hint_y=None)
@@ -915,7 +915,7 @@ class DashboardScreen(Screen):
         self.parent_alert.padding=[dp(10),dp(4)]
         with self.parent_alert.canvas.before:
             Color(0.86,0.97,0.90,1)
-            self._alert_bg=RoundedRectangle(radius=[dp(12)])
+            self._alert_bg=RoundedRectangle(radius=[dp(15)])
         self.parent_alert.bind(pos=lambda o,v:setattr(self._alert_bg,"pos",v),
                                size=lambda o,v:setattr(self._alert_bg,"size",v))
         content.add_widget(self.parent_alert)
@@ -1003,8 +1003,8 @@ class DashboardScreen(Screen):
         # Compact navigation rail gives the white workspace more width.
         side=BoxLayout(orientation="vertical",size_hint_x=None,width=dp(148),padding=[dp(7),dp(8)],spacing=dp(5))
         with side.canvas.before:
-            Color(0.035,0.11,0.20,1)
-            sb=RoundedRectangle(radius=[dp(18)])
+            Color(0.07,0.32,0.52,1)
+            sb=RoundedRectangle(radius=[dp(22)])
         side.bind(pos=lambda o,v:setattr(sb,"pos",v),size=lambda o,v:setattr(sb,"size",v))
 
         brand=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(76),padding=[dp(4),dp(4)])
