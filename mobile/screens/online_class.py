@@ -114,7 +114,7 @@ class OnlineClassScreen(Screen):
         api=getattr(self.app_state,"api",None)
         if api is None: return self._error("سرویس اتصال به پایگاه داده آماده نیست.")
         role=role_of(self.app_state)
-        if role not in CLASS_CREATORS: return self._error("فقط مدیر، معاون اجرایی و معاون آموزشی اجازه تشکیل کلاس آنلاین دارند.")
+        if role not in CLASS_CREATORS: return self._error("فقط مدیر و معاون اجرایی اجازه تشکیل کلاس آنلاین دارند.")
         if not getattr(api,"access_token",""): return self._error("نشست ورود معتبر نیست؛ دوباره وارد فراهوش شوید.")
         vals=[]
         for w in (grade,class_name,subject,start,end):
