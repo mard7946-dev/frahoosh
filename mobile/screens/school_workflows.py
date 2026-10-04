@@ -46,12 +46,9 @@ class BaseWorkflow(Screen):
         p=getattr(self.app_state,"profile",{}) or {}
         u=getattr(self.app_state,"user",{}) or {}
         metadata = u.get("user_metadata") if isinstance(u.get("user_metadata"), dict) else {}
-        raw_role = str(p.get("role") or getattr(self.app_state,"role","") or "").strip().lower()
-        parent_role = raw_role in {"parent","parents","ولی","اولیا"}
-        # Parent relationships use the national-code business key; other school
-        # roles use account_settings.username. Auth email is never the business key.
-        if parent_role and p.get("national_code"):
-            return str(p.get("national_code")).strip()
+        # The account username is the canonical requester/target business key.
+        # Parent-child linkage is a separate relation keyed by the parent's
+        # national code and is resolved explicitly where needed.
         return str(
             p.get("username")
             or metadata.get("username")
@@ -229,9 +226,10 @@ class MeetingWorkflowScreen(BaseWorkflow):
         student_id=profile.get("linked_student_id") or profile.get("student_id")
         if role == "parent" and not student_id:
             try:
+                parent_key = str(profile.get("national_code") or self.username()).strip()
                 links=self.api().table_select(
                     "parent_children",
-                    {"parent_username":f"eq.{self.username()}","limit":"50"}
+                    {"parent_username":f"eq.{parent_key}","limit":"50"}
                 ) or []
                 if links:
                     student_id=links[0].get("student_id")
