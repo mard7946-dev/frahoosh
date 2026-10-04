@@ -201,7 +201,10 @@ class LoginScreen(Screen):
         pass_label.height = dp(17)
         form.add_widget(pass_label)
         self.password = self._field(LOGIN_PASSWORD_HINT or "رمز عبور", True)
-        # Explicit ASCII mask avoids Android font square-glyph rendering.
+        # Keep the real password in CredentialTextInput.logical_text and render
+        # an explicit ASCII asterisk mask. This avoids Android square-glyph
+        # rendering while preserving the exact credential sent to Supabase.
+        self.password.masked = True
         self.password.password = False
         self.password.foreground_color = INK
         form.add_widget(self.password)
