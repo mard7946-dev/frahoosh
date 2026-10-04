@@ -116,6 +116,10 @@
       [
         "فعال‌سازی قابلیت‌های دانش‌آموز و اولیا",
         "module_activations"
+      ],
+      [
+        "ارتباط افراد مدرسه",
+        "school_relationships"
       ]
     ],
     "educational": [
@@ -252,6 +256,10 @@
       [
         "فعال‌سازی قابلیت‌های اجرایی و درخواست‌ها",
         "module_activations"
+      ],
+      [
+        "ارتباط افراد مدرسه",
+        "school_relationships"
       ]
     ],
     "cultural": [
@@ -3166,6 +3174,21 @@
         "delete"
       ],
       "special": "teacher_parent_meeting"
+    },
+    "school_relationships": {
+      "table": "school_relationships",
+      "fields": [
+        "source_username",
+        "target_username",
+        "target_role",
+        "relationship_type",
+        "active"
+      ],
+      "operations": [
+        "create",
+        "update",
+        "delete"
+      ]
     }
   },
   "special": {
