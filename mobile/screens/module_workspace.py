@@ -2694,3 +2694,5 @@ class ModuleWorkspaceScreen(Screen):
     def go_dashboard(self,*_):
         if self.manager: self.manager.current=self.return_to or 'dashboard'
     def go_back(self,*_): self.go_dashboard()
+
+# UI contract: module categories intentionally use the same vertical accordion pattern as dashboard panels.
