@@ -1056,7 +1056,6 @@ class DashboardScreen(Screen):
 
     def _build_reference_sidebar(self):
         self.side_list.clear_widgets()
-        self.stat_widgets = []
         allowed = self._allowed_panel_keys()
         for title, route in PANEL_HUBS:
             if route not in allowed:
