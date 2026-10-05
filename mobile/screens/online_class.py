@@ -1066,18 +1066,51 @@ class OnlineClassScreen(Screen):
                         LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT)
                     )
 
-                    # HTTPS base URL gives the bundled document a valid,
-                    # trusted origin for fetch/WebRTC while keeping the HTML
-                    # itself inside the APK.
-                    web.loadDataWithBaseURL(
-                        "https://frahoosh.ir/",
-                        html,
-                        "text/html",
-                        "UTF-8",
-                        "https://frahoosh.ir/online-class/"
-                    )
+                    # Do not load the WebRTC page while Android's runtime
+                    # camera/microphone dialogs are still open. On some devices
+                    # WebView cancels its PermissionRequest when a second Android
+                    # dialog appears. Wait until BOTH native permissions are
+                    # actually granted, then load the HTTPS-origin classroom.
+                    def load_room():
+                        try:
+                            # HTTPS base URL gives the bundled document a valid,
+                            # trusted origin for fetch/WebRTC while keeping the HTML
+                            # itself inside the APK.
+                            web.loadDataWithBaseURL(
+                                "https://frahoosh.ir/",
+                                html,
+                                "text/html",
+                                "UTF-8",
+                                "https://frahoosh.ir/online-class/"
+                            )
+                            print("FRAHOOSH SMART CLASSROOM WEBVIEW LOADED",class_id)
+                        except Exception as load_exc:
+                            print("FRAHOOSH WEBVIEW LOAD ERROR:",repr(load_exc))
+                            owner._error("اتاق مجازی بارگذاری نشد؛ "+str(load_exc))
+
+                    def wait_for_media_permissions(attempt=0):
+                        try:
+                            camera_ok = activity.checkSelfPermission("android.permission.CAMERA") == 0
+                            mic_ok = activity.checkSelfPermission("android.permission.RECORD_AUDIO") == 0
+                            if camera_ok and mic_ok:
+                                load_room()
+                                return
+                            if attempt >= 120:
+                                # Permission dialogs were not completed. Still open
+                                # the room so chat/board/files remain usable.
+                                print("FRAHOOSH MEDIA PERMISSIONS NOT READY; OPENING ROOM WITHOUT MEDIA")
+                                load_room()
+                                return
+                            Clock.schedule_once(
+                                lambda dt: wait_for_media_permissions(attempt+1), 0.25
+                            )
+                        except Exception as perm_exc:
+                            print("FRAHOOSH MEDIA PERMISSION CHECK ERROR:",repr(perm_exc))
+                            load_room()
+
                     owner._active_webview=web
                     owner._active_webview_container=container
+                    wait_for_media_permissions()
                     print("FRAHOOSH SMART CLASSROOM WEBVIEW READY",class_id)
                 except Exception as exc:
                     import traceback
