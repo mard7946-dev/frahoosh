@@ -1156,7 +1156,7 @@ class OnlineClassScreen(Screen):
             # actually enqueueing it on Android's Looper on some python-for-android
             # builds; the result is a successfully activated session with no room.
             activity = autoclass("org.kivy.android.PythonActivity").mActivity
-            self._ok("در حال باز کردن محیط واقعی کلاس...")
+            self._ok("در حال ساخت محیط واقعی کلاس...")
             activity.runOnUiThread(Runnable(create_ui))
             return True
         except Exception as exc:
