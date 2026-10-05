@@ -897,18 +897,18 @@ class OnlineClassScreen(Screen):
 
     def _open_virtual_classroom(self,url,class_id,profile,role):
         """
-        Open the real smart-classroom WebView on Android's UI thread.
+        Launch the real classroom through a Java UI-thread bridge.
 
-        WebView is an Android UI object and must be constructed on the thread
-        that owns the Activity UI.  Creating it from Kivy's Python thread was
-        the reason the app could activate the Supabase session while failing
-        to open the actual room on some phones.
+        The previous implementation depended on a PythonJavaClass Runnable.
+        On some python-for-android/Android combinations the Runnable was posted
+        but its Python callback never executed, leaving the session active while
+        the classroom window never appeared. The Java bridge now owns the UI
+        thread hop and creates the WebView/Dialog entirely in Java.
         """
         try:
             from pathlib import Path
             import json, os
             from jnius import autoclass
-            from jnius import PythonJavaClass, java_method
 
             html_path = next((p for p in (
                 Path(__file__).resolve().parents[1] / "assets" / "online_class.html",
@@ -940,276 +940,20 @@ class OnlineClassScreen(Screen):
             },ensure_ascii=False,separators=(",",":"))
             html = html.replace("__CONFIG__",cfg)
 
-            # Do not request Android media permissions before the WebView
-            # exists. WebView owns the media permission handshake; requesting
-            # native permissions first caused a race with WebChromeClient.
-            owner = self
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            Launcher = autoclass("ir.frahoosh.FrahooshClassroomLauncher")
+            activity = PythonActivity.mActivity
+            if activity is None:
+                raise RuntimeError("Android Activity در دسترس نیست.")
 
-            def create_ui():
-                try:
-                    PythonActivity=autoclass("org.kivy.android.PythonActivity")
-                    WebView=autoclass("android.webkit.WebView")
-                    WebViewClient=autoclass("android.webkit.WebViewClient")
-                    LayoutParams=autoclass("android.view.ViewGroup$LayoutParams")
-                    FrameLayout=autoclass("android.widget.FrameLayout")
-                    Button=autoclass("android.widget.Button")
-                    Dialog=autoclass("android.app.Dialog")
-                    Color=autoclass("android.graphics.Color")
-                    WindowManager=autoclass("android.view.WindowManager")
-                    activity=PythonActivity.mActivity
-
-                    # Remove an older room before creating a new native view.
-                    old_container=getattr(owner,"_active_webview_container",None)
-                    old_web=getattr(owner,"_active_webview",None)
-                    if old_container is not None:
-                        try:
-                            parent=old_container.getParent()
-                            if parent is not None:
-                                parent.removeView(old_container)
-                        except Exception:
-                            pass
-                    if old_web is not None:
-                        try: old_web.destroy()
-                        except Exception: pass
-
-                    web=WebView(activity)
-                    settings=web.getSettings()
-                    settings.setJavaScriptEnabled(True)
-                    settings.setDomStorageEnabled(True)
-                    settings.setDatabaseEnabled(True)
-                    settings.setMediaPlaybackRequiresUserGesture(False)
-                    settings.setAllowFileAccess(False)
-                    settings.setAllowContentAccess(False)
-                    try:
-                        settings.setJavaScriptCanOpenWindowsAutomatically(True)
-                        settings.setSupportMultipleWindows(True)
-                        settings.setBuiltInZoomControls(False)
-                        settings.setDisplayZoomControls(False)
-                        settings.setLoadWithOverviewMode(True)
-                        settings.setUseWideViewPort(True)
-                        settings.setCacheMode(1)
-                    except Exception as exc:
-                        print("WEBVIEW OPTIONAL SETTINGS ERROR:",repr(exc))
-
-                    try:
-                        from android.view import View
-                        web.setLayerType(View.LAYER_TYPE_HARDWARE,None)
-                    except Exception as exc:
-                        print("WEBVIEW HARDWARE LAYER ERROR:",repr(exc))
-
-                    class RoomWebViewClient(WebViewClient):
-                        def onPageFinished(self, view, loaded_url):
-                            print("FRAHOOSH CLASSROOM PAGE FINISHED:", loaded_url)
-                            Clock.schedule_once(lambda dt: owner._ok("محیط کلاس آنلاین باز شد."),0)
-                        def onReceivedError(self, view, request, error):
-                            try: desc=str(error.getDescription())
-                            except Exception: desc="unknown webview error"
-                            print("FRAHOOSH WEBVIEW ERROR:",desc)
-                            if request is not None and request.isForMainFrame():
-                                Clock.schedule_once(lambda dt,msg=desc: owner._error("بارگذاری محیط کلاس: "+msg),0)
-                        def onReceivedHttpError(self, view, request, response):
-                            try: code=int(response.getStatusCode())
-                            except Exception: code=-1
-                            print("FRAHOOSH WEBVIEW HTTP ERROR:",code)
-                            if request is not None and request.isForMainFrame():
-                                Clock.schedule_once(lambda dt,msg=code: owner._error("خطای HTTP محیط کلاس: "+str(msg)),0)
-                    web.setWebViewClient(RoomWebViewClient())
-                    try:
-                        FrahooshWebChromeClient=autoclass("ir.frahoosh.FrahooshWebChromeClient")
-                        chrome=FrahooshWebChromeClient()
-                        try:
-                            chrome.setContext(activity)
-                        except Exception as context_exc:
-                            print("WEBVIEW CHROME CONTEXT ERROR:",repr(context_exc))
-                        web.setWebChromeClient(chrome)
-                    except Exception as exc:
-                        print("FRAHOOSH WEB CHROME CLIENT FALLBACK:",repr(exc))
-                        WebChromeClient=autoclass("android.webkit.WebChromeClient")
-                        web.setWebChromeClient(WebChromeClient())
-
-                    web.setBackgroundColor(Color.BLACK)
-                    container=FrameLayout(activity)
-                    container.setBackgroundColor(Color.BLACK)
-                    container.addView(web,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
-                    try:
-                        container.setVisibility(0)
-                        container.setElevation(10000.0)
-                        web.setVisibility(0)
-                        web.setElevation(10001.0)
-                        container.bringToFront()
-                        web.bringToFront()
-                    except Exception as exc:
-                        print("WEBVIEW Z-ORDER ERROR:",repr(exc))
-
-                    back=Button(activity)
-                    back.setText("بازگشت به فراهوش")
-                    params=FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT)
-                    params.topMargin=20
-                    params.leftMargin=18
-                    container.addView(back,params)
-
-                    def close_room(*_):
-                        try:
-                            web.stopLoading()
-                            web.destroy()
-                        except Exception as exc:
-                            print("VIRTUAL CLASSROOM WEBVIEW CLOSE ERROR:",repr(exc))
-                        try:
-                            dialog.dismiss()
-                        except Exception as exc:
-                            print("VIRTUAL CLASSROOM DIALOG CLOSE ERROR:",repr(exc))
-                        owner._active_webview=None
-                        owner._active_webview_container=None
-
-                    back.setOnClickListener(close_room)
-
-                    # A Kivy SurfaceView can remain above a native child added
-                    # with addContentView on some Android GPU implementations.
-                    # Put the classroom in a real Android Dialog instead: Dialog
-                    # owns a top-level window and therefore reliably sits above Kivy.
-                    dialog=Dialog(activity)
-                    dialog.setContentView(container)
-                    win=dialog.getWindow()
-                    if win is not None:
-                        win.setBackgroundColor(Color.BLACK)
-                        win.setDimAmount(0.0)
-                        win.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        win.setLayout(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT)
-                    dialog.setCanceledOnTouchOutside(False)
-                    dialog.setCancelable(False)
-                    dialog.show()
-                    print("FRAHOOSH CLASSROOM DIALOG SHOWN",class_id)
-                    win=dialog.getWindow()
-                    if win is not None:
-                        win.setLayout(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT)
-                    try:
-                        container.bringToFront()
-                        web.bringToFront()
-                    except Exception:
-                        pass
-
-                    # Do not load the WebRTC page while Android's runtime
-                    # camera/microphone dialogs are still open. On some devices
-                    # WebView cancels its PermissionRequest when a second Android
-                    # dialog appears. Wait until BOTH native permissions are
-                    # actually granted, then load the HTTPS-origin classroom.
-                    owner._active_webview=web
-                    owner._active_webview_container=container
-                    owner._active_webview_dialog=dialog
-
-                    # Give the native view one UI-loop turn to attach before
-                    # loading the document. This also lets WebChromeClient receive
-                    # getUserMedia on the already attached WebView.
-                    def load_room():
-                        try:
-                            web.postDelayed(lambda *_: web.loadDataWithBaseURL(
-                                "https://frahoosh.ir/online-class/",
-                                html,
-                                "text/html",
-                                "UTF-8",
-                                "https://frahoosh.ir/online-class/"
-                            ),150)
-                            print("FRAHOOSH SMART CLASSROOM LOAD POSTED",class_id)
-                            # Confirm that the document actually finished loading before
-                            # reporting success. This avoids the old false-positive green
-                            # message that appeared while the Kivy screen was still visible.
-                            started_at = datetime.now(timezone.utc)
-                            def wait_for_room(dt):
-                                try:
-                                    progress = int(web.getProgress())
-                                    visible = int(web.getVisibility()) == 0
-                                    if progress >= 100 and visible:
-                                        owner._ok("محیط کلاس آنلاین باز شد.")
-                                        return False
-                                    if (datetime.now(timezone.utc)-started_at).total_seconds() >= 15:
-                                        owner._error("محیط کلاس آنلاین در ۱۵ ثانیه بارگذاری نشد.")
-                                        return False
-                                except Exception as wait_exc:
-                                    print("CLASSROOM LOAD CHECK ERROR:",repr(wait_exc))
-                                    owner._error("بارگذاری محیط کلاس ناموفق بود.")
-                                    return False
-                                return True
-                            Clock.schedule_interval(wait_for_room,0.25)
-                        except Exception as load_exc:
-                            print("FRAHOOSH WEBVIEW LOAD ERROR:",repr(load_exc))
-                            owner._error("اتاق مجازی بارگذاری نشد؛ "+str(load_exc))
-                    # create_ui() is already dispatched by @run_on_ui_thread.
-                    # The room must be loaded after the Dialog/WebView is attached.
-                    load_room()
-                except Exception as exc:
-                    import traceback
-                    detail=f"{type(exc).__name__}: {exc}"
-                    print("FRAHOOSH INTERNAL CLASSROOM UI ERROR:",detail)
-                    print(traceback.format_exc())
-                    # Do not leave a ghost active session when the native room
-                    # itself could not be created.
-                    def rollback():
-                        try:
-                            owner.app_state.api.table_update(
-                                "online_classes",
-                                {"id":f"eq.{int(class_id)}"},
-                                {"status":"inactive"}
-                            )
-                            rows=owner.app_state.api.table_select(
-                                "online_class_sessions",
-                                {"class_id":f"eq.{int(class_id)}","order":"id.desc","limit":"1"}
-                            ) or []
-                            if rows and rows[0].get("id") is not None:
-                                owner.app_state.api.table_update(
-                                    "online_class_sessions",
-                                    {"id":f"eq.{rows[0]['id']}"},
-                                    {"ended_at":datetime.now(timezone.utc).isoformat()}
-                                )
-                        except Exception as rollback_exc:
-                            print("CLASSROOM LAUNCH ROLLBACK ERROR:",repr(rollback_exc))
-                    from threading import Thread
-                    Thread(target=rollback,daemon=True).start()
-                    Clock.schedule_once(
-                        lambda dt,msg=detail: owner._error("اتاق مجازی باز نشد؛ "+msg),
-                        0
-                    )
-
-            # WebView MUST be created on Android's Activity UI thread.
-            # Use the Activity's native runOnUiThread dispatcher explicitly.
-            # This avoids the silent callback/no-op seen with some p4a builds
-            # when android.runnable.run_on_ui_thread is invoked from Kivy code.
-            activity = autoclass("org.kivy.android.PythonActivity").mActivity
-            self._ok("در حال ساخت محیط واقعی کلاس...")
-            owner = self
-
-            class ClassroomUiRunnable(PythonJavaClass):
-                __javainterfaces__ = ["java/lang/Runnable"]
-                __javacontext__ = "app"
-
-                @java_method("()V")
-                def run(self):
-                    create_ui()
-
-            try:
-                runnable = ClassroomUiRunnable()
-                # Keep a strong reference until the dialog has been attached.
-                self._classroom_ui_runnable = runnable
-                activity.runOnUiThread(runnable)
-                print("FRAHOOSH CLASSROOM UI RUNNABLE POSTED", class_id)
-            except Exception as dispatch_exc:
-                import traceback
-                detail=f"{type(dispatch_exc).__name__}: {dispatch_exc}"
-                print("FRAHOOSH CLASSROOM UI DISPATCH ERROR:", detail)
-                print(traceback.format_exc())
-                self._error("اجرای پنجره کلاس اندروید ناموفق بود؛ "+detail)
-                return False
-
-            def launch_watchdog(dt):
-                if getattr(self,"_active_webview_dialog",None) is None:
-                    self._error("پنجره کلاس اندروید به رابط کاربری نرسید؛ اجرای WebView را متوقف نکرده‌ایم، لطفاً گزارش خطای دستگاه بررسی شود.")
-                else:
-                    self._classroom_ui_runnable = None
-            Clock.schedule_once(launch_watchdog,5.0)
+            self._ok("در حال باز کردن محیط واقعی کلاس...")
+            Launcher.open(activity, html)
+            print("FRAHOOSH CLASSROOM JAVA BRIDGE OPEN REQUESTED", class_id)
             return True
         except Exception as exc:
             import traceback
             detail=f"{type(exc).__name__}: {exc}"
-            print("FRAHOOSH INTERNAL CLASSROOM ERROR:",detail)
+            print("FRAHOOSH CLASSROOM JAVA BRIDGE ERROR:", detail)
             print(traceback.format_exc())
             self._error("اتاق مجازی باز نشد؛ "+detail)
             return False
