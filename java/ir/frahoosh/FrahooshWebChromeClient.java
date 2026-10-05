@@ -43,7 +43,9 @@ public class FrahooshWebChromeClient extends WebChromeClient {
          * corresponding Android runtime permission is actually granted.
          * Poll briefly, then grant the original WebView request.
          */
-        mainHandler.post(() -> grantWhenAndroidPermissionReady(request, needsCamera, needsMic, 0));
+        final boolean cameraNeeded = needsCamera;
+        final boolean micNeeded = needsMic;
+        mainHandler.post(() -> grantWhenAndroidPermissionReady(request, cameraNeeded, micNeeded, 0));
     }
 
     private void grantWhenAndroidPermissionReady(
