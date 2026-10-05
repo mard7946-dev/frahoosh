@@ -960,15 +960,9 @@ class OnlineClassScreen(Screen):
             },ensure_ascii=False,separators=(",",":"))
             html = html.replace("__CONFIG__",cfg)
 
-            # Android camera/microphone runtime permissions must be requested
-            # before WebView's WebChromeClient grants the corresponding web
-            # resources.
-            try:
-                from android.permissions import request_permissions, Permission
-                request_permissions([Permission.CAMERA, Permission.RECORD_AUDIO])
-            except Exception as exc:
-                print("ANDROID MEDIA PERMISSION REQUEST ERROR:",repr(exc))
-
+            # Do not request Android media permissions before the WebView
+            # exists. WebView owns the media permission handshake; requesting
+            # native permissions first caused a race with WebChromeClient.
             owner = self
 
             def create_ui():
@@ -1071,46 +1065,24 @@ class OnlineClassScreen(Screen):
                     # WebView cancels its PermissionRequest when a second Android
                     # dialog appears. Wait until BOTH native permissions are
                     # actually granted, then load the HTTPS-origin classroom.
-                    def load_room():
-                        try:
-                            # HTTPS base URL gives the bundled document a valid,
-                            # trusted origin for fetch/WebRTC while keeping the HTML
-                            # itself inside the APK.
-                            web.loadDataWithBaseURL(
-                                "https://frahoosh.ir/",
-                                html,
-                                "text/html",
-                                "UTF-8",
-                                "https://frahoosh.ir/online-class/"
-                            )
-                            print("FRAHOOSH SMART CLASSROOM WEBVIEW LOADED",class_id)
-                        except Exception as load_exc:
-                            print("FRAHOOSH WEBVIEW LOAD ERROR:",repr(load_exc))
-                            owner._error("اتاق مجازی بارگذاری نشد؛ "+str(load_exc))
-
-                    def wait_for_media_permissions(attempt=0):
-                        try:
-                            camera_ok = activity.checkSelfPermission("android.permission.CAMERA") == 0
-                            mic_ok = activity.checkSelfPermission("android.permission.RECORD_AUDIO") == 0
-                            if camera_ok and mic_ok:
-                                load_room()
-                                return
-                            if attempt >= 120:
-                                # Permission dialogs were not completed. Still open
-                                # the room so chat/board/files remain usable.
-                                print("FRAHOOSH MEDIA PERMISSIONS NOT READY; OPENING ROOM WITHOUT MEDIA")
-                                load_room()
-                                return
-                            Clock.schedule_once(
-                                lambda dt: wait_for_media_permissions(attempt+1), 0.25
-                            )
-                        except Exception as perm_exc:
-                            print("FRAHOOSH MEDIA PERMISSION CHECK ERROR:",repr(perm_exc))
-                            load_room()
-
                     owner._active_webview=web
                     owner._active_webview_container=container
-                    wait_for_media_permissions()
+
+                    # Load the room immediately. The classroom itself must not
+                    # be blocked by Android runtime dialogs. Camera/microphone
+                    # are requested only when WebView calls getUserMedia().
+                    try:
+                        web.loadDataWithBaseURL(
+                            "https://frahoosh.ir/",
+                            html,
+                            "text/html",
+                            "UTF-8",
+                            "https://frahoosh.ir/online-class/"
+                        )
+                        print("FRAHOOSH SMART CLASSROOM WEBVIEW LOADED",class_id)
+                    except Exception as load_exc:
+                        print("FRAHOOSH WEBVIEW LOAD ERROR:",repr(load_exc))
+                        owner._error("اتاق مجازی بارگذاری نشد؛ "+str(load_exc))
                     print("FRAHOOSH SMART CLASSROOM WEBVIEW READY",class_id)
                 except Exception as exc:
                     import traceback
