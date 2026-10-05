@@ -109,14 +109,14 @@ class FinanceScreen(Screen):
                 self._label(f"#{r.get('id')} | {r.get('title','')}\nمبلغ {r.get('amount',0)} | بدهکار {r.get('debit',0)} | بستانکار {r.get('credit',0)} | فاکتور {r.get('invoice_number','')}\nپیوست: {len(at)} فایل",84)
             fields=["id","transaction_type","title","amount","category","transaction_date","invoice_number","counterparty","debit","credit","description"]
             if rows:
-                self._button("خروجی Excel دفتر مالی",lambda *_:self._export(rows,fields,"دفتر_مالی"),SUCCESS)
-                self._button("خروجی PDF دفتر مالی",lambda *_:self._export(rows,fields,"دفتر_مالی"),PRIMARY)
+                self._button("خروجی Excel دفتر مالی",lambda *_:self._export_file(rows,fields,"excel","دفتر_مالی"),SUCCESS)
+                self._button("خروجی PDF دفتر مالی",lambda *_:self._export_file(rows,fields,"pdf","دفتر_مالی"),PRIMARY)
         except Exception as e:self._error("خواندن دفتر مالی انجام نشد: "+str(e))
         self._button("ثبت سند جدید",lambda *_:self.new_transaction(),SUCCESS); self._button("بازگشت",lambda *_:self.home(),SECONDARY)
 
-    def _export(self,rows,fields,title):
+    def _export_file(self,rows,fields,kind,title):
         try:
-            path=export_excel(rows,fields,title) if title.endswith("مالی") and "Excel" in self.status.text else export_pdf(rows,fields,title)
+            path=export_excel(rows,fields,title) if kind=="excel" else export_pdf(rows,fields,title)
             self._ok("خروجی ایجاد شد: "+str(path))
         except Exception as e:self._error("خروجی ایجاد نشد: "+str(e))
 
