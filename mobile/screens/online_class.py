@@ -998,7 +998,23 @@ class OnlineClassScreen(Screen):
                     except Exception as exc:
                         print("WEBVIEW HARDWARE LAYER ERROR:",repr(exc))
 
-                    web.setWebViewClient(WebViewClient())
+                    class RoomWebViewClient(WebViewClient):
+                        def onPageFinished(self, view, loaded_url):
+                            print("FRAHOOSH CLASSROOM PAGE FINISHED:", loaded_url)
+                            Clock.schedule_once(lambda dt: owner._ok("محیط کلاس آنلاین باز شد."),0)
+                        def onReceivedError(self, view, request, error):
+                            try: desc=str(error.getDescription())
+                            except Exception: desc="unknown webview error"
+                            print("FRAHOOSH WEBVIEW ERROR:",desc)
+                            if request is not None and request.isForMainFrame():
+                                Clock.schedule_once(lambda dt,msg=desc: owner._error("بارگذاری محیط کلاس: "+msg),0)
+                        def onReceivedHttpError(self, view, request, response):
+                            try: code=int(response.getStatusCode())
+                            except Exception: code=-1
+                            print("FRAHOOSH WEBVIEW HTTP ERROR:",code)
+                            if request is not None and request.isForMainFrame():
+                                Clock.schedule_once(lambda dt,msg=code: owner._error("خطای HTTP محیط کلاس: "+str(msg)),0)
+                    web.setWebViewClient(RoomWebViewClient())
                     try:
                         FrahooshWebChromeClient=autoclass("ir.frahoosh.FrahooshWebChromeClient")
                         chrome=FrahooshWebChromeClient()
@@ -1087,14 +1103,14 @@ class OnlineClassScreen(Screen):
                     # getUserMedia on the already attached WebView.
                     def load_room():
                         try:
-                            web.loadDataWithBaseURL(
+                            web.postDelayed(lambda *_: web.loadDataWithBaseURL(
                                 "https://frahoosh.ir/online-class/",
                                 html,
                                 "text/html",
                                 "UTF-8",
                                 "https://frahoosh.ir/online-class/"
-                            )
-                            print("FRAHOOSH SMART CLASSROOM WEBVIEW LOADED",class_id)
+                            ),150)
+                            print("FRAHOOSH SMART CLASSROOM LOAD POSTED",class_id)
                             # Confirm that the document actually finished loading before
                             # reporting success. This avoids the old false-positive green
                             # message that appeared while the Kivy screen was still visible.
