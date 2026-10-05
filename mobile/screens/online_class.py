@@ -1024,7 +1024,12 @@ class OnlineClassScreen(Screen):
                     web.setWebViewClient(WebViewClient())
                     try:
                         FrahooshWebChromeClient=autoclass("ir.frahoosh.FrahooshWebChromeClient")
-                        web.setWebChromeClient(FrahooshWebChromeClient())
+                        chrome=FrahooshWebChromeClient()
+                        try:
+                            chrome.setContext(activity)
+                        except Exception as context_exc:
+                            print("WEBVIEW CHROME CONTEXT ERROR:",repr(context_exc))
+                        web.setWebChromeClient(chrome)
                     except Exception as exc:
                         print("FRAHOOSH WEB CHROME CLIENT FALLBACK:",repr(exc))
                         WebChromeClient=autoclass("android.webkit.WebChromeClient")
