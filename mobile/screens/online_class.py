@@ -1060,20 +1060,6 @@ class OnlineClassScreen(Screen):
                             print("FRAHOOSH WEBVIEW LOAD ERROR:",repr(load_exc))
                             owner._error("اتاق مجازی بارگذاری نشد؛ "+str(load_exc))
                     activity.runOnUiThread(Runnable(load_room))
-                    return
-                    try:
-                        web.loadDataWithBaseURL(
-                            "https://frahoosh.ir/",
-                            html,
-                            "text/html",
-                            "UTF-8",
-                            "https://frahoosh.ir/online-class/"
-                        )
-                        print("FRAHOOSH SMART CLASSROOM WEBVIEW LOADED",class_id)
-                    except Exception as load_exc:
-                        print("FRAHOOSH WEBVIEW LOAD ERROR:",repr(load_exc))
-                        owner._error("اتاق مجازی بارگذاری نشد؛ "+str(load_exc))
-                    print("FRAHOOSH SMART CLASSROOM WEBVIEW READY",class_id)
                 except Exception as exc:
                     import traceback
                     detail=f"{type(exc).__name__}: {exc}"
