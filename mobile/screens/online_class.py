@@ -132,32 +132,7 @@ class OnlineClassScreen(Screen):
                 "p_end_time":end_value,
                 "p_join_url":"frahoosh://pending",
             }))
-            api.table_update("online_classes",{"id":"eq."+str(class_id)},{
-                "join_url":"frahoosh://online-class/"+str(class_id),
-                "meeting_url":"frahoosh://online-class/"+str(class_id),
-                "pages":15,
-                "smart_board":1,
-                "quiz":1,
-                "camera":1,
-                "microphone":1,
-                "record":1
-            })
-            # A class is born as a smart classroom: 15 persistent board pages,
-            # media sharing, quiz, camera/microphone and screen sharing enabled.
-            api.table_insert("online_class_settings",{
-                "class_id":int(class_id),
-                "public_chat_enabled":1,
-                "private_chat_enabled":1,
-                "board_enabled":1,
-                "file_share_enabled":1,
-                "media_enabled":1,
-                "quiz_enabled":1,
-                "camera_enabled":1,
-                "microphone_enabled":1,
-                "screen_share_enabled":1,
-                "updated_at_shamsi":datetime.now().strftime("%Y-%m-%d %H:%M")
-            },return_representation=False)
-            self._ok("کلاس هوشمند ساخته شد؛ ۱۵ صفحه تخته، صدا/تصویر، اشتراک صفحه/فایل و کوئیز فعال است. اکنون دبیر و دانش‌آموزان را متصل کنید. کد کلاس: "+str(class_id))
+            # Initial class configuration is created atomically by the Supabase RPC.\n            # Do not follow the RPC with PATCH/INSERT calls: a partial success used to\n            # leave a class row behind and then report a misleading permission error.\n            self._ok("کلاس هوشمند ساخته شد؛ ۱۵ صفحه تخته، صدا/تصویر، اشتراک صفحه/فایل و کوئیز فعال است. اکنون دبیر و دانش‌آموزان را متصل کنید. کد کلاس: "+str(class_id))
             self._members(class_id)
         except Exception as exc:
             self._error("ثبت کلاس در Supabase انجام نشد: "+str(exc))
