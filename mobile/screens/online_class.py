@@ -990,7 +990,25 @@ class OnlineClassScreen(Screen):
                     except Exception as exc:
                         print("WEBVIEW HARDWARE LAYER ERROR:",repr(exc))
 
-                    web.setWebViewClient(WebViewClient())
+                    # Keep the WebView above Kivy's SurfaceView on Android.
+                    # Without an explicit z-order/elevation some devices render the
+                    # Kivy screen over the native WebView even though it was added.
+                    class RoomWebViewClient(WebViewClient):
+                        def onPageFinished(self, view, page_url):
+                            try:
+                                print("FRAHOOSH CLASSROOM PAGE FINISHED:", page_url)
+                                Clock.schedule_once(
+                                    lambda dt: owner._ok("محیط کلاس آنلاین باز شد."),
+                                    0
+                                )
+                            except Exception as exc:
+                                print("CLASSROOM PAGE FINISHED CALLBACK ERROR:",repr(exc))
+                            try:
+                                view.setVisibility(0)
+                                view.requestFocus()
+                            except Exception:
+                                pass
+                    web.setWebViewClient(RoomWebViewClient())
                     try:
                         FrahooshWebChromeClient=autoclass("ir.frahoosh.FrahooshWebChromeClient")
                         chrome=FrahooshWebChromeClient()
@@ -1008,6 +1026,15 @@ class OnlineClassScreen(Screen):
                     container=FrameLayout(activity)
                     container.setBackgroundColor(Color.BLACK)
                     container.addView(web,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
+                    try:
+                        container.setVisibility(0)
+                        container.setElevation(10000.0)
+                        web.setVisibility(0)
+                        web.setElevation(10001.0)
+                        container.bringToFront()
+                        web.bringToFront()
+                    except Exception as exc:
+                        print("WEBVIEW Z-ORDER ERROR:",repr(exc))
 
                     back=Button(activity)
                     back.setText("بازگشت به فراهوش")
@@ -1034,6 +1061,13 @@ class OnlineClassScreen(Screen):
                         container,
                         LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT)
                     )
+                    try:
+                        container.bringToFront()
+                        web.bringToFront()
+                        container.invalidate()
+                        web.invalidate()
+                    except Exception:
+                        pass
 
                     # Do not load the WebRTC page while Android's runtime
                     # camera/microphone dialogs are still open. On some devices
@@ -1098,8 +1132,8 @@ class OnlineClassScreen(Screen):
             # actually enqueueing it on Android's Looper on some python-for-android
             # builds; the result is a successfully activated session with no room.
             activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            self._ok("در حال باز کردن محیط واقعی کلاس...")
             activity.runOnUiThread(Runnable(create_ui))
-            self._ok("جلسه فعال شد؛ در حال باز کردن اتاق مجازی...")
             return True
         except Exception as exc:
             import traceback
