@@ -1043,9 +1043,24 @@ class OnlineClassScreen(Screen):
                     owner._active_webview=web
                     owner._active_webview_container=container
 
-                    # Load the room immediately. The classroom itself must not
-                    # be blocked by Android runtime dialogs. Camera/microphone
-                    # are requested only when WebView calls getUserMedia().
+                    # Give the native view one UI-loop turn to attach before
+                    # loading the document. This also lets WebChromeClient receive
+                    # getUserMedia on the already attached WebView.
+                    def load_room():
+                        try:
+                            web.loadDataWithBaseURL(
+                                "https://frahoosh.ir/online-class/",
+                                html,
+                                "text/html",
+                                "UTF-8",
+                                "https://frahoosh.ir/online-class/"
+                            )
+                            print("FRAHOOSH SMART CLASSROOM WEBVIEW LOADED",class_id)
+                        except Exception as load_exc:
+                            print("FRAHOOSH WEBVIEW LOAD ERROR:",repr(load_exc))
+                            owner._error("اتاق مجازی بارگذاری نشد؛ "+str(load_exc))
+                    activity.runOnUiThread(Runnable(load_room))
+                    return
                     try:
                         web.loadDataWithBaseURL(
                             "https://frahoosh.ir/",
@@ -1092,10 +1107,12 @@ class OnlineClassScreen(Screen):
                         0
                     )
 
-            # All WebView construction/loading is now explicitly scheduled on
-            # Android's UI thread. This is the critical fix for the launch
-            # failure seen after "جلسه در سامانه فعال شد".
-            Runnable(create_ui)()
+            # WebView MUST be created from the Activity UI thread.  Calling
+            # the Runnable wrapper directly can execute Python code without
+            # actually enqueueing it on Android's Looper on some python-for-android
+            # builds; the result is a successfully activated session with no room.
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            activity.runOnUiThread(Runnable(create_ui))
             self._ok("جلسه فعال شد؛ در حال باز کردن اتاق مجازی...")
             return True
         except Exception as exc:
