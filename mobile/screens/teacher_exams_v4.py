@@ -129,6 +129,25 @@ class TeacherExamsV4Screen(Screen):
         self.body.bind(minimum_height=self.body.setter("height")); scroll.add_widget(self.body); root.add_widget(scroll); self.add_widget(root)
 
     def _clear(self): self.body.clear_widgets()
+    def _diagnostic_instruction(self, mode):
+        if str(getattr(mode,"text","")) == fa_display("تشخیصی"):
+            self.status.text=fa_display("آزمون تشخیصی: بدون چت، بدون پاسخ‌گویی بیرونی و با حالت امن صفحه.")
+            self.status.color=SECONDARY
+
+    def _set_exam_secure(self, enabled=True):
+        """Prevent Android screenshots/recording while a secure exam is open."""
+        try:
+            from jnius import autoclass
+            Activity = autoclass("org.kivy.android.PythonActivity")
+            Window = autoclass("android.view.Window")
+            activity = Activity.mActivity
+            if activity is None:return
+            flags = Window.LayoutParams.FLAG_SECURE
+            if enabled: activity.getWindow().addFlags(flags)
+            else: activity.getWindow().clearFlags(flags)
+        except Exception as exc:
+            print("EXAM SECURE FLAG ERROR:", repr(exc))
+
     def _label(self,text,size="14sp",color=SECONDARY,height=52,bold=False):
         w=Label(text=fa_display(text),font_name=font_name(),font_size=size,color=color,bold=bold,halign="right",valign="middle",size_hint_y=None,height=dp(height)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); self.body.add_widget(w); return w
     def _button(self,text,cb,color=PRIMARY,height=48):
@@ -143,6 +162,7 @@ class TeacherExamsV4Screen(Screen):
         return (widget.get_logical_text() if hasattr(widget, "get_logical_text") else str(getattr(widget, "text", "") or "")).strip()
     def _ok(self,text): self.status.text=fa_display(text); self.status.color=SUCCESS
     def _back(self):
+        self._set_exam_secure(False)
         if self.manager:self.manager.current="dashboard"
     def on_pre_enter(self,*args): self.show_home()
 
@@ -184,8 +204,10 @@ class TeacherExamsV4Screen(Screen):
         attempts=self._field("حداکثر تعداد شرکت هر دانش‌آموز"); attempts.text="1"
         passing=self._field("نمره قبولی (اختیاری)"); passing.text="0"
         mode=self._spinner("استاندارد",["استاندارد","تشخیصی"])
+        mode.bind(text=lambda *_: self._diagnostic_instruction(mode))
         desc=self._field("دستورالعمل آزمون",82,True)
         self._label("انواع سؤال قابل انتخاب: تستی، صحیح و غلط، جای خالی، پاسخ کوتاه و تشریحی. به جز تشریحی، تصحیح خودکار انجام می‌شود.","11sp",PRIMARY,65)
+        self._label("در حالت تشخیصی، آزمون برای سنجش اولیه است؛ چت و پاسخ‌گویی به سؤال‌های آزمون مجاز نیست و آزمون در حالت امن اجرا می‌شود.","10sp",SECONDARY,62)
         self._button("＋ افزودن سؤال",lambda *_:self._add_question(),SUCCESS)
         if teacher_picker is not None:
             self._exam_teacher_picker = teacher_picker
@@ -592,6 +614,7 @@ class TeacherExamsV4Screen(Screen):
             return True, ""
 
     def _render_attempt(self,exam,attempt):
+        self._set_exam_secure(True)
         self._clear(); self._attempt_id=int(attempt["attempt_id"]); self._answers={}
         self._label(exam.get("title","آزمون"),"22sp",PRIMARY,55,True)
         self._label(f"{exam.get('subject','')}  •  مدت {attempt.get('duration') or exam.get('duration',45)} دقیقه\nترتیب سؤال‌ها برای شما اختصاصی است و پاسخ صحیح نمایش داده نمی‌شود.",height=72)
@@ -610,6 +633,7 @@ class TeacherExamsV4Screen(Screen):
         self._button("ارسال نهایی آزمون",lambda *_:self._submit_attempt(),SUCCESS)
 
     def _submit_attempt(self):
+        self._set_exam_secure(False)
         answers=[]
         for qid,w in self._answers.items():answers.append({"question_id":qid,"answer":str(getattr(w,"text","") or "")})
         try:
