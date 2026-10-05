@@ -105,6 +105,11 @@ class OperationalPanelScreen(Screen):
                 if screen:
                     app.sm.current = screen.name
                     return
+            elif route in {"finance","finance_accounts","finance_transactions","payment_records"}:
+                screen = app.ensure_finance() if app else None
+                if screen:
+                    app.sm.current = screen.name
+                    return
             elif route in {"teacher_exams","exams","questions","quiz_questions"}:
                 screen = app.ensure_exam_authoring() if app else None
                 if screen:
@@ -381,6 +386,13 @@ class FrahooshApp(App):
         screen = SchoolScreen(name="school", app_state=self.app_state)
         self.sm.add_widget(screen)
         return screen
+
+    def ensure_finance(self):
+        if self.sm is None:return None
+        try:return self.sm.get_screen("finance")
+        except Exception:pass
+        from mobile.screens.finance import FinanceScreen
+        s=FinanceScreen(name="finance",app_state=self.app_state); self.sm.add_widget(s); return s
 
     def ensure_meetings(self):
         if self.sm is None:
