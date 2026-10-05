@@ -15,13 +15,18 @@ from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 
 
 DISCIPLINE_TYPES = (
-    "بی‌نظمی",
-    "تأخیر",
+    "تأخیر در ورود به کلاس",
+    "تأخیر در ورود به دبیرستان",
+    "رفتار نامناسب با دانش‌آموزان",
+    "عدم استفاده از لباس فرم",
+    "موی بلند و نامتعارف",
+    "آوردن ابزار غیر دانش‌آموزی",
+    "بی‌احترامی به عوامل دبیرستان",
+    "آسیب زدن به اموال دبیرستان",
     "عدم انجام تکلیف",
-    "رفتار نامناسب",
-    "ترک کلاس بدون اجازه",
     "استفاده غیرمجاز از تلفن همراه",
     "درگیری / مشاجره",
+    "بی‌نظمی",
     "سایر",
 )
 
@@ -194,8 +199,9 @@ class DisciplineScreen(_Base):
         self.type_spinner = Spinner(text=fa_display("نوع مشکل انضباطی"), values=tuple(fa_display(x) for x in DISCIPLINE_TYPES),
                                     size_hint_y=None, height=dp(45), font_name=font_name(), font_size="12sp")
         self.discipline_type_map = {fa_display(x): x for x in DISCIPLINE_TYPES}
+        self.description = TextInput(hint_text=fa_display("علت / توضیحات مورد انضباطی"), font_name=font_name(), font_size="12sp", multiline=True, size_hint_y=None, height=dp(70), halign="right")
         self.note = self.label("پس از انتخاب دانش‌آموز، نوع مورد را از منوی کشویی انتخاب کنید.", "10sp", SECONDARY, 42)
-        self.body.add_widget(self.student_spinner); self.body.add_widget(self.type_spinner); self.body.add_widget(self.note)
+        self.body.add_widget(self.student_spinner); self.body.add_widget(self.type_spinner); self.body.add_widget(self.description); self.body.add_widget(self.note)
         self.body.add_widget(self.button("ثبت مورد انضباطی → معاون آموزشی → اولیا", self.save, SUCCESS, 48))
         self._load_students(self.loaded)
 
@@ -217,21 +223,28 @@ class DisciplineScreen(_Base):
         kind_display = str(self.type_spinner.text or "").strip()
         kind = self.discipline_type_map.get(kind_display, kind_display)
         if not student or selected == fa_display("انتخاب دانش‌آموز") or kind == fa_display("نوع مشکل انضباطی"):
-            self.status.text = fa_display("دانش‌آموز و نوع مشکل انضباطی را انتخاب کنید."); self.status.color = ERROR; return
+            self.status.text = fa_display("دانش‌آموز و نوع مورد انضباطی را انتخاب کنید."); self.status.color = ERROR; return
         try:
+            rows=self.app_state.api.table_select("discipline_items",{"title":f"eq.{kind}","limit":"1"}) or []
+            item_id=rows[0].get("id") if rows else None
             self.app_state.api.table_insert("discipline_records", {
                 "student_id": student.get("id"),
-                "discipline_type": kind,
+                "item_id": item_id,
+                "title": kind,
+                "description": str(self.description.text or "").strip(),
+                "note": str(self.description.text or "").strip(),
                 "record_date": datetime.now().strftime("%Y-%m-%d"),
-                "decision_type": "بررسی معاون آموزشی",
-                "description": "ثبت توسط " + (_role(self.app_state) or "کاربر"),
+                "status": "pending",
+                "priority": "normal",
                 "actor_username": str(getattr(self.app_state, "national_code", "") or ""),
+                "actor_role": _role(self.app_state) or "staff",
             })
             self._notify("مورد انضباطی", f"مورد «{kind}» برای دانش‌آموز ثبت شد و برای معاون آموزشی ارسال شد.", student)
-            self.status.text = fa_display("ثبت شد؛ ابتدا در صف معاون آموزشی قرار گرفت و سپس برای اطلاع ولی ارسال می‌شود.")
+            self.status.text = fa_display("ثبت شد؛ در صف معاون آموزشی قرار گرفت و اطلاع‌رسانی برای ولی ثبت شد.")
             self.status.color = SUCCESS
         except Exception as exc:
             self.status.text = fa_display("ثبت مورد انضباطی انجام نشد: " + str(exc)); self.status.color = ERROR
+
 
 
 class OnlineAttendanceScreen(_Base):
