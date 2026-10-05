@@ -990,25 +990,7 @@ class OnlineClassScreen(Screen):
                     except Exception as exc:
                         print("WEBVIEW HARDWARE LAYER ERROR:",repr(exc))
 
-                    # Keep the WebView above Kivy's SurfaceView on Android.
-                    # Without an explicit z-order/elevation some devices render the
-                    # Kivy screen over the native WebView even though it was added.
-                    class RoomWebViewClient(WebViewClient):
-                        def onPageFinished(self, view, page_url):
-                            try:
-                                print("FRAHOOSH CLASSROOM PAGE FINISHED:", page_url)
-                                Clock.schedule_once(
-                                    lambda dt: owner._ok("محیط کلاس آنلاین باز شد."),
-                                    0
-                                )
-                            except Exception as exc:
-                                print("CLASSROOM PAGE FINISHED CALLBACK ERROR:",repr(exc))
-                            try:
-                                view.setVisibility(0)
-                                view.requestFocus()
-                            except Exception:
-                                pass
-                    web.setWebViewClient(RoomWebViewClient())
+                    web.setWebViewClient(WebViewClient())
                     try:
                         FrahooshWebChromeClient=autoclass("ir.frahoosh.FrahooshWebChromeClient")
                         chrome=FrahooshWebChromeClient()
@@ -1090,6 +1072,26 @@ class OnlineClassScreen(Screen):
                                 "https://frahoosh.ir/online-class/"
                             )
                             print("FRAHOOSH SMART CLASSROOM WEBVIEW LOADED",class_id)
+                            # Confirm that the document actually finished loading before
+                            # reporting success. This avoids the old false-positive green
+                            # message that appeared while the Kivy screen was still visible.
+                            started_at = datetime.now(timezone.utc)
+                            def wait_for_room(dt):
+                                try:
+                                    progress = int(web.getProgress())
+                                    visible = int(web.getVisibility()) == 0
+                                    if progress >= 100 and visible:
+                                        owner._ok("محیط کلاس آنلاین باز شد.")
+                                        return False
+                                    if (datetime.now(timezone.utc)-started_at).total_seconds() >= 15:
+                                        owner._error("محیط کلاس آنلاین در ۱۵ ثانیه بارگذاری نشد.")
+                                        return False
+                                except Exception as wait_exc:
+                                    print("CLASSROOM LOAD CHECK ERROR:",repr(wait_exc))
+                                    owner._error("بارگذاری محیط کلاس ناموفق بود.")
+                                    return False
+                                return True
+                            Clock.schedule_interval(wait_for_room,0.25)
                         except Exception as load_exc:
                             print("FRAHOOSH WEBVIEW LOAD ERROR:",repr(load_exc))
                             owner._error("اتاق مجازی بارگذاری نشد؛ "+str(load_exc))
