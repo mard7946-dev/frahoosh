@@ -948,7 +948,9 @@ class OnlineClassScreen(Screen):
                     LayoutParams=autoclass("android.view.ViewGroup$LayoutParams")
                     FrameLayout=autoclass("android.widget.FrameLayout")
                     Button=autoclass("android.widget.Button")
+                    Dialog=autoclass("android.app.Dialog")
                     Color=autoclass("android.graphics.Color")
+                    WindowManager=autoclass("android.view.WindowManager")
                     activity=PythonActivity.mActivity
 
                     # Remove an older room before creating a new native view.
@@ -1027,27 +1029,40 @@ class OnlineClassScreen(Screen):
 
                     def close_room(*_):
                         try:
-                            parent=container.getParent()
-                            if parent is not None:
-                                parent.removeView(container)
                             web.stopLoading()
                             web.destroy()
                         except Exception as exc:
-                            print("VIRTUAL CLASSROOM CLOSE ERROR:",repr(exc))
+                            print("VIRTUAL CLASSROOM WEBVIEW CLOSE ERROR:",repr(exc))
+                        try:
+                            dialog.dismiss()
+                        except Exception as exc:
+                            print("VIRTUAL CLASSROOM DIALOG CLOSE ERROR:",repr(exc))
                         owner._active_webview=None
                         owner._active_webview_container=None
 
                     back.setOnClickListener(close_room)
 
-                    activity.addContentView(
-                        container,
-                        LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT)
-                    )
+                    # A Kivy SurfaceView can remain above a native child added
+                    # with addContentView on some Android GPU implementations.
+                    # Put the classroom in a real Android Dialog instead: Dialog
+                    # owns a top-level window and therefore reliably sits above Kivy.
+                    dialog=Dialog(activity)
+                    dialog.setContentView(container)
+                    win=dialog.getWindow()
+                    if win is not None:
+                        win.setBackgroundDrawableResource(android.R.color.black)
+                        win.setDimAmount(0.0)
+                        win.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        win.setLayout(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT)
+                    dialog.setCanceledOnTouchOutside(False)
+                    dialog.setCancelable(False)
+                    dialog.show()
+                    win=dialog.getWindow()
+                    if win is not None:
+                        win.setLayout(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT)
                     try:
                         container.bringToFront()
                         web.bringToFront()
-                        container.invalidate()
-                        web.invalidate()
                     except Exception:
                         pass
 
@@ -1058,6 +1073,7 @@ class OnlineClassScreen(Screen):
                     # actually granted, then load the HTTPS-origin classroom.
                     owner._active_webview=web
                     owner._active_webview_container=container
+                    owner._active_webview_dialog=dialog
 
                     # Give the native view one UI-loop turn to attach before
                     # loading the document. This also lets WebChromeClient receive
