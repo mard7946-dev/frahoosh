@@ -43,9 +43,7 @@ public class FrahooshWebChromeClient extends WebChromeClient {
          * corresponding Android runtime permission is actually granted.
          * Poll briefly, then grant the original WebView request.
          */
-        final android.content.Context context = request.getOrigin() != null
-                ? null : null;
-        grantWhenAndroidPermissionReady(request, needsCamera, needsMic, 0);
+        mainHandler.post(() -> grantWhenAndroidPermissionReady(request, needsCamera, needsMic, 0));
     }
 
     private void grantWhenAndroidPermissionReady(
@@ -108,9 +106,15 @@ public class FrahooshWebChromeClient extends WebChromeClient {
                 && context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED;
     }
 
-    private static android.content.Context appContext;
+    private android.content.Context appContext;
 
     public void setContext(android.content.Context context) {
         appContext = context == null ? null : context.getApplicationContext();
+    }
+
+    @Override
+    public void onPermissionRequestCanceled(final PermissionRequest request) {
+        Log.w(TAG, "WebView media permission request canceled");
+        super.onPermissionRequestCanceled(request);
     }
 }
