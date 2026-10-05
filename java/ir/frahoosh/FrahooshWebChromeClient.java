@@ -7,10 +7,19 @@ import android.os.Looper;
 import android.util.Log;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
+import android.webkit.ConsoleMessage;
 
 public class FrahooshWebChromeClient extends WebChromeClient {
     private static final String TAG = "FrahooshWebChrome";
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    @Override
+    public boolean onConsoleMessage(ConsoleMessage cm) {
+        if (cm != null) {
+            Log.e(TAG, "JS: " + cm.message() + " @ " + cm.sourceId() + ":" + cm.lineNumber());
+        }
+        return true;
+    }
 
     @Override
     public void onPermissionRequest(final PermissionRequest request) {
