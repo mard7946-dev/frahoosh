@@ -880,6 +880,10 @@ class OnlineClassScreen(Screen):
             except Exception: pass
         self._checkpoint_events=[]
         container=getattr(self,"_active_webview_container",None)
+        dialog=getattr(self,"_active_webview_dialog",None)
+        if dialog is not None:
+            try: dialog.dismiss()
+            except Exception as exc: print("VIRTUAL CLASSROOM DIALOG CLOSE ERROR:",repr(exc))
         if container is not None:
             try:
                 parent=container.getParent()
@@ -887,6 +891,7 @@ class OnlineClassScreen(Screen):
             except Exception as exc: print("VIRTUAL CLASSROOM CLOSE ERROR:",repr(exc))
         self._active_webview=None
         self._active_webview_container=None
+        self._active_webview_dialog=None
         self._checkpoint_session_id=None
         self._error(reason or "کلاس بسته شد.")
 
