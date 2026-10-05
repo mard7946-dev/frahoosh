@@ -1055,7 +1055,7 @@ class OnlineClassScreen(Screen):
                     dialog.setContentView(container)
                     win=dialog.getWindow()
                     if win is not None:
-                        win.setBackgroundDrawableResource(android.R.color.black)
+                        win.setBackgroundColor(Color.BLACK)
                         win.setDimAmount(0.0)
                         win.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                         win.setLayout(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT)
