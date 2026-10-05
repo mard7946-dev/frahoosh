@@ -535,9 +535,9 @@ class OnlineClassScreen(Screen):
             # classroom. The WebView contains board, participants, chat,
             # microphone, camera and screen sharing; do not open those as
             # separate Kivy screens.
-            if self._open_virtual_classroom(url,cid,profile,role):
-                return
-            self._error("جلسه در سامانه فعال شد، اما اتاق کامل کلاس روی دستگاه باز نشد.")
+            # The native WebView launch is asynchronous. Its own load/timeout
+            # callbacks are the only source of classroom success/failure.
+            self._open_virtual_classroom(url,cid,profile,role)
         except Exception as exc:
             self._error("شروع جلسه انجام نشد: "+str(exc))
     def _end(self,cid):
@@ -786,10 +786,10 @@ class OnlineClassScreen(Screen):
                     self._checkpoint_name=name
                     self._record_checkpoint(1)
                     self._schedule_random_checkpoints(class_id)
-            if self._open_virtual_classroom(str(url), class_id, profile, role):
-                self._ok("کلاس مجازی باز شد؛ حضور شما در سامانه ثبت شد.")
-            # _open_virtual_classroom writes the concrete launch error itself.
-            # Do not overwrite that diagnostic with the old generic message.
+            # _open_virtual_classroom owns the launch status. It is asynchronous:
+            # returning True only means the Android UI launch was scheduled, not
+            # that the classroom has actually appeared.
+            self._open_virtual_classroom(str(url), class_id, profile, role)
         except Exception as exc:
             self._error("ورود به جلسه انجام نشد: "+str(exc))
     def _record_checkpoint(self, checkpoint_no, status="present"):
