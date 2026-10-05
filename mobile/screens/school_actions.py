@@ -129,7 +129,34 @@ class TeacherAttendanceScreen(_Base):
         self.body.add_widget(self.list_box)
         self.save_btn = self.button("ثبت حضور و غیاب و ارسال گزارش", self.save_all, SUCCESS, 48)
         self.body.add_widget(self.save_btn)
-        self._load_students(self.loaded)
+        if _role(self.app_state) == "teacher":
+            self._load_teacher_students(self.loaded)
+        else:
+            self._load_students(self.loaded)
+
+    def _teacher_id(self):
+        p=getattr(self.app_state,"profile",{}) or {}
+        try:
+            if p.get("linked_teacher_id"): return int(p["linked_teacher_id"])
+        except Exception: pass
+        try:
+            rows=self.app_state.api.table_select("teachers",{"national_code":f"eq.{getattr(self.app_state,'national_code','')}","select":"id","limit":"1"}) or []
+            return int(rows[0]["id"]) if rows else None
+        except Exception:return None
+
+    def _load_teacher_students(self, callback):
+        def work():
+            try:
+                api=self.app_state.api; tid=self._teacher_id()
+                if not tid: raise RuntimeError("پرونده دبیر فعلی پیدا نشد.")
+                classes=api.table_select("teacher_classes",{"teacher_id":f"eq.{tid}","active":"eq.1","limit":"200"}) or []
+                class_names={str(x.get("class_name") or "").strip() for x in classes if str(x.get("class_name") or "").strip()}
+                rows=api.table_select("students",{"limit":"500"}) or []
+                rows=[dict(r) for r in rows if isinstance(r,dict) and str(r.get("class_name") or "").strip() in class_names]
+                Clock.schedule_once(lambda *_:callback(rows,None),0)
+            except Exception as exc:
+                Clock.schedule_once(lambda *_:callback([],str(exc)),0)
+        Thread(target=work,daemon=True).start()
 
     def loaded(self, rows, error):
         if error:
@@ -163,26 +190,25 @@ class TeacherAttendanceScreen(_Base):
         self.status.color = SUCCESS
 
     def save_all(self, *_):
-        if not self.students: return
-        selected = str(self.class_spinner.text or "").strip()
-        rows = [s for s in self.students if selected in ("انتخاب کلاس", "همه کلاس‌ها") or str(s.get("class_name") or "").strip() == selected]
-        date = datetime.now().strftime("%Y-%m-%d")
-        self.status.text = fa_display("در حال ثبت حضور و غیاب…"); self.status.color = SECONDARY
+        if not self.students:return
+        selected=str(self.class_spinner.text or "").strip()
+        selected_logical=next((x for x in {str(s.get("class_name") or "").strip() for s in self.students} if fa_display(x)==selected),selected)
+        rows=[s for s in self.students if selected_logical in ("انتخاب کلاس","همه کلاس‌ها") or str(s.get("class_name") or "").strip()==selected_logical]
+        date=datetime.now().strftime("%Y-%m-%d"); tid=self._teacher_id()
+        self.status.text=fa_display("در حال ثبت حضور و غیاب…"); self.status.color=SECONDARY
         def work():
-            ok = 0
+            ok=0
             for s in rows:
                 try:
-                    sid = s.get("id"); st = self.values.get(str(sid), "present")
-                    self.app_state.api.table_insert("attendance", {
-                        "student_id": sid, "date": date, "status": st,
-                        "description": "ثبت توسط دبیر",
-                    })
-                    self._notify("حضور و غیاب", f"وضعیت حضور دانش‌آموز: {'حاضر' if st == 'present' else 'غایب'}", s)
-                    ok += 1
-                except Exception:
-                    pass
-            Clock.schedule_once(lambda *_: self.done(ok, len(rows)), 0)
-        Thread(target=work, daemon=True).start()
+                    sid=s.get("id"); st=self.values.get(str(sid),"present")
+                    existing=self.app_state.api.table_select("attendance",{"student_id":f"eq.{sid}","attendance_date":f"eq.{date}","class_name":f"eq.{selected_logical}","limit":"1"}) or []
+                    payload={"student_id":sid,"date":date,"attendance_date":date,"status":st,"description":"ثبت توسط دبیر","teacher_id":tid,"class_name":selected_logical,"subject":str(getattr(self,"subject_name","") or "")}
+                    if existing:self.app_state.api.table_update("attendance",{"id":f"eq.{existing[0]['id']}"},payload)
+                    else:self.app_state.api.table_insert("attendance",payload)
+                    self._notify("حضور و غیاب",f"وضعیت حضور دانش‌آموز: {'حاضر' if st=='present' else 'غایب'}",s); ok+=1
+                except Exception as exc: print("ATTENDANCE SAVE ERROR:",repr(exc))
+            Clock.schedule_once(lambda *_: self.done(ok,len(rows)),0)
+        Thread(target=work,daemon=True).start()
 
     def done(self, ok, total):
         self.status.text = fa_display(f"{ok} از {total} رکورد ثبت شد؛ گزارش حضور برای معاون آموزشی و اطلاع‌رسانی والدین در صف پیام قرار گرفت.")
