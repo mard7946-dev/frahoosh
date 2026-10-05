@@ -1062,6 +1062,7 @@ class OnlineClassScreen(Screen):
                     dialog.setCanceledOnTouchOutside(False)
                     dialog.setCancelable(False)
                     dialog.show()
+                    print("FRAHOOSH CLASSROOM DIALOG SHOWN",class_id)
                     win=dialog.getWindow()
                     if win is not None:
                         win.setLayout(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT)
