@@ -2,6 +2,7 @@ package ir.frahoosh;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.app.Activity;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -54,7 +55,29 @@ public class FrahooshWebChromeClient extends WebChromeClient {
          */
         final boolean cameraNeeded = needsCamera;
         final boolean micNeeded = needsMic;
-        mainHandler.post(() -> grantWhenAndroidPermissionReady(request, cameraNeeded, micNeeded, 0));
+        mainHandler.post(() -> {
+            requestMissingAndroidPermissions(cameraNeeded, micNeeded);
+            grantWhenAndroidPermissionReady(request, cameraNeeded, micNeeded, 0);
+        });
+    }
+
+    private void requestMissingAndroidPermissions(boolean needsCamera, boolean needsMic) {
+        if (activityContext == null) return;
+        java.util.ArrayList<String> missing = new java.util.ArrayList<>();
+        if (needsCamera && activityContext.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.CAMERA);
+        }
+        if (needsMic && activityContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.RECORD_AUDIO);
+        }
+        if (!missing.isEmpty()) {
+            try {
+                activityContext.requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST_CODE);
+                Log.d(TAG, "Requested Android media permissions from WebView handshake: " + missing);
+            } catch (Exception e) {
+                Log.e(TAG, "Android media permission request failed", e);
+            }
+        }
     }
 
     private void grantWhenAndroidPermissionReady(
@@ -117,10 +140,13 @@ public class FrahooshWebChromeClient extends WebChromeClient {
                 && context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED;
     }
 
+    private static final int MEDIA_PERMISSION_REQUEST_CODE = 9401;
     private android.content.Context appContext;
+    private Activity activityContext;
 
     public void setContext(android.content.Context context) {
         appContext = context == null ? null : context.getApplicationContext();
+        activityContext = context instanceof Activity ? (Activity) context : null;
     }
 
     @Override
