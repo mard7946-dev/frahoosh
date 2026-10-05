@@ -61,6 +61,15 @@ public final class FrahooshClassroomLauncher {
 
                     web.setWebViewClient(new WebViewClient() {
                         @Override
+                        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                            if ("about:blank".equalsIgnoreCase(url)) {
+                                close();
+                                return true;
+                            }
+                            return false;
+                        }
+
+                        @Override
                         public void onPageFinished(WebView view, String url) {
                             Log.i(TAG, "Classroom page loaded: " + url);
                         }
