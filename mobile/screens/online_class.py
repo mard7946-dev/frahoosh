@@ -1118,7 +1118,9 @@ class OnlineClassScreen(Screen):
                         except Exception as load_exc:
                             print("FRAHOOSH WEBVIEW LOAD ERROR:",repr(load_exc))
                             owner._error("اتاق مجازی بارگذاری نشد؛ "+str(load_exc))
-                    # create_ui() is already dispatched by @run_on_ui_thread.\n                    # Do not reference the removed/manual Runnable wrapper here: it\n                    # caused a NameError after the Dialog was shown, leaving the app\n                    # stuck on «در حال ساخت محیط واقعی کلاس...».\n                    load_room()
+                    # create_ui() is already dispatched by @run_on_ui_thread.
+                    # The room must be loaded after the Dialog/WebView is attached.
+                    load_room()
                 except Exception as exc:
                     import traceback
                     detail=f"{type(exc).__name__}: {exc}"
