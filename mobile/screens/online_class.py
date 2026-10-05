@@ -908,7 +908,7 @@ class OnlineClassScreen(Screen):
             from pathlib import Path
             import json, os
             from jnius import autoclass
-            from android.runnable import run_on_ui_thread
+            from jnius import PythonJavaClass, java_method
 
             html_path = next((p for p in (
                 Path(__file__).resolve().parents[1] / "assets" / "online_class.html",
@@ -945,7 +945,6 @@ class OnlineClassScreen(Screen):
             # native permissions first caused a race with WebChromeClient.
             owner = self
 
-            @run_on_ui_thread
             def create_ui():
                 try:
                     PythonActivity=autoclass("org.kivy.android.PythonActivity")
@@ -1170,20 +1169,42 @@ class OnlineClassScreen(Screen):
                         0
                     )
 
-            # WebView MUST be created from the Activity UI thread.  Calling
-            # the Runnable wrapper directly can execute Python code without
-            # actually enqueueing it on Android's Looper on some python-for-android
-            # builds; the result is a successfully activated session with no room.
+            # WebView MUST be created on Android's Activity UI thread.
+            # Use the Activity's native runOnUiThread dispatcher explicitly.
+            # This avoids the silent callback/no-op seen with some p4a builds
+            # when android.runnable.run_on_ui_thread is invoked from Kivy code.
             activity = autoclass("org.kivy.android.PythonActivity").mActivity
             self._ok("در حال ساخت محیط واقعی کلاس...")
-            # Use python-for-android's supported UI-thread dispatcher directly.
-            # This avoids the silent no-op seen with manually constructed
-            # android.runnable.Runnable objects on some p4a builds.
-            create_ui()
+            owner = self
+
+            class ClassroomUiRunnable(PythonJavaClass):
+                __javainterfaces__ = ["java/lang/Runnable"]
+                __javacontext__ = "app"
+
+                @java_method("()V")
+                def run(self):
+                    create_ui()
+
+            try:
+                runnable = ClassroomUiRunnable()
+                # Keep a strong reference until the dialog has been attached.
+                self._classroom_ui_runnable = runnable
+                activity.runOnUiThread(runnable)
+                print("FRAHOOSH CLASSROOM UI RUNNABLE POSTED", class_id)
+            except Exception as dispatch_exc:
+                import traceback
+                detail=f"{type(dispatch_exc).__name__}: {dispatch_exc}"
+                print("FRAHOOSH CLASSROOM UI DISPATCH ERROR:", detail)
+                print(traceback.format_exc())
+                self._error("اجرای پنجره کلاس اندروید ناموفق بود؛ "+detail)
+                return False
+
             def launch_watchdog(dt):
                 if getattr(self,"_active_webview_dialog",None) is None:
-                    self._error("اجرای پنجره کلاس اندروید آغاز نشد؛ callback رابط کاربری اجرا نشد.")
-            Clock.schedule_once(launch_watchdog,3.0)
+                    self._error("پنجره کلاس اندروید به رابط کاربری نرسید؛ اجرای WebView را متوقف نکرده‌ایم، لطفاً گزارش خطای دستگاه بررسی شود.")
+                else:
+                    self._classroom_ui_runnable = None
+            Clock.schedule_once(launch_watchdog,5.0)
             return True
         except Exception as exc:
             import traceback
