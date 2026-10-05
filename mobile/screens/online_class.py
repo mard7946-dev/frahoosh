@@ -879,6 +879,14 @@ class OnlineClassScreen(Screen):
             try: ev.cancel()
             except Exception: pass
         self._checkpoint_events=[]
+        # The Android classroom dialog is now owned by the native Java bridge.
+        # Close that bridge first so timeout/forced-exit also closes the real WebView.
+        try:
+            from jnius import autoclass
+            Launcher = autoclass("ir.frahoosh.FrahooshClassroomLauncher")
+            Launcher.close()
+        except Exception as exc:
+            print("VIRTUAL CLASSROOM JAVA BRIDGE CLOSE ERROR:",repr(exc))
         container=getattr(self,"_active_webview_container",None)
         dialog=getattr(self,"_active_webview_dialog",None)
         if dialog is not None:
