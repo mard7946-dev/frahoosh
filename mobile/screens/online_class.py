@@ -908,7 +908,7 @@ class OnlineClassScreen(Screen):
             from pathlib import Path
             import json, os
             from jnius import autoclass
-            from android.runnable import Runnable
+            from android.runnable import run_on_ui_thread
 
             html_path = next((p for p in (
                 Path(__file__).resolve().parents[1] / "assets" / "online_class.html",
@@ -945,6 +945,7 @@ class OnlineClassScreen(Screen):
             # native permissions first caused a race with WebChromeClient.
             owner = self
 
+            @run_on_ui_thread
             def create_ui():
                 try:
                     PythonActivity=autoclass("org.kivy.android.PythonActivity")
@@ -1157,7 +1158,14 @@ class OnlineClassScreen(Screen):
             # builds; the result is a successfully activated session with no room.
             activity = autoclass("org.kivy.android.PythonActivity").mActivity
             self._ok("در حال ساخت محیط واقعی کلاس...")
-            activity.runOnUiThread(Runnable(create_ui))
+            # Use python-for-android's supported UI-thread dispatcher directly.
+            # This avoids the silent no-op seen with manually constructed
+            # android.runnable.Runnable objects on some p4a builds.
+            create_ui()
+            def launch_watchdog(dt):
+                if getattr(self,"_active_webview_dialog",None) is None:
+                    self._error("اجرای پنجره کلاس اندروید آغاز نشد؛ callback رابط کاربری اجرا نشد.")
+            Clock.schedule_once(launch_watchdog,3.0)
             return True
         except Exception as exc:
             import traceback
