@@ -1115,6 +1115,23 @@ class ModuleWorkspaceScreen(Screen):
                 # column definition has not been added yet; the Data API is
                 # the final authority and will return the real backend error.
                 self.route = route
+        # Dedicated operational centers own the modules that require structured
+        # forms/tables rather than the generic CRUD fallback.
+        try:
+            from kivy.app import App
+            from mobile.screens.operational_centers import OpsRouter
+            app = App.get_running_app()
+            if app is not None and OpsRouter.mode_for(canonical):
+                screen = app.ensure_operational_center(canonical)
+                if screen is None:
+                    raise RuntimeError("مرکز عملیاتی این ماژول آماده نشد.")
+                if self.manager:
+                    self.manager.current = screen.name
+                return
+        except Exception as exc:
+            print("OPERATIONAL CENTER ROUTE ERROR:", repr(exc))
+            raise
+
         self.return_to=return_to or "dashboard"
         self.table=None
         self.selected_row=None
