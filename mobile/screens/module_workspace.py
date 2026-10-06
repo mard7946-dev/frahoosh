@@ -1638,7 +1638,7 @@ class ModuleWorkspaceScreen(Screen):
                 self.status.color = (.8, .15, .15, 1)
                 return
 
-        if table in ("teacher_exams", "exams", "quiz_questions"):
+        if table in ("teacher_exams", "exams", "quiz_questions", "teacher_exam_shares"):
             try:
                 from kivy.app import App
                 app = App.get_running_app()
