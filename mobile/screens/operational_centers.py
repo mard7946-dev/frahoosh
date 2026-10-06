@@ -169,9 +169,9 @@ class OpsBase(Screen):
         "student_council":[("election_year","سال انتخابات"),("status","وضعیت")],
         "basij_registration":[("registration_date","تاریخ ثبت‌نام"),("status","وضعیت")],
         "school_ally":[("role","مسئولیت"),("status","وضعیت")],
-        "school_mayor":[("status","وضعیت")],
+        "school_mayor":[("election_date","تاریخ انتخابات"),("votes","تعداد رأی"),("status","وضعیت")],
         "morning_leaders":[("role","نقش"),("ceremony_date","تاریخ مراسم"),("status","وضعیت")],
-        "qari_registration":[("status","وضعیت")],
+        "qari_registration":[("ceremony_date","تاریخ مراسم"),("status","وضعیت")],
         "counseling_records":[("title","عنوان جلسه"),("visit_reason","علت مراجعه"),("description","شرح جلسه"),("recommendations","توصیه‌ها"),("next_visit","پیگیری بعدی"),("status","وضعیت")],
         "counseling_followups":[("subject","موضوع"),("description","شرح"),("followup_date","تاریخ پیگیری"),("followup_items","موارد پیگیری"),("decision","تصمیم"),("status","وضعیت")],
         "counseling_guidance":[("grade","پایه"),("interest","علاقه‌مندی"),("aptitude","استعداد"),("recommendation","پیشنهاد"),("status","وضعیت")],
@@ -285,8 +285,20 @@ class OperationalCenterScreen(OpsBase):
         for table,label in (("cultural_competitions","مسابقه فرهنگی"),("art_competitions","مسابقه هنری"),("sport_competitions","مسابقه ورزشی")):
             for r in self.api().table_select(table,{"order":"id.desc","limit":"50"}) or []:
                 self.body.add_widget(self.lab(f"{label}: {r.get('title') or '-'}","10sp",SECONDARY,False,34)); self.body.add_widget(self.btn("ثبت‌نام مسابقه",lambda *_a,x=dict(r):self.reg_comp(x),SUCCESS,40))
-        for table,label in (("student_council","شورای دانش‌آموزی"),("basij_registration","بسیج"),("school_ally","همیار مدرسه"),("school_mayor","شهردار مدرسه"),("morning_leaders","مکبر"),("qari_registration","قاری")):
-            self.body.add_widget(self.btn("ثبت نام "+label,lambda *_a,t=table,n=label:self.reg_simple(t,n),PRIMARY,40))
+        simple_specs = (
+            ("student_council","شورای دانش‌آموزی",[("position","سمت پیشنهادی"),("election_date","تاریخ انتخابات")]),
+            ("basij_registration","بسیج دانش‌آموزی",[("registration_date","تاریخ ثبت‌نام"),("note","توضیحات")]),
+            ("school_ally","همیار مدرسه",[("role","مسئولیت"),("start_date","تاریخ شروع"),("end_date","تاریخ پایان")]),
+            ("school_mayor","شهردار مدرسه",[("election_date","تاریخ انتخابات")]),
+            ("morning_leaders","مکبر",[("role","نقش"),("ceremony_date","تاریخ مراسم")]),
+            ("qari_registration","قاری برنامه ظهرگاهی",[("ceremony_date","تاریخ مراسم")]),
+        )
+        for table,label,fields in simple_specs:
+            rows = self.api().table_select(table,{"student_id":"eq."+str(sid),"order":"id.desc","limit":"20"}) or []
+            self.body.add_widget(self.lab(f"{label} | {len(rows)} ثبت", "11sp", PRIMARY, True, 32, True))
+            self.body.add_widget(self.btn("ثبت / درخواست جدید",lambda *_a,t=table,n=label,fs=fields:self.simple_student_form(t,n,fs),SUCCESS,40))
+            for row in rows:
+                self._record_card(table,dict(row),f"#{row.get('id')} | {label} | وضعیت: {row.get('status') or '-'}",editable=True)
     def cancel_registration(self,row):
         try:
             self.delete_row("activity_registrations",{"id":"eq."+str(row.get("id")),"student_id":"eq."+str(self.student_id())})
@@ -294,6 +306,34 @@ class OperationalCenterScreen(OpsBase):
             self.load()
         except Exception as exc:
             self.status.text=fa_display("لغو ثبت‌نام انجام نشد: "+str(exc)); self.status.color=ERROR
+
+    def simple_student_form(self,table,label,fields,row=None):
+        sid=self.student_id()
+        student=(self.api().table_select("students",{"id":"eq."+str(sid),"limit":"1"}) or [{}])[0]
+        widgets={}
+        self.body.clear_widgets()
+        self.title.text=fa_display(label)
+        for key,hint in fields:
+            w=self.field(hint,72 if key in {"note","description"} else 46,key in {"note","description"})
+            if row and row.get(key) is not None: w.text=str(row.get(key))
+            widgets[key]=w
+            self.body.add_widget(self.lab(hint,"9sp",PRIMARY,True,24))
+            self.body.add_widget(w)
+        def save(_):
+            p={k:self.val(v) for k,v in widgets.items()}
+            p.update({"student_id":sid,"student_name":self.sname(student),"status":str((row or {}).get("status") or "pending")})
+            if table=="student_council" and not p.get("election_year"): p["election_year"]=SCHOOL_YEAR
+            try:
+                if row:
+                    self.update(table,{"id":"eq."+str(row.get("id")),"student_id":"eq."+str(sid)},p)
+                else:
+                    self.insert(table,p)
+                self.status.text=fa_display("اطلاعات با موفقیت ذخیره شد."); self.status.color=SUCCESS
+                self.load()
+            except Exception as exc:
+                self.status.text=fa_display("ذخیره انجام نشد: "+str(exc)); self.status.color=ERROR
+        self.body.add_widget(self.btn("ثبت / ذخیره",save,SUCCESS,48))
+        self.body.add_widget(self.btn("بازگشت",lambda *_:self.load(),SECONDARY,42))
 
     def cancel_simple(self,table,row):
         try:
