@@ -34,12 +34,64 @@ class FinanceScreen(Screen):
         f=TextInput(hint_text=fa_display(h),font_name=font_name(),font_size="12sp",size_hint_y=None,height=dp(hgt),halign="right"); self.body.add_widget(f); return f
 
     def home(self):
-        self.body.clear_widgets(); self.title.text=fa_display("حسابداری مدرسه")
-        self._label("دفتر حساب، حساب‌های مدرسه، درآمد/هزینه، بدهکار/بستانکار، پیوست فاکتور و چک و گزارش پایان سال مالی.",62,"13sp",PRIMARY)
+        self.body.clear_widgets(); self.title.text=fa_display("حسابداری و امور مالی مدرسه")
+        self._label("دفتر حساب، درآمد و هزینه، بدهکار/بستانکار، کمک‌های داوطلبانه، گزینه‌های پرداخت، اسناد مالی، گزارش‌ها و بستن سال مالی.",72,"13sp",PRIMARY)
         self._button("حساب‌های مدرسه",lambda *_:self.accounts(),PRIMARY)
         self._button("ثبت سند مالی",lambda *_:self.new_transaction(),SUCCESS)
         self._button("دفتر تراکنش‌ها و پیوست اسناد",lambda *_:self.transactions(),PRIMARY)
+        self._button("تعریف گزینه پرداخت آنلاین",lambda *_:self.payment_offers(),SUCCESS)
+        self._button("کمک‌های داوطلبانه",lambda *_:self.donations(),PRIMARY)
+        self._button("سوابق پرداخت و گزارش وصول",lambda *_:self.payment_records(),PRIMARY)
         self._button("گزارش و بستن سال مالی",lambda *_:self.year_end(),SECONDARY)
+
+    def payment_offers(self):
+        self.body.clear_widgets(); self.title.text=fa_display("تعریف گزینه پرداخت")
+        self._label("ابتدا محل مصرف/مقصد پرداخت را مشخص کنید، سپس مبلغ را تعیین کنید. عنوان «کمک‌های داوطلبانه» جایگزین شهریه است.",62,"11sp",PRIMARY)
+        target=self._field("مقصد پرداخت؛ مثال اردو، جشنواره، کمک‌های داوطلبانه")
+        target_type=self._field("نوع مقصد؛ دانش‌آموز / کلاس / مدرسه")
+        amount=self._field("مبلغ؛ بعد از تعیین مقصد")
+        reason=self._field("علت / توضیحات",70)
+        gateway=self._field("درگاه؛ مثال درگاه مدرسه")
+        self._button("ثبت گزینه پرداخت",lambda *_:self._save_offer(target,target_type,amount,reason,gateway),SUCCESS)
+        try:
+            rows=self.app_state.api.table_select("payment_offers",{"order":"id.desc","limit":"200"}) or []
+            for r in rows:self._label(f"#{r.get('id')} | مقصد: {r.get('target_value') or '-'} | مبلغ: {r.get('amount') or 0} | {r.get('payment_reason') or r.get('title') or ''} | وضعیت: {r.get('status') or '-'}",58)
+        except Exception as e:self._error("خواندن گزینه‌های پرداخت انجام نشد: "+str(e))
+        self._button("بازگشت",lambda *_:self.home(),SECONDARY)
+    def _save_offer(self,target,target_type,amount,reason,gateway):
+        try:a=int(str(amount.text).replace(",","").strip())
+        except:return self._error("مبلغ معتبر نیست.")
+        if not target.text.strip():return self._error("مقصد پرداخت الزامی است.")
+        payload={"title":"کمک‌های داوطلبانه","target_type":target_type.text.strip() or "school","target_value":target.text.strip(),"amount":a,"manual_amount":a,"payment_reason":reason.text.strip() or "کمک‌های داوطلبانه","gateway_enabled":True,"status":"active","description":reason.text.strip()}
+        try:self.app_state.api.table_insert("payment_offers",payload);self._ok("گزینه پرداخت ثبت شد.");self.payment_offers()
+        except Exception as e:self._error("ثبت گزینه پرداخت انجام نشد: "+str(e))
+    def donations(self):
+        self.body.clear_widgets();self.title.text=fa_display("کمک‌های داوطلبانه")
+        donor=self._field("نام پرداخت‌کننده");amount=self._field("مبلغ");date=self._field("تاریخ پرداخت");desc=self._field("توضیحات",70)
+        self._button("ثبت کمک داوطلبانه",lambda *_:self._save_donation(donor,amount,date,desc),SUCCESS)
+        try:
+            rows=self.app_state.api.table_select("finance_donations",{"order":"id.desc","limit":"200"}) or []
+            for r in rows:self._label(f"#{r.get('id')} | {r.get('donor_name') or '-'} | {r.get('amount') or 0} | {r.get('donation_date') or '-'}",52)
+        except Exception as e:self._error("خواندن کمک‌های داوطلبانه انجام نشد: "+str(e))
+        self._button("بازگشت",lambda *_:self.home(),SECONDARY)
+    def _save_donation(self,donor,amount,date,desc):
+        try:a=int(str(amount.text).replace(",","").strip())
+        except:return self._error("مبلغ معتبر نیست.")
+        if a<=0:return self._error("مبلغ باید بزرگ‌تر از صفر باشد.")
+        try:self.app_state.api.table_insert("finance_donations",{"donor_name":donor.text.strip(),"amount":a,"donation_date":date.text.strip(),"description":desc.text.strip()});self._ok("کمک داوطلبانه ثبت شد.");self.donations()
+        except Exception as e:self._error("ثبت کمک انجام نشد: "+str(e))
+    def payment_records(self):
+        self.body.clear_widgets();self.title.text=fa_display("سوابق پرداخت و وصول")
+        try:
+            rows=self.app_state.api.table_select("payment_records",{"order":"id.desc","limit":"500"}) or []
+            self._label(f"تعداد پرداخت‌ها: {len(rows)}",48,"13sp",PRIMARY)
+            for r in rows:self._label(f"#{r.get('id')} | {r.get('title') or '-'} | {r.get('amount') or 0} | {r.get('status') or '-'} | {r.get('reference') or '-'}",54)
+            if rows:
+                fields=["id","student_id","parent_username","title","amount","payment_type","gateway","authority","reference","status","payment_date","description"]
+                self._button("خروجی Excel پرداخت‌ها",lambda *_:self._export_file(rows,fields,"excel","سوابق_پرداخت"),SUCCESS)
+                self._button("خروجی PDF پرداخت‌ها",lambda *_:self._export_file(rows,fields,"pdf","سوابق_پرداخت"),PRIMARY)
+        except Exception as e:self._error("خواندن سوابق پرداخت انجام نشد: "+str(e))
+        self._button("بازگشت",lambda *_:self.home(),SECONDARY)
 
     def accounts(self):
         self.body.clear_widgets(); self.title.text=fa_display("حساب‌های مدرسه")
