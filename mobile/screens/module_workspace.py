@@ -1092,6 +1092,14 @@ class ModuleWorkspaceScreen(Screen):
         # Never fall back to the management panel: an unknown module is a real
         # integration error and must not silently open the wrong panel.
         route = str(route or "").strip()
+        # Dedicated operational centers receive the active panel role through
+        # AppState as well. Without this handoff, an activities module opened
+        # from a deputy panel could incorrectly fall back to the student view.
+        try:
+            if self.app_state is not None and self.panel_role:
+                self.app_state.panel_role = self.panel_role
+        except Exception:
+            pass
         canonical = _MOTHER_TABLE_ALIASES.get(route, route)
 
         # The mother catalog is the navigation contract, while the shared
