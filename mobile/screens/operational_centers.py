@@ -282,7 +282,10 @@ class ScheduleCenterScreen(OpsBase):
         can_edit=role_of(self.app_state) in {"manager","educational"}
         if can_edit:self.body.add_widget(self.btn("＋ ثبت امتحان",lambda *_:self.exam_form(),SUCCESS,46))
         rows=self.api().table_select("exam_schedule",{"order":"exam_date.asc","limit":"200"}) or []
-        for r in rows:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('subject') or '-'} | پایه {r.get('grade') or '-'} | {r.get('exam_date') or '-'} | {r.get('exam_start_time') or '-'} تا {r.get('exam_end_time') or '-'} | {r.get('duration') or '-'} دقیقه","9sp",SECONDARY,False,40));self.body.add_widget(self.btn("تولید صندلی‌های این امتحان",lambda *_a,x=dict(r):self.make_exam_seats(x),PRIMARY,40)) if can_edit else None
+        for r in rows:
+            self._record_card("exam_schedule",dict(r),f"#{r.get('id')} | {r.get('subject') or '-'} | پایه {r.get('grade') or '-'} | {r.get('exam_date') or '-'} | {r.get('exam_start_time') or '-'} تا {r.get('exam_end_time') or '-'} | {r.get('duration') or '-'} دقیقه",editable=can_edit)
+            if can_edit:
+                self.body.add_widget(self.btn("تولید صندلی‌های این امتحان",lambda *_a,x=dict(r):self.make_exam_seats(x),PRIMARY,40))
     def exam_form(self):self.form([("subject","درس"),("grade","پایه"),("start_date","شروع بازه"),("end_date","پایان بازه"),("weight","ضریب"),("exam_date","تاریخ امتحان"),("duration","مدت به دقیقه"),("exam_start_time","ساعت شروع"),("exam_end_time","ساعت پایان")],self.save_exam,"ثبت برنامه امتحانی")
     def save_exam(self,w):
         p={k:self.val(v) for k,v in w.items()}
@@ -319,7 +322,8 @@ class DisciplineCenterScreen(OpsBase):
         desc=self.field("شرح / توضیحات",72,True);note=self.field("یادداشت / تصمیم",72,True);self.body.add_widget(desc);self.body.add_widget(note)
         self.body.add_widget(self.btn("ثبت مورد انضباطی",lambda *_:self.save_disc(rows,sp,typ,desc,note),SUCCESS,50))
         self.body.add_widget(self.lab("سوابق اخیر","13sp",PRIMARY,True,36,True))
-        for r in self.api().table_select("discipline_records",{"order":"id.desc","limit":"50"}) or []:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('student_id')} | {r.get('title') or '-'} | {r.get('status') or '-'}","9sp",SECONDARY,False,32))
+        for r in self.api().table_select("discipline_records",{"order":"id.desc","limit":"50"}) or []:
+            self._record_card("discipline_records",dict(r),f"#{r.get('id')} | دانش‌آموز {r.get('student_id')} | {r.get('title') or '-'} | {r.get('status') or '-'}",editable=True)
     def save_disc(self,rows,sp,typ,desc,note):
         i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {}
         p={"student_id":s.get("id"),"title":str(typ.text or ""),"description":self.val(desc),"note":self.val(note),"priority":"normal","status":"pending","actor_username":str((getattr(self.app_state,"profile",{}) or {}).get("username") or getattr(self.app_state,"national_code","") or ""),"actor_role":role_of(self.app_state),"created_at":datetime.now().isoformat()}
@@ -333,7 +337,8 @@ class SmartBoardCenterScreen(OpsBase):
         if write:self.body.add_widget(self.btn("＋ ثبت پیام مهم مدرسه",lambda *_:self.board_form(),SUCCESS,48))
         self.body.add_widget(self.lab("پیام‌های فعال مدرسه برای دانش‌آموز و ولی قابل مشاهده هستند.","10sp",SECONDARY,False,44,True))
         rows=self.api().table_select("smart_board_content",{"active":"eq.true","order":"id.desc","limit":"100"}) or []
-        for r in rows:self.body.add_widget(self.lab(str(r.get("title") or "اطلاعیه"),"13sp",PRIMARY,True,34));self.body.add_widget(self.lab(r.get("content") or "","10sp",SECONDARY,False,65))
+        for r in rows:
+            self._record_card("smart_board_content",dict(r),f"#{r.get('id')} | {r.get('title') or 'اطلاعیه'} | {r.get('content') or ''}",editable=write)
     def board_form(self):self.form([("title","عنوان پیام مهم"),("content","متن پیام"),("content_date_shamsi","تاریخ نمایش")],self.save_board,"انتشار پیام روی تابلو")
     def save_board(self,w):
         p={k:self.val(v) for k,v in w.items()};p.update({"active":True,"audience_type":"student_parent","created_by":str((getattr(self.app_state,"profile",{}) or {}).get("username") or getattr(self.app_state,"national_code","") or "")});self.api().table_insert("smart_board_content",p);self.load()
