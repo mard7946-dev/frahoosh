@@ -17,9 +17,11 @@ from kivy.uix.scrollview import ScrollView
 from mobile.config import APP_NAME, PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE
 from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput, PersianSpinner
 
-MANAGERS={"manager","executive"}
-CLASS_CREATORS={"manager","executive"}
-CLASS_MANAGERS={"manager","executive"}
+MANAGERS={"manager"}
+# کلاس آنلاین از نظر کسب‌وکار فقط توسط مدیریت و معاون آموزشی ساخته/مدیریت می‌شود.
+# معاون اجرایی عمداً در این مسیر مجوز ساخت یا مدیریت کلاس ندارد.
+CLASS_CREATORS={"manager","educational"}
+CLASS_MANAGERS={"manager","educational"}
 
 
 def role_of(state):
@@ -86,7 +88,7 @@ class OnlineClassScreen(Screen):
     def show_home(self):
         self._clear(); role=role_of(self.app_state); self._label("کلاس آنلاین واقعی","21sp",PRIMARY,52,True); self._label("ساخت کلاس، شروع/پایان جلسه، حضور و غیاب، گفت‌وگو، تخته مشترک، کنترل دوربین/میکروفون و اطلاع غیبت به ولی در همین پنل ثبت می‌شود.",height=82)
         if role in CLASS_CREATORS:
-            # Only manager and executive deputy can form classes.
+            # Only manager and educational deputy can form classes.
             # Teachers/students/parents may use the classes but cannot create them.
             # Keep the creation action above the class list so it is visible
             # immediately on a phone-sized screen.
@@ -115,7 +117,7 @@ class OnlineClassScreen(Screen):
         api=getattr(self.app_state,"api",None)
         if api is None: return self._error("سرویس اتصال به پایگاه داده آماده نیست.")
         role=role_of(self.app_state)
-        if role not in CLASS_CREATORS: return self._error("فقط مدیر و معاون اجرایی اجازه تشکیل کلاس آنلاین دارند.")
+        if role not in CLASS_CREATORS: return self._error("فقط مدیر و معاون آموزشی اجازه تشکیل کلاس آنلاین دارند.")
         if not getattr(api,"access_token",""): return self._error("نشست ورود معتبر نیست؛ دوباره وارد فراهوش شوید.")
         vals=[]
         for w in (grade,class_name,subject,start,end):
@@ -185,7 +187,7 @@ class OnlineClassScreen(Screen):
             # Teacher, manager, executive and educational deputy all need the
             # real attendance chain: student list -> verification -> referral
             # to educational deputy -> parent notification.
-            if role in {"teacher","manager","executive","educational"}:
+            if role in {"teacher","manager","educational"}:
                 self._button("حضور و غیاب و صحت‌سنجی",lambda *_ ,x=cid:self._attendance(x),PRIMARY)
             if state=="active":
                 url=r.get("join_url") or r.get("meeting_url")
