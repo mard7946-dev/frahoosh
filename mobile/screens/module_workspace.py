@@ -1115,6 +1115,31 @@ class ModuleWorkspaceScreen(Screen):
                 # column definition has not been added yet; the Data API is
                 # the final authority and will return the real backend error.
                 self.route = route
+        # Dedicated workflows must be reached before the generic CRUD workspace.
+        # These modules have business rules/PDF/approval flows that a plain table
+        # editor cannot provide.
+        try:
+            from kivy.app import App
+            app = App.get_running_app()
+            if app is not None:
+                special = None
+                if canonical == "certificate_requests":
+                    special = app.ensure_certificate_workflow()
+                elif canonical in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
+                    special = app.ensure_meetings()
+                elif canonical in {"finance","finance_accounts","finance_transactions","payment_records","payment_offers"}:
+                    special = app.ensure_finance()
+                elif canonical in {"online_classes","virtual"}:
+                    special = app.ensure_online_workflow()
+                elif canonical in {"teacher_exams","quiz_links"}:
+                    special = app.ensure_exam_authoring()
+                if special is not None:
+                    self.manager.current = special.name
+                    return
+        except Exception as exc:
+            print("SPECIAL WORKFLOW ROUTE ERROR:", repr(exc))
+            raise
+
         # Dedicated operational centers own the modules that require structured
         # forms/tables rather than the generic CRUD fallback.
         try:
