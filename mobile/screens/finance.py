@@ -62,7 +62,7 @@ class FinanceScreen(Screen):
         try:a=int(str(amount.text).replace(",","").strip())
         except:return self._error("مبلغ معتبر نیست.")
         if not target.text.strip():return self._error("مقصد پرداخت الزامی است.")
-        payload={"title":"کمک‌های داوطلبانه","target_type":target_type.text.strip() or "school","target_value":target.text.strip(),"amount":a,"manual_amount":a,"payment_reason":reason.text.strip() or "کمک‌های داوطلبانه","gateway_enabled":True,"status":"active","description":reason.text.strip()}
+        payload={"title":"کمک‌های داوطلبانه","target_type":target_type.text.strip() or "school","target_value":target.text.strip(),"amount":a,"manual_amount":a,"payment_reason":reason.text.strip() or "کمک‌های داوطلبانه","gateway_enabled":True,"active":True,"status":"active","description":reason.text.strip()}
         try:self.app_state.api.table_insert("payment_offers",payload);self._ok("گزینه پرداخت ثبت شد.");self.payment_offers()
         except Exception as e:self._error("ثبت گزینه پرداخت انجام نشد: "+str(e))
     def donations(self):
