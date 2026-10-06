@@ -71,7 +71,8 @@ class AssignmentSubmissionScreen(Screen):
         body.add_widget(self._label("پاسخ", "10sp", PRIMARY,30,True)); body.add_widget(self.answer)
         self.file_label=self._label("فایلی انتخاب نشده است","10sp",SECONDARY,48,False)
         body.add_widget(self.file_label)
-        body.add_widget(self._button("انتخاب تصویر یا PDF",self.pick_file,SUCCESS,46))
+        body.add_widget(self._button("گرفتن عکس از تکلیف",self.take_photo,SUCCESS,46))
+        body.add_widget(self._button("انتخاب تصویر یا PDF",self.pick_file,PRIMARY,46))
         body.add_widget(self._button("ثبت و ارسال واقعی",self.submit,PRIMARY,48))
         body.add_widget(self._button("بازگشت",self.back,SECONDARY,42))
         scroll.add_widget(body); root.add_widget(scroll); self.add_widget(root)
@@ -106,6 +107,39 @@ class AssignmentSubmissionScreen(Screen):
             if value in (label,fa_display(label)): return row
         return self.assignments[0] if self.assignments else None
 
+    def take_photo(self,*_):
+        try:
+            from android import activity
+            from jnius import autoclass, cast
+            PythonActivity=autoclass("org.kivy.android.PythonActivity")
+            Intent=autoclass("android.content.Intent")
+            Activity=autoclass("android.app.Activity")
+            Bitmap=autoclass("android.graphics.Bitmap")
+            current=cast("android.app.Activity",PythonActivity.mActivity)
+            request_code=7320
+            def on_result(code,result,intent):
+                try: activity.unbind(on_activity_result=on_result)
+                except Exception: pass
+                if code!=request_code or result!=Activity.RESULT_OK or intent is None: return
+                try:
+                    extras=intent.getExtras()
+                    bitmap=extras.get("data") if extras is not None else None
+                    if bitmap is None: raise RuntimeError("عکس دوربین دریافت نشد.")
+                    from java.io import ByteArrayOutputStream
+                    out=ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.JPEG,90,out)
+                    self._set_file("assignment_photo.jpg","image/jpeg",bytes(out.toByteArray()))
+                    self.status.text=fa_display("عکس تکلیف گرفته شد؛ اکنون ثبت و ارسال را بزنید.")
+                    self.status.color=SUCCESS
+                except Exception as exc:
+                    self.status.text=fa_display("گرفتن عکس انجام نشد: "+str(exc)); self.status.color=ERROR
+            activity.bind(on_activity_result=on_result)
+            intent=Intent(Intent.ACTION_IMAGE_CAPTURE)
+            if not intent.resolveActivity(current.getPackageManager()): raise RuntimeError("دوربین روی دستگاه در دسترس نیست.")
+            current.startActivityForResult(intent,request_code)
+        except Exception as exc:
+            print("ANDROID ASSIGNMENT CAMERA:",repr(exc))
+            self.status.text=fa_display("دوربین در این دستگاه در دسترس نیست: "+str(exc)); self.status.color=ERROR
     def pick_file(self,*_):
         try:
             from android import activity
