@@ -603,7 +603,7 @@ class MeetingsScreen(Screen):
         reason=self._field("علت ملاقات")
         desc=self._field("توضیحات تکمیلی",72); desc.multiline=True
         for w in [student,parent,day,title,date,time,reason,desc]:
-            self.body.add_widget(w)
+            self.add_widget(w)
         self._button("ثبت درخواست ملاقات",lambda *_:self._create_manager_meeting(student,parent,title,day,date,time,reason,desc),SUCCESS,48)
         self._button("پیگیری درخواست‌ها",lambda *_:self.show_home(),PRIMARY,44)
         self._button("بازگشت",lambda *_:self.show_home(),SECONDARY,44)
