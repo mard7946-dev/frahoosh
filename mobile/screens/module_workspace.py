@@ -1632,6 +1632,38 @@ class ModuleWorkspaceScreen(Screen):
         # workflows so they can never reach a staff CRUD screen.
         role = self.role()
         logical_table = str(table or "").strip()
+        # The executive deputy has dedicated workflows for the six operational
+        # areas; do not route these to the generic read-only table viewer.
+        if role in {"executive", "معاون اجرایی"} and logical_table in {
+            "students", "certificate_requests", "report_cards", "class_seat_assignments",
+            "exam_seat_assignments", "executive_requests"
+        }:
+            try:
+                from mobile.screens.executive_center import ExecutiveCenterScreen
+                name = "executive_center"
+                screen = self.manager.get_screen(name) if self.manager and name in self.manager.screen_names else None
+                if screen is None and self.manager:
+                    screen = ExecutiveCenterScreen(name=name, app_state=self.app_state)
+                    self.manager.add_widget(screen)
+                if screen is None:
+                    raise RuntimeError("مرکز اجرایی آماده نشد.")
+                screen.app_state = self.app_state
+                routes = {
+                    "students": "identity",
+                    "certificate_requests": "certificates",
+                    "report_cards": "report_cards",
+                    "class_seat_assignments": "class_seats",
+                    "exam_seat_assignments": "exam_seats",
+                    "executive_requests": "requests",
+                }
+                getattr(screen, routes[logical_table])()
+                self.manager.current = name
+                return
+            except Exception as exc:
+                print("EXECUTIVE CENTER OPEN ERROR:", repr(exc))
+                self.status.text = fa_display("مرکز اجرایی باز نشد: " + str(exc))
+                self.status.color = ERROR
+                return
         # Student participation workflows are dedicated screens: they never
         # expose raw database IDs or generic CRUD forms to the student.
         student_registration_modes = {
