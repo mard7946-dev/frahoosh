@@ -120,6 +120,18 @@
       [
         "ارتباط افراد مدرسه",
         "school_relationships"
+      ],
+      [
+        "کارت دانش‌آموزی",
+        "student_cards"
+      ],
+      [
+        "کارت امتحان",
+        "exam_cards"
+      ],
+      [
+        "انضباط",
+        "discipline_records"
       ]
     ],
     "educational": [
@@ -186,6 +198,26 @@
       [
         "فعال‌سازی قابلیت‌های آموزشی/آزمون/کلاس",
         "module_activations"
+      ],
+      [
+        "ساخت کلاس آنلاین",
+        "online_classes"
+      ],
+      [
+        "برنامه هفتگی",
+        "weekly_schedule"
+      ],
+      [
+        "انضباط",
+        "discipline_records"
+      ],
+      [
+        "کارت دانش‌آموزی",
+        "student_cards"
+      ],
+      [
+        "کارت امتحان",
+        "exam_cards"
       ]
     ],
     "executive": [
@@ -240,10 +272,6 @@
       [
         "برنامه هفتگی",
         "weekly_schedule"
-      ],
-      [
-        "کلاس آنلاین",
-        "online_classes"
       ],
       [
         "صندوق پیام",
@@ -334,6 +362,26 @@
       [
         "فعال‌سازی مسابقات و فعالیت‌های دانش‌آموزی",
         "module_activations"
+      ],
+      [
+        "ثبت نام اردوها و جشنواره‌ها",
+        "activity_programs"
+      ],
+      [
+        "ثبت مسابقات فرهنگی",
+        "cultural_competitions"
+      ],
+      [
+        "ثبت مسابقات هنری",
+        "art_competitions"
+      ],
+      [
+        "ثبت نام مکبر",
+        "morning_leaders"
+      ],
+      [
+        "ثبت نام قاری",
+        "qari_registration"
       ]
     ],
     "advisor": [
@@ -454,6 +502,18 @@
       [
         "جلسات والد و دبیر",
         "teacher_parent_meetings"
+      ],
+      [
+        "موارد انضباطی",
+        "discipline_records"
+      ],
+      [
+        "کارت دانش‌آموزی",
+        "student_cards"
+      ],
+      [
+        "کارت امتحان",
+        "exam_cards"
       ]
     ],
     "students": [
@@ -532,6 +592,30 @@
       [
         "آزمون‌های آنلاین",
         "teacher_exams"
+      ],
+      [
+        "ثبت نام اردوها و جشنواره‌ها",
+        "activity_programs"
+      ],
+      [
+        "مسابقات فرهنگی",
+        "cultural_competitions"
+      ],
+      [
+        "مسابقات هنری",
+        "art_competitions"
+      ],
+      [
+        "مکبر",
+        "morning_leaders"
+      ],
+      [
+        "قاری",
+        "qari_registration"
+      ],
+      [
+        "تابلو هوشمند مدرسه",
+        "smart_board_content"
       ]
     ],
     "parents": [
@@ -606,6 +690,10 @@
       [
         "جلسات والد و دبیر",
         "teacher_parent_meetings"
+      ],
+      [
+        "تابلو هوشمند مدرسه",
+        "smart_board_content"
       ]
     ],
     "finance": [
@@ -859,7 +947,7 @@
     "executive_reports": "گزارش‌های اجرایی",
     "morning_ceremony": "صبحگاه و ظهرگاه",
     "cultural_competitions": "مسابقات فرهنگی",
-    "activity_programs": "برنامه‌های پرورشی",
+    "activity_programs": "ثبت‌نام اردوها و جشنواره‌ها",
     "competitions": "مسابقات",
     "educational_activities": "فعالیت‌های آموزشی",
     "cultural_reports": "گزارش‌های پرورشی",
@@ -896,7 +984,7 @@
     "smart_board_files": "فایل‌ها",
     "smart_board_media": "تصاویر و ویدئوها",
     "smart_board_interactive_tools": "ابزارهای تعاملی",
-    "smart_board_content": "محتوای آموزشی",
+    "smart_board_content": "تابلو هوشمند مدرسه",
     "smart_board_quizzes": "آزمون‌های کوتاه",
     "smart_board_activities": "فعالیت‌های کلاس",
     "ai_assistant_sessions": "دستیار هوشمند",
@@ -907,7 +995,7 @@
     "smart_class_preview": "محیط کلاس هوشمند",
     "assets": "اموال",
     "certificates": "گواهی‌ها",
-    "student_cards": "کارت‌های دانش‌آموزی",
+    "student_cards": "کارت دانش‌آموزی",
     "class_cards": "کارت‌های کلاسی",
     "surveys": "نظرسنجی",
     "educational_followups": "پیگیری آموزشی",
@@ -923,7 +1011,7 @@
     "discipline_items": "تعریف موارد انضباطی",
     "discipline_settings": "تنظیمات انضباطی",
     "event_audiences": "مخاطبان رویداد",
-    "exam_cards": "کارت‌های امتحانی",
+    "exam_cards": "کارت امتحان",
     "exam_seats": "صندلی‌های امتحانی",
     "finance_donations": "کمک‌های مالی",
     "finance_extra": "امور مالی تکمیلی",
