@@ -183,7 +183,8 @@ class CounselingCenterScreen(OpsBase):
 
 class ScheduleCenterScreen(OpsBase):
     def schedule(self):
-        self.title.text=fa_display("برنامه هفتگی مدرسه");self.body.add_widget(self.lab("جدول واقعی روز × زنگ × کلاس × درس × دبیر. هر ردیف در weekly_schedule ذخیره می‌شود.","10sp",SECONDARY,False,48,True));self.body.add_widget(self.btn("＋ ثبت ردیف برنامه",lambda *_:self.week_form(),SUCCESS,46))
+        self.title.text=fa_display("برنامه هفتگی مدرسه");self.body.add_widget(self.lab("جدول واقعی روز × زنگ × کلاس × درس × دبیر. هر ردیف در weekly_schedule ذخیره می‌شود.","10sp",SECONDARY,False,48,True))
+        if role_of(self.app_state) in {"manager","educational"}: self.body.add_widget(self.btn("＋ ثبت ردیف برنامه",lambda *_:self.week_form(),SUCCESS,46))
         rows=self.api().table_select("weekly_schedule",{"order":"id.desc","limit":"200"}) or [];self.body.add_widget(self.lab(f"{len(rows)} ردیف ثبت شده","12sp",PRIMARY,True,34))
         for r in rows:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('weekdays') or '-'} | {r.get('bell_pattern') or '-'} | {r.get('class_names') or '-'} | {r.get('subject') or '-'} | {r.get('teacher') or '-'}","9sp",SECONDARY,False,34))
     def week_form(self):self.form([("teacher","نام دبیر"),("teacher_id","شناسه دبیر"),("subject","درس"),("grade","پایه"),("class_names","کلاس / کلاس‌ها"),("class_count","تعداد کلاس"),("hours","ساعت هفتگی"),("weekdays","روزهای هفته"),("bell_pattern","زنگ")],self.save_week,"ثبت برنامه هفتگی")
@@ -193,9 +194,11 @@ class ScheduleCenterScreen(OpsBase):
         except:pass
         self.api().table_insert("weekly_schedule",p);self.load()
     def exam_schedule(self):
-        self.title.text=fa_display("برنامه امتحانات");self.body.add_widget(self.lab("تاریخ، ساعت شروع/پایان و مدت هر امتحان ثبت می‌شود؛ صندلی هر امتحان مستقل و تصادفی است.","10sp",SECONDARY,False,52,True));self.body.add_widget(self.btn("＋ ثبت امتحان",lambda *_:self.exam_form(),SUCCESS,46))
+        self.title.text=fa_display("برنامه امتحانات");self.body.add_widget(self.lab("تاریخ، ساعت شروع/پایان و مدت هر امتحان ثبت می‌شود؛ صندلی هر امتحان مستقل و تصادفی است.","10sp",SECONDARY,False,52,True))
+        can_edit=role_of(self.app_state) in {"manager","educational"}
+        if can_edit:self.body.add_widget(self.btn("＋ ثبت امتحان",lambda *_:self.exam_form(),SUCCESS,46))
         rows=self.api().table_select("exam_schedule",{"order":"exam_date.asc","limit":"200"}) or []
-        for r in rows:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('subject') or '-'} | پایه {r.get('grade') or '-'} | {r.get('exam_date') or '-'} | {r.get('exam_start_time') or '-'} تا {r.get('exam_end_time') or '-'} | {r.get('duration') or '-'} دقیقه","9sp",SECONDARY,False,40));self.body.add_widget(self.btn("تولید صندلی‌های این امتحان",lambda *_a,x=dict(r):self.make_exam_seats(x),PRIMARY,40))
+        for r in rows:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('subject') or '-'} | پایه {r.get('grade') or '-'} | {r.get('exam_date') or '-'} | {r.get('exam_start_time') or '-'} تا {r.get('exam_end_time') or '-'} | {r.get('duration') or '-'} دقیقه","9sp",SECONDARY,False,40));self.body.add_widget(self.btn("تولید صندلی‌های این امتحان",lambda *_a,x=dict(r):self.make_exam_seats(x),PRIMARY,40)) if can_edit else None
     def exam_form(self):self.form([("subject","درس"),("grade","پایه"),("start_date","شروع بازه"),("end_date","پایان بازه"),("weight","ضریب"),("exam_date","تاریخ امتحان"),("duration","مدت به دقیقه"),("exam_start_time","ساعت شروع"),("exam_end_time","ساعت پایان")],self.save_exam,"ثبت برنامه امتحانی")
     def save_exam(self,w):
         p={k:self.val(v) for k,v in w.items()}
