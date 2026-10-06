@@ -28,6 +28,7 @@ class ExecutiveCenterScreen(Screen):
         self.app_state = app_state
         self.students = []
         self.exams = []
+        self.initial_action = None
         self._build()
 
     def _api(self):
@@ -155,7 +156,12 @@ class ExecutiveCenterScreen(Screen):
         self.add_widget(root)
 
     def on_pre_enter(self, *_):
-        self.show_home()
+        action = self.initial_action
+        self.initial_action = None
+        if action and hasattr(self, action):
+            getattr(self, action)()
+        else:
+            self.show_home()
 
     def _clear(self):
         self.body.clear_widgets()
@@ -368,14 +374,15 @@ class ExecutiveCenterScreen(Screen):
             data.append((
                 str(i),
                 f"{s.get('first_name','')} {s.get('last_name','')}".strip() or "—",
+                s.get("student_code", "") or "—",
                 r.get("card_type", ""),
                 r.get("code", ""),
                 r.get("created_at", ""),
             ))
         self.body.add_widget(self._table(
-            ("ردیف", "دانش‌آموز", "نوع کارت", "کد کارت", "تاریخ ثبت"),
-            data or [("—", "کارتی ثبت نشده", "—", "—", "—")],
-            145,
+            ("ردیف", "دانش‌آموز", "کد دانش‌آموزی", "نوع کارت", "شماره/کد کارت", "تاریخ ثبت"),
+            data or [("—", "کارتی ثبت نشده", "—", "—", "—", "—")],
+            125,
         ))
         self.body.add_widget(self._button("صدور/ثبت کارت دانش‌آموز", lambda *_: self._card_form(students), SUCCESS, 48))
         self.body.add_widget(self._button("بازگشت به امور اجرایی", lambda *_: self.show_home(), SECONDARY))
@@ -536,15 +543,67 @@ class ExecutiveCenterScreen(Screen):
         self.body.add_widget(request_date)
         self.body.add_widget(recipient)
         self.body.add_widget(self._button(
-            "نمایش گواهی",
-            lambda *_: self._render_certificate(
-                self.students[picker.values.index(picker.text)],
-                request_date.text.strip() or self._today(),
-                recipient.text.strip(),
+            "ثبت درخواست و نمایش گواهی",
+            lambda *_: self._start(
+                lambda: self._save_certificate_request(
+                    self.students[picker.values.index(picker.text)],
+                    request_date.text.strip() or self._today(),
+                    recipient.text.strip(),
+                ),
+                lambda _: self._render_certificate(
+                    self.students[picker.values.index(picker.text)],
+                    request_date.text.strip() or self._today(),
+                    recipient.text.strip(),
+                ),
             ),
             PRIMARY,
             48,
         ))
+        self.body.add_widget(self._button(
+            "نمایش درخواست‌های گواهی",
+            lambda *_: self._start(
+                lambda: self._load("certificate_requests", {
+                    "select": "id,student_id,student_name,destination,request_date,status,executive_note,created_at",
+                    "order": "id.desc",
+                    "limit": "100",
+                }),
+                self._render_certificate_requests,
+            ),
+            SECONDARY,
+            46,
+        ))
+
+    def _save_certificate_request(self, student, request_date, destination):
+        name = f"{student.get('first_name','')} {student.get('last_name','')}".strip()
+        payload = {
+            "student_id": int(student["id"]),
+            "student_name": name,
+            "destination": str(destination or "").strip(),
+            "request_date": str(request_date or self._today()).strip(),
+            "status": "درخواست ثبت شد",
+            "executive_note": "درخواست از پنل معاون اجرایی ثبت شد.",
+        }
+        self._api().table_insert("certificate_requests", payload)
+        return True
+
+    def _render_certificate_requests(self, rows):
+        self._clear()
+        self.body.add_widget(self._label("درخواست‌های گواهی اشتغال", "16sp", PRIMARY, 42, True))
+        data = []
+        for i, r in enumerate(rows or [], 1):
+            data.append((
+                str(i),
+                r.get("student_name", ""),
+                r.get("destination", "") or "—",
+                r.get("request_date", ""),
+                r.get("status", ""),
+            ))
+        self.body.add_widget(self._table(
+            ("ردیف", "دانش‌آموز", "مقصد ارائه", "تاریخ درخواست", "وضعیت"),
+            data or [("—", "درخواستی ثبت نشده", "—", "—", "—")],
+            140,
+        ))
+        self.body.add_widget(self._button("بازگشت به گواهی‌ها", self.certificates, SECONDARY))
 
     def _school_info(self):
         rows = self._load("school_profile", {"select": "*", "limit": "1"})
