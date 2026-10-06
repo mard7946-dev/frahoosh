@@ -177,10 +177,12 @@ class ExecutiveCenterScreen(Screen):
         self.body.add_widget(self._label("امور اجرایی", "18sp", PRIMARY, 44, True))
         actions = (
             ("پرونده هویتی دانش‌آموزان", self.identity),
-            ("گواهی اشتغال به تحصیل", self.certificates),
-            ("کارنامه‌ها", self.report_cards),
-            ("صندلی کلاس", self.class_seats),
+            ("کارنامه", self.report_cards),
+            ("کارت‌های دانش‌آموزی", self.cards),
+            ("برنامه امتحانی", self.exam_schedule),
+            ("صندلی کلاسی", self.class_seats),
             ("صندلی امتحانی", self.exam_seats),
+            ("گواهی اشتغال به تحصیل", self.certificates),
             ("درخواست‌های اجرایی", self.requests),
         )
         for title, callback in actions:
@@ -239,57 +241,312 @@ class ExecutiveCenterScreen(Screen):
         self.body.add_widget(self._button("بازگشت به امور اجرایی", lambda *_: self.show_home(), SECONDARY))
 
     # ------------------------------------------------------------------
-    # 2) گواهی اشتغال: پیش‌نمایش رسمی با اطلاعات همان دانش‌آموز
+    # 2) کارنامه: ردیف | نام درس | نمره | وضعیت
+    # ------------------------------------------------------------------
+    def report_cards(self, *_):
+        self._clear()
+        self.body.add_widget(self._label("کارنامه دانش‌آموزان", "17sp", PRIMARY, 44, True))
+        self.body.add_widget(self._label(
+            "کارنامه به صورت جدول درسی نمایش داده می‌شود؛ هر ردیف یک درس و نمره همان درس است.",
+            height=44,
+        ))
+        self._load_students_for_module(self._prepare_report_cards)
+
+    def _load_students_for_module(self, callback):
+        self._start(
+            lambda: self._load(
+                "students",
+                {
+                    "select": "id,first_name,last_name,national_code,student_code,grade,class_name",
+                    "order": "last_name.asc,first_name.asc",
+                    "limit": "200",
+                },
+            ),
+            callback,
+        )
+
+    def _prepare_report_cards(self, rows):
+        self.students = rows or []
+        if not self.students:
+            self.body.add_widget(self._label("دانش‌آموزی در Supabase ثبت نشده است.", color=ERROR, height=44))
+            return
+        self.body.add_widget(self._label("ابتدا دانش‌آموز را انتخاب کنید.", "14sp", PRIMARY, 38, True))
+        names = [f"{r.get('first_name','')} {r.get('last_name','')} — {r.get('student_code','')}" for r in self.students]
+        picker = self._spinner(names[0], names, 48)
+        self.body.add_widget(picker)
+        self.body.add_widget(self._button(
+            "نمایش کارنامه همین دانش‌آموز",
+            lambda *_: self._start(
+                lambda: self._load(
+                    "student_grades",
+                    {
+                        "select": "id,subject,score,term,assessment_type,assessment_title,grade_date_shamsi",
+                        "student_id": f"eq.{self.students[picker.values.index(picker.text)]['id']}",
+                        "order": "subject.asc,id.asc",
+                        "limit": "500",
+                    },
+                ),
+                lambda grades: self._render_report_card_table(
+                    self.students[picker.values.index(picker.text)], grades
+                ),
+            ),
+            PRIMARY,
+            48,
+        ))
+
+    def _render_report_card_table(self, student, rows):
+        self._clear()
+        full_name = f"{student.get('first_name','')} {student.get('last_name','')}".strip()
+        self.body.add_widget(self._label(
+            f"کارنامه: {full_name} | پایه {student.get('grade','')} | کلاس {student.get('class_name','')}",
+            "15sp", PRIMARY, 44, True,
+        ))
+        data = []
+        for i, r in enumerate(rows or [], 1):
+            score = r.get("score", "")
+            try:
+                status = "قبول" if float(score) >= 10 else "نیازمند پیگیری"
+            except Exception:
+                status = "ثبت نشده"
+            data.append((
+                str(i),
+                r.get("subject", ""),
+                score,
+                status,
+            ))
+        # جدول همیشه با ساختار واقعی کارنامه نمایش داده می‌شود، حتی اگر هنوز نمره‌ای ثبت نشده باشد.
+        if not data:
+            self.body.add_widget(self._table(
+                ("ردیف", "نام درس", "نمره", "وضعیت"),
+                [("—", "هنوز نمره‌ای ثبت نشده", "—", "ثبت نشده")],
+                145,
+            ))
+        else:
+            self.body.add_widget(self._table(("ردیف", "نام درس", "نمره", "وضعیت"), data, 145))
+        self.body.add_widget(self._button("انتخاب دانش‌آموز دیگر", self.report_cards, SECONDARY))
+        self.body.add_widget(self._button("بازگشت به امور اجرایی", lambda *_: self.show_home(), SECONDARY))
+
+    # ------------------------------------------------------------------
+    # 3) کارت‌ها: دانش‌آموز | نوع کارت | کد کارت | تاریخ
+    # ------------------------------------------------------------------
+    def cards(self, *_):
+        self._clear()
+        self.body.add_widget(self._label("کارت‌های دانش‌آموزی", "17sp", PRIMARY, 44, True))
+        self.body.add_widget(self._label(
+            "کارت‌ها از جدول student_cards خوانده می‌شوند و ثبت کارت نیز با فرم مخصوص همین موضوع انجام می‌شود.",
+            height=44,
+        ))
+        self._start(
+            lambda: self._load(
+                "student_cards",
+                {
+                    "select": "id,student_id,card_type,code,created_at",
+                    "order": "id.desc",
+                    "limit": "500",
+                },
+            ),
+            self._render_cards,
+        )
+
+    def _render_cards(self, rows):
+        rows = rows or []
+        self._start(
+            lambda: self._load(
+                "students",
+                {"select": "id,first_name,last_name,student_code", "order": "last_name.asc,first_name.asc", "limit": "200"},
+            ),
+            lambda students: self._render_cards_with_students(rows, students),
+        )
+
+    def _render_cards_with_students(self, rows, students):
+        self._clear()
+        self.body.add_widget(self._label("فهرست کارت‌های دانش‌آموزی", "16sp", PRIMARY, 42, True))
+        lookup = {str(s.get("id")): s for s in (students or [])}
+        data = []
+        for i, r in enumerate(rows, 1):
+            s = lookup.get(str(r.get("student_id")), {})
+            data.append((
+                str(i),
+                f"{s.get('first_name','')} {s.get('last_name','')}".strip() or "—",
+                r.get("card_type", ""),
+                r.get("code", ""),
+                r.get("created_at", ""),
+            ))
+        self.body.add_widget(self._table(
+            ("ردیف", "دانش‌آموز", "نوع کارت", "کد کارت", "تاریخ ثبت"),
+            data or [("—", "کارتی ثبت نشده", "—", "—", "—")],
+            145,
+        ))
+        self.body.add_widget(self._button("صدور/ثبت کارت دانش‌آموز", lambda *_: self._card_form(students), SUCCESS, 48))
+        self.body.add_widget(self._button("بازگشت به امور اجرایی", lambda *_: self.show_home(), SECONDARY))
+
+    def _card_form(self, students):
+        self.students = students or []
+        self._clear()
+        self.body.add_widget(self._label("ثبت کارت دانش‌آموز", "16sp", PRIMARY, 42, True))
+        if not self.students:
+            self.body.add_widget(self._label("دانش‌آموزی ثبت نشده است.", color=ERROR, height=44))
+            return
+        names = [f"{s.get('first_name','')} {s.get('last_name','')}" for s in self.students]
+        picker = self._spinner(names[0], names, 48)
+        card_type = self._spinner("کارت دانش‌آموزی", ["کارت دانش‌آموزی", "کارت ورود", "کارت کتابخانه", "سایر"], 48)
+        code = self._field("کد کارت", 48)
+        self.body.add_widget(picker)
+        self.body.add_widget(card_type)
+        self.body.add_widget(code)
+        self.body.add_widget(self._button(
+            "ثبت کارت",
+            lambda *_: self._start(
+                lambda: self._save_card(
+                    self.students[picker.values.index(picker.text)],
+                    card_type.text,
+                    code.text,
+                ),
+                lambda _: self._cards_saved(),
+            ),
+            SUCCESS,
+            48,
+        ))
+        self.body.add_widget(self._button("انصراف", lambda *_: self.cards(), SECONDARY))
+
+    def _save_card(self, student, card_type, code):
+        code = str(code or "").strip()
+        if not code:
+            raise ValueError("کد کارت الزامی است.")
+        self._api().table_insert("student_cards", {
+            "student_id": int(student["id"]),
+            "card_type": str(card_type).strip(),
+            "code": code,
+        })
+        return True
+
+    def _cards_saved(self):
+        self._ok("کارت دانش‌آموز با موفقیت ثبت شد.")
+        self.cards()
+
+    # ------------------------------------------------------------------
+    # 4) برنامه امتحانی: ردیف | درس | پایه | تاریخ | ساعت | مدت
+    # ------------------------------------------------------------------
+    def exam_schedule(self, *_):
+        self._clear()
+        self.body.add_widget(self._label("برنامه امتحانی", "17sp", PRIMARY, 44, True))
+        self.body.add_widget(self._label(
+            "برنامه از جدول exam_schedule خوانده می‌شود و هر ردیف یک امتحان واقعی است.",
+            height=42,
+        ))
+        self._start(
+            lambda: self._load(
+                "exam_schedule",
+                {
+                    "select": "id,subject,grade,exam_date,exam_start_time,exam_end_time,duration",
+                    "order": "exam_date.asc,id.asc",
+                    "limit": "500",
+                },
+            ),
+            self._render_exam_schedule,
+        )
+
+    def _render_exam_schedule(self, rows):
+        self._clear()
+        self.body.add_widget(self._label("جدول برنامه امتحانی", "16sp", PRIMARY, 42, True))
+        data = []
+        for i, r in enumerate(rows or [], 1):
+            data.append((
+                str(i),
+                r.get("subject", ""),
+                r.get("grade", ""),
+                r.get("exam_date", ""),
+                f"{r.get('exam_start_time','')} تا {r.get('exam_end_time','')}".strip(),
+                r.get("duration", ""),
+            ))
+        self.body.add_widget(self._table(
+            ("ردیف", "نام درس", "پایه", "تاریخ", "ساعت", "مدت"),
+            data or [("—", "امتحانی ثبت نشده", "—", "—", "—", "—")],
+            135,
+        ))
+        self.body.add_widget(self._button("ثبت امتحان جدید", lambda *_: self._exam_schedule_form(), SUCCESS, 48))
+        self.body.add_widget(self._button("بازگشت به امور اجرایی", lambda *_: self.show_home(), SECONDARY))
+
+    def _exam_schedule_form(self):
+        self._clear()
+        self.body.add_widget(self._label("ثبت برنامه امتحانی", "16sp", PRIMARY, 42, True))
+        subject = self._field("نام درس")
+        grade = self._field("پایه")
+        date = self._field("تاریخ امتحان")
+        start = self._field("ساعت شروع")
+        end = self._field("ساعت پایان")
+        duration = self._field("مدت (دقیقه)")
+        for w in (subject, grade, date, start, end, duration):
+            self.body.add_widget(w)
+        self.body.add_widget(self._button(
+            "ثبت برنامه امتحان",
+            lambda *_: self._start(
+                lambda: self._save_exam_schedule(subject.text, grade.text, date.text, start.text, end.text, duration.text),
+                lambda _: self._exam_schedule_saved(),
+            ),
+            SUCCESS,
+            48,
+        ))
+        self.body.add_widget(self._button("انصراف", self.exam_schedule, SECONDARY))
+
+    def _save_exam_schedule(self, subject, grade, date, start, end, duration):
+        if not str(subject).strip() or not str(date).strip():
+            raise ValueError("نام درس و تاریخ امتحان الزامی است.")
+        try:
+            dur = int(str(duration or "0").strip() or "0")
+        except Exception:
+            raise ValueError("مدت امتحان باید عدد باشد.")
+        self._api().table_insert("exam_schedule", {
+            "subject": str(subject).strip(),
+            "grade": str(grade).strip(),
+            "exam_date": str(date).strip(),
+            "exam_start_time": str(start).strip(),
+            "exam_end_time": str(end).strip(),
+            "duration": dur,
+        })
+        return True
+
+    def _exam_schedule_saved(self):
+        self._ok("برنامه امتحانی در Supabase ثبت شد.")
+        self.exam_schedule()
+
+    # ------------------------------------------------------------------
+    # 5) گواهی اشتغال: دانش‌آموز + تاریخ تقاضا + مقصد + پیش‌نمایش نمونه
     # ------------------------------------------------------------------
     def certificates(self, *_):
         self._clear()
         self.body.add_widget(self._label("گواهی اشتغال به تحصیل", "17sp", PRIMARY, 44, True))
         self.body.add_widget(self._label(
-            "پیش‌نمایش رسمی بر اساس ساختار فایل نمونه «سامانه.pdf»؛ اطلاعات فقط از دانش‌آموز انتخاب‌شده و مشخصات مدرسه خوانده می‌شود.",
+            "دانش‌آموز، تاریخ تقاضا و مقصد گواهی را مشخص کنید؛ سپس همان گواهی با اطلاعات واقعی دانش‌آموز نمایش داده می‌شود.",
             height=48,
         ))
-        self.body.add_widget(self._button(
-            "بارگذاری دانش‌آموزان واقعی",
-            lambda *_: self._start(
-                lambda: self._load(
-                    "students",
-                    {
-                        "select": "id,first_name,last_name,national_code,father_name,birth_certificate_no,birth_date,grade,class_name,photo",
-                        "order": "last_name.asc,first_name.asc",
-                        "limit": "200",
-                    },
-                ),
-                self._prepare_certificate,
-            ),
-            SUCCESS,
-            48,
-        ))
+        self._load_students_for_module(self._prepare_certificate)
 
     def _prepare_certificate(self, rows):
         self.students = rows or []
-        self._clear()
-        self.body.add_widget(self._label("انتخاب دانش‌آموز برای پیش‌نمایش گواهی", "16sp", PRIMARY, 42, True))
         if not self.students:
             self.body.add_widget(self._label("دانش‌آموزی ثبت نشده است.", color=ERROR, height=44))
             return
-
-        names = [
-            f"{r.get('first_name','')} {r.get('last_name','')} — {r.get('national_code','')}"
-            for r in self.students
-        ]
+        self.body.add_widget(self._label("اطلاعات درخواست گواهی", "14sp", PRIMARY, 38, True))
+        names = [f"{r.get('first_name','')} {r.get('last_name','')} — {r.get('national_code','')}" for r in self.students]
         picker = self._spinner(names[0], names, 48)
+        request_date = self._field("تاریخ تقاضا", 48)
+        recipient = self._field("فقط به منظور ارائه به", 48)
         self.body.add_widget(picker)
+        self.body.add_widget(request_date)
+        self.body.add_widget(recipient)
         self.body.add_widget(self._button(
-            "نمایش پیش‌نمایش رسمی",
+            "نمایش گواهی",
             lambda *_: self._render_certificate(
-                self.students[picker.values.index(picker.text)]
+                self.students[picker.values.index(picker.text)],
+                request_date.text.strip() or self._today(),
+                recipient.text.strip(),
             ),
             PRIMARY,
             48,
         ))
 
     def _school_info(self):
-        # school_profile باید برای معاون اجرایی قابل خواندن باشد.
         rows = self._load("school_profile", {"select": "*", "limit": "1"})
         return rows[0] if rows else {}
 
@@ -304,8 +561,6 @@ class ExecutiveCenterScreen(Screen):
 
     @staticmethod
     def _today():
-        # گواهی نمونه با تاریخ شمسی است. تبدیل ساده تاریخ میلادی به شمسی
-        # برای نمایش تاریخ روز؛ در صورت وجود تاریخ مدرسه همان مقدار حفظ می‌شود.
         import calendar
         gy, gm, gd = datetime.now().year, datetime.now().month, datetime.now().day
         g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334]
@@ -322,14 +577,7 @@ class ExecutiveCenterScreen(Screen):
         jd = 1 + (days % 31) if days < 186 else 1 + ((days - 186) % 30)
         return f"{jy:04d}/{jm:02d}/{jd:02d}"
 
-    def _certificate_cell(self, title, value, title_width=150):
-        cell = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(42), spacing=dp(2))
-        cell.add_widget(self._label(title, "9sp", SECONDARY, 42, True))
-        cell.add_widget(self._label(value or "—", "10sp", SECONDARY, 42))
-        return cell
-
-    def _render_certificate(self, student):
-        """پیش‌نمایش گواهی در همان چیدمان نمونه PDF: A4/بالای صفحه، قاب، عکس، تیتر مرکزی، بدنه راست، هشدار عمودی و محل QR/مهر."""
+    def _render_certificate(self, student, request_date=None, recipient=""):
         import os
 
         school = self._school_info()
@@ -338,7 +586,7 @@ class ExecutiveCenterScreen(Screen):
         academic_year = school.get("academic_year") or SCHOOL_YEAR
         grade = student.get("grade") or ""
         period = self._education_period(grade)
-        request_date = school.get("request_date_shamsi") or self._today()
+        request_date = request_date or school.get("request_date_shamsi") or self._today()
         full_name = f"{student.get('first_name','')} {student.get('last_name','')}".strip()
         father_name = student.get("father_name") or ""
         birth_no = student.get("birth_certificate_no") or ""
@@ -347,9 +595,7 @@ class ExecutiveCenterScreen(Screen):
         principal = school.get("principal_name") or ""
 
         self._clear()
-        self.body.add_widget(self._label("گواهی اشتغال به تحصیل — پیش‌نمایش مطابق نمونه", "16sp", PRIMARY, 42, True))
-
-        # نمونه PDF یک برگه افقیِ 842×595 در نیمه بالایی صفحه دارد.
+        self.body.add_widget(self._label("گواهی اشتغال به تحصیل — پیش‌نمایش نمونه", "16sp", PRIMARY, 42, True))
         page = FloatLayout(size_hint=(None, None), size=(dp(842), dp(595)))
         with page.canvas.before:
             Color(0.10, 0.10, 0.10, 1)
@@ -372,19 +618,14 @@ class ExecutiveCenterScreen(Screen):
             page.add_widget(lab)
             return lab
 
-        # سربرگ دقیقاً در مرکز بالا
         txt("جمهوری اسلامی ایران", 330, 540, 190, 22, "11sp", True, SECONDARY, "center")
         txt("وزارت آموزش و پرورش", 320, 518, 210, 22, "11sp", True, SECONDARY, "center")
         txt(f"دوره تحصیلی: {period}", 295, 496, 260, 22, "10sp", False, SECONDARY, "center")
         txt("گواهی اشتغال به تحصیل", 285, 458, 280, 38, "18sp", True, SECONDARY, "center")
 
-        # عکس دانش‌آموز در بالا-چپ، مانند نمونه
         photo = str(student.get("photo") or "").strip()
         if photo and os.path.exists(photo):
-            page.add_widget(Image(
-                source=photo, allow_stretch=True, keep_ratio=True,
-                size_hint=(None, None), size=(dp(92), dp(105)), pos=(dp(24), dp(430))
-            ))
+            page.add_widget(Image(source=photo, allow_stretch=True, keep_ratio=True, size_hint=(None, None), size=(dp(92), dp(105)), pos=(dp(24), dp(430))))
         else:
             with page.canvas:
                 Color(0.92, 0.92, 0.92, 1)
@@ -400,24 +641,15 @@ class ExecutiveCenterScreen(Screen):
         txt(f"سال تحصیلی: {academic_year}", 330, 340, 200, 24, "10sp")
         txt(f"در مدرسه: {school_name} ({school_code})", 515, 308, 300, 24, "10sp")
         txt(f"در پایه: {grade}", 400, 308, 105, 24, "10sp")
-        txt("مشغول به تحصیل میباشد", 575, 275, 240, 25, "10sp", False, SECONDARY)
+        txt("مشغول به تحصیل میباشد", 575, 275, 240, 25, "10sp")
         txt(f"این گواهی طبق تقاضای مورخ: {request_date}", 500, 225, 315, 25, "10sp")
-        txt("فقط به منظور ارائه به: ................................................", 485, 170, 330, 25, "10sp")
+        txt(f"فقط به منظور ارائه به: {recipient or '................................................'}", 485, 170, 330, 25, "10sp")
         txt("صادر گردیده و فاقد هرگونه ارزش دیگری می باشد.", 440, 105, 375, 25, "10sp")
-
         txt("تاریخ", 560, 68, 110, 25, "10sp", False, SECONDARY, "center")
         txt("مهر و امضا مدیر مدرسه", 315, 68, 190, 25, "10sp", True, SECONDARY, "center")
         txt(principal, 300, 42, 220, 22, "10sp", False, SECONDARY, "center")
-
-        # هشدار عمودی قرمزِ سمت چپ نمونه
-        warning = txt(
-            "این گواهی بدون تایید (مهر و امضای زنده مدیر) فاقد اعتبار میباشد",
-            2, 145, 25, 300, "9sp", True, ERROR, "center"
-        )
+        warning = txt("این گواهی بدون تایید (مهر و امضای زنده مدیر) فاقد اعتبار میباشد", 2, 145, 25, 300, "9sp", True, ERROR, "center")
         warning.rotation = 90
-
-        # جای QR در پایین راست؛ داده واقعی گواهی در شناسه متن قرار می‌گیرد.
-        # QR تولیدیِ وابسته به کتابخانه خارجی اضافه نمی‌شود تا build فعلی شکسته نشود.
         with page.canvas:
             Color(0.15, 0.15, 0.15, 1)
             Line(rectangle=(dp(700), dp(25), dp(90), dp(90)), width=1)
@@ -426,79 +658,67 @@ class ExecutiveCenterScreen(Screen):
         sv = ScrollView(do_scroll_x=True, do_scroll_y=True, size_hint_y=None, height=dp(600))
         sv.add_widget(page)
         self.body.add_widget(sv)
-        self.body.add_widget(self._button("بازگشت به امور اجرایی", lambda *_: self.show_home(), SECONDARY))
+        self.body.add_widget(self._button("بازگشت به گواهی‌ها", self.certificates, SECONDARY))
 
     # ------------------------------------------------------------------
-    # 3) کارنامه: ردیف | درس | نمره | وضعیت
-    # ------------------------------------------------------------------
-    def report_cards(self, *_):
-        self._clear()
-        self.body.add_widget(self._label("کارنامه‌ها", "17sp", PRIMARY, 44, True))
-        self.body.add_widget(self._button(
-            "بارگذاری کارنامه‌های واقعی",
-            lambda *_: self._start(
-                lambda: self._load(
-                    "student_grades",
-                    {
-                        "select": "student_id,subject,score,term,grade_date_shamsi",
-                        "order": "student_id.asc,subject.asc,id.asc",
-                        "limit": "500",
-                    },
-                ),
-                self._render_report_cards,
-            ),
-            SUCCESS,
-            48,
-        ))
-
-    def _render_report_cards(self, rows):
-        self._clear()
-        self.body.add_widget(self._label("کارنامه — ردیف | درس | نمره | وضعیت", "16sp", PRIMARY, 42, True))
-        data = []
-        for i, r in enumerate(rows or [], 1):
-            score = r.get("score", "")
-            try:
-                status = "قبول" if float(score) >= 10 else "نیازمند پیگیری"
-            except Exception:
-                status = "ثبت نشده"
-            data.append((str(i), r.get("subject", ""), score, status))
-        if not data:
-            self.body.add_widget(self._label("نمره‌ای در Supabase ثبت نشده است.", color=ERROR, height=44))
-            return
-        self.body.add_widget(self._table(("ردیف", "درس", "نمره", "وضعیت"), data, 135))
-        self.body.add_widget(self._button("بازگشت به امور اجرایی", lambda *_: self.show_home(), SECONDARY))
-
-    # ------------------------------------------------------------------
-    # 4) صندلی کلاس: انتخاب دانش‌آموز + فقط شماره صندلی
+    # 6) صندلی کلاس: جدول | دانش‌آموز | کلاس | شماره صندلی
     # ------------------------------------------------------------------
     def class_seats(self, *_):
         self._clear()
-        self.body.add_widget(self._label("صندلی کلاس", "17sp", PRIMARY, 44, True))
-        self.body.add_widget(self._label("دانش‌آموز را از فهرست انتخاب کنید؛ در فرم فقط شماره صندلی وارد می‌شود.", height=44))
-        self.body.add_widget(self._button(
-            "بارگذاری دانش‌آموزان",
-            lambda *_: self._start(
-                lambda: self._load(
-                    "students",
-                    {"select": "id,first_name,last_name,student_code,national_code,class_name", "order": "last_name.asc,first_name.asc", "limit": "200"},
-                ),
-                self._prepare_class_seat,
-            ),
-            SUCCESS,
-            48,
+        self.body.add_widget(self._label("صندلی کلاسی", "17sp", PRIMARY, 44, True))
+        self.body.add_widget(self._label(
+            "جدول واقعی صندلی‌های ثبت‌شده؛ برای ثبت فقط دانش‌آموز و شماره صندلی انتخاب می‌شود.",
+            height=44,
         ))
+        self._start(
+            lambda: self._load(
+                "class_seats",
+                {"select": "id,student_id,class_name,seat_no,created_at", "order": "id.asc", "limit": "500"},
+            ),
+            self._render_class_seats,
+        )
+
+    def _render_class_seats(self, rows):
+        rows = rows or []
+        self._start(
+            lambda: self._load(
+                "students",
+                {"select": "id,first_name,last_name,student_code", "order": "last_name.asc,first_name.asc", "limit": "200"},
+            ),
+            lambda students: self._render_class_seats_with_students(rows, students),
+        )
+
+    def _render_class_seats_with_students(self, rows, students):
+        self._clear()
+        lookup = {str(s.get("id")): s for s in (students or [])}
+        data = []
+        for i, r in enumerate(rows, 1):
+            s = lookup.get(str(r.get("student_id")), {})
+            data.append((
+                str(i),
+                f"{s.get('first_name','')} {s.get('last_name','')}".strip() or "—",
+                r.get("class_name", ""),
+                r.get("seat_no", ""),
+            ))
+        self.body.add_widget(self._table(
+            ("ردیف", "دانش‌آموز", "کلاس", "شماره صندلی"),
+            data or [("—", "صندلی ثبت نشده", "—", "—")],
+            145,
+        ))
+        self.body.add_widget(self._button("تخصیص/ویرایش صندلی", lambda *_: self._start(
+            lambda: self._load("students", {"select": "id,first_name,last_name,class_name", "order": "last_name.asc,first_name.asc", "limit": "200"}),
+            self._prepare_class_seat,
+        ), SUCCESS, 48))
+        self.body.add_widget(self._button("بازگشت به امور اجرایی", lambda *_: self.show_home(), SECONDARY))
 
     def _prepare_class_seat(self, rows):
         self.students = rows or []
         self._clear()
-        self.body.add_widget(self._label("اختصاص صندلی کلاس", "16sp", PRIMARY, 42, True))
+        self.body.add_widget(self._label("تخصیص صندلی کلاس", "16sp", PRIMARY, 42, True))
         if not self.students:
             self.body.add_widget(self._label("دانش‌آموزی ثبت نشده است.", color=ERROR, height=44))
             return
-        names = [
-            f"{r.get('first_name','')} {r.get('last_name','')}"
-            for r in self.students
-        ]
+        names = [f"{r.get('first_name','')} {r.get('last_name','')}" for r in self.students]
         picker = self._spinner(names[0], names, 48)
         seat = self._field("فقط شماره صندلی", 48)
         self.body.add_widget(picker)
@@ -506,14 +726,12 @@ class ExecutiveCenterScreen(Screen):
         self.body.add_widget(self._button(
             "ثبت شماره صندلی",
             lambda *_: self._start(
-                lambda: self._save_class_seat(
-                    self.students[picker.values.index(picker.text)], seat.text
-                ),
-                lambda _: self._ok("شماره صندلی کلاس در Supabase ثبت شد."),
+                lambda: self._save_class_seat(self.students[picker.values.index(picker.text)], seat.text),
+                lambda _: self._class_seat_saved(),
             ),
-            SUCCESS,
-            48,
+            SUCCESS, 48,
         ))
+        self.body.add_widget(self._button("انصراف", self.class_seats, SECONDARY))
 
     def _save_class_seat(self, student, seat_text):
         number = str(seat_text or "").strip()
@@ -521,76 +739,99 @@ class ExecutiveCenterScreen(Screen):
             raise ValueError("شماره صندلی باید یک عدد مثبت باشد.")
         sid = int(student["id"])
         rows = self._load("class_seats", {"student_id": f"eq.{sid}", "limit": "1"})
-        payload = {
-            "student_id": sid,
-            "class_name": student.get("class_name", ""),
-            "seat_no": number,
-        }
+        payload = {"student_id": sid, "class_name": student.get("class_name", ""), "seat_no": number}
         if rows:
             self._api().table_update("class_seats", {"id": f"eq.{rows[0]['id']}"}, payload)
         else:
             self._api().table_insert("class_seats", payload)
         return True
 
+    def _class_seat_saved(self):
+        self._ok("صندلی کلاس برای دانش‌آموز ثبت شد.")
+        self.class_seats()
+
     # ------------------------------------------------------------------
-    # 5) صندلی امتحانی: آزمون -> دانش‌آموز -> فقط شماره صندلی
+    # 7) صندلی امتحانی: آزمون -> دانش‌آموز -> فقط شماره صندلی
     # ------------------------------------------------------------------
     def exam_seats(self, *_):
         self._clear()
         self.body.add_widget(self._label("صندلی امتحانی", "17sp", PRIMARY, 44, True))
         self.body.add_widget(self._label(
-            "ترتیب اجباری: ابتدا درس/آزمون، سپس دانش‌آموز، سپس فقط شماره صندلی همان درس.",
-            height=48,
+            "جدول هر ردیف را به یک آزمون، دانش‌آموز و شماره صندلی همان آزمون اختصاص می‌دهد.",
+            height=44,
         ))
-        self.body.add_widget(self._button(
-            "بارگذاری برنامه امتحانات واقعی",
-            lambda *_: self._start(
-                lambda: self._load(
-                    "exam_schedule",
-                    {
-                        "select": "id,subject,grade,exam_date,exam_start_time,exam_end_time",
-                        "order": "exam_date.asc,id.asc",
-                        "limit": "200",
-                    },
-                ),
-                self._prepare_exam_seats,
-            ),
-            SUCCESS,
-            48,
+        self._start(
+            lambda: self._load("exam_seat_assignments", {
+                "select": "id,exam_id,student_id,subject,exam_date,seat_number",
+                "order": "exam_date.asc,id.asc",
+                "limit": "500",
+            }),
+            self._render_exam_seat_table,
+        )
+
+    def _render_exam_seat_table(self, rows):
+        rows = rows or []
+        self._start(
+            lambda: self._load("students", {"select": "id,first_name,last_name", "order": "last_name.asc,first_name.asc", "limit": "200"}),
+            lambda students: self._render_exam_seat_table_with_students(rows, students),
+        )
+
+    def _render_exam_seat_table_with_students(self, rows, students):
+        self._clear()
+        lookup = {str(s.get("id")): s for s in (students or [])}
+        data = []
+        for i, r in enumerate(rows, 1):
+            s = lookup.get(str(r.get("student_id")), {})
+            data.append((
+                str(i),
+                r.get("subject", ""),
+                r.get("exam_date", ""),
+                f"{s.get('first_name','')} {s.get('last_name','')}".strip() or "—",
+                r.get("seat_number", ""),
+            ))
+        self.body.add_widget(self._table(
+            ("ردیف", "آزمون/درس", "تاریخ", "دانش‌آموز", "شماره صندلی"),
+            data or [("—", "تخصیصی ثبت نشده", "—", "—", "—")],
+            135,
         ))
+        self.body.add_widget(self._button("تخصیص صندلی برای آزمون", lambda *_: self._load_exam_picker(), SUCCESS, 48))
+        self.body.add_widget(self._button("بازگشت به امور اجرایی", lambda *_: self.show_home(), SECONDARY))
+
+    def _load_exam_picker(self):
+        self._start(
+            lambda: self._load("exam_schedule", {
+                "select": "id,subject,grade,exam_date,exam_start_time,exam_end_time",
+                "order": "exam_date.asc,id.asc",
+                "limit": "200",
+            }),
+            self._prepare_exam_seats,
+        )
 
     def _prepare_exam_seats(self, exams):
         self.exams = exams or []
         self._clear()
-        self.body.add_widget(self._label("اختصاص صندلی بر اساس درس/آزمون", "16sp", PRIMARY, 42, True))
+        self.body.add_widget(self._label("مرحله ۱: انتخاب درس/آزمون", "16sp", PRIMARY, 42, True))
         if not self.exams:
-            self.body.add_widget(self._label("برنامه امتحانی در Supabase ثبت نشده است.", color=ERROR, height=44))
+            self.body.add_widget(self._label("برنامه امتحانی در Supabase ثبت نشده است؛ ابتدا برنامه امتحانی را ثبت کنید.", color=ERROR, height=52))
+            self.body.add_widget(self._button("رفتن به برنامه امتحانی", self.exam_schedule, SECONDARY))
             return
-        exam_names = [
-            f"{e.get('subject','')} — {e.get('grade','')} — {e.get('exam_date','')}"
-            for e in self.exams
-        ]
+        exam_names = [f"{e.get('subject','')} — {e.get('grade','')} — {e.get('exam_date','')}" for e in self.exams]
         epicker = self._spinner(exam_names[0], exam_names, 48)
         self.body.add_widget(epicker)
         self.body.add_widget(self._button(
-            "انتخاب آزمون و ادامه",
-            lambda *_: self._load_exam_students(
-                self.exams[epicker.values.index(epicker.text)]
-            ),
-            PRIMARY,
-            46,
+            "ادامه و انتخاب دانش‌آموز",
+            lambda *_: self._load_exam_students(self.exams[epicker.values.index(epicker.text)]),
+            PRIMARY, 46,
         ))
+        self.body.add_widget(self._button("انصراف", self.exam_seats, SECONDARY))
 
     def _load_exam_students(self, exam):
         self._start(
-            lambda: self._load(
-                "students",
-                {
-                    "select": "id,first_name,last_name,student_code,national_code,class_name,grade",
-                    "order": "last_name.asc,first_name.asc",
-                    "limit": "200",
-                },
-            ),
+            lambda: self._load("students", {
+                "select": "id,first_name,last_name,student_code,national_code,class_name,grade",
+                "order": "last_name.asc,first_name.asc",
+                "limit": "200",
+            }),
             lambda rows: self._show_exam_student_form(exam, rows),
         )
 
@@ -598,33 +839,26 @@ class ExecutiveCenterScreen(Screen):
         self.students = students or []
         self._clear()
         self.body.add_widget(self._label(
-            f"آزمون: {exam.get('subject','')} | تاریخ: {exam.get('exam_date','')}",
-            "15sp",
-            PRIMARY,
-            42,
-            True,
+            f"مرحله ۲: دانش‌آموز | {exam.get('subject','')} | {exam.get('exam_date','')}",
+            "15sp", PRIMARY, 42, True,
         ))
         if not self.students:
-            self.body.add_widget(self._label("دانش‌آموزی در Supabase ثبت نشده است.", color=ERROR, height=44))
+            self.body.add_widget(self._label("دانش‌آموزی ثبت نشده است.", color=ERROR, height=44))
             return
         names = [f"{r.get('first_name','')} {r.get('last_name','')}" for r in self.students]
         spicker = self._spinner(names[0], names, 48)
-        seat = self._field("فقط شماره صندلی این درس", 48)
+        seat = self._field("مرحله ۳: فقط شماره صندلی این درس", 48)
         self.body.add_widget(spicker)
         self.body.add_widget(seat)
         self.body.add_widget(self._button(
-            "ثبت صندلی این درس",
+            "ثبت صندلی همین آزمون",
             lambda *_: self._start(
-                lambda: self._save_exam_seat(
-                    exam,
-                    self.students[spicker.values.index(spicker.text)],
-                    seat.text,
-                ),
-                lambda _: self._ok("صندلی همین درس برای دانش‌آموز در Supabase ثبت شد."),
+                lambda: self._save_exam_seat(exam, self.students[spicker.values.index(spicker.text)], seat.text),
+                lambda _: self._exam_seat_saved(),
             ),
-            SUCCESS,
-            48,
+            SUCCESS, 48,
         ))
+        self.body.add_widget(self._button("انصراف", self.exam_seats, SECONDARY))
 
     def _save_exam_seat(self, exam, student, seat_text):
         value = str(seat_text or "").strip()
@@ -632,10 +866,7 @@ class ExecutiveCenterScreen(Screen):
             raise ValueError("شماره صندلی باید یک عدد مثبت باشد.")
         sid = int(student["id"])
         eid = str(exam["id"])
-        existing = self._load(
-            "exam_seat_assignments",
-            {"exam_id": f"eq.{eid}", "student_id": f"eq.{sid}", "limit": "1"},
-        )
+        existing = self._load("exam_seat_assignments", {"exam_id": f"eq.{eid}", "student_id": f"eq.{sid}", "limit": "1"})
         payload = {
             "exam_id": eid,
             "student_id": sid,
@@ -648,6 +879,10 @@ class ExecutiveCenterScreen(Screen):
         else:
             self._api().table_insert("exam_seat_assignments", payload)
         return True
+
+    def _exam_seat_saved(self):
+        self._ok("صندلی این آزمون برای دانش‌آموز ثبت شد.")
+        self.exam_seats()
 
     # ------------------------------------------------------------------
     # 6) درخواست‌ها: فرم کامل + ثبت واقعی
