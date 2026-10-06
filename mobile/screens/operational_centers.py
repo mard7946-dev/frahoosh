@@ -1,0 +1,303 @@
+from datetime import datetime
+from io import BytesIO
+from pathlib import Path
+import random
+import requests
+from kivy.app import App
+from kivy.metrics import dp
+from kivy.uix.screenmanager import Screen
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.spinner import Spinner
+from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, SCHOOL_NAME, SCHOOL_YEAR
+from mobile.ui import font_name, fa_display, PersianTextInput
+
+ALIASES={"management":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager","educational":"educational","معاون آموزشی":"educational","معاونت آموزشی":"educational","executive":"executive","معاون اجرایی":"executive","معاونت اجرایی":"executive","cultural":"cultural","معاون پرورشی":"cultural","معاونت پرورشی":"cultural","advisor":"advisor","counselor":"advisor","مشاور":"advisor","مشاوره":"advisor","teacher":"teacher","teachers":"teacher","دبیر":"teacher","student":"student","دانش‌آموز":"student","دانش آموز":"student","parent":"parent","parents":"parent","ولی":"parent","اولیا":"parent"}
+
+def role_of(state):
+    p=str(getattr(state,"panel_role","") or "").strip().lower()
+    if p:
+        p=p.replace("\u200c"," ")
+        for k,v in ALIASES.items():
+            if k in p:return v
+    prof=getattr(state,"profile",{}) or {}
+    for value in (prof.get("role"),prof.get("user_role"),prof.get("school_role"),getattr(state,"role",None)):
+        raw=str(value or "").strip().lower().replace("\u200c"," ")
+        if raw:
+            for k,v in ALIASES.items():
+                if k in raw:return v
+    return "student"
+
+class OpsBase(Screen):
+    def __init__(self,app_state=None,mode="",**kw):
+        super().__init__(**kw); self.app_state=app_state; self.mode=mode; self._shell()
+    def api(self):
+        api=getattr(self.app_state,"api",None)
+        if api is None: raise RuntimeError("اتصال پایگاه داده آماده نیست.")
+        return api
+    def val(self,w):
+        return w.get_logical_text().strip() if hasattr(w,"get_logical_text") else str(getattr(w,"text","") or "").strip()
+    def lab(self,t,size="11sp",color=SECONDARY,b=False,h=40,center=False):
+        w=Label(text=fa_display(str(t)),font_name=font_name(),font_size=size,color=color,bold=b,halign="center" if center else "right",valign="middle",size_hint_y=None,height=dp(h)); w.bind(size=lambda o,v:setattr(o,"text_size",v)); return w
+    def btn(self,t,cb,color=PRIMARY,h=44):
+        b=Button(text=fa_display(t),font_name=font_name(),font_size="11sp",background_normal="",background_color=color,color=WHITE,size_hint_y=None,height=dp(h)); b.bind(on_release=cb); return b
+    def field(self,h,hgt=46,m=False):
+        return PersianTextInput(hint_text=fa_display(h),font_name=font_name(),font_size="11sp",halign="right",multiline=m,size_hint_y=None,height=dp(hgt))
+    def spinner(self,h,values):
+        return Spinner(text=fa_display(h),values=tuple(fa_display(x) for x in values),font_name=font_name(),font_size="11sp",size_hint_y=None,height=dp(46))
+    def _shell(self):
+        root=BoxLayout(orientation="vertical",padding=dp(9),spacing=dp(6)); head=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(5))
+        head.add_widget(self.btn("بازگشت",self.back,SECONDARY,42)); self.title=self.lab("مرکز عملیاتی","18sp",PRIMARY,True,42,True); head.add_widget(self.title); head.add_widget(self.btn("داشبورد",self.dashboard,PRIMARY,42)); root.add_widget(head)
+        self.status=self.lab("آماده","9sp",SUCCESS,True,30,True); root.add_widget(self.status)
+        sc=ScrollView(do_scroll_x=False); self.body=BoxLayout(orientation="vertical",spacing=dp(6),padding=dp(3),size_hint_y=None); self.body.bind(minimum_height=self.body.setter("height")); sc.add_widget(self.body); root.add_widget(sc); self.add_widget(root)
+    def on_pre_enter(self,*_): self.load()
+    def load(self):
+        self.body.clear_widgets()
+        fn={"activities":self.activities,"counseling":self.counseling,"schedule":self.schedule,"exam_schedule":self.exam_schedule,"discipline":self.discipline,"smart_board":self.smart_board,"cards":self.cards}.get(self.mode)
+        if not fn:self.status.text=fa_display("ماژول عملیاتی ناشناخته است"); self.status.color=ERROR; return
+        try: fn()
+        except Exception as e:self.status.text=fa_display("خطا: "+str(e)); self.status.color=ERROR
+    def back(self,*_):
+        if self.manager:self.manager.current="panel"
+    def dashboard(self,*_):
+        if self.manager:self.manager.current="dashboard"
+    def students(self):
+        return self.api().table_select("students",{"order":"last_name.asc","limit":"500"}) or []
+    def student_id(self):
+        p=getattr(self.app_state,"profile",{}) or {}; sid=p.get("linked_student_id") or p.get("student_id")
+        if sid:return int(sid)
+        n=str(getattr(self.app_state,"national_code","") or ""); rows=self.api().table_select("students",{"national_code":"eq."+n,"limit":"1"}) or []
+        return int(rows[0]["id"]) if rows else None
+    def sname(self,s): return (" ".join(str(s.get(k) or "").strip() for k in ("first_name","last_name")).strip() or "دانش‌آموز")
+    def form(self,fields,save,title):
+        self.body.clear_widgets(); self.title.text=fa_display(title); w={}
+        for k,h in fields:
+            x=self.field(h,72 if k in {"description","body","content","report","recommendation"} else 46,k in {"description","body","content","report","recommendation"}); w[k]=x; self.body.add_widget(self.lab(h,"9sp",PRIMARY,True,24)); self.body.add_widget(x)
+        self.body.add_widget(self.btn("ثبت اطلاعات واقعی",lambda *_:save(w),SUCCESS,50)); self.body.add_widget(self.btn("بازگشت",lambda *_:self.load(),SECONDARY,42)); return w
+
+class OperationalCenterScreen(OpsBase):
+    def activities(self):
+        self.title.text=fa_display("ثبت‌نام مسابقات، اردوها و فعالیت‌ها"); role=role_of(self.app_state)
+        self.body.add_widget(self.lab("ثبت‌ها مستقیماً در جداول تخصصی Supabase ذخیره می‌شوند.", "10sp", SECONDARY,False,48,True))
+        if role in {"manager","cultural","educational","executive","advisor"}:
+            self.body.add_widget(self.btn("＋ تعریف اردو / جشنواره / فعالیت",lambda *_:self.activity_form(),SUCCESS,46))
+            for table,title in (("cultural_competitions","مسابقه فرهنگی"),("art_competitions","مسابقه هنری"),("sport_competitions","مسابقه ورزشی")):
+                self.body.add_widget(self.btn("＋ "+title,lambda *_ ,t=table,n=title:self.competition_form(t,n),PRIMARY,42))
+            self.staff_list()
+        else:self.student_register()
+    def activity_form(self):
+        self.form([("title","عنوان فعالیت / اردو / جشنواره"),("activity_key","کلید فعالیت"),("category","دسته‌بندی"),("amount","هزینه"),("active","فعال؟")],self.save_activity,"تعریف فعالیت")
+    def save_activity(self,w):
+        p={k:self.val(v) for k,v in w.items()}
+        try:p["amount"]=int(p.get("amount") or 0)
+        except:p["amount"]=0
+        p["active"]=str(p.get("active") or "بله") not in {"خیر","0","false"}; self.api().table_insert("activity_programs",p); self.load()
+    def competition_form(self,table,title):
+        def save(w):
+            p={k:self.val(v) for k,v in w.items()}
+            if table=="sport_competitions":p["sport_type"]=p.get("category","")
+            self.api().table_insert(table,p); self.load()
+        self.form([("title","عنوان مسابقه"),("category","دسته‌بندی"),("start_date","تاریخ شروع"),("end_date","تاریخ پایان"),("registration_start_shamsi","شروع ثبت‌نام"),("registration_end_shamsi","پایان ثبت‌نام"),("description","توضیحات")],save,title)
+    def student_register(self):
+        sid=self.student_id()
+        if not sid:self.body.add_widget(self.lab("پرونده دانش‌آموز پیدا نشد.","11sp",ERROR,True,50,True));return
+        programs=self.api().table_select("activity_programs",{"active":"eq.true","order":"id.desc","limit":"100"}) or []
+        self.body.add_widget(self.lab("ثبت‌نام فعالیت‌ها و اردوها","14sp",PRIMARY,True,38,True))
+        for r in programs:
+            self.body.add_widget(self.lab(f"{r.get('title') or '-'} | {r.get('category') or '-'} | هزینه {r.get('amount') or 0}","10sp",SECONDARY,False,36)); self.body.add_widget(self.btn("ثبت‌نام",lambda *_a,x=dict(r):self.reg_program(x),SUCCESS,40))
+        for table,label in (("cultural_competitions","مسابقه فرهنگی"),("art_competitions","مسابقه هنری"),("sport_competitions","مسابقه ورزشی")):
+            for r in self.api().table_select(table,{"order":"id.desc","limit":"50"}) or []:
+                self.body.add_widget(self.lab(f"{label}: {r.get('title') or '-'}","10sp",SECONDARY,False,34)); self.body.add_widget(self.btn("ثبت‌نام مسابقه",lambda *_a,x=dict(r):self.reg_comp(x),SUCCESS,40))
+        for table,label in (("student_council","شورای دانش‌آموزی"),("basij_registration","بسیج"),("school_ally","همیار مدرسه"),("school_mayor","شهردار مدرسه"),("morning_leaders","مکبر"),("qari_registration","قاری")):
+            self.body.add_widget(self.btn("ثبت نام "+label,lambda *_a,t=table,n=label:self.reg_simple(t,n),PRIMARY,40))
+    def reg_program(self,r):
+        sid=self.student_id(); old=self.api().table_select("activity_registrations",{"activity_id":"eq."+str(r["id"]),"student_id":"eq."+str(sid),"limit":"1"}) or []
+        if old:return
+        self.api().table_insert("activity_registrations",{"activity_id":r["id"],"student_id":sid,"participation_type":"انفرادی","team_members":"","competition_type":r.get("category") or "فعالیت","payment_status":"pending","status":"active"}); self.status.text=fa_display("ثبت‌نام فعالیت با موفقیت ذخیره شد."); self.status.color=SUCCESS
+    def reg_comp(self,r):
+        sid=self.student_id(); old=self.api().table_select("activity_registrations",{"student_id":"eq."+str(sid),"competition_type":"eq."+str(r.get("title") or ""),"limit":"1"}) or []
+        if old:return
+        self.api().table_insert("activity_registrations",{"activity_id":r.get("id"),"student_id":sid,"participation_type":"انفرادی","team_members":"","competition_type":r.get("title") or "مسابقه","payment_status":"pending","status":"active"}); self.status.text=fa_display("ثبت‌نام مسابقه ذخیره شد."); self.status.color=SUCCESS
+    def reg_simple(self,table,label):
+        sid=self.student_id(); old=self.api().table_select(table,{"student_id":"eq."+str(sid),"limit":"1"}) or []
+        if old:return
+        s=(self.api().table_select("students",{"id":"eq."+str(sid),"limit":"1"}) or [{}])[0]; p={"student_id":sid,"student_name":self.sname(s),"status":"pending"}
+        if table=="student_council":p["election_year"]=SCHOOL_YEAR
+        if table=="school_ally":p["role"]="همیار"
+        if table=="morning_leaders":p.update({"grade":s.get("grade") or "","class_name":s.get("class_name") or "","role":label,"date_shamsi":""})
+        self.api().table_insert(table,p); self.status.text=fa_display("درخواست ثبت شد."); self.status.color=SUCCESS
+    def staff_list(self):
+        self.body.add_widget(self.lab("فهرست ثبت‌نام‌ها","14sp",PRIMARY,True,38,True))
+        for table,label in (("activity_registrations","فعالیت‌ها"),("student_council","شورا"),("basij_registration","بسیج"),("school_ally","همیار"),("school_mayor","شهردار"),("morning_leaders","مکبر"),("qari_registration","قاری")):
+            rows=self.api().table_select(table,{"order":"id.desc","limit":"50"}) or []; self.body.add_widget(self.lab(f"{label}: {len(rows)}","10sp",SECONDARY,False,30))
+            for r in rows[:15]:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('student_name') or r.get('student_id') or '-'} | {r.get('status') or '-'}","9sp",SECONDARY,False,32))
+
+class CounselingCenterScreen(OpsBase):
+    def counseling(self):
+        self.title.text=fa_display("مرکز عملیاتی مشاوره"); self.body.add_widget(self.lab("پرونده، جلسه، پیگیری، ارجاع و هدایت تحصیلی واقعی و متصل به Supabase.","10sp",SECONDARY,False,48,True))
+        for text,fn in (("＋ ثبت جلسه مشاوره",self.counsel_form),("＋ ثبت پیگیری",self.follow_form),("＋ ثبت هدایت تحصیلی",self.guidance_form),("＋ ثبت ارجاع دانش‌آموز",self.referral_form),("تابلو اعلانات مشاور",self.board_form)):self.body.add_widget(self.btn(text,lambda *_a,f=fn:f(),SUCCESS if "ثبت" in text else PRIMARY,44))
+        self.list_records()
+    def picker(self):
+        rows=self.students(); vals=[f"{r.get('id')} | {self.sname(r)} | {r.get('grade') or '-'} | {r.get('class_name') or '-'}" for r in rows]; return rows,self.spinner("انتخاب دانش‌آموز",vals or ["پرونده‌ای نیست"])
+    def add_picker(self,sp):self.body.add_widget(sp,index=2)
+    def counselform(self,fields,save,title):
+        rows,sp=self.picker(); w=self.form(fields,lambda x:save(x,rows,sp),title); self.add_picker(sp); return w
+    def counsel_form(self):
+        self.counselform([("title","عنوان جلسه"),("visit_reason","علت مراجعه"),("description","شرح جلسه"),("recommendations","توصیه‌ها"),("next_visit","تاریخ پیگیری بعدی")],self.save_counsel,"ثبت جلسه مشاوره")
+    def save_counsel(self,w,rows,sp):
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p.update({"student_id":s.get("id"),"student_name":self.sname(s),"status":"open"});self.api().table_insert("counseling_records",p);self.load()
+    def follow_form(self):
+        self.counselform([("subject","موضوع پیگیری"),("description","شرح پیگیری"),("followup_date","تاریخ پیگیری"),("followup_items","موارد پیگیری‌شده"),("decision","تصمیم")],self.save_follow,"ثبت پیگیری")
+    def save_follow(self,w,rows,sp):
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p.update({"student_id":s.get("id"),"status":"open"});self.api().table_insert("counseling_followups",p);self.load()
+    def guidance_form(self):
+        self.counselform([("grade","پایه"),("interest","علاقه‌مندی"),("aptitude","استعداد"),("recommendation","پیشنهاد هدایت تحصیلی")],self.save_guidance,"هدایت تحصیلی")
+    def save_guidance(self,w,rows,sp):
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p["student_id"]=s.get("id");self.api().table_insert("counseling_guidance",p);self.load()
+    def referral_form(self):
+        self.counselform([("referral_to","ارجاع به"),("reason","علت ارجاع"),("status","وضعیت")],self.save_referral,"ارجاع دانش‌آموز")
+    def save_referral(self,w,rows,sp):
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p.update({"student_id":s.get("id"),"referral_date":datetime.now().strftime("%Y-%m-%d")});self.api().table_insert("student_referrals",p);self.load()
+    def board_form(self):self.form([("title","عنوان تابلو مشاور"),("body","متن اطلاعیه"),("created_by","ثبت‌کننده")],self.save_board,"تابلو اعلانات مشاور")
+    def save_board(self,w):
+        p={k:self.val(v) for k,v in w.items()};p["active"]=True;self.api().table_insert("counselor_board",p);self.load()
+    def list_records(self):
+        for t,n in (("counseling_records","جلسات"),("counseling_followups","پیگیری‌ها"),("counseling_guidance","هدایت تحصیلی"),("student_referrals","ارجاعات")):
+            rows=self.api().table_select(t,{"order":"id.desc","limit":"30"}) or [];self.body.add_widget(self.lab(f"{n}: {len(rows)}","12sp",PRIMARY,True,34))
+            for r in rows[:10]:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('student_name') or r.get('student_id') or '-'} | {r.get('title') or r.get('subject') or r.get('reason') or '-'}","9sp",SECONDARY,False,32))
+
+class ScheduleCenterScreen(OpsBase):
+    def schedule(self):
+        self.title.text=fa_display("برنامه هفتگی مدرسه");self.body.add_widget(self.lab("جدول واقعی روز × زنگ × کلاس × درس × دبیر. هر ردیف در weekly_schedule ذخیره می‌شود.","10sp",SECONDARY,False,48,True));self.body.add_widget(self.btn("＋ ثبت ردیف برنامه",lambda *_:self.week_form(),SUCCESS,46))
+        rows=self.api().table_select("weekly_schedule",{"order":"id.desc","limit":"200"}) or [];self.body.add_widget(self.lab(f"{len(rows)} ردیف ثبت شده","12sp",PRIMARY,True,34))
+        for r in rows:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('weekdays') or '-'} | {r.get('bell_pattern') or '-'} | {r.get('class_names') or '-'} | {r.get('subject') or '-'} | {r.get('teacher') or '-'}","9sp",SECONDARY,False,34))
+    def week_form(self):self.form([("teacher","نام دبیر"),("teacher_id","شناسه دبیر"),("subject","درس"),("grade","پایه"),("class_names","کلاس / کلاس‌ها"),("class_count","تعداد کلاس"),("hours","ساعت هفتگی"),("weekdays","روزهای هفته"),("bell_pattern","زنگ")],self.save_week,"ثبت برنامه هفتگی")
+    def save_week(self,w):
+        p={k:self.val(v) for k,v in w.items()}
+        try:p["class_count"]=int(p.get("class_count") or 1);p["hours"]=float(p.get("hours") or 0)
+        except:pass
+        self.api().table_insert("weekly_schedule",p);self.load()
+    def exam_schedule(self):
+        self.title.text=fa_display("برنامه امتحانات");self.body.add_widget(self.lab("تاریخ، ساعت شروع/پایان و مدت هر امتحان ثبت می‌شود؛ صندلی هر امتحان مستقل و تصادفی است.","10sp",SECONDARY,False,52,True));self.body.add_widget(self.btn("＋ ثبت امتحان",lambda *_:self.exam_form(),SUCCESS,46))
+        rows=self.api().table_select("exam_schedule",{"order":"exam_date.asc","limit":"200"}) or []
+        for r in rows:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('subject') or '-'} | پایه {r.get('grade') or '-'} | {r.get('exam_date') or '-'} | {r.get('exam_start_time') or '-'} تا {r.get('exam_end_time') or '-'} | {r.get('duration') or '-'} دقیقه","9sp",SECONDARY,False,40));self.body.add_widget(self.btn("تولید صندلی‌های این امتحان",lambda *_a,x=dict(r):self.make_exam_seats(x),PRIMARY,40))
+    def exam_form(self):self.form([("subject","درس"),("grade","پایه"),("start_date","شروع بازه"),("end_date","پایان بازه"),("weight","ضریب"),("exam_date","تاریخ امتحان"),("duration","مدت به دقیقه"),("exam_start_time","ساعت شروع"),("exam_end_time","ساعت پایان")],self.save_exam,"ثبت برنامه امتحانی")
+    def save_exam(self,w):
+        p={k:self.val(v) for k,v in w.items()}
+        try:p["duration"]=int(p.get("duration") or 60)
+        except:p["duration"]=60
+        self.api().table_insert("exam_schedule",p);self.load()
+    def make_exam_seats(self,row):
+        students=self.api().table_select("students",{"grade":"eq."+str(row.get("grade") or ""),"order":"id.asc","limit":"500"}) or []
+        random.shuffle(students)
+        for i,s in enumerate(students,1):
+            old=self.api().table_select("exam_seat_assignments",{"exam_id":"eq."+str(row.get("id")),"student_id":"eq."+str(s.get("id")),"limit":"1"}) or [];p={"exam_id":str(row.get("id")),"student_id":s.get("id"),"subject":row.get("subject") or "","exam_date":row.get("exam_date") or "","seat_number":i}
+            if old:self.api().table_update("exam_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
+            else:self.api().table_insert("exam_seat_assignments",p)
+        self.status.text=fa_display(f"برای {len(students)} دانش‌آموز صندلی مستقل و تصادفی ثبت شد.");self.status.color=SUCCESS
+
+class DisciplineCenterScreen(OpsBase):
+    def discipline(self):
+        self.title.text=fa_display("پنل انضباطی مدرسه");rows=self.students();vals=[f"{r.get('id')} | {self.sname(r)} | {r.get('grade') or '-'} | {r.get('class_name') or '-'}" for r in rows];sp=self.spinner("انتخاب دانش‌آموز",vals or ["پرونده‌ای نیست"]);self.body.add_widget(sp)
+        cases=["تأخیر در ورود به کلاس","تأخیر در ورود به دبیرستان","رفتار نامناسب با دانش‌آموزان","عدم استفاده از لباس فرم","موی بلند و نامتعارف","آوردن ابزار غیر دانش‌آموزی","بی‌احترامی به عوامل دبیرستان","آسیب زدن به اموال دبیرستان"];typ=self.spinner("علت / مورد انضباطی",cases);self.body.add_widget(typ);desc=self.field("شرح / توضیحات",72,True);note=self.field("یادداشت / تصمیم",72,True);self.body.add_widget(desc);self.body.add_widget(note);self.body.add_widget(self.btn("ثبت مورد انضباطی",lambda *_:self.save_disc(rows,sp,typ,desc,note),SUCCESS,50));self.body.add_widget(self.lab("سوابق اخیر","13sp",PRIMARY,True,36,True))
+        for r in self.api().table_select("discipline_records",{"order":"id.desc","limit":"50"}) or []:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('student_id')} | {r.get('title') or '-'} | {r.get('status') or '-'}","9sp",SECONDARY,False,32))
+    def save_disc(self,rows,sp,typ,desc,note):
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={"student_id":s.get("id"),"title":str(typ.text or ""),"description":self.val(desc),"note":self.val(note),"priority":"normal","status":"pending","actor_username":str((getattr(self.app_state,"profile",{}) or {}).get("username") or getattr(self.app_state,"national_code","") or ""),"actor_role":role_of(self.app_state),"created_at":datetime.now().isoformat()};tid=(getattr(self.app_state,"profile",{}) or {}).get("linked_teacher_id") or (getattr(self.app_state,"profile",{}) or {}).get("teacher_id")
+        if tid:p["teacher_id"]=tid
+        self.api().table_insert("discipline_records",p);self.status.text=fa_display("مورد انضباطی ثبت شد.");self.status.color=SUCCESS
+
+class SmartBoardCenterScreen(OpsBase):
+    def smart_board(self):
+        self.title.text=fa_display("تابلو هوشمند مدرسه");role=role_of(self.app_state);write=role in {"manager","educational","cultural","advisor"}
+        if write:self.body.add_widget(self.btn("＋ ثبت پیام مهم مدرسه",lambda *_:self.board_form(),SUCCESS,48))
+        self.body.add_widget(self.lab("پیام‌های فعال مدرسه برای دانش‌آموز و ولی قابل مشاهده هستند.","10sp",SECONDARY,False,44,True))
+        rows=self.api().table_select("smart_board_content",{"active":"eq.true","order":"id.desc","limit":"100"}) or []
+        for r in rows:self.body.add_widget(self.lab(str(r.get("title") or "اطلاعیه"),"13sp",PRIMARY,True,34));self.body.add_widget(self.lab(r.get("content") or "","10sp",SECONDARY,False,65))
+    def board_form(self):self.form([("title","عنوان پیام مهم"),("content","متن پیام"),("content_date_shamsi","تاریخ نمایش")],self.save_board,"انتشار پیام روی تابلو")
+    def save_board(self,w):
+        p={k:self.val(v) for k,v in w.items()};p.update({"active":True,"audience_type":"student_parent","created_by":str((getattr(self.app_state,"profile",{}) or {}).get("username") or getattr(self.app_state,"national_code","") or "")});self.api().table_insert("smart_board_content",p);self.load()
+
+class CardsCenterScreen(OpsBase):
+    def cards(self):
+        self.title.text=fa_display("کارت دانش‌آموزی و کارت امتحان");role=role_of(self.app_state)
+        if role in {"manager","executive","educational"}:
+            self.body.add_widget(self.btn("تولید کارت دانش‌آموزی",lambda *_:self.card_picker(False),SUCCESS,46));self.body.add_widget(self.btn("تولید کارت امتحان",lambda *_:self.card_picker(True),PRIMARY,46));self.body.add_widget(self.btn("تولید شماره صندلی کلاسی",lambda *_:self.class_seat_form(),SECONDARY,46))
+        else:
+            sid=self.student_id()
+            if sid:self.body.add_widget(self.btn("دریافت کارت دانش‌آموزی من",lambda *_:self.make_student_card(sid),SUCCESS,46));self.body.add_widget(self.btn("دریافت کارت امتحان من",lambda *_:self.make_exam_card(sid),PRIMARY,46))
+        self.body.add_widget(self.lab("کارت دانش‌آموزی: مشخصات هویتی، مدرسه، پایه، کلاس، صندلی کلاسی، QR و محل عکس.","10sp",SECONDARY,False,52,True));self.body.add_widget(self.lab("کارت امتحان: مشخصات هویتی، جدول امتحانات، زمان هر امتحان و صندلی مستقل برای هر امتحان.","10sp",SECONDARY,False,52,True))
+    def card_picker(self,exam):
+        rows=self.students();vals=[f"{r.get('id')} | {self.sname(r)}" for r in rows];sp=self.spinner("انتخاب دانش‌آموز",vals or ["پرونده‌ای نیست"]);self.body.add_widget(sp);self.body.add_widget(self.btn("ساخت PDF",lambda *_:self.make_exam_card(rows[list(sp.values).index(sp.text)]["id"]) if exam else self.make_student_card(rows[list(sp.values).index(sp.text)]["id"]),SUCCESS,46))
+    def class_seat_form(self):
+        rows=self.students();classes=sorted(set(str(r.get("class_name") or "").strip() for r in rows if str(r.get("class_name") or "").strip()));sp=self.spinner("انتخاب کلاس",classes or ["کلاسی نیست"]);self.body.add_widget(sp);self.body.add_widget(self.btn("تولید صندلی‌های تصادفی کلاس",lambda *_:self.make_class_seats(sp,rows),SUCCESS,46))
+    def make_class_seats(self,sp,rows):
+        cls=str(sp.text); roster=[r for r in rows if str(r.get("class_name") or "")==cls];random.shuffle(roster)
+        for i,s in enumerate(roster,1):
+            old=self.api().table_select("class_seat_assignments",{"student_id":"eq."+str(s["id"]),"academic_year":"eq."+SCHOOL_YEAR,"limit":"1"}) or [];p={"class_id":cls,"student_id":s["id"],"seat_number":i,"academic_year":SCHOOL_YEAR}
+            if old:self.api().table_update("class_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
+            else:self.api().table_insert("class_seat_assignments",p)
+        self.status.text=fa_display(f"شماره صندلی {len(roster)} دانش‌آموز کلاس ثبت شد.");self.status.color=SUCCESS
+    def student(self,sid):return (self.api().table_select("students",{"id":"eq."+str(sid),"limit":"1"}) or [{}])[0]
+    def seat(self,sid):
+        a=self.api().table_select("class_seat_assignments",{"student_id":"eq."+str(sid),"academic_year":"eq."+SCHOOL_YEAR,"limit":"1"}) or []
+        if a:return a[0].get("seat_number")
+        a=self.api().table_select("class_seats",{"student_id":"eq."+str(sid),"limit":"1"}) or [];return a[0].get("seat_no") if a else "-"
+    def pdf_font(self):
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        base=Path(__file__).resolve().parent.parent/"assets";pdfmetrics.registerFont(TTFont("FrahooshPDF",str(base/"NotoSansArabic-Regular.ttf")));pdfmetrics.registerFont(TTFont("FrahooshPDFB",str(base/"NotoSansArabic-Bold.ttf")))
+    def rtl_draw(self,c,t,x,y,size=10,b=False):
+        from arabic_reshaper import reshape
+        from bidi.algorithm import get_display
+        c.setFont("FrahooshPDFB" if b else "FrahooshPDF",size);c.drawRightString(x,y,get_display(reshape(str(t or ""))))
+    def qr(self,c,text,x,y,size=72):
+        from reportlab.graphics.barcode.qr import QrCodeWidget
+        from reportlab.graphics import renderPDF
+        from reportlab.graphics.shapes import Drawing
+        q=QrCodeWidget(str(text));q.barWidth=size;q.barHeight=size;d=Drawing(size,size);d.add(q);renderPDF.draw(d,c,x,y)
+    def photo(self,c,s,x,y,w,h):
+        from reportlab.lib.utils import ImageReader
+        v=str(s.get("photo") or "").strip()
+        if not v:c.rect(x,y,w,h);self.rtl_draw(c,"محل عکس",x+w-8,y+h/2,10);return
+        try:
+            data=requests.get(v,timeout=5).content if v.startswith("http") else Path(v).read_bytes();c.drawImage(ImageReader(BytesIO(data)),x,y,w,h,preserveAspectRatio=True,anchor="c")
+        except:c.rect(x,y,w,h);self.rtl_draw(c,"محل عکس",x+w-8,y+h/2,10)
+    def make_student_card(self,sid):
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import A4
+        self.pdf_font();s=self.student(sid);path=Path(App.get_running_app().user_data_dir)/f"کارت_دانش‌آموزی_{sid}.pdf";c=canvas.Canvas(str(path),pagesize=A4);w,h=A4;c.setLineWidth(1);c.rect(30,h-420,w-60,390);self.rtl_draw(c,SCHOOL_NAME,w-55,h-68,17,True);self.rtl_draw(c,"کارت دانش‌آموزی",w-55,h-95,15,True);self.photo(c,s,45,h-185,105,120)
+        fields=[("نام و نام خانوادگی",self.sname(s)),("نام پدر",s.get("father_name")),("کد ملی",s.get("national_code")),("تاریخ تولد",s.get("birth_date")),("پایه",s.get("grade")),("کلاس",s.get("class_name")),("شماره صندلی کلاسی",self.seat(sid))]
+        y=h-145
+        for lab,val in fields:self.rtl_draw(c,f"{lab}: {val or '-'}",w-175,y,10);c.line(175,y-7,w-55,y-7);y-=27
+        self.rtl_draw(c,f"مدرسه: {SCHOOL_NAME}",w-55,h-390,9);self.qr(c,f"frahoosh://student/{sid}",w-145,h-390,82);c.save();self.status.text=fa_display("کارت دانش‌آموزی PDF ساخته شد.");self.status.color=SUCCESS
+    def make_exam_card(self,sid):
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import A4
+        self.pdf_font();s=self.student(sid);exams=self.api().table_select("exam_schedule",{"grade":"eq."+str(s.get("grade") or ""),"order":"exam_date.asc","limit":"100"}) or []
+        if not exams:self.status.text=fa_display("برنامه امتحانی این پایه هنوز ثبت نشده است.");self.status.color=ERROR;return
+        for ex in exams:
+            roster=self.api().table_select("students",{"grade":"eq."+str(ex.get("grade") or s.get("grade") or ""),"limit":"500"}) or [];rng=random.Random(str(ex.get("id")));rng.shuffle(roster)
+            for i,st in enumerate(roster,1):
+                old=self.api().table_select("exam_seat_assignments",{"exam_id":"eq."+str(ex.get("id")),"student_id":"eq."+str(st.get("id")),"limit":"1"}) or [];p={"exam_id":str(ex.get("id")),"student_id":st.get("id"),"subject":ex.get("subject") or "","exam_date":ex.get("exam_date") or "","seat_number":i}
+                if old:self.api().table_update("exam_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
+                else:self.api().table_insert("exam_seat_assignments",p)
+        path=Path(App.get_running_app().user_data_dir)/f"کارت_امتحان_{sid}.pdf";c=canvas.Canvas(str(path),pagesize=A4);w,h=A4;c.setLineWidth(1);c.rect(30,h-590,w-60,560);self.rtl_draw(c,SCHOOL_NAME,w-55,h-65,16,True);self.rtl_draw(c,"کارت امتحان",w-55,h-92,15,True)
+        y=h-125
+        for lab,val in [("نام و نام خانوادگی",self.sname(s)),("کد ملی",s.get("national_code")),("نام پدر",s.get("father_name")),("پایه",s.get("grade")),("کلاس",s.get("class_name"))]:self.rtl_draw(c,f"{lab}: {val or '-'}",w-55,y,10);y-=23
+        y-=8;c.setFont("FrahooshPDFB",11);c.drawRightString(w-55,y,"جدول برنامه امتحانی و شماره صندلی");y-=25;c.line(55,y,w-55,y);y-=22
+        for ex in exams:
+            a=self.api().table_select("exam_seat_assignments",{"exam_id":"eq."+str(ex.get("id")),"student_id":"eq."+str(sid),"limit":"1"}) or [];seat=a[0].get("seat_number") if a else "-";self.rtl_draw(c,f"{ex.get('subject') or '-'} | {ex.get('exam_date') or '-'} | {ex.get('exam_start_time') or '-'} تا {ex.get('exam_end_time') or '-'} | {ex.get('duration') or '-'} دقیقه | صندلی {seat}",w-55,y,9);y-=24
+        self.qr(c,f"frahoosh://exam-card/{sid}",w-145,h-555,75);c.save();self.status.text=fa_display("کارت امتحان ساخته شد و صندلی هر امتحان مستقل است.");self.status.color=SUCCESS
+
+class OpsRouter:
+    MAP={"activity_programs":"activities","activity_offers":"activities","activity_registrations":"activities","competitions":"activities","cultural_competitions":"activities","art_competitions":"activities","sport_competitions":"activities","student_council":"activities","basij_registration":"activities","school_ally":"activities","school_mayor":"activities","morning_leaders":"activities","qari_registration":"activities","khwarizmi_registrations":"activities","counseling_records":"counseling","counseling_followups":"counseling","counseling_guidance":"counseling","student_referrals":"counseling","counselor_board":"counseling","parent_meetings":"counseling","parent_activities":"counseling","weekly_schedule":"schedule","generated_weekly_schedule":"schedule","exam_schedule":"exam_schedule","discipline_records":"discipline","discipline_items":"discipline","smart_board_content":"smart_board","smart_board_activities":"smart_board","smart_board_quizzes":"smart_board","student_cards":"cards","class_cards":"cards","certificates":"cards","class_seat_assignments":"cards","class_seats":"cards","exam_cards":"cards","exam_seat_assignments":"exam_schedule","exam_seats":"exam_schedule"}
+    @classmethod
+    def mode_for(cls,route):return cls.MAP.get(str(route or "").strip())
+    @classmethod
+    def create(cls,state,route):
+        mode=cls.mode_for(route)
+        if not mode:return None
+        K={"activities":OperationalCenterScreen,"counseling":CounselingCenterScreen,"schedule":ScheduleCenterScreen,"exam_schedule":ScheduleCenterScreen,"discipline":DisciplineCenterScreen,"smart_board":SmartBoardCenterScreen,"cards":CardsCenterScreen}[mode]
+        return K(name="ops_"+mode,app_state=state,mode=mode)
