@@ -542,7 +542,9 @@ EDITABLE = {
     "educational": {
         "attendance","student_referrals","meeting_requests","ai_smart_reports",
         "messages","message_targets","exam_schedule","quiz_questions","teacher_classes","students",
-        "educational_followups","academic_followups","khwarizmi_registrations","module_activations"
+        "educational_followups","academic_followups","khwarizmi_registrations","module_activations",
+        "grades","student_grades","grade_items","teacher_exams","discipline_records","weekly_schedule",
+        "assignments","lesson_plans"
     },
     "executive": {
         "students","executive_classes","staff","archive_items","executive_operations","executive_reports",
@@ -2706,6 +2708,24 @@ class ModuleWorkspaceScreen(Screen):
                                         payload["student_id"] = links[0].get("student_id")
                             except Exception as rel_exc:
                                 print("PARENT CHILD RELATION SAVE ERROR:", repr(rel_exc))
+                    # Fill backend-required audit/link fields that are not user inputs.
+                    from datetime import datetime, timezone
+                    now_iso = datetime.now(timezone.utc).isoformat()
+                    if table in {"discipline_records","online_class_sessions","online_class_ai_reports","online_class_notifications","online_presence_checks","parent_meetings","surveys","discipline_items"}:
+                        payload.setdefault("created_at", now_iso)
+                    if table == "discipline_settings":
+                        payload.setdefault("updated_at", now_iso)
+                    if table == "survey_responses":
+                        payload.setdefault("submitted_at", now_iso)
+                    if table == "message_targets":
+                        payload.setdefault("target_type", payload.get("target_role") or payload.get("target_name") or "role")
+                        payload.setdefault("created_at", now_iso)
+                    if table == "finance_accounts":
+                        payload.setdefault("title", payload.get("description") or payload.get("account_type") or "حساب مدرسه")
+                    if table == "payment_offers":
+                        payload.setdefault("target_type", payload.get("category") or "school")
+                    if table == "backup_records" and not payload.get("file_path"):
+                        raise RuntimeError("برای پشتیبان‌گیری باید فایل واقعی انتخاب و بارگذاری شود.")
                     if row is None:
                         api.table_insert(table,payload); msg='رکورد جدید با موفقیت ثبت شد.'
                     else:
