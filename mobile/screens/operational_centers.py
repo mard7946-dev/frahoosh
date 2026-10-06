@@ -136,9 +136,22 @@ class OperationalCenterScreen(OpsBase):
 
 class CounselingCenterScreen(OpsBase):
     def counseling(self):
-        self.title.text=fa_display("مرکز عملیاتی مشاوره"); self.body.add_widget(self.lab("پرونده، جلسه، پیگیری، ارجاع و هدایت تحصیلی واقعی و متصل به Supabase.","10sp",SECONDARY,False,48,True))
-        for text,fn in (("＋ ثبت جلسه مشاوره",self.counsel_form),("＋ ثبت پیگیری",self.follow_form),("＋ ثبت هدایت تحصیلی",self.guidance_form),("＋ ثبت ارجاع دانش‌آموز",self.referral_form),("تابلو اعلانات مشاور",self.board_form)):self.body.add_widget(self.btn(text,lambda *_a,f=fn:f(),SUCCESS if "ثبت" in text else PRIMARY,44))
-        self.list_records()
+        self.title.text=fa_display("مرکز عملیاتی مشاوره")
+        role=role_of(self.app_state)
+        self.body.add_widget(self.lab("پرونده، جلسه، پیگیری، ارجاع و هدایت تحصیلی واقعی و متصل به Supabase.","10sp",SECONDARY,False,48,True))
+        if role in {"manager","educational","advisor"}:
+            for text,fn in (("＋ ثبت جلسه مشاوره",self.counsel_form),("＋ ثبت پیگیری",self.follow_form),("＋ ثبت هدایت تحصیلی",self.guidance_form),("＋ ثبت ارجاع دانش‌آموز",self.referral_form),("تابلو اعلانات مشاور",self.board_form)):
+                self.body.add_widget(self.btn(text,lambda *_a,f=fn:f(),SUCCESS if "ثبت" in text else PRIMARY,44))
+            self.list_records()
+        else:
+            sid=self.student_id()
+            for table,label in (("counseling_records","سوابق جلسات"),("counseling_followups","پیگیری‌ها"),("counseling_guidance","هدایت تحصیلی"),("student_referrals","ارجاعات")):
+                try:
+                    filt={"student_id":"eq."+str(sid),"order":"id.desc","limit":"30"} if sid else {"order":"id.desc","limit":"30"}
+                    rows=self.api().table_select(table,filt) or []
+                except Exception: rows=[]
+                self.body.add_widget(self.lab(f"{label}: {len(rows)}","11sp",PRIMARY,True,34))
+                for row in rows:self.body.add_widget(self.lab(f"#{row.get('id')} | {row.get('title') or row.get('subject') or row.get('reason') or row.get('recommendation') or '-'}","9sp",SECONDARY,False,34))
     def picker(self):
         rows=self.students(); vals=[f"{r.get('id')} | {self.sname(r)} | {r.get('grade') or '-'} | {r.get('class_name') or '-'}" for r in rows]; return rows,self.spinner("انتخاب دانش‌آموز",vals or ["پرونده‌ای نیست"])
     def add_picker(self,sp):self.body.add_widget(sp,index=2)
@@ -330,7 +343,7 @@ class CardsCenterScreen(OpsBase):
         self.qr(c,f"frahoosh://exam-card/{sid}",w-135,h-575,72);c.save();self.status.text=fa_display("کارت امتحان جدول‌بندی‌شده ساخته شد؛ شماره صندلی هر امتحان مستقل و تصادفی است.");self.status.color=SUCCESS
 
 class OpsRouter:
-    MAP={"activity_programs":"activities","activity_offers":"activities","activity_registrations":"activities","competitions":"activities","cultural_competitions":"activities","art_competitions":"activities","sport_competitions":"activities","student_council":"activities","basij_registration":"activities","school_ally":"activities","school_mayor":"activities","morning_leaders":"activities","qari_registration":"activities","khwarizmi_registrations":"activities","counseling_records":"counseling","counseling_followups":"counseling","counseling_guidance":"counseling","student_referrals":"counseling","counselor_board":"counseling","parent_meetings":"counseling","parent_activities":"counseling","weekly_schedule":"schedule","generated_weekly_schedule":"schedule","exam_schedule":"exam_schedule","discipline_records":"discipline","discipline_items":"discipline","smart_board_content":"smart_board","smart_board_activities":"smart_board","smart_board_quizzes":"smart_board","student_cards":"cards","class_cards":"cards","certificates":"cards","class_seat_assignments":"cards","class_seats":"cards","exam_cards":"cards","exam_seat_assignments":"exam_schedule","exam_seats":"exam_schedule"}
+    MAP={"activity_programs":"activities","activity_offers":"activities","activity_registrations":"activities","competitions":"activities","cultural_competitions":"activities","art_competitions":"activities","sport_competitions":"activities","student_council":"activities","basij_registration":"activities","school_ally":"activities","school_mayor":"activities","morning_leaders":"activities","qari_registration":"activities","khwarizmi_registrations":"activities","counseling_records":"counseling","counseling_followups":"counseling","counseling_guidance":"counseling","student_referrals":"counseling","counselor_board":"counseling","weekly_schedule":"schedule","generated_weekly_schedule":"schedule","exam_schedule":"exam_schedule","discipline_records":"discipline","discipline_items":"discipline","smart_board_content":"smart_board","smart_board_activities":"smart_board","smart_board_quizzes":"smart_board","student_cards":"cards","class_cards":"cards","certificates":"cards","class_seat_assignments":"cards","class_seats":"cards","exam_cards":"cards","exam_seat_assignments":"exam_schedule","exam_seats":"exam_schedule"}
     @classmethod
     def mode_for(cls,route):return cls.MAP.get(str(route or "").strip())
     @classmethod
