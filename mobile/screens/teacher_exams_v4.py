@@ -14,7 +14,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.scrollview import ScrollView
 
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, WEB_URL
-from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput
+from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput, PersianSpinner
 
 TYPES = [
     ("multiple_choice", "تستی چهارگزینه‌ای"),
@@ -155,7 +155,7 @@ class TeacherExamsV4Screen(Screen):
     def _field(self,hint,height=50,multiline=False):
         f=PersianTextInput(hint_text=fa_display(hint),font_name=font_name(),font_size="13sp",multiline=multiline,size_hint_y=None,height=dp(height),halign="right",padding=[dp(12),dp(12)]); self.body.add_widget(f); return f
     def _spinner(self,text,values):
-        s=Spinner(text=fa_display(text),values=tuple(fa_display(x) for x in values),font_name=font_name(),font_size="13sp",size_hint_y=None,height=dp(50)); self.body.add_widget(s); return s
+        s=PersianSpinner(text=fa_display(text),values=tuple(fa_display(x) for x in values),font_name=font_name(),font_size="13sp",size_hint_y=None,height=dp(50)); self.body.add_widget(s); return s
     def _error(self,text): self.status.text=fa_display(text); self.status.color=ERROR
     @staticmethod
     def _value(widget):
@@ -625,7 +625,7 @@ class TeacherExamsV4Screen(Screen):
             if kind in ("multiple_choice","true_false"):
                 try:opts=json.loads(q.get("options_json") or "[]")
                 except Exception:opts=[]
-                w=Spinner(text=str(opts[0]) if opts else "انتخاب پاسخ",values=tuple(str(x) for x in opts),font_name=font_name(),font_size="13sp",size_hint_y=None,height=dp(50)); self.body.add_widget(w)
+                w=PersianSpinner(text=fa_display(opts[0]) if opts else fa_display("انتخاب پاسخ"),values=tuple(fa_display(x) for x in opts),font_name=font_name(),font_size="13sp",size_hint_y=None,height=dp(50)); self.body.add_widget(w)
             elif kind=="essay": w=self._field("پاسخ تشریحی…",120,True)
             else:w=self._field("پاسخ شما…")
             self._answers[qid]=w
