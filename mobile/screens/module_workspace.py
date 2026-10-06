@@ -178,7 +178,7 @@ SUBMENUS = {
 "students":[
 ("اطلاعات دانش‌آموز","students"),("پایه و کلاس","student_class_info"),("حضور و غیاب","attendance"),
 ("نمرات","student_grades"),("تکالیف","assignments"),("صندوق پیام","messages"),
-("مسابقات و فعالیت‌ها","activity_registrations"),("شورای دانش‌آموزی","student_council"),
+("مسابقات","competitions"),("جشنواره‌ها","activity_programs"),("مسابقات و فعالیت‌ها","activity_registrations"),("شورای دانش‌آموزی","student_council"),
 ("بسیج","basij_registration"),("همیار مدرسه","school_ally"),("شهردار مدرسه","school_mayor"),
 ("ارسال تکالیف","assignment_submissions"),("برنامه هفتگی","weekly_schedule"),
 ("برنامه امتحانات","exam_schedule"),("صندلی کلاسی","class_seat_assignments"),
@@ -1419,7 +1419,7 @@ class ModuleWorkspaceScreen(Screen):
                         index,
                         len(groups),
                         category_items,
-                        self.open_table,
+                        self.set_module,
                     )
                 )
         scroll.add_widget(content)
