@@ -39,7 +39,7 @@ class OpsBase(Screen):
         return api
     def insert(self,table,payload):
         try:
-            result=self.insert(table,payload)
+            result=self.api().table_insert(table,payload)
             self.status.text=fa_display("اطلاعات با موفقیت در پایگاه داده ذخیره شد."); self.status.color=SUCCESS
             return result
         except Exception as exc:
@@ -47,7 +47,7 @@ class OpsBase(Screen):
             print("OPS INSERT ERROR",table,repr(exc)); return None
     def update(self,table,filters,payload):
         try:
-            result=self.update(table,filters,payload)
+            result=self.api().table_update(table,filters,payload)
             self.status.text=fa_display("ویرایش در پایگاه داده ذخیره شد."); self.status.color=SUCCESS
             return result
         except Exception as exc:
@@ -55,7 +55,7 @@ class OpsBase(Screen):
             print("OPS UPDATE ERROR",table,repr(exc)); return None
     def delete_row(self,table,filters):
         try:
-            result=self.delete_row(table,filters)
+            result=self.api().table_delete(table,filters)
             self.status.text=fa_display("رکورد از پایگاه داده حذف شد."); self.status.color=SUCCESS
             return result
         except Exception as exc:
