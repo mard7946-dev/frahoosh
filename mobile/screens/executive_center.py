@@ -256,7 +256,7 @@ class ExecutiveCenterScreen(Screen):
     def _save_request(self, subject,target,date,follow):
         try:
             if not subject.text.strip() or not target.text.strip(): raise ValueError("موضوع و مخاطب الزامی است.")
-            payload={"title":subject.text.strip(),"requester_name":str(getattr(self.app_state,"display_name","معاون اجرایی")),"request_type":subject.text.strip(),"target_person":target.text.strip(),"request_date":date.text.strip() or datetime.now().strftime("%Y-%m-%d"),"followup":follow.text.strip(),"description":follow.text.strip(),"status":"pending","notification_status":"ثبت شد"}
+            payload={"title":subject.text.strip(),"requester":str(getattr(self.app_state,'display_name','معاون اجرایی')),"request_type":subject.text.strip(),"target_person":target.text.strip(),"request_date":date.text.strip() or datetime.now().strftime("%Y-%m-%d"),"followup":follow.text.strip(),"description":follow.text.strip(),"status":"pending","notification_status":"ثبت شد"}
             self._api().table_insert("executive_requests",payload)
             self._ok("درخواست ثبت شد و وضعیت آن قابل پیگیری است.")
             self.requests()
