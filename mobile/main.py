@@ -387,6 +387,22 @@ class FrahooshApp(App):
         self.sm.add_widget(screen)
         return screen
 
+    def ensure_executive_center(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("executive_center")
+        except Exception:
+            pass
+        try:
+            from mobile.screens.executive_center import ExecutiveCenterScreen
+            screen = ExecutiveCenterScreen(name="executive_center", app_state=self.app_state)
+            self.sm.add_widget(screen)
+            return screen
+        except Exception as exc:
+            print("EXECUTIVE CENTER BUILD ERROR:", repr(exc))
+            return None
+
     def ensure_finance(self):
         if self.sm is None:return None
         try:return self.sm.get_screen("finance")
