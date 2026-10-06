@@ -1,6 +1,8 @@
 from datetime import datetime, timezone, timedelta
 import random
 from pathlib import Path
+from io import BytesIO
+import requests
 from kivy.metrics import dp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -111,22 +113,105 @@ class CertificateWorkflowScreen(BaseWorkflow):
     def make_pdf(self,row):
         try:
             from reportlab.pdfgen import canvas
-            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.pagesizes import A4, landscape
             from reportlab.pdfbase import pdfmetrics
             from reportlab.pdfbase.ttfonts import TTFont
+            from reportlab.lib.utils import ImageReader
+            from reportlab.graphics.barcode.qr import QrCodeWidget
+            from reportlab.graphics import renderPDF
+            from reportlab.graphics.shapes import Drawing
             from arabic_reshaper import reshape
             from bidi.algorithm import get_display
             from kivy.app import App
-            fp=font_name(); pdfmetrics.registerFont(TTFont("FrahooshCert",fp))
-            path=Path(App.get_running_app().user_data_dir)/f"گواهی_{row.get('student_name','student')}.pdf"; c=canvas.Canvas(str(path),pagesize=A4); w,h=A4
-            rtl=lambda t:get_display(reshape(str(t)))
-            def line(t,y,size=12): c.setFont("FrahooshCert",size); c.drawRightString(w-55,y,rtl(t))
-            c.drawCentredString(w/2,h-65,rtl("جمهوری اسلامی ایران")); c.drawCentredString(w/2,h-88,rtl("وزارت آموزش وپرورش")); c.drawCentredString(w/2,h-125,rtl("گواهی اشتغال به تحصیل"))
-            rows=self.api().table_select("students",{"id":f"eq.{row.get('student_id')}","limit":"1"}) or []; s=rows[0] if rows else {}
-            name=row.get("student_name") or ""; code=s.get("national_code") or s.get("student_code") or ""; father=s.get("father_name") or ""; birth=s.get("birth_date") or s.get("birth_date_shamsi") or ""; grade=s.get("grade") or ""
-            school_code=str((getattr(self.app_state,"profile",{}) or {}).get("school_code") or "")
-            line("شماره:",h-160); line(f"بدین وسیله گواهی میشود: {name} کد ملی {code} فرزند: {father}",h-195); line(f"شماره شناسنامه: {s.get('birth_certificate_no') or code} تاریخ تولد: {birth} سال تحصیلی: {SCHOOL_YEAR}",h-230); line(f"در مدرسه: {SCHOOL_NAME} ({school_code}) در پایه: {grade}",h-265); line("مشغول به تحصیل میباشد",h-300); line(f"این گواهی طبق تقاضای مورخ : {row.get('request_date','')}",h-335); line(f"فقط به منظور ارائه به: {row.get('destination','')}",h-370); line("صادر گردید و فاقد هرگونه ارزش دیگری می باشد.",h-405); line("دوره تحصیلی: دوره متوسطه اول",h-440); line("تاریخ",h-475); line("مهر و امضا مدیر مدرسه",h-515); line("مدیر( فاقد اعتبار بدون مهر و امضا)",h-545); c.save(); self.msg("گواهی ساخته شد: "+str(path),SUCCESS)
-        except Exception as e:self.msg("ساخت PDF ناموفق: "+str(e),ERROR)
+
+            base = Path(__file__).resolve().parent.parent / "assets"
+            pdfmetrics.registerFont(TTFont("FrahooshCert", str(base / "NotoSansArabic-Regular.ttf")))
+            pdfmetrics.registerFont(TTFont("FrahooshCertB", str(base / "NotoSansArabic-Bold.ttf")))
+
+            rows = self.api().table_select("students", {"id": f"eq.{row.get('student_id')}", "limit": "1"}) or []
+            s = rows[0] if rows else {}
+            name = row.get("student_name") or f"{s.get('first_name','')} {s.get('last_name','')}".strip()
+            national = s.get("national_code") or s.get("student_code") or ""
+            father = s.get("father_name") or ""
+            birth = s.get("birth_date") or s.get("birth_date_shamsi") or ""
+            birth_no = s.get("birth_certificate_no") or national
+            grade = s.get("grade") or ""
+            school_code = str((getattr(self.app_state, "profile", {}) or {}).get("school_code") or "")
+            path = Path(App.get_running_app().user_data_dir) / f"گواهی_اشتغال_{row.get('student_id')}.pdf"
+
+            c = canvas.Canvas(str(path), pagesize=landscape(A4))
+            w, h = landscape(A4)
+            c.setLineWidth(1)
+            c.rect(14, 14, w-28, h-28)
+
+            def rtl(text):
+                return get_display(reshape(str(text or "")))
+
+            def draw(text, x, y, size=10, bold=False, align="right"):
+                c.setFont("FrahooshCertB" if bold else "FrahooshCert", size)
+                if align == "center":
+                    c.drawCentredString(x, y, rtl(text))
+                else:
+                    c.drawRightString(x, y, rtl(text))
+
+            # Header exactly follows the supplied certificate structure.
+            draw("جمهوری اسلامی ایران", w/2, h-34, 9, False, "center")
+            draw("وزارت آموزش و پرورش", w/2, h-53, 10, False, "center")
+            draw("دوره تحصیلی: دوره متوسطه اول", w/2, h-73, 9, False, "center")
+            draw("گواهی اشتغال به تحصیل", w/2, h-103, 16, True, "center")
+
+            # Student photo area (same upper-left position as the supplied PDF).
+            photo = str(s.get("photo") or "").strip()
+            px, py, pw, ph = 35, h-145, 72, 86
+            try:
+                if photo:
+                    data = requests.get(photo, timeout=5).content if photo.startswith("http") else Path(photo).read_bytes()
+                    c.drawImage(ImageReader(BytesIO(data)), px, py, pw, ph, preserveAspectRatio=True, anchor="c")
+                else:
+                    c.rect(px, py, pw, ph)
+                    draw("محل عکس", px+pw-5, py+ph/2, 8)
+            except Exception:
+                c.rect(px, py, pw, ph)
+                draw("محل عکس", px+pw-5, py+ph/2, 8)
+            draw("شماره:", px+pw, py-18, 8)
+
+            right = w-45
+            mid = w/2+10
+            draw(f"بدین وسیله گواهی میشود: {name}", right, h-140, 9)
+            draw(f"کد ملی: {national}", mid, h-140, 9)
+            draw(f"فرزند: {father}", 330, h-140, 9)
+            draw(f"شماره شناسنامه: {birth_no}", right, h-170, 9)
+            draw(f"تاریخ تولد: {birth}", mid, h-170, 9)
+            draw(f"سال تحصیلی: {SCHOOL_YEAR}", 330, h-170, 9)
+            draw(f"در مدرسه: {SCHOOL_NAME} ({school_code})", right, h-200, 9)
+            draw(f"در پایه: {grade}", mid, h-200, 9)
+            draw("مشغول به تحصیل میباشد", right, h-230, 9)
+            draw(f"این گواهی طبق تقاضای مورخ: {row.get('request_date','')}", right, h-280, 9)
+            draw(f"فقط به منظور ارائه به: {row.get('destination','')}", right, h-330, 9)
+            draw("صادر گردیده و فاقد هرگونه ارزش دیگری می باشد.", right, h-380, 9)
+
+            # Vertical validity warning on the left.
+            c.saveState()
+            c.setFillColorRGB(0.85,0,0)
+            c.setFont("FrahooshCertB", 8)
+            c.translate(25, 90)
+            c.rotate(90)
+            c.drawString(0,0,rtl("این گواهی جهت ارائه به مراجع ذیربط صادر گردیده و فاقد اعتبار دیگری می باشد."))
+            c.restoreState()
+
+            # QR block and signature exactly in the lower area.
+            q = QrCodeWidget(f"frahoosh://certificate/{row.get('id')}")
+            q.barWidth = 70; q.barHeight = 70
+            d = Drawing(70,70); d.add(q); renderPDF.draw(d,c,w-115,35)
+            draw("تاریخ", w/2, 75, 9, False, "center")
+            draw("مهر و امضا مدیر مدرسه", w/2, 48, 10, True, "center")
+            draw(f"{(getattr(self.app_state,'display_name','') or 'حسن مردانه جهان تیغ')} - {SCHOOL_NAME}", w/2, 28, 8, False, "center")
+            draw("مدیر (فاقد اعتبار بدون مهر و امضا)", w-175, 42, 8)
+
+            c.save()
+            self.msg("گواهی اشتغال با قالب رسمی PDF ساخته شد.", SUCCESS)
+        except Exception as e:
+            self.msg("ساخت PDF گواهی ناموفق: " + str(e), ERROR)
 
 class MeetingWorkflowScreen(BaseWorkflow):
     """Real meeting request workflow: requester, subject, target, day/date/time, CRUD and approval."""
