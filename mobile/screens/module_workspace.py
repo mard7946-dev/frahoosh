@@ -17,6 +17,7 @@ from kivy.uix.widget import Widget
 from kivy.resources import resource_find
 from pathlib import Path
 
+from mobile.screens.operational_centers import OpsRouter
 from mobile.config import APP_NAME, CARD, PRIMARY, SCHOOL_NAME, SCHOOL_YEAR, SECONDARY, SUCCESS, WHITE
 from mobile.ui import font_name, rtl_text, fa_display, PersianTextInput, PersianSpinner
 
@@ -545,7 +546,7 @@ EDITABLE = {
     },
     "executive": {
         "students","executive_classes","staff","archive_items","executive_operations","executive_reports",
-        "report_cards","online_classes","messages","weekly_schedule","discipline_records",
+        "report_cards","messages","weekly_schedule","discipline_records",
         "certificate_requests","school_class_config","parent_children","school_relationships","assets","student_cards","class_cards",
         "certificates","executive_requests","surveys","module_activations"
     },
