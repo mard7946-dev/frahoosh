@@ -213,11 +213,30 @@ class ScheduleCenterScreen(OpsBase):
 
 class DisciplineCenterScreen(OpsBase):
     def discipline(self):
-        self.title.text=fa_display("پنل انضباطی مدرسه");rows=self.students();vals=[f"{r.get('id')} | {self.sname(r)} | {r.get('grade') or '-'} | {r.get('class_name') or '-'}" for r in rows];sp=self.spinner("انتخاب دانش‌آموز",vals or ["پرونده‌ای نیست"]);self.body.add_widget(sp)
-        cases=["تأخیر در ورود به کلاس","تأخیر در ورود به دبیرستان","رفتار نامناسب با دانش‌آموزان","عدم استفاده از لباس فرم","موی بلند و نامتعارف","آوردن ابزار غیر دانش‌آموزی","بی‌احترامی به عوامل دبیرستان","آسیب زدن به اموال دبیرستان"];typ=self.spinner("علت / مورد انضباطی",cases);self.body.add_widget(typ);desc=self.field("شرح / توضیحات",72,True);note=self.field("یادداشت / تصمیم",72,True);self.body.add_widget(desc);self.body.add_widget(note);self.body.add_widget(self.btn("ثبت مورد انضباطی",lambda *_:self.save_disc(rows,sp,typ,desc,note),SUCCESS,50));self.body.add_widget(self.lab("سوابق اخیر","13sp",PRIMARY,True,36,True))
+        self.title.text=fa_display("پنل انضباطی مدرسه")
+        role=role_of(self.app_state)
+        if role not in {"manager","educational","executive","cultural","advisor","teacher"}:
+            sid=self.student_id()
+            self.body.add_widget(self.lab("سوابق انضباطی پرونده شما","13sp",PRIMARY,True,38,True))
+            try:
+                filt={"student_id":"eq."+str(sid),"order":"id.desc","limit":"50"} if sid else {"order":"id.desc","limit":"50"}
+                rows=self.api().table_select("discipline_records",filt) or []
+            except Exception: rows=[]
+            if not rows:self.body.add_widget(self.lab("سابقه‌ای ثبت نشده است.","10sp",SECONDARY,False,42,True))
+            for r in rows:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('title') or '-'} | {r.get('status') or '-'} | {r.get('description') or ''}","9sp",SECONDARY,False,48))
+            return
+        rows=self.students();vals=[f"{r.get('id')} | {self.sname(r)} | {r.get('grade') or '-'} | {r.get('class_name') or '-'}" for r in rows]
+        sp=self.spinner("انتخاب دانش‌آموز",vals or ["پرونده‌ای نیست"]);self.body.add_widget(sp)
+        cases=["تأخیر در ورود به کلاس","تأخیر در ورود به دبیرستان","رفتار نامناسب با دانش‌آموزان","عدم استفاده از لباس فرم","موی بلند و نامتعارف","آوردن ابزار غیر دانش‌آموزی","بی‌احترامی به عوامل دبیرستان","آسیب زدن به اموال دبیرستان"]
+        typ=self.spinner("علت / مورد انضباطی",cases);self.body.add_widget(typ)
+        desc=self.field("شرح / توضیحات",72,True);note=self.field("یادداشت / تصمیم",72,True);self.body.add_widget(desc);self.body.add_widget(note)
+        self.body.add_widget(self.btn("ثبت مورد انضباطی",lambda *_:self.save_disc(rows,sp,typ,desc,note),SUCCESS,50))
+        self.body.add_widget(self.lab("سوابق اخیر","13sp",PRIMARY,True,36,True))
         for r in self.api().table_select("discipline_records",{"order":"id.desc","limit":"50"}) or []:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('student_id')} | {r.get('title') or '-'} | {r.get('status') or '-'}","9sp",SECONDARY,False,32))
     def save_disc(self,rows,sp,typ,desc,note):
-        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={"student_id":s.get("id"),"title":str(typ.text or ""),"description":self.val(desc),"note":self.val(note),"priority":"normal","status":"pending","actor_username":str((getattr(self.app_state,"profile",{}) or {}).get("username") or getattr(self.app_state,"national_code","") or ""),"actor_role":role_of(self.app_state),"created_at":datetime.now().isoformat()};tid=(getattr(self.app_state,"profile",{}) or {}).get("linked_teacher_id") or (getattr(self.app_state,"profile",{}) or {}).get("teacher_id")
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {}
+        p={"student_id":s.get("id"),"title":str(typ.text or ""),"description":self.val(desc),"note":self.val(note),"priority":"normal","status":"pending","actor_username":str((getattr(self.app_state,"profile",{}) or {}).get("username") or getattr(self.app_state,"national_code","") or ""),"actor_role":role_of(self.app_state),"created_at":datetime.now().isoformat()}
+        tid=(getattr(self.app_state,"profile",{}) or {}).get("linked_teacher_id") or (getattr(self.app_state,"profile",{}) or {}).get("teacher_id")
         if tid:p["teacher_id"]=tid
         self.api().table_insert("discipline_records",p);self.status.text=fa_display("مورد انضباطی ثبت شد.");self.status.color=SUCCESS
 
