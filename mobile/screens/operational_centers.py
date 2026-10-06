@@ -267,29 +267,67 @@ class CardsCenterScreen(OpsBase):
     def make_student_card(self,sid):
         from reportlab.pdfgen import canvas
         from reportlab.lib.pagesizes import A4
-        self.pdf_font();s=self.student(sid);path=Path(App.get_running_app().user_data_dir)/f"کارت_دانش‌آموزی_{sid}.pdf";c=canvas.Canvas(str(path),pagesize=A4);w,h=A4;c.setLineWidth(1);c.rect(30,h-420,w-60,390);self.rtl_draw(c,SCHOOL_NAME,w-55,h-68,17,True);self.rtl_draw(c,"کارت دانش‌آموزی",w-55,h-95,15,True);self.photo(c,s,45,h-185,105,120)
-        fields=[("نام و نام خانوادگی",self.sname(s)),("نام پدر",s.get("father_name")),("کد ملی",s.get("national_code")),("تاریخ تولد",s.get("birth_date")),("پایه",s.get("grade")),("کلاس",s.get("class_name")),("شماره صندلی کلاسی",self.seat(sid))]
-        y=h-145
-        for lab,val in fields:self.rtl_draw(c,f"{lab}: {val or '-'}",w-175,y,10);c.line(175,y-7,w-55,y-7);y-=27
-        self.rtl_draw(c,f"مدرسه: {SCHOOL_NAME}",w-55,h-390,9);self.qr(c,f"frahoosh://student/{sid}",w-145,h-390,82);c.save();self.status.text=fa_display("کارت دانش‌آموزی PDF ساخته شد.");self.status.color=SUCCESS
+        self.pdf_font(); s=self.student(sid)
+        path=Path(App.get_running_app().user_data_dir)/f"کارت_دانش‌آموزی_{sid}.pdf"
+        c=canvas.Canvas(str(path),pagesize=A4); w,h=A4
+        c.setLineWidth(1); c.rect(28,h-500,w-56,470)
+        self.rtl_draw(c,SCHOOL_NAME,w-50,h-58,17,True); self.rtl_draw(c,"کارت دانش‌آموزی",w-50,h-84,15,True)
+        self.rtl_draw(c,f"سال تحصیلی: {SCHOOL_YEAR}",w-50,h-108,9)
+        self.photo(c,s,42,h-205,105,115)
+        fields=[
+            ("نام و نام خانوادگی",self.sname(s)),("نام پدر",s.get("father_name")),
+            ("نام مادر",s.get("mother_name")),("کد ملی",s.get("national_code")),
+            ("شماره شناسنامه",s.get("birth_certificate_no") or s.get("identity_number")),
+            ("تاریخ تولد",s.get("birth_date") or s.get("birth_date_shamsi")),
+            ("محل صدور",s.get("birth_certificate_place")),("محل تولد",s.get("birth_place")),
+            ("ملیت",s.get("nationality")),("دین",s.get("religion")),("مذهب",s.get("sect")),
+            ("شماره تماس دانش‌آموز",s.get("student_phone")),("شماره تماس پدر",s.get("father_phone")),
+            ("شماره تماس مادر",s.get("mother_phone")),("پایه",s.get("grade")),
+            ("کلاس",s.get("class_name")),("شماره صندلی کلاسی",self.seat(sid))
+        ]
+        y=h-135; left=175; right=w-50; col=right-285
+        for idx,(lab,val) in enumerate(fields):
+            x=right if idx%2==0 else col
+            yy=y-(idx//2)*30
+            self.rtl_draw(c,f"{lab}: {val or '-'}",x,yy,8)
+            c.line(x-245,yy-6,x,yy-6)
+        self.rtl_draw(c,f"مدرسه: {SCHOOL_NAME}",w-50,h-455,9)
+        self.qr(c,f"frahoosh://student/{sid}",w-135,h-470,78)
+        c.save(); self.status.text=fa_display("کارت دانش‌آموزی کامل و جدول‌بندی‌شده PDF ساخته شد."); self.status.color=SUCCESS
     def make_exam_card(self,sid):
         from reportlab.pdfgen import canvas
         from reportlab.lib.pagesizes import A4
-        self.pdf_font();s=self.student(sid);exams=self.api().table_select("exam_schedule",{"grade":"eq."+str(s.get("grade") or ""),"order":"exam_date.asc","limit":"100"}) or []
+        self.pdf_font(); s=self.student(sid)
+        exams=self.api().table_select("exam_schedule",{"grade":"eq."+str(s.get("grade") or ""),"order":"exam_date.asc","limit":"100"}) or []
         if not exams:self.status.text=fa_display("برنامه امتحانی این پایه هنوز ثبت نشده است.");self.status.color=ERROR;return
         for ex in exams:
-            roster=self.api().table_select("students",{"grade":"eq."+str(ex.get("grade") or s.get("grade") or ""),"limit":"500"}) or [];rng=random.Random(str(ex.get("id")));rng.shuffle(roster)
+            roster=self.api().table_select("students",{"grade":"eq."+str(ex.get("grade") or s.get("grade") or ""),"limit":"500"}) or []
+            random.Random(str(ex.get("id"))).shuffle(roster)
             for i,st in enumerate(roster,1):
-                old=self.api().table_select("exam_seat_assignments",{"exam_id":"eq."+str(ex.get("id")),"student_id":"eq."+str(st.get("id")),"limit":"1"}) or [];p={"exam_id":str(ex.get("id")),"student_id":st.get("id"),"subject":ex.get("subject") or "","exam_date":ex.get("exam_date") or "","seat_number":i}
+                old=self.api().table_select("exam_seat_assignments",{"exam_id":"eq."+str(ex.get("id")),"student_id":"eq."+str(st.get("id")),"limit":"1"}) or []
+                p={"exam_id":str(ex.get("id")),"student_id":st.get("id"),"subject":ex.get("subject") or "","exam_date":ex.get("exam_date") or "","seat_number":i}
                 if old:self.api().table_update("exam_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
                 else:self.api().table_insert("exam_seat_assignments",p)
-        path=Path(App.get_running_app().user_data_dir)/f"کارت_امتحان_{sid}.pdf";c=canvas.Canvas(str(path),pagesize=A4);w,h=A4;c.setLineWidth(1);c.rect(30,h-590,w-60,560);self.rtl_draw(c,SCHOOL_NAME,w-55,h-65,16,True);self.rtl_draw(c,"کارت امتحان",w-55,h-92,15,True)
-        y=h-125
-        for lab,val in [("نام و نام خانوادگی",self.sname(s)),("کد ملی",s.get("national_code")),("نام پدر",s.get("father_name")),("پایه",s.get("grade")),("کلاس",s.get("class_name"))]:self.rtl_draw(c,f"{lab}: {val or '-'}",w-55,y,10);y-=23
-        y-=8;c.setFont("FrahooshPDFB",11);c.drawRightString(w-55,y,"جدول برنامه امتحانی و شماره صندلی");y-=25;c.line(55,y,w-55,y);y-=22
+        path=Path(App.get_running_app().user_data_dir)/f"کارت_امتحان_{sid}.pdf";c=canvas.Canvas(str(path),pagesize=A4);w,h=A4
+        c.setLineWidth(1);c.rect(28,h-610,w-56,580)
+        self.rtl_draw(c,SCHOOL_NAME,w-50,h-58,16,True);self.rtl_draw(c,"کارت امتحان",w-50,h-84,15,True);self.rtl_draw(c,f"سال تحصیلی: {SCHOOL_YEAR}",w-50,h-108,9)
+        y=h-135
+        identity=[("نام و نام خانوادگی",self.sname(s)),("نام پدر",s.get("father_name")),("کد ملی",s.get("national_code")),("شماره شناسنامه",s.get("birth_certificate_no") or s.get("identity_number")),("تاریخ تولد",s.get("birth_date") or s.get("birth_date_shamsi")),("پایه",s.get("grade")),("کلاس",s.get("class_name"))]
+        for idx,(lab,val) in enumerate(identity):
+            x=w-50 if idx%2==0 else w/2+20; yy=y-(idx//2)*25;self.rtl_draw(c,f"{lab}: {val or '-'}",x,yy,8);c.line(x-250,yy-6,x,yy-6)
+        y-=120;c.setFont("FrahooshPDFB",11);c.drawRightString(w-50,y,"جدول برنامه امتحانی و شماره صندلی");y-=20
+        headers=[("درس",w-60),("تاریخ",w-230),("شروع",w-330),("پایان",w-405),("مدت",w-475),("صندلی",w-540)]
+        c.line(45,y,w-45,y);y-=18
+        for lab,x in headers:self.rtl_draw(c,lab,x,y,8,True)
+        y-=18;c.line(45,y,w-45,y)
         for ex in exams:
-            a=self.api().table_select("exam_seat_assignments",{"exam_id":"eq."+str(ex.get("id")),"student_id":"eq."+str(sid),"limit":"1"}) or [];seat=a[0].get("seat_number") if a else "-";self.rtl_draw(c,f"{ex.get('subject') or '-'} | {ex.get('exam_date') or '-'} | {ex.get('exam_start_time') or '-'} تا {ex.get('exam_end_time') or '-'} | {ex.get('duration') or '-'} دقیقه | صندلی {seat}",w-55,y,9);y-=24
-        self.qr(c,f"frahoosh://exam-card/{sid}",w-145,h-555,75);c.save();self.status.text=fa_display("کارت امتحان ساخته شد و صندلی هر امتحان مستقل است.");self.status.color=SUCCESS
+            a=self.api().table_select("exam_seat_assignments",{"exam_id":"eq."+str(ex.get("id")),"student_id":"eq."+str(sid),"limit":"1"}) or []
+            seat=a[0].get("seat_number") if a else "-"
+            vals=[ex.get("subject") or "-",ex.get("exam_date") or "-",ex.get("exam_start_time") or "-",ex.get("exam_end_time") or "-",ex.get("duration") or "-",seat]
+            xs=[w-60,w-230,w-330,w-405,w-475,w-540]
+            for val,x in zip(vals,xs):self.rtl_draw(c,val,x,y,8)
+            c.line(45,y-8,w-45,y-8);y-=25
+        self.qr(c,f"frahoosh://exam-card/{sid}",w-135,h-575,72);c.save();self.status.text=fa_display("کارت امتحان جدول‌بندی‌شده ساخته شد؛ شماره صندلی هر امتحان مستقل و تصادفی است.");self.status.color=SUCCESS
 
 class OpsRouter:
     MAP={"activity_programs":"activities","activity_offers":"activities","activity_registrations":"activities","competitions":"activities","cultural_competitions":"activities","art_competitions":"activities","sport_competitions":"activities","student_council":"activities","basij_registration":"activities","school_ally":"activities","school_mayor":"activities","morning_leaders":"activities","qari_registration":"activities","khwarizmi_registrations":"activities","counseling_records":"counseling","counseling_followups":"counseling","counseling_guidance":"counseling","student_referrals":"counseling","counselor_board":"counseling","parent_meetings":"counseling","parent_activities":"counseling","weekly_schedule":"schedule","generated_weekly_schedule":"schedule","exam_schedule":"exam_schedule","discipline_records":"discipline","discipline_items":"discipline","smart_board_content":"smart_board","smart_board_activities":"smart_board","smart_board_quizzes":"smart_board","student_cards":"cards","class_cards":"cards","certificates":"cards","class_seat_assignments":"cards","class_seats":"cards","exam_cards":"cards","exam_seat_assignments":"exam_schedule","exam_seats":"exam_schedule"}
