@@ -1152,6 +1152,38 @@ class ModuleWorkspaceScreen(Screen):
             print("SPECIAL WORKFLOW ROUTE ERROR:", repr(exc))
             raise
 
+        # معاون اجرایی برای اسناد و چیدمان‌های اجرایی از مرکز تخصصی خودش استفاده می‌کند.
+        # این مسیر عمداً قبل از مرکز عمومی اجرا می‌شود تا این ماژول‌ها به صفحه
+        # «آماده» یا CRUD عمومی سقوط نکنند و جدول تخصصی هر موضوع نمایش داده شود.
+        try:
+            if self.role() == "executive" and canonical in {
+                "report_cards", "student_grades",
+                "student_cards", "class_cards",
+                "exam_schedule",
+                "class_seat_assignments", "class_seats",
+                "exam_seat_assignments", "exam_seats",
+                "certificates", "certificate_requests"
+            }:
+                app = App.get_running_app()
+                if app is not None:
+                    screen = app.ensure_executive_center()
+                    if screen is None:
+                        raise RuntimeError("مرکز عملیاتی معاون اجرایی ساخته نشد.")
+                    screen.initial_action = {
+                        "report_cards": "report_cards", "student_grades": "report_cards",
+                        "student_cards": "cards", "class_cards": "cards",
+                        "exam_schedule": "exam_schedule",
+                        "class_seat_assignments": "class_seats", "class_seats": "class_seats",
+                        "exam_seat_assignments": "exam_seats", "exam_seats": "exam_seats",
+                        "certificates": "certificates", "certificate_requests": "certificates"
+                    }[canonical]
+                    if self.manager:
+                        self.manager.current = screen.name
+                    return
+        except Exception as exc:
+            print("EXECUTIVE SPECIAL ROUTE ERROR:", repr(exc))
+            raise
+
         # Dedicated operational centers own the modules that require structured
         # forms/tables rather than the generic CRUD fallback.
         try:
