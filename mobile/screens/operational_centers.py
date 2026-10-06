@@ -81,8 +81,73 @@ class OpsBase(Screen):
         self.body.clear_widgets()
         fn={"activities":self.activities,"counseling":self.counseling,"schedule":self.schedule,"exam_schedule":self.exam_schedule,"discipline":self.discipline,"smart_board":self.smart_board,"cards":self.cards}.get(self.mode)
         if not fn:self.status.text=fa_display("ماژول عملیاتی ناشناخته است"); self.status.color=ERROR; return
-        try: fn()
+        try:
+            fn()
+            self._append_real_tables()
         except Exception as e:self.status.text=fa_display("خطا: "+str(e)); self.status.color=ERROR
+    def _append_real_tables(self):
+        """Every operational center ends with a real database table.
+        Forms remain specialized; this view makes the persisted records visible
+        immediately instead of presenting a form-only/decorative module.
+        """
+        table_map={
+            "activities":[
+                ("activity_programs","تعریف فعالیت‌ها"),
+                ("cultural_competitions","مسابقات فرهنگی"),
+                ("art_competitions","مسابقات هنری"),
+                ("sport_competitions","مسابقات ورزشی"),
+                ("activity_registrations","ثبت‌نام فعالیت‌ها"),
+                ("student_council","شورای دانش‌آموزی"),
+                ("basij_registration","بسیج دانش‌آموزی"),
+                ("school_ally","همیار مدرسه"),
+                ("school_mayor","شهردار مدرسه"),
+                ("morning_leaders","مکبر"),
+                ("qari_registration","قاری"),
+            ],
+            "counseling":[
+                ("counseling_records","پرونده‌های مشاوره"),
+                ("counseling_followups","پیگیری جلسات"),
+                ("counseling_guidance","هدایت تحصیلی"),
+                ("student_referrals","ارجاعات"),
+                ("counselor_board","تابلوی مشاوره"),
+            ],
+            "schedule":[("weekly_schedule","برنامه هفتگی"),("generated_weekly_schedule","برنامه تولیدشده")],
+            "exam_schedule":[("exam_schedule","برنامه امتحانات"),("exam_seat_assignments","شماره صندلی امتحانات")],
+            "discipline":[("discipline_records","سوابق انضباطی")],
+            "smart_board":[
+                ("smart_board_content","محتوای تابلو"),
+                ("smart_board_activities","فعالیت‌های تابلو"),
+                ("smart_board_quizzes","آزمونک‌های تابلو"),
+                ("smart_board_whiteboards","تخته‌های آموزشی"),
+            ],
+            "cards":[("class_seat_assignments","شماره صندلی کلاسی"),("exam_seat_assignments","شماره صندلی امتحانی")],
+        }
+        for table,title in table_map.get(self.mode,[]):
+            try:
+                rows=self.api().table_select(table,{"order":"id.desc","limit":"50"}) or []
+            except Exception as exc:
+                self.body.add_widget(self.lab(f"{title}: خطا در دریافت اطلاعات — {exc}","9sp",ERROR,True,40,True))
+                continue
+            self.body.add_widget(self.lab(f"جدول واقعی | {title}","13sp",PRIMARY,True,36,True))
+            if not rows:
+                self.body.add_widget(self.lab("هنوز رکوردی ثبت نشده است.","9sp",SECONDARY,False,30,True))
+                continue
+            fields=[x[0] for x in self.OPS_FIELDS.get(table,[])]
+            if not fields:
+                fields=["id","title","status","created_at"]
+            # Keep the mobile table readable: show at most six business columns.
+            fields=[f for f in fields if f in rows[0] or f=="id"][:6]
+            head=BoxLayout(size_hint_y=None,height=dp(38),spacing=dp(2))
+            for f in fields:
+                head.add_widget(self.lab({"id":"شناسه","title":"عنوان","status":"وضعیت","created_at":"تاریخ ثبت"}.get(f,f),"8sp",WHITE,True,34,True))
+            self.body.add_widget(head)
+            for row in rows[:50]:
+                line=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(2))
+                for f in fields:
+                    val=str(row.get(f) or "—")
+                    line.add_widget(self.lab(val[:42],"8sp",SECONDARY,False,40,True))
+                self.body.add_widget(line)
+
     def back(self,*_):
         if self.manager:self.manager.current="panel"
     def dashboard(self,*_):
