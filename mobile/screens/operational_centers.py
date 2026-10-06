@@ -209,9 +209,15 @@ class OperationalCenterScreen(OpsBase):
         if table=="morning_leaders":p.update({"grade":s.get("grade") or "","class_name":s.get("class_name") or "","role":label,"date_shamsi":""})
         self.api().table_insert(table,p); self.status.text=fa_display("درخواست ثبت شد."); self.status.color=SUCCESS
     def staff_list(self):
-        self.body.add_widget(self.lab("فهرست ثبت‌نام‌ها","14sp",PRIMARY,True,38,True))
-        for table,label in (("activity_registrations","فعالیت‌ها"),("student_council","شورا"),("basij_registration","بسیج"),("school_ally","همیار"),("school_mayor","شهردار"),("morning_leaders","مکبر"),("qari_registration","قاری")):
-            rows=self.api().table_select(table,{"order":"id.desc","limit":"50"}) or []; self.body.add_widget(self.lab(f"{label}: {len(rows)}","10sp",SECONDARY,False,30))
+        self.body.add_widget(self.lab("تعریف‌ها و ثبت‌نام‌های واقعی","14sp",PRIMARY,True,38,True))
+        for table,label in (("activity_programs","اردو / جشنواره / فعالیت"),("cultural_competitions","مسابقات فرهنگی"),("art_competitions","مسابقات هنری"),("sport_competitions","مسابقات ورزشی")):
+            rows=self.api().table_select(table,{"order":"id.desc","limit":"50"}) or []
+            self.body.add_widget(self.lab(f"{label}: {len(rows)}","10sp",SECONDARY,False,30))
+            for r in rows[:20]:
+                self._record_card(table,dict(r),f"#{r.get('id')} | {r.get('title') or '-'} | وضعیت: {r.get('status') or ('فعال' if r.get('active') else '-')}",editable=True)
+        for table,label in (("activity_registrations","ثبت‌نام فعالیت‌ها"),("student_council","شورا"),("basij_registration","بسیج"),("school_ally","همیار"),("school_mayor","شهردار"),("morning_leaders","مکبر"),("qari_registration","قاری")):
+            rows=self.api().table_select(table,{"order":"id.desc","limit":"50"}) or []
+            self.body.add_widget(self.lab(f"{label}: {len(rows)}","10sp",SECONDARY,False,30))
             for r in rows[:30]:
                 name=r.get("student_name") or r.get("student_id") or "-"
                 self._record_card(table,dict(r),f"#{r.get('id')} | {name} | وضعیت: {r.get('status') or '-'}",editable=True)
