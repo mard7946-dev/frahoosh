@@ -736,6 +736,27 @@ class PanelHubScreen(Screen):
         def navigate(_dt):
             try:
                 target=None
+                # معاون اجرایی باید برای ماژورهای اجرایی وارد مرکز تخصصی خودش شود؛
+                # این مسیرها نباید به ModuleWorkspace عمومی بروند.
+                if self.panel_key == "executive":
+                    executive_routes = {
+                        "archive_items": "identity",
+                        "report_cards": "report_cards",
+                        "student_cards": "cards",
+                        "exam_schedule": "exam_schedule",
+                        "class_seat_assignments": "class_seats",
+                        "exam_seat_assignments": "exam_seats",
+                        "certificates": "certificates",
+                        "executive_requests": "requests",
+                    }
+                    executive_action = executive_routes.get(route)
+                    if executive_action:
+                        target = app.ensure_executive_center()
+                        if target is None:
+                            raise RuntimeError("مرکز عملیاتی معاون اجرایی آماده نشد.")
+                        target.initial_action = executive_action
+                        app.sm.current = target.name
+                        return
                 try:
                     if route == "certificate_requests":
                         target=app.ensure_certificate_workflow()
@@ -1198,271 +1219,3 @@ class DashboardScreen(Screen):
             for item in list(remaining):
                 label, route = item
                 if route in route_ids:
-                    selected.append(item)
-                    remaining.remove(item)
-            if selected:
-                grouped.append((category, selected))
-        if remaining:
-            grouped.append(("سایر امکانات", remaining))
-        return grouped
-
-    def _panel_modules(self, role, panel_key):
-        catalog_key = {
-            "management":"manager",
-            "teachers":"teacher",
-            "students":"student",
-            "parents":"parent",
-        }.get(panel_key, panel_key)
-        catalog = MOTHER_PANEL_CATALOG.get(catalog_key) or {}
-        raw_items = catalog.get("items") or []
-        if panel_key == "parents":
-            raw_items = [item for item in raw_items if str(item[1]) not in {"teacher_exams","online","online_classes","online_class_sessions"}]
-        if panel_key == "staff":
-            raw_items = [("کادر و کارکنان","staff")]
-        if panel_key == "online":
-            raw_items = [("کلاس‌های آنلاین","online_classes"),("جلسات","online_class_sessions"),
-                         ("دانش‌آموزان کلاس","online_class_students"),("دبیران کلاس","online_class_teachers"),
-                         ("حضور آنلاین","online_attendance"),("تخته کلاس","smart_board_whiteboards")]
-        if panel_key == "teacher_exams":
-            raw_items = [("آزمون‌های آنلاین","teacher_exams"),("بانک سؤال","quiz_questions"),("زمان‌بندی آزمون","exam_schedule")]
-        if panel_key == "messages":
-            raw_items = [("صندوق پیام‌ها","messages")]
-        if panel_key == "finance":
-            raw_items = [("پرداخت‌ها","payment_records"),("تراکنش‌ها","finance_transactions"),
-                         ("حساب‌ها","finance_accounts"),("گزارش مالی","reports"),("تعریف گزینه پرداخت","payment_offers")]
-        if panel_key == "smart_board":
-            raw_items = [("تخته آموزشی","smart_board_whiteboards"),("فایل‌ها","smart_board_content"),
-                         ("تصاویر و ویدئوها","smart_board_media"),("ابزارهای تعاملی","smart_board_activities")]
-        if panel_key == "ai":
-            raw_items = [("دستیار هوشمند","ai_assistant_sessions"),("تحلیل آموزشی","ai_smart_reports"),
-                         ("گزارش هوشمند","ai_smart_reports"),("پرسش و پاسخ","ai_questions")]
-        if panel_key == "settings":
-            raw_items = [("تنظیمات حساب","account_settings"),("تنظیمات مدرسه","school_profile"),("پشتیبان‌گیری","account_settings")]
-        result=[]
-        for item in raw_items:
-            if not item or len(item) < 2 or not item[0]:
-                continue
-            label, fallback = str(item[0]), str(item[1])
-            result.append((label, self.resolve_module_route(role, label, fallback)))
-        return result
-
-    def refresh(self):
-        if self.app_state is None or not getattr(self.app_state,"logged_in",False): return False
-        role=self.role()
-        items=self.items()
-        self.welcome.text=fa_display(f"خوش آمدید، {getattr(self.app_state,'display_name','کاربر فراهوش')}")
-        self.role_text.text=fa_display(f"پنل {ROLE_TITLES.get(role,'کاربر')}  -  {len(items)} بخش اصلی")
-        self.grid.clear_widgets()
-        self._build_reference_sidebar()
-        total=len(items)
-        for i,(title,route) in enumerate(items,1):
-            panel_key=route.split(":",1)[1] if str(route).startswith("panelhub:") else route
-            modules=self._group_modules(panel_key, self._panel_modules(role,panel_key))
-            card=PanelCard(
-                title,i,total,self.desc(panel_key),
-                lambda *_a,r=route:self.open_route(r),
-                route=panel_key,
-                modules=modules,
-                module_enter=self.open_route,
-                size_hint_y=None,
-            )
-            self.grid.add_widget(card)
-        return True
-
-    def open_route(self,route):
-        route_key = str(route or "")
-        if route_key.startswith("panelhub:"):
-            panel_key = route_key.split(":",1)[1]
-            role = self.role()
-            allowed = role == "manager" or panel_key == {
-                "executive":"executive","educational":"educational","cultural":"cultural",
-                "advisor":"advisor","teacher":"teachers","student":"students","parent":"parents"
-            }.get(role)
-            if not allowed:
-                print("DASHBOARD ACCESS DENIED:", role, panel_key)
-                return
-        app=App.get_running_app()
-        if app is None or app.sm is None:
-            return
-        try:
-            # Online class and online exam are first-class operational
-            # workspaces. Do not route the teacher through a generic/empty
-            # panel hub: open the real creation center directly.
-            if route == "online":
-                if self.role() == "parent":
-                    print("DASHBOARD ACCESS DENIED: parent online class")
-                    return
-                self.app_state.panel_role = self.role()
-                screen=app.ensure_online_workflow()
-                if screen is None:
-                    raise RuntimeError("مرکز کلاس آنلاین آماده نشد.")
-                app.sm.current=screen.name
-                return
-            if route == "teacher_exams":
-                if self.role() == "parent":
-                    print("DASHBOARD ACCESS DENIED: parent online exam")
-                    return
-                self.app_state.panel_role = self.role()
-                screen=app.ensure_exam_authoring()
-                if screen is None:
-                    raise RuntimeError("مرکز آزمون آنلاین آماده نشد.")
-                app.sm.current=screen.name
-                return
-            if str(route).startswith("panelhub:"):
-                key=str(route).split(":",1)[1]
-                self.app_state.panel_role = self.role()
-                name="panelhub_"+key
-                try:
-                    screen=app.sm.get_screen(name)
-                except Exception:
-                    screen=PanelHubScreen(name=name,app_state=self.app_state,panel_key=key)
-                    app.sm.add_widget(screen)
-                app.sm.current=name
-                return
-            if route=="about":
-                from mobile.screens.about import AboutScreen
-                try: screen=app.sm.get_screen("about")
-                except Exception:
-                    screen=AboutScreen(name="about",app_state=self.app_state); app.sm.add_widget(screen)
-                app.sm.current="about"; return
-            if route=="participation":
-                from mobile.screens.participation import ParticipationScreen
-                try: screen=app.sm.get_screen("participation")
-                except Exception:
-                    screen=ParticipationScreen(name="participation",app_state=self.app_state); app.sm.add_widget(screen)
-                screen.set_route(self.role()); app.sm.current="participation"; return
-            if route=="teacher_exams":
-                try:
-                    screen=app.ensure_exam()
-                    if screen:
-                        app.sm.current="teacher_exams"
-                        return
-                except Exception as exam_exc:
-                    print("TEACHER EXAM WORKFLOW FALLBACK:",repr(exam_exc))
-                # Fall through to the canonical mother/table workspace.
-            panel=app.ensure_panel()
-            if panel is None:
-                raise RuntimeError("پنل عملیاتی آماده نشد.")
-            # Activate the real workspace first; do not render a module while
-            # the dashboard is still the current Screen on Android.
-            app.sm.current="panel"
-            panel.set_route(route)
-        except Exception as exc:
-            print("DASHBOARD ROUTE ERROR:",repr(exc))
-            try:
-                self.role_text.text=rtl_text("خطا در باز کردن پنل؛ دوباره تلاش کنید.")
-                self.role_text.color=(1,.35,.35,1)
-                Clock.schedule_once(lambda _dt:self._restore_role_status(),2.5)
-            except Exception:
-                pass
-
-    def _start_parent_poll(self):
-        if self._parent_poll_event is None:
-            self._parent_poll_event = Clock.schedule_interval(self._poll_parent_notifications, 2.0)
-        Clock.schedule_once(self._poll_parent_notifications, 0)
-
-    def _poll_parent_notifications(self, *_):
-        if self._parent_poll_busy or self.app_state is None:
-            return
-        self._parent_poll_busy=True
-        def worker():
-            try:
-                from mobile.services.live_data import LiveSchoolData
-                events, feed = LiveSchoolData(self.app_state).parent_unread_notifications(self._parent_seen)
-                ids=[e["id"] for e in events]
-                if ids:
-                    self._parent_seen.update(ids)
-                    latest=events[0]
-                    title=latest.get("title","اعلان جدید")
-                    count=len(events)
-                    msg=f"صندوق پیام - {title} - {count} مورد جدید"
-                else:
-                    total=sum(len(feed.get(k,[])) for k in ("attendance","discipline","grades","activities","messages"))
-                    msg=f"اعلان‌های لحظه‌ای فعال - {total} رویداد مدرسه"
-                Clock.schedule_once(lambda _dt,m=msg:self._set_parent_alert(m),0)
-            except Exception as exc:
-                print("PARENT LIVE FEED ERROR:",repr(exc))
-                Clock.schedule_once(lambda _dt:self._set_parent_alert("اتصال اعلان‌های مدرسه در حال بررسی است."),0)
-            finally:
-                self._parent_poll_busy=False
-        Thread(target=worker,daemon=True).start()
-
-    def _set_parent_alert(self,message):
-        try:
-            self.parent_alert.text=fa_display(message)
-            self.parent_alert.color=(0.07,0.38,0.22,1)
-        except Exception:
-            pass
-
-    def _start_parent_poll(self):
-        if self._parent_poll_event is None:
-            self._parent_poll_event = Clock.schedule_interval(self._poll_parent_notifications, 5.0)
-        Clock.schedule_once(self._poll_parent_notifications, 0)
-
-    def _poll_parent_notifications(self, *_):
-        if self._parent_poll_busy or self.app_state is None:
-            return
-        self._parent_poll_busy=True
-        def worker():
-            try:
-                from mobile.services.live_data import LiveSchoolData
-                events, feed = LiveSchoolData(self.app_state).parent_unread_notifications(self._parent_seen)
-                ids=[e["id"] for e in events]
-                if ids:
-                    self._parent_seen.update(ids)
-                    latest=events[0]
-                    msg=f'صندوق پیام - {latest.get("title","اعلان جدید")} - {len(events)} مورد جدید'
-                else:
-                    total=sum(len(feed.get(k,[])) for k in ("attendance","discipline","grades","activities","messages"))
-                    msg=f"اعلان‌های لحظه‌ای فعال - {total} رویداد مدرسه"
-                Clock.schedule_once(lambda _dt,m=msg:self._set_parent_alert(m),0)
-            except Exception as exc:
-                print("PARENT LIVE FEED ERROR:",repr(exc))
-                Clock.schedule_once(lambda _dt:self._set_parent_alert("اتصال اعلان‌های مدرسه در حال بررسی است."),0)
-            finally:
-                self._parent_poll_busy=False
-        Thread(target=worker,daemon=True).start()
-
-    def _set_parent_alert(self,message):
-        try:
-            self.parent_alert.text=rtl_text(message)
-            self.parent_alert.color=(0.07,0.38,0.22,1)
-        except Exception:
-            pass
-
-    def _restore_role_status(self,*_):
-        try:
-            role=self.role()
-            self.role_text.text=rtl_text(f"پنل {ROLE_TITLES.get(role,'کاربر')} - دسترسی فعال")
-            self.role_text.color=(0.88,0.96,1,1)
-        except Exception:
-            pass
-
-    def on_pre_enter(self,*_):
-        # Never let a dashboard refresh exception escape the Kivy lifecycle.
-        # On Android an uncaught exception here can terminate the process
-        # exactly after the login screen reports success.
-        if self.app_state is None or not getattr(self.app_state,"logged_in",False):
-            if self.manager:
-                self.manager.current="login"
-            return
-        try:
-            self.refresh()
-        except Exception as exc:
-            print("DASHBOARD PRE-ENTER REFRESH ERROR:", repr(exc))
-            try:
-                self.welcome.text = rtl_text("ورود موفق بود؛ داشبورد آماده شد.")
-                self.role_text.text = rtl_text("در حال آماده‌سازی پنل‌ها...")
-            except Exception:
-                pass
-        if self.role() in {"parent","student","teacher","manager","educational","executive","cultural","advisor","counselor"}:
-            try:
-                self._start_parent_poll()
-            except Exception as exc:
-                print("DASHBOARD NOTIFICATION POLL START ERROR:", repr(exc))
-
-    def logout(self,*_):
-        try:
-            if self.app_state:self.app_state.logout()
-        except Exception: pass
-        if self.manager:self.manager.current="login"
