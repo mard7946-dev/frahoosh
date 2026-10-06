@@ -97,7 +97,7 @@ class OperationalCenterScreen(OpsBase):
     def competition_form(self,table,title):
         def save(w):
             p={k:self.val(v) for k,v in w.items()}
-            if table=="sport_competitions":p["sport_type"]=p.get("category","")
+            p["status"]="active"\n            if table=="sport_competitions":p["sport_type"]=p.get("category","")
             self.api().table_insert(table,p); self.load()
         fields=[("title","عنوان مسابقه"),("category","دسته‌بندی"),("start_date","تاریخ شروع"),("end_date","تاریخ پایان"),("description","توضیحات")];\n        if table in {"art_competitions","sport_competitions"}: fields += [("registration_start_shamsi","شروع ثبت‌نام"),("registration_end_shamsi","پایان ثبت‌نام")]\n        self.form(fields,save,title)
     def student_register(self):
