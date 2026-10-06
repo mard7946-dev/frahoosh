@@ -168,7 +168,7 @@ class TeacherExamsV4Screen(Screen):
 
     def show_home(self):
         self._clear(); self.title.text=fa_display("مرکز آزمون آنلاین")
-        if role_of(self.app_state) in {"teacher","manager"}:
+        if role_of(self.app_state) in {"teacher","manager","educational"}:
             self._label("مرکز طراحی و مدیریت آزمون","22sp",PRIMARY,54,True)
             self._label("آزمون را یک‌بار استاندارد طراحی کنید، سپس برای هر کلاس زمان متفاوت بدهید یا همان آزمون را با لینک امن برای دانش‌آموزان مدرسه دیگر به اشتراک بگذارید.",height=78)
             self._button("＋ ساخت آزمون جدید",lambda *_:self._new_exam(),SUCCESS)
@@ -184,7 +184,7 @@ class TeacherExamsV4Screen(Screen):
     def _new_exam(self):
         self._clear(); self.questions=[]; self._label("ساخت آزمون استاندارد","22sp",PRIMARY,52,True)
         teacher_picker = None
-        if role_of(self.app_state) == "manager":
+        if role_of(self.app_state) in {"manager","educational"}:
             try:
                 self._manager_teacher_rows = self.app_state.api.table_select("teachers", {"order":"id.asc","limit":"200"}) or []
             except Exception:
@@ -318,7 +318,7 @@ class TeacherExamsV4Screen(Screen):
         try: dur=max(1,min(600,int(self._value(duration) or 45))); mx=max(1,int(self._value(attempts) or 1)); ps=max(0,float(self._value(passing) or 0))
         except Exception:self._error("مدت، تعداد دفعات و نمره قبولی باید عدد باشند.");return
         tid=self._teacher_id()
-        if role_of(self.app_state) == "manager" and teacher_picker is not None:
+        if role_of(self.app_state) in {"manager","educational"} and teacher_picker is not None:
             idx = list(teacher_picker.values).index(teacher_picker.text) if teacher_picker.text in teacher_picker.values else -1
             if 0 <= idx < len(getattr(self, "_manager_teacher_rows", [])):
                 try: tid = int(self._manager_teacher_rows[idx].get("id"))
@@ -346,7 +346,13 @@ class TeacherExamsV4Screen(Screen):
                 self.app_state.api.table_insert("quiz_questions",payload_q)
             # Publication is finalized after the teacher saves the class/time window.
             Clock.schedule_once(lambda *_:self._schedule(eid,dur),0)
-        except Exception as exc: Clock.schedule_once(lambda *_:self._error("ذخیره آزمون انجام نشد: "+str(exc)),0)
+        except Exception as exc:
+            try:
+                if 'eid' in locals():
+                    self.app_state.api.table_delete("teacher_exams",{"id":"eq."+str(eid)})
+            except Exception as cleanup_exc:
+                print("EXAM ROLLBACK ERROR:", repr(cleanup_exc))
+            Clock.schedule_once(lambda *_:self._error("ذخیره آزمون انجام نشد؛ عملیات ناقص از پایگاه داده پاک شد: "+str(exc)),0)
 
     def _schedule(self,eid,dur):
         self._clear(); self._label("زمان‌بندی آزمون","22sp",PRIMARY,52,True)
@@ -380,7 +386,7 @@ class TeacherExamsV4Screen(Screen):
                 if not en:
                     h,m=[int(x) for x in st.split(":")[:2]]; t=h*60+m+dur; en=f"{(t//60)%24:02d}:{t%60:02d}"
                 starts[name]=st
-                self.app_state.api.table_insert("teacher_exam_slots",{"quiz_id":eid,"class_name":name,"exam_date_shamsi":date.text.strip(),"start_time_shamsi":st,"end_time_shamsi":en,"duration":dur,"coordinated":1 if len(set(starts.values()))==1 and len(starts)==len(classes) else 0,"secure_mode":1,"active":True})
+                self.app_state.api.table_insert("teacher_exam_slots",{"quiz_id":eid,"class_name":name,"exam_date_shamsi":date.text.strip(),"start_time_shamsi":st,"end_time_shamsi":en,"duration":dur,"coordinated":1 if len(set(starts.values()))==1 and len(starts)==len(classes) else 0,"secure_mode":1,"timezone":"Asia/Tehran","active":True})
             # The exam becomes visible only after at least one valid class window exists.
             self.app_state.api.table_update("teacher_exams",{"id":f"eq.{eid}"},{"published":True})
             self._ok(f"زمان‌بندی {len(classes)} کلاس ثبت شد؛ زمان مشترک یا متفاوت قابل استفاده است.")
@@ -431,7 +437,12 @@ class TeacherExamsV4Screen(Screen):
 
     def _fetch_exams(self):
         try:
-            tid=self._teacher_id(); rows=self.app_state.api.table_select("teacher_exams",{"teacher_id":f"eq.{tid}","order":"created_at.desc","limit":"50"}) if tid else []
+            role=role_of(self.app_state)
+            if role in {"manager","educational"}:
+                rows=self.app_state.api.table_select("teacher_exams",{"order":"created_at.desc","limit":"100"}) or []
+            else:
+                tid=self._teacher_id()
+                rows=self.app_state.api.table_select("teacher_exams",{"teacher_id":f"eq.{tid}","order":"created_at.desc","limit":"50"}) if tid else []
             Clock.schedule_once(lambda *_:self._render_exams(rows),0)
         except Exception as exc:Clock.schedule_once(lambda *_:self._error("دریافت آزمون‌ها انجام نشد: "+str(exc)),0)
 
