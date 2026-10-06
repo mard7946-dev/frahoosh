@@ -98,7 +98,7 @@ class OnlineClassScreen(Screen):
         self._clear()
         role=role_of(self.app_state)
         if role not in CLASS_CREATORS:
-            return self._error("فقط مدیر و معاون اجرایی اجازه تشکیل کلاس آنلاین دارند.")
+            return self._error("فقط مدیر و معاون آموزشی اجازه تشکیل کلاس آنلاین دارند.")
         self._label("ساخت و تولید کلاس آنلاین","21sp",PRIMARY,52,True)
         self._create_form()
         self._button("بازگشت به فهرست کلاس‌ها",lambda *_:self.show_home(),SECONDARY,46)
