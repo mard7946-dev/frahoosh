@@ -5,6 +5,8 @@ from threading import Thread
 from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.image import Image
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
@@ -327,6 +329,9 @@ class ExecutiveCenterScreen(Screen):
         return cell
 
     def _render_certificate(self, student):
+        """پیش‌نمایش گواهی در همان چیدمان نمونه PDF: A4/بالای صفحه، قاب، عکس، تیتر مرکزی، بدنه راست، هشدار عمودی و محل QR/مهر."""
+        import os
+
         school = self._school_info()
         school_name = school.get("school_name") or SCHOOL_NAME
         school_code = school.get("school_code") or ""
@@ -339,59 +344,90 @@ class ExecutiveCenterScreen(Screen):
         birth_no = student.get("birth_certificate_no") or ""
         birth_date = student.get("birth_date") or ""
         national_code = student.get("national_code") or ""
+        principal = school.get("principal_name") or ""
 
         self._clear()
-        self.body.add_widget(self._label("پیش‌نمایش گواهی اشتغال به تحصیل", "16sp", PRIMARY, 42, True))
+        self.body.add_widget(self._label("گواهی اشتغال به تحصیل — پیش‌نمایش مطابق نمونه", "16sp", PRIMARY, 42, True))
 
-        certificate = BoxLayout(orientation="vertical", padding=[dp(18), dp(14)],
-                                spacing=dp(3), size_hint_y=None)
-        certificate.bind(minimum_height=certificate.setter("height"))
+        # نمونه PDF یک برگه افقیِ 842×595 در نیمه بالایی صفحه دارد.
+        page = FloatLayout(size_hint=(None, None), size=(dp(842), dp(595)))
+        with page.canvas.before:
+            Color(0.10, 0.10, 0.10, 1)
+            Line(rectangle=(0, 0, dp(842), dp(555)), width=1.0)
 
-        certificate.add_widget(self._label("جمهوری اسلامی ایران", "13sp", SECONDARY, 28, True))
-        certificate.add_widget(self._label("وزارت آموزش وپرورش", "12sp", SECONDARY, 26, True))
-        certificate.add_widget(self._label(f"دوره تحصیلی: {period}", "11sp", SECONDARY, 28))
-        certificate.add_widget(self._label("گواهی اشتغال به تحصیل", "18sp", PRIMARY, 44, True))
+        def txt(value, x, y, w, h, size="11sp", bold=False, color=SECONDARY, halign="right"):
+            lab = Label(
+                text=fa_display(str(value)),
+                font_name=font_name(),
+                font_size=size,
+                color=color,
+                bold=bold,
+                size_hint=(None, None),
+                size=(dp(w), dp(h)),
+                pos=(dp(x), dp(y)),
+                halign=halign,
+                valign="middle",
+            )
+            lab.text_size = (dp(w), dp(h))
+            page.add_widget(lab)
+            return lab
 
-        certificate.add_widget(self._label(
-            f"شماره: ................................    بدین وسیله گواهی میشود: {full_name} کد ملی {national_code}",
-            "10sp", SECONDARY, 38
-        ))
-        certificate.add_widget(self._label(
-            f"فرزند: {father_name}    شماره شناسنامه: {birth_no}    تاریخ تولد: {birth_date}",
-            "10sp", SECONDARY, 36
-        ))
-        certificate.add_widget(self._label(
-            f"سال تحصیلی: {academic_year}", "10sp", SECONDARY, 34
-        ))
-        certificate.add_widget(self._label(
-            f"در مدرسه: {school_name} ({school_code})    در پایه: {grade}",
-            "10sp", SECONDARY, 38
-        ))
-        certificate.add_widget(self._label(
-            "مشغول به تحصیل میباشد", "10sp", SECONDARY, 34, True
-        ))
-        certificate.add_widget(self._label(
-            f"این گواهی طبق تقاضای مورخ: {request_date}", "10sp", SECONDARY, 38
-        ))
-        certificate.add_widget(self._label(
-            "فقط به منظور ارائه به: ........................................................",
-            "10sp", SECONDARY, 38
-        ))
-        certificate.add_widget(self._label(
-            "صادر گردیده و فاقد هرگونه ارزش دیگری می باشد.", "10sp", SECONDARY, 36
-        ))
+        # سربرگ دقیقاً در مرکز بالا
+        txt("جمهوری اسلامی ایران", 330, 540, 190, 22, "11sp", True, SECONDARY, "center")
+        txt("وزارت آموزش و پرورش", 320, 518, 210, 22, "11sp", True, SECONDARY, "center")
+        txt(f"دوره تحصیلی: {period}", 295, 496, 260, 22, "10sp", False, SECONDARY, "center")
+        txt("گواهی اشتغال به تحصیل", 285, 458, 280, 38, "18sp", True, SECONDARY, "center")
 
-        footer = GridLayout(cols=2, spacing=dp(12), size_hint_y=None, height=dp(100))
-        footer.add_widget(self._label("تاریخ\n" + request_date, "10sp", SECONDARY, 88))
-        footer.add_widget(self._label(
-            "مهر و امضا مدیر مدرسه\n................................\n"
-            f"{school.get('principal_name') or ''}",
-            "10sp", SECONDARY, 88, True
-        ))
-        certificate.add_widget(footer)
+        # عکس دانش‌آموز در بالا-چپ، مانند نمونه
+        photo = str(student.get("photo") or "").strip()
+        if photo and os.path.exists(photo):
+            page.add_widget(Image(
+                source=photo, allow_stretch=True, keep_ratio=True,
+                size_hint=(None, None), size=(dp(92), dp(105)), pos=(dp(24), dp(430))
+            ))
+        else:
+            with page.canvas:
+                Color(0.92, 0.92, 0.92, 1)
+                Rectangle(pos=(dp(24), dp(430)), size=(dp(92), dp(105)))
+            txt("عکس", 24, 468, 92, 25, "10sp", False, SECONDARY, "center")
 
-        self.body.add_widget(certificate)
+        txt("شماره: ................................", 70, 404, 130, 24, "10sp", False, SECONDARY, "left")
+        txt(f"بدین وسیله گواهی میشود: {full_name}", 535, 404, 280, 24, "10sp", True)
+        txt(f"کد ملی: {national_code}", 360, 404, 160, 24, "10sp")
+        txt(f"فرزند: {father_name}", 175, 372, 160, 24, "10sp", True)
+        txt(f"شماره شناسنامه: {birth_no}", 350, 372, 190, 24, "10sp")
+        txt(f"تاریخ تولد: {birth_date}", 560, 372, 170, 24, "10sp")
+        txt(f"سال تحصیلی: {academic_year}", 330, 340, 200, 24, "10sp")
+        txt(f"در مدرسه: {school_name} ({school_code})", 515, 308, 300, 24, "10sp")
+        txt(f"در پایه: {grade}", 400, 308, 105, 24, "10sp")
+        txt("مشغول به تحصیل میباشد", 575, 275, 240, 25, "10sp", False, SECONDARY)
+        txt(f"این گواهی طبق تقاضای مورخ: {request_date}", 500, 225, 315, 25, "10sp")
+        txt("فقط به منظور ارائه به: ................................................", 485, 170, 330, 25, "10sp")
+        txt("صادر گردیده و فاقد هرگونه ارزش دیگری می باشد.", 440, 105, 375, 25, "10sp")
+
+        txt("تاریخ", 560, 68, 110, 25, "10sp", False, SECONDARY, "center")
+        txt("مهر و امضا مدیر مدرسه", 315, 68, 190, 25, "10sp", True, SECONDARY, "center")
+        txt(principal, 300, 42, 220, 22, "10sp", False, SECONDARY, "center")
+
+        # هشدار عمودی قرمزِ سمت چپ نمونه
+        warning = txt(
+            "این گواهی بدون تایید (مهر و امضای زنده مدیر) فاقد اعتبار میباشد",
+            2, 145, 25, 300, "9sp", True, ERROR, "center"
+        )
+        warning.rotation = 90
+
+        # جای QR در پایین راست؛ داده واقعی گواهی در شناسه متن قرار می‌گیرد.
+        # QR تولیدیِ وابسته به کتابخانه خارجی اضافه نمی‌شود تا build فعلی شکسته نشود.
+        with page.canvas:
+            Color(0.15, 0.15, 0.15, 1)
+            Line(rectangle=(dp(700), dp(25), dp(90), dp(90)), width=1)
+        txt("تأیید", 700, 58, 90, 24, "9sp", True, SECONDARY, "center")
+
+        sv = ScrollView(do_scroll_x=True, do_scroll_y=True, size_hint_y=None, height=dp(600))
+        sv.add_widget(page)
+        self.body.add_widget(sv)
         self.body.add_widget(self._button("بازگشت به امور اجرایی", lambda *_: self.show_home(), SECONDARY))
+
     # ------------------------------------------------------------------
     # 3) کارنامه: ردیف | درس | نمره | وضعیت
     # ------------------------------------------------------------------
