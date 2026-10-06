@@ -542,14 +542,14 @@ EDITABLE = {
     "educational": {
         "attendance","student_referrals","meeting_requests","ai_smart_reports",
         "messages","message_targets","exam_schedule","quiz_questions","teacher_classes","students",
-        "educational_followups","academic_followups","khwarizmi_registrations","module_activations",
+        "educational_followups","academic_followups","khwarizmi_registrations","module_activations","teacher_activities","grade_items","teacher_parent_meetings",
         "grades","student_grades","grade_items","teacher_exams","discipline_records","weekly_schedule",
         "assignments","lesson_plans"
     },
     "executive": {
         "students","executive_classes","staff","archive_items","executive_operations","executive_reports",
         "report_cards","messages","weekly_schedule","discipline_records",
-        "certificate_requests","school_class_config","parent_children","school_relationships","assets","student_cards","class_cards",
+        "certificate_requests","school_class_config","parent_children","school_relationships","assets","student_cards","class_cards","executive_operations","executive_requests","archive_items","surveys",
         "certificates","executive_requests","surveys","module_activations"
     },
     "cultural": {
@@ -560,13 +560,13 @@ EDITABLE = {
         "art_competitions","sport_competitions","morning_leaders"
     },
     "advisor": {
-        "counselor_board","counseling_records","counseling_followups","student_referrals",
+        "counselor_board","counseling_records","counseling_followups","student_referrals","counseling_classes","counseling_guidance","parent_meetings","parent_meeting_requests",
         "parent_meetings","counseling_classes","parent_activities","counseling_guidance",
-        "ai_smart_reports","discipline_records","messages","message_targets","educational_followups",
+        "ai_smart_reports","discipline_records","messages","message_targets","educational_followups","academic_followups",
         "academic_followups","parent_meeting_requests"
     },
     "teacher": {
-        "teacher_classes","attendance","grades","assignments","teacher_exams",
+        "teacher_classes","attendance","grades","assignments","teacher_exams","quiz_questions","grade_items","student_grades","teacher_activities","teacher_parent_meetings",
         "lesson_plans","teacher_meetings","teacher_activities","grade_items","discipline_records",
         "messages","message_targets","student_referrals"
     },
@@ -1137,7 +1137,7 @@ class ModuleWorkspaceScreen(Screen):
                     special = app.ensure_assignment_submission_workflow()
                 elif canonical == "certificate_requests":
                     special = app.ensure_certificate_workflow()
-                elif canonical in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
+                elif canonical in {"meeting_requests","parent_meeting_requests","teacher_meetings","teacher_parent_meetings","meetings"}:
                     special = app.ensure_meetings()
                 elif canonical in {"finance","finance_accounts","finance_transactions","payment_records","payment_offers"}:
                     special = app.ensure_finance()
