@@ -37,6 +37,30 @@ class OpsBase(Screen):
         api=getattr(self.app_state,"api",None)
         if api is None: raise RuntimeError("اتصال پایگاه داده آماده نیست.")
         return api
+    def insert(self,table,payload):
+        try:
+            result=self.insert(table,payload)
+            self.status.text=fa_display("اطلاعات با موفقیت در پایگاه داده ذخیره شد."); self.status.color=SUCCESS
+            return result
+        except Exception as exc:
+            self.status.text=fa_display("ذخیره در پایگاه داده انجام نشد: "+str(exc)); self.status.color=ERROR
+            print("OPS INSERT ERROR",table,repr(exc)); return None
+    def update(self,table,filters,payload):
+        try:
+            result=self.update(table,filters,payload)
+            self.status.text=fa_display("ویرایش در پایگاه داده ذخیره شد."); self.status.color=SUCCESS
+            return result
+        except Exception as exc:
+            self.status.text=fa_display("ویرایش در پایگاه داده انجام نشد: "+str(exc)); self.status.color=ERROR
+            print("OPS UPDATE ERROR",table,repr(exc)); return None
+    def delete_row(self,table,filters):
+        try:
+            result=self.delete_row(table,filters)
+            self.status.text=fa_display("رکورد از پایگاه داده حذف شد."); self.status.color=SUCCESS
+            return result
+        except Exception as exc:
+            self.status.text=fa_display("حذف از پایگاه داده انجام نشد: "+str(exc)); self.status.color=ERROR
+            print("OPS DELETE ERROR",table,repr(exc)); return None
     def val(self,w):
         return w.get_logical_text().strip() if hasattr(w,"get_logical_text") else str(getattr(w,"text","") or "").strip()
     def lab(self,t,size="11sp",color=SECONDARY,b=False,h=40,center=False):
@@ -122,7 +146,7 @@ class OpsBase(Screen):
                 try: payload["duration"]=int(payload.get("duration") or 60)
                 except: payload["duration"]=60
             try:
-                self.api().table_update(table,{"id":"eq."+str(row.get("id"))},payload)
+                self.update(table,{"id":"eq."+str(row.get("id"))},payload)
                 self.status.text=fa_display("ویرایش در پایگاه داده ذخیره شد."); self.status.color=SUCCESS
                 self.load()
             except Exception as exc:
@@ -132,7 +156,7 @@ class OpsBase(Screen):
 
     def _delete_record(self,table,row):
         try:
-            self.api().table_delete(table,{"id":"eq."+str(row.get("id"))})
+            self.delete_row(table,{"id":"eq."+str(row.get("id"))})
             self.status.text=fa_display("رکورد از پایگاه داده حذف شد."); self.status.color=SUCCESS
             self.load()
         except Exception as exc:
@@ -170,13 +194,13 @@ class OperationalCenterScreen(OpsBase):
         p={k:self.val(v) for k,v in w.items()}
         try:p["amount"]=int(p.get("amount") or 0)
         except:p["amount"]=0
-        p["active"]=str(p.get("active") or "بله") not in {"خیر","0","false"}; self.api().table_insert("activity_programs",p); self.load()
+        p["active"]=str(p.get("active") or "بله") not in {"خیر","0","false"}; self.insert("activity_programs",p); self.load()
     def competition_form(self,table,title):
         def save(w):
             p={k:self.val(v) for k,v in w.items()}
             p["status"]="active"
             if table=="sport_competitions":p["sport_type"]=p.get("category","")
-            self.api().table_insert(table,p); self.load()
+            self.insert(table,p); self.load()
         fields=[("title","عنوان مسابقه"),("category","دسته‌بندی"),("start_date","تاریخ شروع"),("end_date","تاریخ پایان"),("description","توضیحات")];
         if table in {"art_competitions","sport_competitions"}: fields += [("registration_start_shamsi","شروع ثبت‌نام"),("registration_end_shamsi","پایان ثبت‌نام")]
         self.form(fields,save,title)
@@ -200,7 +224,7 @@ class OperationalCenterScreen(OpsBase):
             self.body.add_widget(self.btn("ثبت نام "+label,lambda *_a,t=table,n=label:self.reg_simple(t,n),PRIMARY,40))
     def cancel_registration(self,row):
         try:
-            self.api().table_delete("activity_registrations",{"id":"eq."+str(row.get("id")),"student_id":"eq."+str(self.student_id())})
+            self.delete_row("activity_registrations",{"id":"eq."+str(row.get("id")),"student_id":"eq."+str(self.student_id())})
             self.status.text=fa_display("ثبت‌نام فعالیت لغو و از پایگاه داده حذف شد."); self.status.color=SUCCESS
             self.load()
         except Exception as exc:
@@ -208,7 +232,7 @@ class OperationalCenterScreen(OpsBase):
 
     def cancel_simple(self,table,row):
         try:
-            self.api().table_delete(table,{"id":"eq."+str(row.get("id")),"student_id":"eq."+str(self.student_id())})
+            self.delete_row(table,{"id":"eq."+str(row.get("id")),"student_id":"eq."+str(self.student_id())})
             self.status.text=fa_display("ثبت‌نام حذف شد."); self.status.color=SUCCESS
             self.load()
         except Exception as exc:
@@ -217,11 +241,11 @@ class OperationalCenterScreen(OpsBase):
     def reg_program(self,r):
         sid=self.student_id(); old=self.api().table_select("activity_registrations",{"activity_id":"eq."+str(r["id"]),"student_id":"eq."+str(sid),"limit":"1"}) or []
         if old:return
-        self.api().table_insert("activity_registrations",{"activity_id":r["id"],"student_id":sid,"participation_type":"انفرادی","team_members":"","competition_type":r.get("category") or "فعالیت","payment_status":"pending","status":"active"}); self.status.text=fa_display("ثبت‌نام فعالیت با موفقیت ذخیره شد."); self.status.color=SUCCESS
+        self.insert("activity_registrations",{"activity_id":r["id"],"student_id":sid,"participation_type":"انفرادی","team_members":"","competition_type":r.get("category") or "فعالیت","payment_status":"pending","status":"active"}); self.status.text=fa_display("ثبت‌نام فعالیت با موفقیت ذخیره شد."); self.status.color=SUCCESS
     def reg_comp(self,r):
         sid=self.student_id(); old=self.api().table_select("activity_registrations",{"student_id":"eq."+str(sid),"competition_type":"eq."+str(r.get("title") or ""),"limit":"1"}) or []
         if old:return
-        self.api().table_insert("activity_registrations",{"activity_id":r.get("id"),"student_id":sid,"participation_type":"انفرادی","team_members":"","competition_type":r.get("title") or "مسابقه","payment_status":"pending","status":"active"}); self.status.text=fa_display("ثبت‌نام مسابقه ذخیره شد."); self.status.color=SUCCESS
+        self.insert("activity_registrations",{"activity_id":r.get("id"),"student_id":sid,"participation_type":"انفرادی","team_members":"","competition_type":r.get("title") or "مسابقه","payment_status":"pending","status":"active"}); self.status.text=fa_display("ثبت‌نام مسابقه ذخیره شد."); self.status.color=SUCCESS
     def reg_simple(self,table,label):
         sid=self.student_id(); old=self.api().table_select(table,{"student_id":"eq."+str(sid),"limit":"1"}) or []
         if old:return
@@ -229,7 +253,7 @@ class OperationalCenterScreen(OpsBase):
         if table=="student_council":p["election_year"]=SCHOOL_YEAR
         if table=="school_ally":p["role"]="همیار"
         if table=="morning_leaders":p.update({"grade":s.get("grade") or "","class_name":s.get("class_name") or "","role":label,"date_shamsi":""})
-        self.api().table_insert(table,p); self.status.text=fa_display("درخواست ثبت شد."); self.status.color=SUCCESS
+        self.insert(table,p); self.status.text=fa_display("درخواست ثبت شد."); self.status.color=SUCCESS
     def staff_list(self):
         self.body.add_widget(self.lab("تعریف‌ها و ثبت‌نام‌های واقعی","14sp",PRIMARY,True,38,True))
         for table,label in (("activity_programs","اردو / جشنواره / فعالیت"),("cultural_competitions","مسابقات فرهنگی"),("art_competitions","مسابقات هنری"),("sport_competitions","مسابقات ورزشی")):
@@ -270,22 +294,22 @@ class CounselingCenterScreen(OpsBase):
     def counsel_form(self):
         self.counselform([("title","عنوان جلسه"),("visit_reason","علت مراجعه"),("description","شرح جلسه"),("recommendations","توصیه‌ها"),("next_visit","تاریخ پیگیری بعدی")],self.save_counsel,"ثبت جلسه مشاوره")
     def save_counsel(self,w,rows,sp):
-        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p.update({"student_id":s.get("id"),"student_name":self.sname(s),"status":"open"});self.api().table_insert("counseling_records",p);self.load()
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p.update({"student_id":s.get("id"),"student_name":self.sname(s),"status":"open"});self.insert("counseling_records",p);self.load()
     def follow_form(self):
         self.counselform([("subject","موضوع پیگیری"),("description","شرح پیگیری"),("followup_date","تاریخ پیگیری"),("followup_items","موارد پیگیری‌شده"),("decision","تصمیم")],self.save_follow,"ثبت پیگیری")
     def save_follow(self,w,rows,sp):
-        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p.update({"student_id":s.get("id"),"status":"open"});self.api().table_insert("counseling_followups",p);self.load()
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p.update({"student_id":s.get("id"),"status":"open"});self.insert("counseling_followups",p);self.load()
     def guidance_form(self):
         self.counselform([("grade","پایه"),("interest","علاقه‌مندی"),("aptitude","استعداد"),("recommendation","پیشنهاد هدایت تحصیلی")],self.save_guidance,"هدایت تحصیلی")
     def save_guidance(self,w,rows,sp):
-        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p["student_id"]=s.get("id");self.api().table_insert("counseling_guidance",p);self.load()
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p["student_id"]=s.get("id");self.insert("counseling_guidance",p);self.load()
     def referral_form(self):
         self.counselform([("referral_to","ارجاع به"),("reason","علت ارجاع"),("status","وضعیت")],self.save_referral,"ارجاع دانش‌آموز")
     def save_referral(self,w,rows,sp):
-        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p.update({"student_id":s.get("id"),"referral_date":datetime.now().strftime("%Y-%m-%d")});self.api().table_insert("student_referrals",p);self.load()
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p.update({"student_id":s.get("id"),"referral_date":datetime.now().strftime("%Y-%m-%d")});self.insert("student_referrals",p);self.load()
     def board_form(self):self.form([("title","عنوان تابلو مشاور"),("body","متن اطلاعیه"),("created_by","ثبت‌کننده")],self.save_board,"تابلو اعلانات مشاور")
     def save_board(self,w):
-        p={k:self.val(v) for k,v in w.items()};p["active"]=True;self.api().table_insert("counselor_board",p);self.load()
+        p={k:self.val(v) for k,v in w.items()};p["active"]=True;self.insert("counselor_board",p);self.load()
     def list_records(self):
         for t,n in (("counseling_records","جلسات"),("counseling_followups","پیگیری‌ها"),("counseling_guidance","هدایت تحصیلی"),("student_referrals","ارجاعات")):
             rows=self.api().table_select(t,{"order":"id.desc","limit":"30"}) or [];self.body.add_widget(self.lab(f"{n}: {len(rows)}","12sp",PRIMARY,True,34))
@@ -304,7 +328,7 @@ class ScheduleCenterScreen(OpsBase):
         p={k:self.val(v) for k,v in w.items()}
         try:p["class_count"]=int(p.get("class_count") or 1);p["hours"]=float(p.get("hours") or 0)
         except:pass
-        self.api().table_insert("weekly_schedule",p);self.load()
+        self.insert("weekly_schedule",p);self.load()
     def exam_schedule(self):
         self.title.text=fa_display("برنامه امتحانات");self.body.add_widget(self.lab("تاریخ، ساعت شروع/پایان و مدت هر امتحان ثبت می‌شود؛ صندلی هر امتحان مستقل و تصادفی است.","10sp",SECONDARY,False,52,True))
         can_edit=role_of(self.app_state) in {"manager","educational"}
@@ -319,14 +343,14 @@ class ScheduleCenterScreen(OpsBase):
         p={k:self.val(v) for k,v in w.items()}
         try:p["duration"]=int(p.get("duration") or 60)
         except:p["duration"]=60
-        self.api().table_insert("exam_schedule",p);self.load()
+        self.insert("exam_schedule",p);self.load()
     def make_exam_seats(self,row):
         students=self.api().table_select("students",{"grade":"eq."+str(row.get("grade") or ""),"order":"id.asc","limit":"500"}) or []
         random.Random(str(row.get("id"))).shuffle(students)
         for i,s in enumerate(students,1):
             old=self.api().table_select("exam_seat_assignments",{"exam_id":"eq."+str(row.get("id")),"student_id":"eq."+str(s.get("id")),"limit":"1"}) or [];p={"exam_id":str(row.get("id")),"student_id":s.get("id"),"subject":row.get("subject") or "","exam_date":row.get("exam_date") or "","seat_number":i}
-            if old:self.api().table_update("exam_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
-            else:self.api().table_insert("exam_seat_assignments",p)
+            if old:self.update("exam_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
+            else:self.insert("exam_seat_assignments",p)
         self.status.text=fa_display(f"برای {len(students)} دانش‌آموز صندلی مستقل و تصادفی ثبت شد.");self.status.color=SUCCESS
 
 class DisciplineCenterScreen(OpsBase):
@@ -357,7 +381,7 @@ class DisciplineCenterScreen(OpsBase):
         p={"student_id":s.get("id"),"title":str(typ.text or ""),"description":self.val(desc),"note":self.val(note),"priority":"normal","status":"pending","actor_username":str((getattr(self.app_state,"profile",{}) or {}).get("username") or getattr(self.app_state,"national_code","") or ""),"actor_role":role_of(self.app_state),"created_at":datetime.now().isoformat()}
         tid=(getattr(self.app_state,"profile",{}) or {}).get("linked_teacher_id") or (getattr(self.app_state,"profile",{}) or {}).get("teacher_id")
         if tid:p["teacher_id"]=tid
-        self.api().table_insert("discipline_records",p);self.status.text=fa_display("مورد انضباطی ثبت شد.");self.status.color=SUCCESS
+        self.insert("discipline_records",p);self.status.text=fa_display("مورد انضباطی ثبت شد.");self.status.color=SUCCESS
 
 class SmartBoardCenterScreen(OpsBase):
     def smart_board(self):
@@ -369,7 +393,7 @@ class SmartBoardCenterScreen(OpsBase):
             self._record_card("smart_board_content",dict(r),f"#{r.get('id')} | {r.get('title') or 'اطلاعیه'} | {r.get('content') or ''}",editable=write)
     def board_form(self):self.form([("title","عنوان پیام مهم"),("content","متن پیام"),("content_date_shamsi","تاریخ نمایش")],self.save_board,"انتشار پیام روی تابلو")
     def save_board(self,w):
-        p={k:self.val(v) for k,v in w.items()};p.update({"active":True,"audience_type":"student_parent","created_by":str((getattr(self.app_state,"profile",{}) or {}).get("username") or getattr(self.app_state,"national_code","") or "")});self.api().table_insert("smart_board_content",p);self.load()
+        p={k:self.val(v) for k,v in w.items()};p.update({"active":True,"audience_type":"student_parent","created_by":str((getattr(self.app_state,"profile",{}) or {}).get("username") or getattr(self.app_state,"national_code","") or "")});self.insert("smart_board_content",p);self.load()
 
 class CardsCenterScreen(OpsBase):
     def cards(self):
@@ -388,8 +412,8 @@ class CardsCenterScreen(OpsBase):
         cls=str(sp.text); roster=[r for r in rows if str(r.get("class_name") or "")==cls];random.Random(f"{cls}|{SCHOOL_YEAR}").shuffle(roster)
         for i,s in enumerate(roster,1):
             old=self.api().table_select("class_seat_assignments",{"student_id":"eq."+str(s["id"]),"academic_year":"eq."+SCHOOL_YEAR,"limit":"1"}) or [];p={"class_id":cls,"student_id":s["id"],"seat_number":i,"academic_year":SCHOOL_YEAR}
-            if old:self.api().table_update("class_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
-            else:self.api().table_insert("class_seat_assignments",p)
+            if old:self.update("class_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
+            else:self.insert("class_seat_assignments",p)
         self.status.text=fa_display(f"شماره صندلی {len(roster)} دانش‌آموز کلاس ثبت شد.");self.status.color=SUCCESS
     def student(self,sid):return (self.api().table_select("students",{"id":"eq."+str(sid),"limit":"1"}) or [{}])[0]
     def seat(self,sid):
@@ -458,8 +482,8 @@ class CardsCenterScreen(OpsBase):
             for i,st in enumerate(roster,1):
                 old=self.api().table_select("exam_seat_assignments",{"exam_id":"eq."+str(ex.get("id")),"student_id":"eq."+str(st.get("id")),"limit":"1"}) or []
                 p={"exam_id":str(ex.get("id")),"student_id":st.get("id"),"subject":ex.get("subject") or "","exam_date":ex.get("exam_date") or "","seat_number":i}
-                if old:self.api().table_update("exam_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
-                else:self.api().table_insert("exam_seat_assignments",p)
+                if old:self.update("exam_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
+                else:self.insert("exam_seat_assignments",p)
         path=Path(App.get_running_app().user_data_dir)/f"کارت_امتحان_{sid}.pdf";c=canvas.Canvas(str(path),pagesize=A4);w,h=A4
         c.setLineWidth(1);c.rect(28,h-610,w-56,580)
         self.rtl_draw(c,SCHOOL_NAME,w-50,h-58,16,True);self.rtl_draw(c,"کارت امتحان",w-50,h-84,15,True);self.rtl_draw(c,f"سال تحصیلی: {SCHOOL_YEAR}",w-50,h-108,9)
