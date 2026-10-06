@@ -184,6 +184,7 @@ class TeacherExamsV4Screen(Screen):
     def _new_exam(self):
         self._clear(); self.questions=[]; self._label("ساخت آزمون استاندارد","22sp",PRIMARY,52,True)
         teacher_picker = None
+        self._manager_teacher_rows = []
         if role_of(self.app_state) in {"manager","educational"}:
             try:
                 self._manager_teacher_rows = self.app_state.api.table_select("teachers", {"order":"id.asc","limit":"200"}) or []
@@ -195,7 +196,8 @@ class TeacherExamsV4Screen(Screen):
                 for t in self._manager_teacher_rows
             ]
             teacher_picker = self._spinner("انتخاب دبیر آزمون", teacher_names or ["هیچ دبیری در سامانه ثبت نشده است"])
-            self._label("مدیریت و معاون آموزشی می‌توانند آزمون را به نام دبیر منتخب ایجاد کنند.","10sp",SECONDARY,42)
+            self._label("دبیر آزمون را از فهرست واقعی دبیران مدرسه انتخاب کنید. انتخاب دبیر به شناسه واقعی دبیر در پایگاه داده متصل است.","10sp",SECONDARY,50)
+            self._button("↻ تازه‌سازی فهرست دبیران", lambda *_: self._refresh_teacher_picker(teacher_picker), SECONDARY, 40)
         title=self._field("عنوان آزمون")
         subject=self._spinner("ریاضی",["ریاضی","فیزیک","شیمی","زیست","علوم","فارسی","انگلیسی","عربی","دینی","مطالعات اجتماعی","سایر"])
         grade=self._field("پایه / رشته")
@@ -208,16 +210,35 @@ class TeacherExamsV4Screen(Screen):
         desc=self._field("دستورالعمل آزمون",82,True)
         self._label("انواع سؤال قابل انتخاب: تستی، صحیح و غلط، جای خالی، پاسخ کوتاه و تشریحی. به جز تشریحی، تصحیح خودکار انجام می‌شود.","11sp",PRIMARY,65)
         self._label("در حالت تشخیصی، آزمون برای سنجش اولیه است؛ چت و پاسخ‌گویی به سؤال‌های آزمون مجاز نیست و آزمون در حالت امن اجرا می‌شود.","10sp",SECONDARY,62)
+        self._label("انتخاب سریع نوع سؤال", "13sp", PRIMARY, 36, True)
+        type_bar=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(4))
+        for kind,label in TYPES:
+            b=Button(text=fa_display(label),font_name=font_name(),font_size="10sp",background_normal="",background_color=PRIMARY,color=WHITE)
+            b.bind(on_release=lambda *_a,k=kind:self._add_question(k))
+            type_bar.add_widget(b)
+        self.body.add_widget(type_bar)
         self._button("＋ افزودن سؤال",lambda *_:self._add_question(),SUCCESS)
         if teacher_picker is not None:
             self._exam_teacher_picker = teacher_picker
         self._button("ذخیره آزمون و رفتن به زمان‌بندی",lambda *_:self._save_exam(title,subject,grade,class_name,duration,attempts,passing,mode,desc,teacher_picker),PRIMARY)
         self._button("انصراف",lambda *_:self.show_home())
 
-    def _add_question(self):
+    def _refresh_teacher_picker(self, picker):
+        try:
+            self._manager_teacher_rows = self.app_state.api.table_select("teachers", {"order":"id.asc","limit":"200"}) or []
+            names=[str(t.get("display_name") or ((t.get("first_name") or "")+" "+(t.get("last_name") or "")).strip() or t.get("username") or "دبیر") for t in self._manager_teacher_rows]
+            picker.values=tuple(fa_display(x) for x in (names or ["هیچ دبیری در سامانه ثبت نشده است"]))
+            if names:
+                picker.text=fa_display(names[0])
+            self._ok(f"{len(names)} دبیر در فهرست آزمون بارگذاری شد.")
+        except Exception as exc:
+            self._error("دریافت فهرست دبیران انجام نشد: "+str(exc))
+
+    def _add_question(self, initial_kind=None):
         n=len(self.questions)+1
         self._label(f"سؤال {n}","17sp",PRIMARY,38,True)
-        typ=self._spinner("تستی چهارگزینه‌ای",[v for _,v in TYPES])
+        initial_label=dict(TYPES).get(initial_kind, "تستی چهارگزینه‌ای") if initial_kind else "تستی چهارگزینه‌ای"
+        typ=self._spinner(initial_label,[v for _,v in TYPES])
         q=self._field("متن سؤال؛ برای ریاضی: √49 + 2² = ؟",82,True)
         # Formula toolbar for the teacher: symbols are inserted directly into
         # the question editor, so scientific notation does not depend on a
