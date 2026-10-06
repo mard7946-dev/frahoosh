@@ -178,8 +178,8 @@ SUBMENUS = {
 "students":[
 ("اطلاعات دانش‌آموز","students"),("پایه و کلاس","student_class_info"),("حضور و غیاب","attendance"),
 ("نمرات","student_grades"),("تکالیف","assignments"),("صندوق پیام","messages"),
-("ثبت‌نام مسابقات","competitions"),("ثبت‌نام جشنواره‌ها","activity_programs"),("ثبت‌نام مسابقات و فعالیت‌ها","activity_registrations"),("ثبت‌نام شورای دانش‌آموزی","student_council"),
-("ثبت‌نام بسیج","basij_registration"),("ثبت‌نام همیار مدرسه","school_ally"),("ثبت‌نام شهردار مدرسه","school_mayor"),
+("ثبت‌نام مسابقات","student_competitions"),("ثبت‌نام جشنواره‌ها","student_competitions"),("ثبت‌نام مسابقات و فعالیت‌ها","student_competitions"),("ثبت‌نام شورای دانش‌آموزی","student_council_registration"),
+("ثبت‌نام بسیج","student_basij_registration"),("ثبت‌نام همیار مدرسه","student_ally_registration"),("ثبت‌نام شهردار مدرسه","student_mayor_registration"),
 ("ارسال تکالیف","assignment_submissions"),("برنامه هفتگی","weekly_schedule"),
 ("برنامه امتحانات","exam_schedule"),("صندلی کلاسی","class_seat_assignments"),
 ("صندلی امتحان","exam_seat_assignments"),("درخواست گواهی","certificate_requests"),
@@ -1632,6 +1632,41 @@ class ModuleWorkspaceScreen(Screen):
         # workflows so they can never reach a staff CRUD screen.
         role = self.role()
         logical_table = str(table or "").strip()
+        # Student participation workflows are dedicated screens: they never
+        # expose raw database IDs or generic CRUD forms to the student.
+        student_registration_modes = {
+            "student_competitions": "competitions",
+            "student_council_registration": "student_council",
+            "student_basij_registration": "basij_registration",
+            "student_ally_registration": "school_ally",
+            "student_mayor_registration": "school_mayor",
+        }
+        if role in {"student", "دانش‌آموز"} and logical_table in student_registration_modes:
+            try:
+                from kivy.app import App
+                app = App.get_running_app()
+                from mobile.screens.student_activities import StudentActivitiesRegistrationScreen
+                name = "student_activities_registration"
+                screen = self.manager.get_screen(name) if self.manager and name in self.manager.screen_names else None
+                if screen is None and app is not None:
+                    screen = StudentActivitiesRegistrationScreen(
+                        app_state=getattr(app, "app_state", None),
+                        mode=student_registration_modes[logical_table],
+                        name=name,
+                    )
+                    self.manager.add_widget(screen)
+                if screen is None:
+                    raise RuntimeError("محیط ثبت‌نام دانش‌آموز آماده نشد.")
+                screen.mode = student_registration_modes[logical_table]
+                screen.app_state = getattr(app, "app_state", None)
+                if self.manager:
+                    self.manager.current = name
+                return
+            except Exception as exc:
+                print("STUDENT REGISTRATION OPEN ERROR:", repr(exc))
+                self.status.text = fa_display("محیط ثبت‌نام باز نشد: " + str(exc))
+                self.status.color = (.8, .15, .15, 1)
+                return
         # Parent accounts must never enter the live-class or exam workspaces.
         if role == "parent" and logical_table in {"online","online_classes","virtual","online_class_sessions","teacher_exams","exams","quiz_questions"}:
             self.status.text = fa_display("این بخش برای حساب اولیا فعال نیست.")
