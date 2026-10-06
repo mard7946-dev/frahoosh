@@ -1169,6 +1169,18 @@ class ModuleWorkspaceScreen(Screen):
             print("OPERATIONAL CENTER ROUTE ERROR:", repr(exc))
             raise
 
+        # A concrete module route (for example executive_classes, students,
+        # discipline_records, cultural_reports) must open its real table directly.
+        # Previously it fell through with table=None and render() treated the
+        # table id as a panel key, producing an empty/"آماده‌سازی" screen.
+        if canonical not in SUBMENUS and canonical != "smart_class_preview":
+            self.return_to = return_to or "dashboard"
+            self.table = canonical
+            self.route = canonical
+            self.selected_row = None
+            self.render()
+            return
+
         self.return_to=return_to or "dashboard"
         self.table=None
         self.selected_row=None
