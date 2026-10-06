@@ -1650,7 +1650,7 @@ class ModuleWorkspaceScreen(Screen):
                 screen = self.manager.get_screen(name) if self.manager and name in self.manager.screen_names else None
                 if screen is None and app is not None:
                     screen = StudentActivitiesRegistrationScreen(
-                        app_state=getattr(app, "app_state", None),
+                        app_state=(getattr(app, "app_state", None) or self.app_state),
                         mode=student_registration_modes[logical_table],
                         name=name,
                     )
@@ -1658,7 +1658,7 @@ class ModuleWorkspaceScreen(Screen):
                 if screen is None:
                     raise RuntimeError("محیط ثبت‌نام دانش‌آموز آماده نشد.")
                 screen.mode = student_registration_modes[logical_table]
-                screen.app_state = getattr(app, "app_state", None)
+                screen.app_state = (getattr(app, "app_state", None) or self.app_state)
                 if self.manager:
                     self.manager.current = name
                 return
