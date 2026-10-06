@@ -119,9 +119,14 @@ class ExecutiveCenterScreen(Screen):
     def certificates(self):
         self.section = "certificates"; self._clear()
         self.body.add_widget(self._label("گواهی اشتغال به تحصیل", "17sp", PRIMARY, 44, True))
-        self.body.add_widget(self._label("درخواست‌های گواهی از جدول رسمی سامانه خوانده می‌شوند. قالب PDF مرجع باید در پروژه موجود باشد تا خروجی دقیقاً مطابق همان فایل تولید شود.", height=58))
+        self.body.add_widget(self._label(
+            "قالب گواهی مطابق نمونه مرجع: جمهوری اسلامی ایران، وزارت آموزش و پرورش، "
+            "گواهی اشتغال به تحصیل، مشخصات دانش‌آموز، مدرسه، پایه، سال تحصیلی، علت ارائه، "
+            "تاریخ و محل مهر و امضای مدیر.",
+            height=72
+        ))
         self.body.add_widget(self._button("نمایش درخواست‌های گواهی", lambda *_: self._load_certificates(), SUCCESS))
-        self.status.text = fa_display("قالب PDF مرجع در فایل‌های قابل دسترس فعلی پیدا نشد؛ ساختار داده آماده است.")
+
     def _load_certificates(self):
         def work():
             try:
@@ -130,12 +135,45 @@ class ExecutiveCenterScreen(Screen):
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self._error(str(exc)), 0)
         Thread(target=work, daemon=True).start()
+
     def _render_certificates(self, rows):
         self._clear()
-        self.body.add_widget(self._label("درخواست‌های گواهی", "16sp", PRIMARY, 42, True))
+        self.body.add_widget(self._label("گواهی اشتغال به تحصیل — مطابق فرم مرجع", "16sp", PRIMARY, 44, True))
+        if not rows:
+            self.body.add_widget(self._label("درخواستی ثبت نشده است.", color=ERROR, height=44))
+            self.body.add_widget(self._label(
+                "فرم مرجع شامل این اطلاعات است: شماره، نام و نام خانوادگی، کد ملی، نام پدر، "
+                "شماره شناسنامه، تاریخ تولد، سال تحصیلی، نام مدرسه، کد مدرسه، پایه، دوره تحصیلی، "
+                "تاریخ تقاضا و مقصد ارائه گواهی.",
+                height=86
+            ))
+            return
         for r in rows:
-            self.body.add_widget(self._label("دانش‌آموز: %s\nمقصد: %s | تاریخ: %s | وضعیت: %s\nیادداشت اجرایی: %s" %
-                (r.get("student_name",""), r.get("destination",""), r.get("request_date",""), r.get("status",""), r.get("executive_note","")), height=82))
+            student = str(r.get("student_name") or r.get("full_name") or "")
+            national = str(r.get("national_code") or "")
+            father = str(r.get("father_name") or "")
+            birth = str(r.get("birth_date") or "")
+            school = str(r.get("school_name") or "")
+            school_code = str(r.get("school_code") or "")
+            grade = str(r.get("grade") or r.get("base") or "")
+            year = str(r.get("school_year") or "1404-1405")
+            purpose = str(r.get("destination") or r.get("purpose") or "")
+            request_date = str(r.get("request_date") or "")
+            preview = (
+                "جمهوری اسلامی ایران\n"
+                "وزارت آموزش و پرورش\n"
+                "گواهی اشتغال به تحصیل\n\n"
+                "بدین وسیله گواهی می‌شود:\n"
+                "نام: %s\nکد ملی: %s | فرزند: %s\n"
+                "تاریخ تولد: %s | سال تحصیلی: %s\n"
+                "در مدرسه: %s (%s) | در پایه: %s\n"
+                "مشغول به تحصیل می‌باشد.\n\n"
+                "این گواهی طبق تقاضای مورخ: %s\n"
+                "فقط به منظور ارائه به: %s\n"
+                "صادر گردید و فاقد هرگونه ارزش دیگری می‌باشد.\n\n"
+                "تاریخ: ................    مهر و امضای مدیر مدرسه"
+            ) % (student, national, father, birth, year, school, school_code, grade, request_date, purpose)
+            self.body.add_widget(self._label(preview, "11sp", SECONDARY, 260, False))
 
     def report_cards(self):
         self.section = "report_cards"; self._clear()
