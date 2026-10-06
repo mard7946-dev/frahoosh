@@ -1133,7 +1133,9 @@ class ModuleWorkspaceScreen(Screen):
             app = App.get_running_app()
             if app is not None:
                 special = None
-                if canonical == "certificate_requests":
+                if canonical == "assignment_submissions":
+                    special = app.ensure_assignment_submission_workflow()
+                elif canonical == "certificate_requests":
                     special = app.ensure_certificate_workflow()
                 elif canonical in {"meeting_requests","parent_meeting_requests","teacher_meetings","meetings"}:
                     special = app.ensure_meetings()
