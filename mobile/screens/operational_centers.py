@@ -191,7 +191,7 @@ class ScheduleCenterScreen(OpsBase):
         self.api().table_insert("exam_schedule",p);self.load()
     def make_exam_seats(self,row):
         students=self.api().table_select("students",{"grade":"eq."+str(row.get("grade") or ""),"order":"id.asc","limit":"500"}) or []
-        random.shuffle(students)
+        random.Random(str(row.get("id"))).shuffle(students)
         for i,s in enumerate(students,1):
             old=self.api().table_select("exam_seat_assignments",{"exam_id":"eq."+str(row.get("id")),"student_id":"eq."+str(s.get("id")),"limit":"1"}) or [];p={"exam_id":str(row.get("id")),"student_id":s.get("id"),"subject":row.get("subject") or "","exam_date":row.get("exam_date") or "","seat_number":i}
             if old:self.api().table_update("exam_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
@@ -233,7 +233,7 @@ class CardsCenterScreen(OpsBase):
     def class_seat_form(self):
         rows=self.students();classes=sorted(set(str(r.get("class_name") or "").strip() for r in rows if str(r.get("class_name") or "").strip()));sp=self.spinner("انتخاب کلاس",classes or ["کلاسی نیست"]);self.body.add_widget(sp);self.body.add_widget(self.btn("تولید صندلی‌های تصادفی کلاس",lambda *_:self.make_class_seats(sp,rows),SUCCESS,46))
     def make_class_seats(self,sp,rows):
-        cls=str(sp.text); roster=[r for r in rows if str(r.get("class_name") or "")==cls];random.shuffle(roster)
+        cls=str(sp.text); roster=[r for r in rows if str(r.get("class_name") or "")==cls];random.Random(f"{cls}|{SCHOOL_YEAR}").shuffle(roster)
         for i,s in enumerate(roster,1):
             old=self.api().table_select("class_seat_assignments",{"student_id":"eq."+str(s["id"]),"academic_year":"eq."+SCHOOL_YEAR,"limit":"1"}) or [];p={"class_id":cls,"student_id":s["id"],"seat_number":i,"academic_year":SCHOOL_YEAR}
             if old:self.api().table_update("class_seat_assignments",{"id":"eq."+str(old[0]["id"])},p)
