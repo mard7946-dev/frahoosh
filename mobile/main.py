@@ -489,6 +489,23 @@ class FrahooshApp(App):
             print("MESSAGE COMPOSE BUILD ERROR:", repr(exc))
             return None
 
+    def ensure_operational_center(self, route):
+        if self.sm is None:
+            return None
+        from mobile.screens.operational_centers import OpsRouter
+        mode = OpsRouter.mode_for(route)
+        if not mode:
+            return None
+        name = "ops_" + mode
+        try:
+            return self.sm.get_screen(name)
+        except Exception:
+            pass
+        screen = OpsRouter.create(self.app_state, route)
+        if screen is not None:
+            self.sm.add_widget(screen)
+        return screen
+
     def ensure_special_module(self, mode):
         name = "special_" + str(mode)
         if self.sm is None:
