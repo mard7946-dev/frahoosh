@@ -195,7 +195,7 @@ class TeacherExamsV4Screen(Screen):
                 for t in self._manager_teacher_rows
             ]
             teacher_picker = self._spinner("انتخاب دبیر آزمون", teacher_names or ["هیچ دبیری در سامانه ثبت نشده است"])
-            self._label("مدیریت مدرسه می‌تواند آزمون را به نام دبیر منتخب ایجاد کند.","10sp",SECONDARY,42)
+            self._label("مدیریت و معاون آموزشی می‌توانند آزمون را به نام دبیر منتخب ایجاد کنند.","10sp",SECONDARY,42)
         title=self._field("عنوان آزمون")
         subject=self._spinner("ریاضی",["ریاضی","فیزیک","شیمی","زیست","علوم","فارسی","انگلیسی","عربی","دینی","مطالعات اجتماعی","سایر"])
         grade=self._field("پایه / رشته")
