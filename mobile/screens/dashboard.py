@@ -658,20 +658,26 @@ class PanelHubScreen(Screen):
         }.get(label,"ثبت، ویرایش، حذف، گزارش و تبادل اطلاعات واقعی سامانه.")
 
     def _active_role(self):
+        """Normalize every role spelling used by login/profile/RLS to one canonical id."""
         profile = getattr(self.app_state, "profile", {}) or {}
         raw = str(
             profile.get("role") or profile.get("user_role") or
             profile.get("school_role") or getattr(self.app_state, "role", "") or ""
         ).strip().lower()
-        return {
+        raw = " ".join(raw.replace("\u200c", " ").replace("\u200f", "").replace("ي", "ی").replace("ك", "ک").split())
+        aliases = {
             "admin":"manager","administrator":"manager","management":"manager",
-            "manager":"manager","مدیر":"manager","مدیریت":"manager",
-            "معاون آموزشی":"educational","educational":"educational","educational_deputy":"educational",
-            "معاون اجرایی":"executive","executive":"executive","executive_deputy":"executive",
-            "معاون پرورشی":"cultural","cultural":"cultural",
-            "دبیر":"teacher","teacher":"teacher","دانش‌آموز":"student","student":"student",
-            "ولی":"parent","اولیا":"parent","parent":"parent",
-        }.get(raw, raw)
+            "manager":"manager","مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager",
+            "معاون آموزشی":"educational","معاونت آموزشی":"educational","educational":"educational","educational_deputy":"educational",
+            "آموزشی":"educational",
+            "معاون اجرایی":"executive","معاونت اجرایی":"executive","executive":"executive","executive_deputy":"executive","اجرایی":"executive",
+            "معاون پرورشی":"cultural","معاونت پرورشی":"cultural","cultural":"cultural","cultural_deputy":"cultural","پرورشی":"cultural",
+            "مشاور":"advisor","مشاوره":"advisor","counselor":"advisor","counseling":"advisor","advisor":"advisor",
+            "دبیر":"teacher","دبیران":"teacher","معلم":"teacher","teacher":"teacher","teacher_staff":"teacher",
+            "دانش‌آموز":"student","دانش آموز":"student","دانش‌آموزان":"student","student":"student",
+            "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parent_guardian":"parent","guardian":"parent",
+        }
+        return aliases.get(raw, raw)
 
     def _open_meeting_workflow(self):
         app=App.get_running_app()
