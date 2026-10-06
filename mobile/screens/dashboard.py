@@ -745,6 +745,8 @@ class PanelHubScreen(Screen):
                         target=app.ensure_online_workflow()
                     elif route in {"teacher_exams","exams","questions","quiz_questions"}:
                         target=app.ensure_exam_authoring()
+                    elif route == "assignment_submissions":
+                        target=app.ensure_assignment_submission_workflow()
                 except Exception as workflow_exc:
                     print("DEDICATED WORKFLOW FALLBACK:",repr(workflow_exc))
                     target=None
