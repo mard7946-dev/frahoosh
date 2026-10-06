@@ -110,10 +110,6 @@
         "school_profile"
       ],
       [
-        "حساب‌های سامانه",
-        "users"
-      ],
-      [
         "فعال‌سازی قابلیت‌های دانش‌آموز و اولیا",
         "module_activations"
       ],
@@ -122,16 +118,8 @@
         "school_relationships"
       ],
       [
-        "کارت دانش‌آموزی",
-        "student_cards"
-      ],
-      [
         "کارت امتحان",
         "exam_cards"
-      ],
-      [
-        "انضباط",
-        "discipline_records"
       ]
     ],
     "educational": [
@@ -168,10 +156,6 @@
         "quiz_questions"
       ],
       [
-        "پیام‌های دریافتی",
-        "messages"
-      ],
-      [
         "ارسال پیام",
         "message_targets"
       ],
@@ -200,16 +184,8 @@
         "module_activations"
       ],
       [
-        "ساخت کلاس آنلاین",
-        "online_classes"
-      ],
-      [
         "برنامه هفتگی",
         "weekly_schedule"
-      ],
-      [
-        "انضباط",
-        "discipline_records"
       ],
       [
         "کارت دانش‌آموزی",
@@ -316,10 +292,6 @@
         "educational_activities"
       ],
       [
-        "قرآن و نماز",
-        "activity_programs"
-      ],
-      [
         "گزارشات",
         "cultural_reports"
       ],
@@ -362,26 +334,6 @@
       [
         "فعال‌سازی مسابقات و فعالیت‌های دانش‌آموزی",
         "module_activations"
-      ],
-      [
-        "ثبت نام اردوها و جشنواره‌ها",
-        "activity_programs"
-      ],
-      [
-        "ثبت مسابقات فرهنگی",
-        "cultural_competitions"
-      ],
-      [
-        "ثبت مسابقات هنری",
-        "art_competitions"
-      ],
-      [
-        "ثبت نام مکبر",
-        "morning_leaders"
-      ],
-      [
-        "ثبت نام قاری",
-        "qari_registration"
       ]
     ],
     "advisor": [
@@ -502,10 +454,6 @@
       [
         "جلسات والد و دبیر",
         "teacher_parent_meetings"
-      ],
-      [
-        "موارد انضباطی",
-        "discipline_records"
       ],
       [
         "کارت دانش‌آموزی",
@@ -710,10 +658,6 @@
         "finance_accounts"
       ],
       [
-        "گزارش مالی",
-        "finance_transactions"
-      ],
-      [
         "تعریف گزینه پرداخت",
         "payment_offers"
       ]
@@ -803,10 +747,6 @@
       ],
       [
         "ارسال پیام",
-        "message_targets"
-      ],
-      [
-        "مخاطبان",
         "message_targets"
       ],
       [
