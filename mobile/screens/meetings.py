@@ -605,6 +605,7 @@ class MeetingsScreen(Screen):
         for w in [student,parent,day,title,date,time,reason,desc]:
             self.body.add_widget(w)
         self._button("ثبت درخواست ملاقات",lambda *_:self._create_manager_meeting(student,parent,title,day,date,time,reason,desc),SUCCESS,48)
+        self._button("پیگیری درخواست‌ها",lambda *_:self.show_home(),PRIMARY,44)
         self._button("بازگشت",lambda *_:self.show_home(),SECONDARY,44)
 
     def _create_manager_meeting(self, student,parent,title,day,date,time,reason,desc):
@@ -622,28 +623,39 @@ class MeetingsScreen(Screen):
 
     def _manager_approve(self, rid):
         try:
-            self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
+            result = self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
                 "manager_status": "approved",
-                    "status": "manager_approved",
+                "status": "manager_approved",
+                "educational_status": "pending",
             })
+            if not result:
+                raise RuntimeError("رکورد ملاقات به‌روزرسانی نشد.")
             self._message("درخواست تأیید و برای معاون آموزشی ارجاع شد.", SUCCESS)
         except Exception as exc:
             self._message(str(exc), ERROR)
 
     def _educational_approve(self, rid, date, time):
         try:
-            self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
+            result = self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
                 "status": "confirmed",
+                "educational_status": "approved",
+                "final_date": str(date or "").strip(),
+                "final_time": str(time or "").strip(),
             })
+            if not result:
+                raise RuntimeError("رکورد ملاقات به‌روزرسانی نشد.")
             self._message("ملاقات نهایی شد و برای طرفین قابل پیگیری است.", SUCCESS)
         except Exception as exc:
             self._message(str(exc), ERROR)
 
     def _reject(self, rid):
         try:
-            self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
-                "manager_status": "rejected", "status": "rejected"
+            result = self.app_state.api.table_update("meeting_requests", {"id": f"eq.{rid}"}, {
+                "manager_status": "rejected",
+                "status": "rejected",
             })
+            if not result:
+                raise RuntimeError("رکورد ملاقات به‌روزرسانی نشد.")
             self._message("درخواست رد شد.", ERROR)
         except Exception as exc:
             self._message(str(exc), ERROR)
