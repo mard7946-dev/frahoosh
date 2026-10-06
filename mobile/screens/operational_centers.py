@@ -99,7 +99,7 @@ class OperationalCenterScreen(OpsBase):
             p={k:self.val(v) for k,v in w.items()}
             if table=="sport_competitions":p["sport_type"]=p.get("category","")
             self.api().table_insert(table,p); self.load()
-        self.form([("title","عنوان مسابقه"),("category","دسته‌بندی"),("start_date","تاریخ شروع"),("end_date","تاریخ پایان"),("registration_start_shamsi","شروع ثبت‌نام"),("registration_end_shamsi","پایان ثبت‌نام"),("description","توضیحات")],save,title)
+        fields=[("title","عنوان مسابقه"),("category","دسته‌بندی"),("start_date","تاریخ شروع"),("end_date","تاریخ پایان"),("description","توضیحات")];\n        if table in {"art_competitions","sport_competitions"}: fields += [("registration_start_shamsi","شروع ثبت‌نام"),("registration_end_shamsi","پایان ثبت‌نام")]\n        self.form(fields,save,title)
     def student_register(self):
         sid=self.student_id()
         if not sid:self.body.add_widget(self.lab("پرونده دانش‌آموز پیدا نشد.","11sp",ERROR,True,50,True));return
