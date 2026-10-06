@@ -331,79 +331,67 @@ class ExecutiveCenterScreen(Screen):
         school_name = school.get("school_name") or SCHOOL_NAME
         school_code = school.get("school_code") or ""
         academic_year = school.get("academic_year") or SCHOOL_YEAR
-        grade = student.get("grade") or "ثبت نشده"
+        grade = student.get("grade") or ""
         period = self._education_period(grade)
         request_date = school.get("request_date_shamsi") or self._today()
         full_name = f"{student.get('first_name','')} {student.get('last_name','')}".strip()
-        father_name = student.get("father_name") or "ثبت نشده"
-        birth_no = student.get("birth_certificate_no") or "ثبت نشده"
-        birth_date = student.get("birth_date") or "ثبت نشده"
-        national_code = student.get("national_code") or "ثبت نشده"
-        school_code = school_code or "ثبت نشده"
+        father_name = student.get("father_name") or ""
+        birth_no = student.get("birth_certificate_no") or ""
+        birth_date = student.get("birth_date") or ""
+        national_code = student.get("national_code") or ""
 
         self._clear()
-        self.body.add_widget(self._label("پیش‌نمایش رسمی گواهی اشتغال به تحصیل", "16sp", PRIMARY, 42, True))
+        self.body.add_widget(self._label("پیش‌نمایش گواهی اشتغال به تحصیل", "16sp", PRIMARY, 42, True))
 
-        certificate = BoxLayout(
-            orientation="vertical",
-            padding=[dp(14), dp(12)],
-            spacing=dp(4),
-            size_hint_y=None,
-        )
+        certificate = BoxLayout(orientation="vertical", padding=[dp(18), dp(14)],
+                                spacing=dp(3), size_hint_y=None)
         certificate.bind(minimum_height=certificate.setter("height"))
-        with certificate.canvas.before:
-            Color(0.22, 0.22, 0.22, 1)
-            border = Line(rectangle=(0, 0, 0, 0), width=1.2)
-            Color(1, 1, 1, 1)
-            bg = Rectangle(pos=(0, 0), size=(0, 0))
-        def sync(*_):
-            border.rectangle = (*certificate.pos, *certificate.size)
-            bg.pos = certificate.pos
-            bg.size = certificate.size
-        certificate.bind(pos=sync, size=sync)
 
         certificate.add_widget(self._label("جمهوری اسلامی ایران", "13sp", SECONDARY, 28, True))
-        certificate.add_widget(self._label("وزارت آموزش و پرورش", "12sp", SECONDARY, 26, True))
-        certificate.add_widget(self._label(f"دوره تحصیلی: {period}", "10sp", SECONDARY, 26))
-        certificate.add_widget(self._label(school_name, "12sp", SECONDARY, 30, True))
+        certificate.add_widget(self._label("وزارت آموزش وپرورش", "12sp", SECONDARY, 26, True))
+        certificate.add_widget(self._label(f"دوره تحصیلی: {period}", "11sp", SECONDARY, 28))
         certificate.add_widget(self._label("گواهی اشتغال به تحصیل", "18sp", PRIMARY, 44, True))
 
-        info = GridLayout(cols=2, spacing=dp(2), padding=dp(2), size_hint_y=None)
-        info.bind(minimum_height=info.setter("height"))
-        fields = [
-            ("نام و نام خانوادگی دانش‌آموز", full_name),
-            ("کد ملی", national_code),
-            ("نام پدر", father_name),
-            ("شماره شناسنامه", birth_no),
-            ("تاریخ تولد", birth_date),
-            ("سال تحصیلی", academic_year),
-            ("نام و کد مدرسه", f"{school_name} — {school_code}"),
-            ("پایه", grade),
-            ("دوره تحصیلی", period),
-            ("تاریخ تقاضا", request_date),
-        ]
-        for title, value in fields:
-            info.add_widget(self._label(title, "9sp", SECONDARY, 42, True))
-            info.add_widget(self._label(value, "10sp", SECONDARY, 42))
-        certificate.add_widget(info)
-
         certificate.add_widget(self._label(
-            f"بدین وسیله گواهی می‌شود که {full_name} مشغول به تحصیل می‌باشد.",
-            "10sp", SECONDARY, 38, True
+            f"شماره: ................................    بدین وسیله گواهی میشود: {full_name} کد ملی {national_code}",
+            "10sp", SECONDARY, 38
         ))
         certificate.add_widget(self._label(
-            "فقط به منظور ارائه به:  ........................................................",
-            "10sp", SECONDARY, 42
+            f"فرزند: {father_name}    شماره شناسنامه: {birth_no}    تاریخ تولد: {birth_date}",
+            "10sp", SECONDARY, 36
+        ))
+        certificate.add_widget(self._label(
+            f"سال تحصیلی: {academic_year}", "10sp", SECONDARY, 34
+        ))
+        certificate.add_widget(self._label(
+            f"در مدرسه: {school_name} ({school_code})    در پایه: {grade}",
+            "10sp", SECONDARY, 38
+        ))
+        certificate.add_widget(self._label(
+            "مشغول به تحصیل میباشد", "10sp", SECONDARY, 34, True
+        ))
+        certificate.add_widget(self._label(
+            f"این گواهی طبق تقاضای مورخ: {request_date}", "10sp", SECONDARY, 38
+        ))
+        certificate.add_widget(self._label(
+            "فقط به منظور ارائه به: ........................................................",
+            "10sp", SECONDARY, 38
+        ))
+        certificate.add_widget(self._label(
+            "صادر گردیده و فاقد هرگونه ارزش دیگری می باشد.", "10sp", SECONDARY, 36
         ))
 
-        footer = GridLayout(cols=2, spacing=dp(10), size_hint_y=None, height=dp(92))
-        footer.add_widget(self._label("تاریخ\n" + request_date, "10sp", SECONDARY, 80))
-        footer.add_widget(self._label("محل مهر و امضای مدیر مدرسه\n................................", "10sp", SECONDARY, 80, True))
+        footer = GridLayout(cols=2, spacing=dp(12), size_hint_y=None, height=dp(100))
+        footer.add_widget(self._label("تاریخ\n" + request_date, "10sp", SECONDARY, 88))
+        footer.add_widget(self._label(
+            "مهر و امضا مدیر مدرسه\n................................\n"
+            f"{school.get('principal_name') or ''}",
+            "10sp", SECONDARY, 88, True
+        ))
         certificate.add_widget(footer)
 
         self.body.add_widget(certificate)
         self.body.add_widget(self._button("بازگشت به امور اجرایی", lambda *_: self.show_home(), SECONDARY))
-
     # ------------------------------------------------------------------
     # 3) کارنامه: ردیف | درس | نمره | وضعیت
     # ------------------------------------------------------------------
