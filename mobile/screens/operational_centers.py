@@ -71,6 +71,83 @@ class OpsBase(Screen):
         n=str(getattr(self.app_state,"national_code","") or ""); rows=self.api().table_select("students",{"national_code":"eq."+n,"limit":"1"}) or []
         return int(rows[0]["id"]) if rows else None
     def sname(self,s): return (" ".join(str(s.get(k) or "").strip() for k in ("first_name","last_name")).strip() or "دانش‌آموز")
+    OPS_FIELDS = {
+        "activity_programs":[("title","عنوان"),("activity_key","کلید فعالیت"),("category","دسته‌بندی"),("amount","هزینه"),("active","فعال")],
+        "cultural_competitions":[("title","عنوان"),("category","دسته‌بندی"),("start_date","تاریخ شروع"),("end_date","تاریخ پایان"),("status","وضعیت"),("description","توضیحات")],
+        "art_competitions":[("title","عنوان"),("category","دسته‌بندی"),("start_date","تاریخ شروع"),("end_date","تاریخ پایان"),("registration_start_shamsi","شروع ثبت‌نام"),("registration_end_shamsi","پایان ثبت‌نام"),("status","وضعیت"),("description","توضیحات")],
+        "sport_competitions":[("title","عنوان"),("category","دسته‌بندی"),("sport_type","رشته ورزشی"),("participation_type","نوع مشارکت"),("start_date","تاریخ شروع"),("end_date","تاریخ پایان"),("registration_start_shamsi","شروع ثبت‌نام"),("registration_end_shamsi","پایان ثبت‌نام"),("fixed_amount","مبلغ"),("status","وضعیت"),("description","توضیحات")],
+        "activity_registrations":[("participation_type","نوع مشارکت"),("team_members","اعضای گروه"),("competition_type","نوع مسابقه"),("payment_status","وضعیت پرداخت"),("status","وضعیت")],
+        "student_council":[("position","سمت"),("election_date","تاریخ انتخابات"),("votes","رأی"),("status","وضعیت")],
+        "basij_registration":[("registration_date","تاریخ ثبت‌نام"),("status","وضعیت"),("note","یادداشت")],
+        "school_ally":[("role","مسئولیت"),("status","وضعیت")],
+        "school_mayor":[("election_date","تاریخ انتخابات"),("votes","رأی"),("status","وضعیت")],
+        "morning_leaders":[("role","نقش"),("ceremony_date","تاریخ مراسم"),("status","وضعیت")],
+        "qari_registration":[("ceremony_date","تاریخ مراسم"),("status","وضعیت")],
+        "counseling_records":[("title","عنوان جلسه"),("visit_reason","علت مراجعه"),("description","شرح جلسه"),("recommendations","توصیه‌ها"),("next_visit","پیگیری بعدی"),("status","وضعیت")],
+        "counseling_followups":[("subject","موضوع"),("description","شرح"),("followup_date","تاریخ پیگیری"),("followup_items","موارد پیگیری"),("decision","تصمیم"),("status","وضعیت")],
+        "counseling_guidance":[("grade","پایه"),("interest","علاقه‌مندی"),("aptitude","استعداد"),("recommendation","پیشنهاد"),("status","وضعیت")],
+        "student_referrals":[("referral_to","ارجاع به"),("reason","علت"),("referral_date","تاریخ ارجاع"),("status","وضعیت")],
+        "weekly_schedule":[("teacher","دبیر"),("teacher_id","شناسه دبیر"),("subject","درس"),("grade","پایه"),("class_names","کلاس‌ها"),("class_count","تعداد کلاس"),("hours","ساعت هفتگی"),("weekdays","روزهای هفته"),("bell_pattern","زنگ")],
+        "exam_schedule":[("subject","درس"),("grade","پایه"),("start_date","شروع بازه"),("end_date","پایان بازه"),("weight","ضریب"),("exam_date","تاریخ امتحان"),("duration","مدت"),("exam_start_time","شروع"),("exam_end_time","پایان")],
+        "discipline_records":[("title","مورد انضباطی"),("description","شرح"),("note","تصمیم/یادداشت"),("priority","اولویت"),("status","وضعیت")],
+        "smart_board_content":[("title","عنوان"),("content","محتوا"),("content_date_shamsi","تاریخ نمایش"),("audience_type","مخاطبان"),("active","فعال")]
+    }
+
+    def _edit_record(self,table,row,fields,title=None):
+        table=str(table)
+        fields=fields or self.OPS_FIELDS.get(table,[])
+        if not fields:
+            self.status.text=fa_display("برای این رکورد فرم ویرایش تخصصی تعریف نشده است."); self.status.color=ERROR; return
+        widgets={}
+        self.body.clear_widgets()
+        self.title.text=fa_display(title or "ویرایش رکورد")
+        self.body.add_widget(self.lab("این ویرایش مستقیماً روی همان رکورد Supabase انجام می‌شود.","10sp",SECONDARY,False,40,True))
+        for key,label in fields:
+            w=self.field(label,72 if key in {"description","content","note","recommendations","team_members"} else 46,key in {"description","content","note","recommendations","team_members"})
+            value=row.get(key)
+            if value is not None: w.text=str(value)
+            widgets[key]=w
+            self.body.add_widget(self.lab(label,"9sp",PRIMARY,True,24))
+            self.body.add_widget(w)
+        def save(_):
+            payload={k:self.val(w) for k,w in widgets.items()}
+            if table in {"activity_programs"}:
+                try: payload["amount"]=int(payload.get("amount") or 0)
+                except: payload["amount"]=0
+                payload["active"]=str(payload.get("active") or "").lower() not in {"0","false","خیر","غیرفعال"}
+            if table in {"weekly_schedule"}:
+                try: payload["class_count"]=int(payload.get("class_count") or 1); payload["hours"]=float(payload.get("hours") or 0)
+                except: pass
+            if table=="exam_schedule":
+                try: payload["duration"]=int(payload.get("duration") or 60)
+                except: payload["duration"]=60
+            try:
+                self.api().table_update(table,{"id":"eq."+str(row.get("id"))},payload)
+                self.status.text=fa_display("ویرایش در پایگاه داده ذخیره شد."); self.status.color=SUCCESS
+                self.load()
+            except Exception as exc:
+                self.status.text=fa_display("ویرایش ذخیره نشد: "+str(exc)); self.status.color=ERROR
+        self.body.add_widget(self.btn("ذخیره ویرایش واقعی",save,SUCCESS,50))
+        self.body.add_widget(self.btn("انصراف",lambda *_:self.load(),SECONDARY,42))
+
+    def _delete_record(self,table,row):
+        try:
+            self.api().table_delete(table,{"id":"eq."+str(row.get("id"))})
+            self.status.text=fa_display("رکورد از پایگاه داده حذف شد."); self.status.color=SUCCESS
+            self.load()
+        except Exception as exc:
+            self.status.text=fa_display("حذف انجام نشد: "+str(exc)); self.status.color=ERROR
+
+    def _record_card(self,table,row,summary,editable=True):
+        card=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(92),padding=dp(6),spacing=dp(3))
+        card.add_widget(self.lab(summary,"9sp",SECONDARY,False,40,True))
+        if editable:
+            actions=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(4))
+            actions.add_widget(self.btn("ویرایش",lambda *_:self._edit_record(table,dict(row)),PRIMARY,38))
+            actions.add_widget(self.btn("حذف",lambda *_:self._delete_record(table,dict(row)),ERROR,38))
+            card.add_widget(actions)
+        self.body.add_widget(card)
+
     def form(self,fields,save,title):
         self.body.clear_widgets(); self.title.text=fa_display(title); w={}
         for k,h in fields:
@@ -135,7 +212,9 @@ class OperationalCenterScreen(OpsBase):
         self.body.add_widget(self.lab("فهرست ثبت‌نام‌ها","14sp",PRIMARY,True,38,True))
         for table,label in (("activity_registrations","فعالیت‌ها"),("student_council","شورا"),("basij_registration","بسیج"),("school_ally","همیار"),("school_mayor","شهردار"),("morning_leaders","مکبر"),("qari_registration","قاری")):
             rows=self.api().table_select(table,{"order":"id.desc","limit":"50"}) or []; self.body.add_widget(self.lab(f"{label}: {len(rows)}","10sp",SECONDARY,False,30))
-            for r in rows[:15]:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('student_name') or r.get('student_id') or '-'} | {r.get('status') or '-'}","9sp",SECONDARY,False,32))
+            for r in rows[:30]:
+                name=r.get("student_name") or r.get("student_id") or "-"
+                self._record_card(table,dict(r),f"#{r.get('id')} | {name} | وضعیت: {r.get('status') or '-'}",editable=True)
 
 class CounselingCenterScreen(OpsBase):
     def counseling(self):
@@ -182,14 +261,16 @@ class CounselingCenterScreen(OpsBase):
     def list_records(self):
         for t,n in (("counseling_records","جلسات"),("counseling_followups","پیگیری‌ها"),("counseling_guidance","هدایت تحصیلی"),("student_referrals","ارجاعات")):
             rows=self.api().table_select(t,{"order":"id.desc","limit":"30"}) or [];self.body.add_widget(self.lab(f"{n}: {len(rows)}","12sp",PRIMARY,True,34))
-            for r in rows[:10]:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('student_name') or r.get('student_id') or '-'} | {r.get('title') or r.get('subject') or r.get('reason') or '-'}","9sp",SECONDARY,False,32))
+            for r in rows[:30]:
+                self._record_card(t,dict(r),f"#{r.get('id')} | {r.get('student_name') or r.get('student_id') or '-'} | {r.get('title') or r.get('subject') or r.get('reason') or '-'}",editable=True)
 
 class ScheduleCenterScreen(OpsBase):
     def schedule(self):
         self.title.text=fa_display("برنامه هفتگی مدرسه");self.body.add_widget(self.lab("جدول واقعی روز × زنگ × کلاس × درس × دبیر. هر ردیف در weekly_schedule ذخیره می‌شود.","10sp",SECONDARY,False,48,True))
         if role_of(self.app_state) in {"manager","educational"}: self.body.add_widget(self.btn("＋ ثبت ردیف برنامه",lambda *_:self.week_form(),SUCCESS,46))
         rows=self.api().table_select("weekly_schedule",{"order":"id.desc","limit":"200"}) or [];self.body.add_widget(self.lab(f"{len(rows)} ردیف ثبت شده","12sp",PRIMARY,True,34))
-        for r in rows:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('weekdays') or '-'} | {r.get('bell_pattern') or '-'} | {r.get('class_names') or '-'} | {r.get('subject') or '-'} | {r.get('teacher') or '-'}","9sp",SECONDARY,False,34))
+        for r in rows:
+            self._record_card("weekly_schedule",dict(r),f"#{r.get('id')} | {r.get('weekdays') or '-'} | {r.get('bell_pattern') or '-'} | {r.get('class_names') or '-'} | {r.get('subject') or '-'} | {r.get('teacher') or '-'}",editable=role_of(self.app_state) in {"manager","educational"})
     def week_form(self):self.form([("teacher","نام دبیر"),("teacher_id","شناسه دبیر"),("subject","درس"),("grade","پایه"),("class_names","کلاس / کلاس‌ها"),("class_count","تعداد کلاس"),("hours","ساعت هفتگی"),("weekdays","روزهای هفته"),("bell_pattern","زنگ")],self.save_week,"ثبت برنامه هفتگی")
     def save_week(self,w):
         p={k:self.val(v) for k,v in w.items()}
