@@ -66,14 +66,16 @@ class AssignmentSubmissionScreen(Screen):
         body.bind(minimum_height=body.setter("height")); self.body=body
         self.assignment_spinner=Spinner(text=fa_display("در حال دریافت…"),values=(),font_name=font_name(),font_size="11sp",size_hint_y=None,height=dp(46))
         body.add_widget(self._label("تکلیف", "10sp", PRIMARY,30,True)); body.add_widget(self.assignment_spinner)
+        self.assignment_details=self._label("شرح تکلیف دبیر پس از انتخاب نمایش داده می‌شود.","10sp",SECONDARY,90,False)
+        body.add_widget(self.assignment_details)
+        self.assignment_spinner.bind(text=lambda *_: self._show_selected_assignment())
         self.answer=PersianTextInput(hint_text=fa_display("پاسخ یا توضیح دانش‌آموز (اختیاری)"),font_name=font_name(),
                                      font_size="12sp",multiline=True,size_hint_y=None,height=dp(120),halign="right")
         body.add_widget(self._label("پاسخ", "10sp", PRIMARY,30,True)); body.add_widget(self.answer)
         self.file_label=self._label("فایلی انتخاب نشده است","10sp",SECONDARY,48,False)
         body.add_widget(self.file_label)
-        body.add_widget(self._button("گرفتن عکس از تکلیف",self.take_photo,SUCCESS,46))
-        body.add_widget(self._button("انتخاب تصویر یا PDF",self.pick_file,PRIMARY,46))
-        body.add_widget(self._button("ثبت و ارسال واقعی",self.submit,PRIMARY,48))
+        body.add_widget(self._button("اسکن / عکس از تکلیف با دوربین",self.take_photo,SUCCESS,48))
+        body.add_widget(self._button("ثبت و ارسال",self.submit,PRIMARY,48))
         body.add_widget(self._button("بازگشت",self.back,SECONDARY,42))
         scroll.add_widget(body); root.add_widget(scroll); self.add_widget(root)
 
@@ -97,8 +99,19 @@ class AssignmentSubmissionScreen(Screen):
         values=[f"#{x.get('id')} | {x.get('title') or 'تکلیف'} | {x.get('subject') or ''}" for x in self.assignments]
         self.assignment_spinner.values=tuple(fa_display(x) for x in values)
         self.assignment_spinner.text=fa_display(values[0]) if values else fa_display("تکلیف فعالی یافت نشد")
-        self.status.text=fa_display(f"{len(self.assignments)} تکلیف واقعی آماده ارسال است.")
+        self._show_selected_assignment()
+        self.status.text=fa_display(f"{len(self.assignments)} تکلیف واقعی دبیر آماده مشاهده و ارسال است.")
         self.status.color=SUCCESS if self.assignments else ERROR
+
+    def _show_selected_assignment(self):
+        row=self._selected_assignment()
+        if not row:
+            self.assignment_details.text=fa_display("تکلیف فعالی یافت نشد.")
+            return
+        teacher=row.get("teacher_name") or row.get("teacher") or row.get("teacher_id") or "دبیر"
+        detail=row.get("description") or "شرحی برای این تکلیف ثبت نشده است."
+        due=row.get("due_date") or "—"
+        self.assignment_details.text=fa_display(f"دبیر: {teacher}\nمهلت ارسال: {due}\nشرح تکلیف:\n{detail}")
 
     def _selected_assignment(self):
         value=str(self.assignment_spinner.text or "")
