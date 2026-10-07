@@ -374,8 +374,20 @@ class SchoolModulesScreen(Screen):
         self.body.add_widget(self.btn("ثبت و تأیید",lambda *_:self._confirm_consent(table,title,sid,name),SUCCESS,52))
 
     def _confirm_consent(self,table,title,sid,name):
+        if not sid:
+            raise ValueError("شناسه دانش‌آموز مشخص نیست.")
+        filters={"student_id":"eq."+str(sid),"limit":"1"}
+        if table=="khwarizmi_registrations":
+            filters["title"]="eq."+str(title)
+        if self.rows(table,filters):
+            self.status.text=fa_display("این درخواست قبلاً ثبت و تأیید شده است.")
+            self.status.color=SUCCESS
+            self.render_route()
+            return
         p={"student_id":sid,"student_name":name,"status":"confirmed"}
         if table=="khwarizmi_registrations": p.update({"title":title,"category":"جشنواره"})
+        if table=="basij_registration": p["registration_date"]=self.today()
+        if table=="student_council": p["election_year"]=SCHOOL_YEAR
         self.insert(table,p); self.status.text=fa_display("ثبت و تأیید انجام شد."); self.status.color=SUCCESS
 
     def activities(self):
@@ -704,6 +716,14 @@ class SchoolModulesScreen(Screen):
 
     def _submit_attendance(self,cls,subject,period,selects):
         p=self._period(period); teacher=self.profile().get("teacher_id") or self.profile().get("linked_teacher_id")
+        existing=self.rows("attendance_batches",{"teacher_id":"eq."+str(teacher or 0),"class_name":"eq."+str(cls),
+                                                "subject":"eq."+str(subject),"period":"eq."+str(p),
+                                                "attendance_date":"eq."+self.today(),"status":"neq.rejected","limit":"1"})
+        if existing:
+            self.status.text=fa_display("برای این کلاس، درس، زنگ و تاریخ، حضور و غیاب قبلاً ارسال شده است.")
+            self.status.color=ERROR
+            self.attendance()
+            return
         batch=self.api().table_insert("attendance_batches",{"class_name":cls,"subject":subject,"period":p,"attendance_date":self.today(),"teacher_id":teacher,"status":"submitted","submitted_at":datetime.now().isoformat()})
         if isinstance(batch,list) and batch: bid=batch[0].get("id")
         elif isinstance(batch,dict): bid=batch.get("id")
