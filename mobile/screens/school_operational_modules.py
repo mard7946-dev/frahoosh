@@ -398,16 +398,23 @@ class SchoolModulesScreen(Screen):
         self.clear("انضباط")
         role=self.role()
         if role in {"student","parent"}:
-            sid=self.student_id(); rows=self.rows("discipline_records",{"student_id":"eq."+str(sid),"order":"id.desc","limit":"100"}) if sid else []
-            self._table(["مورد انضباطی","تاریخ بی‌انضباطی","مقدار کسر نمره","وضعیت"],[[r.get("title"),r.get("incident_date") or r.get("created_at"),r.get("deduction"),r.get("status")] for r in rows]); return
+            sid=self.student_id(); rows=self.rows("discipline_records",{"student_id":"eq."+str(sid),"status":"eq.confirmed","order":"id.desc","limit":"100"}) if sid else []
+            self._table(["مورد انضباطی","تاریخ بی‌انضباطی","مقدار کسر نمره","وضعیت"],[[r.get("title"),r.get("incident_date") or r.get("created_at"),r.get("deduction"),"تأیید شده"] for r in rows]); return
         students=self.rows("students",{"order":"last_name.asc","limit":"300"})
         vals=[f"{s.get('id')} | {self.sname(s)} | {s.get('class_name') or '—'}" for s in students]
         sp=self.spin("انتخاب دانش‌آموز",vals or ["پرونده‌ای نیست"]); typ=self.field("مورد انضباطی، مثلاً تأخیر در ورود به کلاس"); date=self.field("تاریخ بی‌انضباطی"); ded=self.field("مقدار کسر نمره")
         date.text=self.today()
         for w in (sp,typ,date,ded): self.body.add_widget(w)
-        self.body.add_widget(self.btn("ثبت و تأیید",lambda *_:self._save_discipline(students,sp,typ,date,ded),SUCCESS,48))
+        self.body.add_widget(self.btn("ثبت مورد انضباطی",lambda *_:self._save_discipline(students,sp,typ,date,ded),SUCCESS,48))
         rows=self.rows("discipline_records",{"order":"id.desc","limit":"100"})
         self._table(["مورد","تاریخ","کسر نمره","وضعیت"],[[r.get("title"),r.get("incident_date") or r.get("created_at"),r.get("deduction"),r.get("status")] for r in rows])
+        if role in {"educational","manager"}:
+            pending=[r for r in rows if str(r.get("status") or "").lower()=="pending"]
+            if pending:
+                self.body.add_widget(self.lab("موارد در انتظار تأیید","10sp",PRIMARY,True,38,True))
+                for r in pending:
+                    self.body.add_widget(self.btn(f"تأیید: {r.get('title') or 'مورد انضباطی'} | دانش‌آموز {r.get('student_id')}",
+                        lambda *_a,x=dict(r):self._approve_discipline(x),SUCCESS,44))
 
     def _save_discipline(self,students,sp,typ,date,ded):
         try:
@@ -418,15 +425,23 @@ class SchoolModulesScreen(Screen):
             teacher_id=self.profile().get("teacher_id") or self.profile().get("linked_teacher_id")
             self.insert("discipline_records",{"student_id":s.get("id"),"teacher_id":teacher_id,
                          "title":self.val(typ),"incident_date":self.val(date) or self.today(),
-                         "deduction":float(self.val(ded) or 0),"status":"confirmed",
+                         "deduction":float(self.val(ded) or 0),"status":"pending",
                          "actor_username":self.profile().get("username"),"actor_role":self.role()})
-            self.status.text=fa_display("مورد انضباطی ثبت و تأیید شد و در سوابق دانش‌آموز قرار گرفت.")
+            self.status.text=fa_display("مورد انضباطی ثبت شد و برای تأیید معاون آموزشی ارسال شد.")
             self.status.color=SUCCESS
             self.discipline()
         except Exception as exc:
             self.status.text=fa_display("ثبت مورد انضباطی انجام نشد: "+str(exc))
             self.status.color=(.8,.15,.15,1)
             print("DISCIPLINE SAVE ERROR:",repr(exc))
+
+    def _approve_discipline(self,row):
+        rid=row.get("id")
+        if not rid: raise ValueError("شناسه مورد انضباطی مشخص نیست.")
+        actor=self.profile().get("username") or self.profile().get("national_code") or ""
+        self.update("discipline_records",{"id":"eq."+str(rid)},{"status":"confirmed","actor_username":actor,"actor_role":self.role()})
+        self.status.text=fa_display("مورد انضباطی تأیید شد و در سوابق دانش‌آموز قرار گرفت."); self.status.color=SUCCESS
+        self.discipline()
 
     def counseling(self):
         self.clear("پنل مشاوره")
