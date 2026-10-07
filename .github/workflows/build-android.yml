@@ -6,6 +6,9 @@ on:
     branches:
       - main
       - fix/login-account-resolution
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
