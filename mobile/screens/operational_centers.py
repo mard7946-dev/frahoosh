@@ -417,9 +417,18 @@ class CounselingCenterScreen(OpsBase):
         p={k:self.val(v) for k,v in w.items()};p["active"]=True;self.insert("counselor_board",p);self.load()
     def list_records(self):
         for t,n in (("counseling_records","جلسات"),("counseling_followups","پیگیری‌ها"),("counseling_guidance","هدایت تحصیلی"),("student_referrals","ارجاعات")):
-            rows=self.api().table_select(t,{"order":"id.desc","limit":"30"}) or [];self.body.add_widget(self.lab(f"{n}: {len(rows)}","12sp",PRIMARY,True,34))
-            for r in rows[:30]:
-                self._record_card(t,dict(r),f"#{r.get('id')} | {r.get('student_name') or r.get('student_id') or '-'} | {r.get('title') or r.get('subject') or r.get('reason') or '-'}",editable=True)
+            rows=self.api().table_select(t,{"order":"id.desc","limit":"30"}) or []
+            self.body.add_widget(self.lab(f"{n}: {len(rows)}","12sp",PRIMARY,True,34))
+            if t=="counseling_records":
+                self._table(["دانش‌آموز","علت","تاریخ","اقدامات","جلسه بعد","روند","نتیجه"],[
+                    [r.get("student_name") or r.get("student_id") or "-",r.get("visit_reason") or "-",r.get("session_date") or "-",r.get("actions_taken") or "-",r.get("next_visit") or "-",r.get("progress") or "-",r.get("result") or "-"]
+                    for r in rows[:30]
+                ])
+                for r in rows[:30]:
+                    self._record_card(t,dict(r),f"#{r.get('id')} | {r.get('student_name') or r.get('student_id') or '-'}",editable=True)
+            else:
+                for r in rows[:30]:
+                    self._record_card(t,dict(r),f"#{r.get('id')} | {r.get('student_name') or r.get('student_id') or '-'} | {r.get('title') or r.get('subject') or r.get('reason') or '-'}",editable=True)
 
 class ScheduleCenterScreen(OpsBase):
     def schedule(self):
