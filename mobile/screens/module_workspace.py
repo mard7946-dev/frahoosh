@@ -1914,6 +1914,7 @@ class ModuleWorkspaceScreen(Screen):
         # bypassed: it was a duplicate path with no attendance batch/period
         # workflow and an incomplete discipline approval UI.
         # Final production route: one verified operational path per module.
+        # Build verification is performed from the exact source tree merged to main.
         # "نمونه کلاس هوشمند" is an interactive classroom, not a Supabase table.
         # Route it directly to the real classroom screen so the generic table
         # loader does not query a non-table key and show "خطا در نمایش اطلاعات".
