@@ -149,6 +149,7 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 "counselor_board": "counselor_board",
                 "cultural_reports": "cultural_reports",
                 "ai_smart_reports": "cultural_reports",
+                "messages": "messages",
             }
             if table in school_routes:
                 from mobile.screens.school_operational_modules import SchoolModulesScreen
