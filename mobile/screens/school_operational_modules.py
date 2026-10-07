@@ -156,28 +156,53 @@ class SchoolModulesScreen(Screen):
 
     def grades(self):
         self.clear("کارنامه / نمرات")
-        role=self.role(); can=role in {"teacher","manager","educational"}
+        role=self.role()
+        can_write=role in {"teacher","manager","educational"}
         self.body.add_widget(self.lab("ردیف | درس | نوع آزمون | نام آزمون | نمره کل | نمره کسب‌شده","10sp",PRIMARY,True,44,True))
-        if can:
-            self.body.add_widget(self.lab("ثبت نمره برای دبیر فعال است؛ محدودیت درس/دبیر در Supabase اعمال می‌شود.","9sp",SECONDARY,False,42,True))
-            sid=self.field("شناسه دانش‌آموز"); subject=self.field("نام درس"); typ=self.field("نوع آزمون، مثلاً شفاهی"); exam=self.field("نام آزمون")
-            maxs=self.field("نمره کل آزمون"); score=self.field("نمره کسب‌شده"); cls=self.field("کلاس")
+        if can_write:
+            self.body.add_widget(self.lab("ثبت و ویرایش نمره فقط در محدوده دبیر/درس/کلاس مجاز انجام می‌شود؛ محدودیت اصلی در RLS اعمال می‌شود.","9sp",SECONDARY,False,42,True))
+            sid=self.field("شناسه دانش‌آموز")
+            subject=self.field("نام درس")
+            typ=self.field("نوع آزمون")
+            exam=self.field("نام آزمون")
+            maxs=self.field("نمره کل آزمون")
+            score=self.field("نمره کسب‌شده")
+            cls=self.field("کلاس")
             for w in (sid,subject,typ,exam,maxs,score,cls): self.body.add_widget(w)
             self.body.add_widget(self.btn("ثبت نمره",lambda *_:self._save_grade(sid,subject,typ,exam,maxs,score,cls),SUCCESS,48))
-        grade_params={"select":"id,student_id,subject,grade_type,exam_name,max_score,score,class_name,source_grade_id","order":"id.desc","limit":"300"}
+
+        grade_params={"select":"id,student_id,subject,grade_type,exam_name,max_score,score,class_name,source_grade_id",
+                      "order":"id.desc","limit":"300"}
         if role in {"student","parent"}:
             sid=self.student_id()
             if sid: grade_params["student_id"]="eq."+str(sid)
         data=self.rows("grades",grade_params)
         if not data:
-            self.body.add_widget(self.lab("هنوز نمره‌ای ثبت نشده است.","10sp",SECONDARY,False,44,True)); return
+            self.body.add_widget(self.lab("هنوز نمره‌ای ثبت نشده است.","10sp",SECONDARY,False,44,True))
+            return
+
+        grid=GridLayout(cols=6,spacing=dp(2),size_hint_y=None)
+        grid.bind(minimum_height=grid.setter("height"))
+        for header in ("ردیف","درس","نوع آزمون","نام آزمون","نمره کل","نمره کسب‌شده"):
+            grid.add_widget(self.lab(header,"8sp",WHITE,True,42,True))
         for i,r in enumerate(data,1):
-            row=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(3))
-            row.add_widget(self.lab(f"{i} | {r.get('subject') or '—'} | {r.get('grade_type') or '—'} | {r.get('exam_name') or '—'} | {r.get('max_score') or '—'} | {r.get('score') or '—'}","9sp",SECONDARY,False,44,False))
-            if can:
+            values=(i,r.get("subject") or "—",r.get("grade_type") or "—",r.get("exam_name") or "—",
+                    r.get("max_score") if r.get("max_score") is not None else "—",
+                    r.get("score") if r.get("score") is not None else "—")
+            for value in values:
+                grid.add_widget(self.lab(str(value),"8sp",SECONDARY,False,46,True))
+        self.body.add_widget(grid)
+
+        if can_write:
+            self.body.add_widget(self.lab("مدیریت نمرات","10sp",PRIMARY,True,38,True))
+            for r in data:
+                row=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(3))
+                row.add_widget(self.lab(
+                    f"{r.get('subject') or '—'} | {r.get('grade_type') or '—'} | {r.get('exam_name') or '—'} | {r.get('score') or '—'}",
+                    "9sp",SECONDARY,False,44,False))
                 row.add_widget(self.btn("ویرایش",lambda *_a,x=dict(r):self._edit_grade(x),PRIMARY,42))
                 row.add_widget(self.btn("حذف",lambda *_a,x=dict(r):self._delete_row("grades",x.get("id"),self.grades),ERROR,42))
-            self.body.add_widget(row)
+                self.body.add_widget(row)
 
     def _edit_grade(self,row):
         sid=self.field("شناسه دانش‌آموز"); subject=self.field("نام درس"); typ=self.field("نوع آزمون"); exam=self.field("نام آزمون")
