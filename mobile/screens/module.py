@@ -188,14 +188,21 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 return screen
 
             # These workflows are not generic CRUD tables. They have dedicated UX.
+            # Finance must be created through ensure_finance(), not only looked up
+            # through ensure_special_module(), otherwise a fresh app can fall back
+            # to the generic "ready" workspace instead of opening accounting.
+            if table in {"finance", "finance_accounts", "finance_transactions"} and app is not None:
+                screen = app.ensure_finance() if hasattr(app, "ensure_finance") else None
+                if screen is not None and self.manager is not None:
+                    self.manager.current = screen.name
+                    return screen
+
             special_modes = {
                 "attendance": "attendance",
                 "discipline_records": "discipline",
                 "report_cards": "report_cards",
                 "monthly_report_cards": "report_cards",
                 "parent_children": "parent_children",
-                "finance_accounts": "finance",
-                "finance_transactions": "finance",
             }
             if table in special_modes and app is not None and hasattr(app, "ensure_special_module"):
                 screen = app.ensure_special_module(special_modes[table])
