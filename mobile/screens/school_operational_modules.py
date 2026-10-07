@@ -153,7 +153,7 @@ class SchoolModulesScreen(Screen):
     def grades(self):
         self.clear("کارنامه / نمرات")
         role=self.role(); can=role in {"teacher","manager","educational"}
-        self.body.add_widget(self.lab("ردیف | نام درس | نوع آزمون | نمره کل آزمون | نمره کسب‌شده","10sp",PRIMARY,True,44,True))
+        self.body.add_widget(self.lab("ردیف | درس | نوع آزمون | نام آزمون | نمره کل | نمره کسب‌شده","10sp",PRIMARY,True,44,True))
         if can:
             self.body.add_widget(self.lab("ثبت نمره برای دبیر فعال است؛ محدودیت درس/دبیر در Supabase اعمال می‌شود.","9sp",SECONDARY,False,42,True))
             sid=self.field("شناسه دانش‌آموز"); subject=self.field("نام درس"); typ=self.field("نوع آزمون، مثلاً شفاهی"); exam=self.field("نام آزمون")
@@ -169,7 +169,7 @@ class SchoolModulesScreen(Screen):
             self.body.add_widget(self.lab("هنوز نمره‌ای ثبت نشده است.","10sp",SECONDARY,False,44,True)); return
         for i,r in enumerate(data,1):
             row=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(3))
-            row.add_widget(self.lab(f"{i} | {r.get('subject') or '—'} | {r.get('grade_type') or r.get('exam_name') or '—'} | {r.get('max_score') or '—'} | {r.get('score') or '—'}","9sp",SECONDARY,False,44,False))
+            row.add_widget(self.lab(f"{i} | {r.get('subject') or '—'} | {r.get('grade_type') or '—'} | {r.get('exam_name') or '—'} | {r.get('max_score') or '—'} | {r.get('score') or '—'}","9sp",SECONDARY,False,44,False))
             if can:
                 row.add_widget(self.btn("ویرایش",lambda *_a,x=dict(r):self._edit_grade(x),PRIMARY,42))
                 row.add_widget(self.btn("حذف",lambda *_a,x=dict(r):self._delete_row("grades",x.get("id"),self.grades),ERROR,42))
@@ -593,7 +593,7 @@ class SchoolModulesScreen(Screen):
         self.clear("حضور و غیاب")
         role=self.role()
         if role=="teacher": return self.attendance_teacher()
-        if role in {"educational","manager"}: return self.attendance_approval()
+        if role in {"educational","executive","manager"}: return self.attendance_approval()
         sid=self.student_id()
         rows=self.rows("attendance",{"student_id":"eq."+str(sid),"approval_status":"eq.approved","order":"attendance_date.desc","limit":"100"}) if sid else []
         self.body.add_widget(self.lab("سوابق فقط پس از تأیید معاون آموزشی نمایش داده می‌شود.","10sp",PRIMARY,True,44,True))
@@ -638,7 +638,7 @@ class SchoolModulesScreen(Screen):
 
     def _submit_attendance(self,cls,subject,period,selects):
         p=self._period(period); teacher=self.profile().get("teacher_id") or self.profile().get("linked_teacher_id")
-        batch=self.api().table_insert("attendance_batches",{"class_name":cls,"subject":subject,"period":p,"attendance_date":self.today(),"teacher_id":teacher,"status":"submitted","submitted_at":datetime.now().isoformat()})
+        batch=self.api().table_insert("attendance_batches",{"class_name":cls,"subject":subject,"period":p,"attendance_date":self.today(),"teacher_id":teacher,"status":"pending","submitted_at":datetime.now().isoformat()})
         if isinstance(batch,list) and batch: bid=batch[0].get("id")
         elif isinstance(batch,dict): bid=batch.get("id")
         else: bid=None
@@ -653,7 +653,7 @@ class SchoolModulesScreen(Screen):
         self.attendance()
 
     def attendance_approval(self):
-        batches=self.rows("attendance_batches",{"status":"eq.submitted","order":"id.desc","limit":"100"})
+        batches=self.rows("attendance_batches",{"status":"eq.pending","order":"id.desc","limit":"100"})
         if not batches:self.body.add_widget(self.lab("موردی در انتظار تأیید نیست.","10sp",SECONDARY,False,50,True)); return
         for b in batches:
             self.body.add_widget(self.lab(f"{b.get('class_name')} | {b.get('subject')} | {b.get('attendance_date')} | {BELL_LABELS.get(int(b.get('period') or 0), 'زنگ '+str(b.get('period')))}","10sp",PRIMARY,True,42))
