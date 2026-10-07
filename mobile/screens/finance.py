@@ -109,27 +109,68 @@ class FinanceScreen(Screen):
 
     def new_transaction(self):
         self.body.clear_widgets(); self.title.text=fa_display("ثبت سند مالی")
+        doc_no=self._field("شماره سند")
         title=self._field("شرح سند؛ مثال خرید لوازم آموزشی"); amount=self._field("مبلغ")
-        typ=self._field("نوع؛ درآمد / هزینه / انتقال"); cat=self._field("دسته‌بندی")
+        typ=self._field("نوع سند؛ درآمد / هزینه / انتقال"); cat=self._field("دسته‌بندی")
         date=self._field("تاریخ تراکنش؛ مثال 1405/07/15"); inv=self._field("شماره فاکتور")
         counter=self._field("طرف حساب"); desc=self._field("توضیحات",70)
         self._label("برای سند دوبل: یکی از بدهکار/بستانکار را در مرحله بعد از ثبت دفتر تکمیل کنید. فاکتور یا تصویر چک را نیز می‌توانید به سند پیوست کنید.",62,"10sp")
-        self._button("ثبت سند",lambda *_:self._save_tx(title,amount,typ,cat,date,inv,counter,desc),SUCCESS)
+        self._button("ثبت سند",lambda *_:self._save_tx(doc_no,title,amount,typ,cat,date,inv,counter,desc),SUCCESS)
         self._button("بازگشت",lambda *_:self.home(),SECONDARY)
-    def _save_tx(self,title,amount,typ,cat,date,inv,counter,desc):
+    def _save_tx(self,doc_no,title,amount,typ,cat,date,inv,counter,desc):
         try:a=float(str(amount.text).replace(",","").strip())
         except:return self._error("مبلغ معتبر نیست.")
         if a<=0 or not title.text.strip():return self._error("شرح و مبلغ الزامی است.")
         try:
-            rows=self.app_state.api.table_insert("finance_transactions",{"transaction_type":typ.text.strip() or "expense","title":title.text.strip(),"amount":a,"category":cat.text.strip(),"description":desc.text.strip(),"transaction_date":date.text.strip(),"invoice_number":inv.text.strip(),"counterparty":counter.text.strip(),"debit":a if (typ.text.strip() or "expense") in ("expense","debit") else 0,"credit":a if (typ.text.strip() or "expense") in ("income","credit") else 0})
+            rows=self.app_state.api.table_insert("finance_transactions",{"document_number":doc_no.text.strip(),"transaction_type":typ.text.strip() or "expense","title":title.text.strip(),"amount":a,"category":cat.text.strip(),"description":desc.text.strip(),"transaction_date":date.text.strip(),"invoice_number":inv.text.strip(),"counterparty":counter.text.strip(),"debit":a if (typ.text.strip() or "expense") in ("expense","debit") else 0,"credit":a if (typ.text.strip() or "expense") in ("income","credit") else 0})
             self._tx_id=int(rows[0]["id"] if isinstance(rows,list) else rows["id"]); self._ok("سند ثبت شد."); self.attach()
         except Exception as e:self._error("ثبت سند انجام نشد: "+str(e))
 
     def attach(self):
         self.body.clear_widgets(); self.title.text=fa_display("پیوست سند مالی")
         self._label("تصویر فاکتور، رسید، چک یا PDF را انتخاب کنید. فایل در فضای خصوصی مالی مدرسه ذخیره می‌شود.",65,"11sp",PRIMARY)
-        self._button("انتخاب تصویر / PDF",lambda *_:self._pick_file(),SUCCESS)
+        self._button("اسکن / عکس از سند با دوربین",lambda *_:self._take_document_photo(),SUCCESS)
+        self._button("انتخاب تصویر / PDF",lambda *_:self._pick_file(),PRIMARY)
         self._button("بدون پیوست؛ بازگشت به دفتر",lambda *_:self.transactions(),SECONDARY)
+
+    def _take_document_photo(self):
+        try:
+            from android import activity
+            from jnius import autoclass, cast
+            PythonActivity=autoclass("org.kivy.android.PythonActivity")
+            Intent=autoclass("android.content.Intent")
+            Activity=autoclass("android.app.Activity")
+            Bitmap=autoclass("android.graphics.Bitmap")
+            current=cast("android.app.Activity",PythonActivity.mActivity)
+            request_code=7421
+            def on_result(code,result,intent):
+                try: activity.unbind(on_activity_result=on_result)
+                except Exception: pass
+                if code!=request_code or result!=Activity.RESULT_OK or intent is None: return
+                try:
+                    extras=intent.getExtras()
+                    bitmap=extras.get("data") if extras is not None else None
+                    if bitmap is None: raise RuntimeError("عکس سند دریافت نشد.")
+                    from java.io import ByteArrayOutputStream
+                    out=ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.JPEG,90,out)
+                    data=bytes(out.toByteArray())
+                    name="finance-document.jpg"
+                    uid=str(getattr(self.app_state,"user_id","") or getattr(self.app_state,"national_code","") or "staff")
+                    object_path=f"{uid}/finance/{self._tx_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
+                    self.app_state.api.storage_upload("finance-documents",object_path,data,"image/jpeg")
+                    self.app_state.api.table_insert("finance_transaction_attachments",{"transaction_id":self._tx_id,"file_path":object_path,"file_name":name,"mime_type":"image/jpeg","created_by":str(getattr(self.app_state,"national_code","") or "")})
+                    self._ok("عکس سند با دوربین ثبت و به سند مالی پیوست شد.")
+                    self.transactions()
+                except Exception as exc:
+                    self._error("ثبت عکس سند انجام نشد: "+str(exc))
+            activity.bind(on_activity_result=on_result)
+            intent=Intent(Intent.ACTION_IMAGE_CAPTURE)
+            if not intent.resolveActivity(current.getPackageManager()):
+                raise RuntimeError("دوربین روی دستگاه در دسترس نیست.")
+            current.startActivityForResult(intent,request_code)
+        except Exception as exc:
+            self._error("دوربین در این دستگاه در دسترس نیست: "+str(exc))
 
     def _pick_file(self):
         chooser=FileChooserListView(path=str(Path.home()),filters=["*.jpg","*.jpeg","*.png","*.webp","*.pdf"],multiselect=False)
@@ -156,10 +197,10 @@ class FinanceScreen(Screen):
             rows=self.app_state.api.table_select("finance_transactions",{"order":"id.desc","limit":"500"})
             total_d=sum(float(r.get("debit") or 0) for r in rows); total_c=sum(float(r.get("credit") or 0) for r in rows)
             self._label(f"جمع بدهکار: {total_d:,.0f} | جمع بستانکار: {total_c:,.0f} | مانده: {total_c-total_d:,.0f}",60,"13sp",PRIMARY)
-            for r in rows:
+            for idx,r in enumerate(rows,1):
                 at=self.app_state.api.table_select("finance_transaction_attachments",{"transaction_id":f"eq.{r.get('id')}","limit":"20"})
-                self._label(f"#{r.get('id')} | {r.get('title','')}\nمبلغ {r.get('amount',0)} | بدهکار {r.get('debit',0)} | بستانکار {r.get('credit',0)} | فاکتور {r.get('invoice_number','')}\nپیوست: {len(at)} فایل",84)
-            fields=["id","transaction_type","title","amount","category","transaction_date","invoice_number","counterparty","debit","credit","description"]
+                self._label(f"{idx} | شماره سند: {r.get('document_number') or r.get('invoice_number') or '—'} | نوع سند: {r.get('transaction_type') or '—'}\nمبلغ: {r.get('amount',0)} | بستانکار: {r.get('credit',0)} | بدهکار: {r.get('debit',0)} | اسکن سند: {len(at)} فایل",84)
+            fields=["id","document_number","transaction_type","title","amount","category","transaction_date","invoice_number","counterparty","debit","credit","description"]
             if rows:
                 self._button("خروجی Excel دفتر مالی",lambda *_:self._export_file(rows,fields,"excel","دفتر_مالی"),SUCCESS)
                 self._button("خروجی PDF دفتر مالی",lambda *_:self._export_file(rows,fields,"pdf","دفتر_مالی"),PRIMARY)
