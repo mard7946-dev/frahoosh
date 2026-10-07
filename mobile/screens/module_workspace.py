@@ -1673,7 +1673,7 @@ class ModuleWorkspaceScreen(Screen):
         # The executive deputy has dedicated workflows for the six operational
         # areas; do not route these to the generic read-only table viewer.
         if role in {"executive", "معاون اجرایی"} and logical_table in {
-            "students", "certificate_requests", "report_cards", "class_seat_assignments",
+            "certificate_requests", "report_cards", "class_seat_assignments",
             "exam_seat_assignments", "executive_requests"
         }:
             try:
