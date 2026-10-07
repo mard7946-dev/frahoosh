@@ -157,11 +157,34 @@ class SchoolModulesScreen(Screen):
             maxs=self.field("نمره کل آزمون"); score=self.field("نمره کسب‌شده"); cls=self.field("کلاس")
             for w in (sid,subject,typ,exam,maxs,score,cls): self.body.add_widget(w)
             self.body.add_widget(self.btn("ثبت نمره",lambda *_:self._save_grade(sid,subject,typ,exam,maxs,score,cls),SUCCESS,48))
-        data=self.rows("grades",{"select":"id,subject,grade_type,exam_name,max_score,score","order":"id.desc","limit":"300"})
+        data=self.rows("grades",{"select":"id,student_id,subject,grade_type,exam_name,max_score,score,class_name","order":"id.desc","limit":"300"})
         if not data:
             self.body.add_widget(self.lab("هنوز نمره‌ای ثبت نشده است.","10sp",SECONDARY,False,44,True)); return
-        self._table(["ردیف","نام درس","نوع آزمون","نمره کل آزمون","نمره کسب‌شده"],
-                    [[i,r.get("subject"),r.get("grade_type") or r.get("exam_name"),r.get("max_score"),r.get("score")] for i,r in enumerate(data,1)])
+        for i,r in enumerate(data,1):
+            row=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(3))
+            row.add_widget(self.lab(f"{i} | {r.get('subject') or '—'} | {r.get('grade_type') or r.get('exam_name') or '—'} | {r.get('max_score') or '—'} | {r.get('score') or '—'}","9sp",SECONDARY,False,44,False))
+            if can:
+                row.add_widget(self.btn("ویرایش",lambda *_a,x=dict(r):self._edit_grade(x),PRIMARY,42))
+                row.add_widget(self.btn("حذف",lambda *_a,x=dict(r):self._delete_row("grades",x.get("id"),self.grades),ERROR,42))
+            self.body.add_widget(row)
+
+    def _edit_grade(self,row):
+        sid=self.field("شناسه دانش‌آموز"); subject=self.field("نام درس"); typ=self.field("نوع آزمون"); exam=self.field("نام آزمون")
+        maxs=self.field("نمره کل آزمون"); score=self.field("نمره کسب‌شده"); cls=self.field("کلاس")
+        for w,v in ((sid,row.get("student_id")),(subject,row.get("subject")),(typ,row.get("grade_type")),(exam,row.get("exam_name")),(maxs,row.get("max_score")),(score,row.get("score")),(cls,row.get("class_name"))):
+            w.text=str(v or ""); self.body.add_widget(w)
+        self.body.add_widget(self.btn("ذخیره ویرایش",lambda *_:self._update_grade(row,sid,subject,typ,exam,maxs,score,cls),SUCCESS,48))
+
+    def _update_grade(self,row,sid,subject,typ,exam,maxs,score,cls):
+        payload={"student_id":int(self.val(sid)),"subject":self.val(subject),"grade_type":self.val(typ),"exam_name":self.val(exam),
+                 "max_score":float(self.val(maxs) or 0),"score":float(self.val(score) or 0),"class_name":self.val(cls)}
+        self.update("grades",{"id":"eq."+str(row.get("id"))},payload); self.grades()
+
+    def _delete_row(self,table,rid,refresh):
+        if not rid: raise ValueError("شناسه رکورد مشخص نیست.")
+        self.api().table_delete(table,{"id":"eq."+str(rid)})
+        self.status.text=fa_display("رکورد با موفقیت حذف شد."); self.status.color=SUCCESS
+        refresh()
 
     def _save_grade(self,sid,subject,typ,exam,maxs,score,cls):
         if not self.val(subject) or not self.val(sid): raise ValueError("شناسه دانش‌آموز و نام درس الزامی است.")
