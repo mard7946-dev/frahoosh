@@ -2010,7 +2010,7 @@ class ModuleWorkspaceScreen(Screen):
                     row1.add_widget(self.btn("ویرایش",_guard_write(self._edit_selected_row),PRIMARY,dp(38)))
                     row1.add_widget(self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1),dp(38)))
                     row1.add_widget(self.btn("خروجی اکسل",lambda *_:self.export_excel(),(0.08,.42,.62,1),dp(38)))
-                    row2.add_widget(self.btn("ورودی اکسل",_guard_write(self.import_excel),(0.42,.30,.62,1),dp(38)))
+                    row2.add_widget(self.btn("ورودی اکسل اطلاعات هویتی" if table == "students" else "ورودی اکسل",_guard_write(self.import_excel),(0.42,.30,.62,1),dp(38)))
                     row2.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.64,1),dp(38)))
                     row2.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
                     bar.add_widget(row1); bar.add_widget(row2)
