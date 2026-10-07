@@ -1663,6 +1663,70 @@ class ModuleWorkspaceScreen(Screen):
         except Exception as exc:
             self.message("ارسال تکلیف", "حذف ارسال تکلیف انجام نشد: "+str(exc))
 
+    def _message_sender_email(self):
+        profile = dict(getattr(self.app_state, "profile", {}) or {})
+        email = str(profile.get("email") or "").strip()
+        if email:
+            return email
+        username = str(profile.get("username") or profile.get("national_code") or "").strip()
+        if username:
+            try:
+                rows = self.app_state.api.table_select("account_settings", {"username":"eq."+username, "limit":"1"}) or []
+                if rows and rows[0].get("email"):
+                    return str(rows[0]["email"]).strip()
+            except Exception as exc:
+                print("MESSAGE SENDER LOOKUP ERROR:", repr(exc))
+        return ""
+
+    def open_message_center(self):
+        self.table = "messages"
+        self.body.clear_widgets()
+        self.title.text = fa_display("صندوق پیام و ارسال پیام")
+        root = BoxLayout(orientation="vertical", spacing=dp(6), padding=dp(5))
+        root.add_widget(self.btn("زیرپنل‌ها", self._back_to_submenus, PRIMARY, dp(40), dp(82)))
+        root.add_widget(self.label("ارسال پیام مستقیم", "16sp", PRIMARY, True, "center"))
+        receiver = self.field("ایمیل گیرنده", 44, False)
+        title = self.field("عنوان پیام", 44, False)
+        body = self.field("متن پیام", 110, True)
+        root.add_widget(receiver); root.add_widget(title); root.add_widget(body)
+        root.add_widget(self.btn("ارسال پیام", lambda *_: self._send_message(receiver, title, body), SUCCESS, dp(46)))
+        root.add_widget(self.label("پیام‌های اخیر", "12sp", PRIMARY, True, 34, True))
+        self.body.add_widget(root)
+        self.area = BoxLayout(orientation="vertical")
+        self.body.add_widget(self.area)
+        self._load_message_inbox()
+
+    def _send_message(self, receiver, title, body):
+        sender = self._message_sender_email()
+        target = self.val(receiver)
+        subject = self.val(title)
+        text_value = self.val(body)
+        if not sender:
+            raise ValueError("ایمیل حساب فرستنده در پروفایل ثبت نشده است.")
+        if not target or "@" not in target:
+            raise ValueError("ایمیل گیرنده را وارد کنید.")
+        if not subject or not text_value:
+            raise ValueError("عنوان و متن پیام الزامی است.")
+        payload = {"sender":sender,"receiver":target,"title":subject,"body":text_value,
+                   "text":text_value,"audience_type":"direct","audience_value":target,
+                   "sender_name":str((getattr(self.app_state,"profile",{}) or {}).get("display_name") or sender)}
+        self.insert("messages", payload)
+        self.status.text = fa_display("پیام با موفقیت برای گیرنده ارسال شد.")
+        self.status.color = SUCCESS
+        receiver.text = ""; title.text = ""; body.text = ""
+        self._load_message_inbox()
+
+    def _load_message_inbox(self):
+        try:
+            rows = self.app_state.api.table_select("messages", {"order":"id.desc","limit":"25"}) or []
+        except Exception as exc:
+            self.area.clear_widgets()
+            self.area.add_widget(self.label("دریافت پیام‌ها با خطا روبه‌رو شد: "+str(exc), "10sp", SECONDARY, False, 50, True))
+            return
+        self.area.clear_widgets()
+        self._table(["فرستنده","گیرنده","عنوان","متن","تاریخ"],
+                    [[r.get("sender"),r.get("receiver"),r.get("title"),r.get("body"),r.get("created_at")] for r in rows])
+
     def open_table(self,table,refresh_subbar=True):
         # Student and parent accounts are consumer/read-only roles. Their
         # dashboard exposes only assignments/messages (student) and
@@ -1670,6 +1734,9 @@ class ModuleWorkspaceScreen(Screen):
         # workflows so they can never reach a staff CRUD screen.
         role = self.role()
         logical_table = str(table or "").strip()
+        if logical_table in {"messages", "message_targets"}:
+            self.open_message_center()
+            return self
         # The executive deputy has dedicated workflows for the six operational
         # areas; do not route these to the generic read-only table viewer.
         if role in {"executive", "معاون اجرایی"} and logical_table in {
