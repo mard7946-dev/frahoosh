@@ -14,7 +14,7 @@ from kivy.uix.spinner import Spinner
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, SCHOOL_NAME, SCHOOL_YEAR
 from mobile.ui import font_name, fa_display, PersianTextInput
 
-ALIASES={"management":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager","educational":"educational","معاون آموزشی":"educational","معاونت آموزشی":"educational","executive":"executive","معاون اجرایی":"executive","معاونت اجرایی":"executive","cultural":"cultural","معاون پرورشی":"cultural","معاونت پرورشی":"cultural","advisor":"advisor","counselor":"advisor","مشاور":"advisor","مشاوره":"advisor","teacher":"teacher","teachers":"teacher","دبیر":"teacher","student":"student","دانش‌آموز":"student","دانش آموز":"student","parent":"parent","parents":"parent","ولی":"parent","اولیا":"parent"}
+ALIASES={"management":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager","educational":"educational","معاون آموزشی":"educational","معاونت آموزشی":"educational","executive":"executive","معاون اجرایی":"executive","معاونت اجرایی":"executive","cultural":"cultural","معاون پرورشی":"cultural","معاونت پرورشی":"cultural","advisor":"advisor","counselor":"advisor","مشاور":"advisor","مشاوره":"advisor","teacher":"teacher","teachers":"teacher","دبیر":"teacher","student":"student","دانش‌آموز":"student","دانش آموز":"student","parent":"parent","parents":"parent","ولی":"parent","اولیا":"parent","accountant":"finance","حسابدار":"finance","حسابدار مدرسه":"finance"}
 
 def role_of(state):
     p=str(getattr(state,"panel_role","") or "").strip().lower()
@@ -612,11 +612,12 @@ class CardsCenterScreen(OpsBase):
 
 class OpsRouter:
     # Specialized modules provide parity with the Web operational contract.
-    SCHOOL_ROUTES={"grades","student_grades","report_cards","student_cards","weekly_schedule","exam_schedule","exam_seat_assignments","activity_offers","activity_registrations","student_council","basij_registration","school_ally","school_mayor","khwarizmi_registrations","educational_activities","parent_activities","transport_requests","discipline_records","counseling_records","attendance"}
+    SCHOOL_ROUTES={"grades","student_grades","report_cards","student_cards","weekly_schedule","exam_schedule","exam_seat_assignments","activity_offers","activity_registrations","student_council","basij_registration","school_ally","school_mayor","khwarizmi_registrations","educational_activities","parent_activities","transport_requests","discipline_records","counseling_records","attendance","competitions","festivals"}
     MAP={"activity_programs":"activities","activity_offers":"activities","activity_registrations":"activities","cultural_activity_registrations":"activities","competitions":"activities","cultural_competitions":"activities","art_competitions":"activities","sport_competitions":"activities","student_council":"activities","basij_registration":"activities","school_ally":"activities","school_mayor":"activities","morning_leaders":"activities","qari_registration":"activities","khwarizmi_registrations":"activities","counseling_records":"counseling","counseling_followups":"counseling","counseling_guidance":"counseling","student_referrals":"counseling","counselor_board":"counseling","weekly_schedule":"schedule","generated_weekly_schedule":"schedule","exam_schedule":"exam_schedule","discipline_records":"discipline","discipline_items":"discipline","smart_board_content":"smart_board","smart_board_activities":"smart_board","smart_board_quizzes":"smart_board","student_cards":"cards","class_cards":"cards","certificates":"cards","class_seat_assignments":"cards","class_seats":"cards","exam_cards":"cards","exam_seat_assignments":"exam_schedule","exam_seats":"exam_schedule"}
     @classmethod
     def mode_for(cls,route):
         route=str(route or "").strip()
+        if route in {"competitions","festivals"}: return "school_activity_offers"
         if route in cls.SCHOOL_ROUTES:return "school_"+route
         return cls.MAP.get(route)
     @classmethod
@@ -625,6 +626,7 @@ class OpsRouter:
         if not mode:return None
         if mode.startswith("school_"):
             from mobile.screens.school_operational_modules import SchoolModulesScreen
-            return SchoolModulesScreen(name="ops_"+mode,app_state=state,route=route)
+            effective_route="activity_offers" if route in {"competitions","festivals"} else route
+            return SchoolModulesScreen(name="ops_"+mode,app_state=state,route=effective_route)
         K={"activities":OperationalCenterScreen,"counseling":CounselingCenterScreen,"schedule":ScheduleCenterScreen,"exam_schedule":ScheduleCenterScreen,"discipline":DisciplineCenterScreen,"smart_board":SmartBoardCenterScreen,"cards":CardsCenterScreen}[mode]
         return K(name="ops_"+mode,app_state=state,mode=mode)
