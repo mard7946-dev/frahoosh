@@ -152,8 +152,8 @@ class ModuleActivationScreen(Screen):
                 "decision_at": datetime.now(timezone.utc).isoformat(),
                 "decision_note": "تأیید شد" if approved else "رد شد",
             }
-            if actor:
-                payload["decision_by"] = profile.get("auth_user_id") or profile.get("user_id")
+            if profile.get("auth_user_id"):
+                payload["decision_by"] = profile.get("auth_user_id")
             self._api().table_update("module_activations", {"module_key": "eq." + str(row.get("module_key"))}, payload)
             self.status.text = fa_display("تصمیم با موفقیت ثبت شد.")
             self.status.color = SUCCESS
