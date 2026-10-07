@@ -131,6 +131,13 @@ class SchoolModulesScreen(Screen):
                 "transport_requests":self.transport,
                 "discipline_records":self.discipline,
                 "counseling_records":self.counseling,
+                "counseling_followups":self.counseling_followups,
+                "counseling_guidance":self.counseling_guidance,
+                "counseling_classes":self.counseling_classes,
+                "student_referrals":self.student_referrals,
+                "counselor_board":self.counselor_board,
+                "cultural_reports":self.counseling_reports,
+                "ai_smart_reports":self.counseling_reports,
                 "attendance":self.attendance,
             }.get(self.route)
             if not fn: raise RuntimeError("این ماژول در مرکز تخصصی تعریف نشده است.")
