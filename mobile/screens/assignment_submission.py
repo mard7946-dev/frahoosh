@@ -86,8 +86,27 @@ class AssignmentSubmissionScreen(Screen):
         self.status.text=fa_display("در حال دریافت تکالیف واقعی…")
         def work():
             try:
-                rows=self._api().table_select("assignments",{"order":"id.desc","limit":"200"}) or []
-                Clock.schedule_once(lambda *_: self._loaded(rows,None),0)
+                sid=self._student_id()
+                student_rows=self._api().table_select("students",{"id":"eq."+str(sid),"limit":"1"}) or []
+                student=student_rows[0] if student_rows else {}
+                class_name=str(student.get("class_name") or "").strip()
+                # A student sees only assignments explicitly assigned to that
+                # student or to the student's class. This keeps teacher work
+                # separate from unrelated assignments in the school.
+                rows=self._api().table_select("assignments",{"order":"id.desc","limit":"300"}) or []
+                filtered=[]
+                for row in rows:
+                    target_student=row.get("student_id")
+                    target_class=str(row.get("class_name") or "").strip()
+                    status=str(row.get("status") or "active").strip().lower()
+                    if status not in {"active","published","open",""}:
+                        continue
+                    if target_student not in (None,"") and str(target_student) != str(sid):
+                        continue
+                    if target_student in (None,"") and target_class and target_class != class_name:
+                        continue
+                    filtered.append(row)
+                Clock.schedule_once(lambda *_: self._loaded(filtered,None),0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self._loaded([],str(exc)),0)
         Thread(target=work,daemon=True).start()
