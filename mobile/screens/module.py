@@ -139,6 +139,13 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 "parent_activities": "parent_activities",
                 "discipline_records": "discipline_records",
                 "counseling_records": "counseling_records",
+                "counseling_followups": "counseling_followups",
+                "counseling_guidance": "counseling_guidance",
+                "counseling_classes": "counseling_classes",
+                "student_referrals": "student_referrals",
+                "counselor_board": "counselor_board",
+                "cultural_reports": "cultural_reports",
+                "ai_smart_reports": "cultural_reports",
             }
             if table in school_routes:
                 from mobile.screens.school_operational_modules import SchoolModulesScreen
