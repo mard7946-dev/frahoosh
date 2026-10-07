@@ -558,6 +558,9 @@ EDITABLE = {
         "student_council","basij_registration","school_ally","school_mayor","qari_registration","module_activations",
         "art_competitions","sport_competitions","morning_leaders"
     },
+    "responsible": {
+        "educational_followups","academic_followups"
+    },
     "advisor": {
         "counselor_board","counseling_records","counseling_followups","student_referrals","counseling_classes","counseling_guidance","parent_meetings","parent_meeting_requests",
         "parent_meetings","counseling_classes","parent_activities","counseling_guidance",
@@ -1074,10 +1077,10 @@ class ModuleWorkspaceScreen(Screen):
         panel_role = str(getattr(self, "panel_role", "") or "").strip().lower()
         panel_role = {
             "management":"manager", "manager":"manager", "accountant":"accountant", "حسابدار":"accountant", "educational":"educational",
-            "executive":"executive", "cultural":"cultural", "advisor":"advisor",
+            "executive":"executive", "cultural":"cultural", "advisor":"advisor","responsible":"responsible","مسئول مربوطه":"responsible",
             "teachers":"teacher", "teacher":"teacher", "staff":"staff"
         }.get(panel_role, panel_role)
-        if panel_role in {"manager","educational","executive","cultural","advisor","teacher","staff","accountant"}:
+        if panel_role in {"manager","educational","executive","cultural","advisor","teacher","staff","accountant","responsible"}:
             role = panel_role
         # The UI must mirror the same role/table contract as Supabase RLS.
         # Never show write controls for a table merely because the account is
