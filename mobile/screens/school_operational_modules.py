@@ -323,7 +323,9 @@ class SchoolModulesScreen(Screen):
     def _save_transport(self,address):
         a=self.val(address)
         if not a: raise ValueError("آدرس دقیق الزامی است.")
-        self.insert("transport_requests",{"student_id":self.student_id(),"parent_username":self.profile().get("username") or self.profile().get("national_code"),
+        profile=self.profile()
+        parent_username=profile.get("national_code") or profile.get("username")
+        self.insert("transport_requests",{"student_id":self.student_id(),"parent_username":parent_username,
                                          "address":a,"status":"pending"})
         self.transport()
 
@@ -382,13 +384,24 @@ class SchoolModulesScreen(Screen):
         teacher_id=self.profile().get("teacher_id") or self.profile().get("linked_teacher_id")
         classes=self.rows("teacher_classes",{"teacher_id":"eq."+str(teacher_id or 0),"limit":"100"})
         self.body.add_widget(self.lab("برای هر کلاس و زنگ، فهرست دانش‌آموزان نمایش داده می‌شود و با یک ثبت نهایی ارسال می‌گردد.","9sp",SECONDARY,False,52,True))
-        for c in classes:
-            self.body.add_widget(self.lab(f"{c.get('class_name') or 'کلاس'} | {c.get('subject') or 'درس'}","11sp",PRIMARY,True,36,True))
-            self.body.add_widget(self.btn("ثبت حضور این کلاس","__dummy__",SUCCESS,42))
-            b=self.body.children[0]
-        # rebuild buttons with closures after layout creation
-        for w in list(self.body.children):
-            if isinstance(w,Button) and w.text==fa_display("__dummy__"): w.bind(on_release=lambda *_a,c=dict(classes[0]) if classes else {}:self.attendance_roster(c))
+        if not classes:
+            self.body.add_widget(self.lab("کلاسی برای این دبیر تعریف نشده است.","10sp",SECONDARY,False,50,True))
+            return
+        for class_row in classes:
+            current_class=dict(class_row)
+            self.body.add_widget(
+                self.lab(
+                    f"{current_class.get('class_name') or 'کلاس'} | {current_class.get('subject') or 'درس'}",
+                    "11sp",PRIMARY,True,36,True
+                )
+            )
+            self.body.add_widget(
+                self.btn(
+                    "ثبت حضور این کلاس",
+                    lambda *_a, selected=current_class:self.attendance_roster(selected),
+                    SUCCESS,42
+                )
+            )
 
     def attendance_roster(self,c):
         self.clear("ثبت حضور و غیاب")
