@@ -170,6 +170,45 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                     self.manager.current = name
                 return screen
 
+            # Messaging is a dedicated role-aware workflow; do not expose an arbitrary receiver field.
+            if table == "messages":
+                if app is not None and hasattr(app, "ensure_message_workflow"):
+                    screen = app.ensure_message_workflow()
+                    if screen is not None and self.manager is not None:
+                        self.manager.current = screen.name
+                        return screen
+
+            # Capability activation is a request -> approval/rejection workflow, not generic CRUD.
+            if table == "module_activations":
+                if app is not None and hasattr(app, "ensure_module_activation_workflow"):
+                    screen = app.ensure_module_activation_workflow()
+                    if screen is not None and self.manager is not None:
+                        self.manager.current = screen.name
+                        return screen
+
+            # School relationship management is a specialized directory tied to RLS.
+            if table == "school_relationships":
+                if app is not None and self.manager is not None:
+                    from mobile.screens.school_relationships import SchoolRelationshipsScreen
+                    name = "school_relationships"
+                    try:
+                        screen = self.manager.get_screen(name)
+                    except Exception:
+                        screen = None
+                    if screen is None:
+                        screen = SchoolRelationshipsScreen(name=name, app_state=getattr(app, "app_state", None))
+                        self.manager.add_widget(screen)
+                    self.manager.current = name
+                    return screen
+
+            # Executive operations/requests belong to the real executive center.
+            if table in {"executive_operations", "executive_requests"} and app is not None:
+                screen = app.ensure_executive_center() if hasattr(app, "ensure_executive_center") else None
+                if screen is not None and self.manager is not None:
+                    screen.initial_action = "operations" if table == "executive_operations" else "requests"
+                    self.manager.current = screen.name
+                    return screen
+
             # Student assignment screen is a dedicated workflow: students see
             # teacher assignments and can submit text/file/camera evidence.
             if table in {"assignments", "assignment_submissions"} and self.route == "students":

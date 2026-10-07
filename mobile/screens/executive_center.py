@@ -189,6 +189,7 @@ class ExecutiveCenterScreen(Screen):
             ("صندلی کلاسی", self.class_seats),
             ("صندلی امتحانی", self.exam_seats),
             ("گواهی اشتغال به تحصیل", self.certificates),
+            ("امور اجرایی و عملیات روزانه", self.operations),
             ("درخواست‌های اجرایی", self.requests),
         )
         for title, callback in actions:

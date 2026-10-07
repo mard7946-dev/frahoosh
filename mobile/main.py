@@ -403,18 +403,6 @@ class FrahooshApp(App):
             print("EXECUTIVE CENTER BUILD ERROR:", repr(exc))
             return None
 
-    def ensure_module_activation_workflow(self):
-        if self.sm is None:
-            return None
-        try:
-            return self.sm.get_screen("module_activations")
-        except Exception:
-            pass
-        from mobile.screens.module_activation import ModuleActivationScreen
-        screen = ModuleActivationScreen(name="module_activations", app_state=self.app_state)
-        self.sm.add_widget(screen)
-        return screen
-
     def ensure_finance(self):
         if self.sm is None:return None
         try:return self.sm.get_screen("finance")
@@ -473,8 +461,8 @@ class FrahooshApp(App):
             return self.sm.get_screen("module_activation_workflow")
         except Exception:
             pass
-        from mobile.screens.school_workflows import ModuleActivationWorkflowScreen
-        screen = ModuleActivationWorkflowScreen(name="module_activation_workflow", app_state=self.app_state)
+        from mobile.screens.module_activation import ModuleActivationScreen
+        screen = ModuleActivationScreen(name="module_activation_workflow", app_state=self.app_state)
         self.sm.add_widget(screen)
         return screen
 

@@ -694,7 +694,7 @@ class SchoolModulesScreen(Screen):
 
     def _submit_attendance(self,cls,subject,period,selects):
         p=self._period(period); teacher=self.profile().get("teacher_id") or self.profile().get("linked_teacher_id")
-        batch=self.api().table_insert("attendance_batches",{"class_name":cls,"subject":subject,"period":p,"attendance_date":self.today(),"teacher_id":teacher,"status":"pending","submitted_at":datetime.now().isoformat()})
+        batch=self.api().table_insert("attendance_batches",{"class_name":cls,"subject":subject,"period":p,"attendance_date":self.today(),"teacher_id":teacher,"status":"submitted","submitted_at":datetime.now().isoformat()})
         if isinstance(batch,list) and batch: bid=batch[0].get("id")
         elif isinstance(batch,dict): bid=batch.get("id")
         else: bid=None
@@ -709,7 +709,7 @@ class SchoolModulesScreen(Screen):
         self.attendance()
 
     def attendance_approval(self):
-        batches=self.rows("attendance_batches",{"status":"eq.pending","order":"id.desc","limit":"100"})
+        batches=self.rows("attendance_batches",{"status":"eq.submitted","order":"id.desc","limit":"100"})
         if not batches:self.body.add_widget(self.lab("موردی در انتظار تأیید نیست.","10sp",SECONDARY,False,50,True)); return
         for b in batches:
             self.body.add_widget(self.lab(f"{b.get('class_name')} | {b.get('subject')} | {b.get('attendance_date')} | {BELL_LABELS.get(int(b.get('period') or 0), 'زنگ '+str(b.get('period')))}","10sp",PRIMARY,True,42))

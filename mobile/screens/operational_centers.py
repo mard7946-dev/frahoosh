@@ -14,7 +14,7 @@ from kivy.uix.spinner import Spinner
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, SCHOOL_NAME, SCHOOL_YEAR
 from mobile.ui import font_name, fa_display, PersianTextInput
 
-ALIASES={"management":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager","educational":"educational","معاون آموزشی":"educational","معاونت آموزشی":"educational","executive":"executive","معاون اجرایی":"executive","معاونت اجرایی":"executive","cultural":"cultural","معاون پرورشی":"cultural","معاونت پرورشی":"cultural","advisor":"advisor","counselor":"advisor","مشاور":"advisor","مشاوره":"advisor","teacher":"teacher","teachers":"teacher","دبیر":"teacher","student":"student","دانش‌آموز":"student","دانش آموز":"student","parent":"parent","parents":"parent","ولی":"parent","اولیا":"parent","accountant":"finance","حسابدار":"finance","حسابدار مدرسه":"finance"}
+ALIASES={"management":"manager","manager":"manager","مدیر":"manager","مدیریت":"manager","educational":"educational","معاون آموزشی":"educational","معاونت آموزشی":"educational","executive":"executive","معاون اجرایی":"executive","معاونت اجرایی":"executive","cultural":"cultural","معاون پرورشی":"cultural","معاونت پرورشی":"cultural","advisor":"advisor","counselor":"advisor","مشاور":"advisor","مشاوره":"advisor","teacher":"teacher","teachers":"teacher","دبیر":"teacher","student":"student","دانش‌آموز":"student","دانش آموز":"student","parent":"parent","parents":"parent","ولی":"parent","اولیا":"parent","accountant":"finance","حسابدار":"finance","حسابدار مدرسه":"finance","responsible":"responsible","مسئول مربوطه":"responsible","مسئول مربوطه آموزشی":"responsible"}
 
 def role_of(state):
     p=str(getattr(state,"panel_role","") or "").strip().lower()
