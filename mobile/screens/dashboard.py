@@ -60,7 +60,7 @@ ROLE_ALIASES = {
     "executive":"executive","معاون اجرایی":"executive","educational":"educational","معاون آموزشی":"educational",
     "cultural":"cultural","پرورشی":"cultural","معاون پرورشی":"cultural","advisor":"advisor","counselor":"advisor","مشاور":"advisor",
     "teacher":"teacher","teacher_staff":"teacher","دبیر":"teacher","معلم":"teacher","student":"student","دانش‌آموز":"student","دانش آموز":"student",
-    "parent":"parent","parent_guardian":"parent","guardian":"parent","ولی":"parent","اولیا":"parent"
+    "parent":"parent","parent_guardian":"parent","guardian":"parent","ولی":"parent","اولیا":"parent","accountant":"finance","حسابدار":"finance","حسابدار مدرسه":"finance"
 }
 ROLE_TITLES = {
     "manager":"مدیریت","executive":"معاون اجرایی","educational":"معاون آموزشی","cultural":"معاون پرورشی",
