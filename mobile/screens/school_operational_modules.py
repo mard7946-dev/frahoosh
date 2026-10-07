@@ -157,7 +157,11 @@ class SchoolModulesScreen(Screen):
             maxs=self.field("نمره کل آزمون"); score=self.field("نمره کسب‌شده"); cls=self.field("کلاس")
             for w in (sid,subject,typ,exam,maxs,score,cls): self.body.add_widget(w)
             self.body.add_widget(self.btn("ثبت نمره",lambda *_:self._save_grade(sid,subject,typ,exam,maxs,score,cls),SUCCESS,48))
-        data=self.rows("grades",{"select":"id,student_id,subject,grade_type,exam_name,max_score,score,class_name","order":"id.desc","limit":"300"})
+        grade_params={"select":"id,student_id,subject,grade_type,exam_name,max_score,score,class_name,source_grade_id","order":"id.desc","limit":"300"}
+        if role in {"student","parent"}:
+            sid=self.student_id()
+            if sid: grade_params["student_id"]="eq."+str(sid)
+        data=self.rows("grades",grade_params)
         if not data:
             self.body.add_widget(self.lab("هنوز نمره‌ای ثبت نشده است.","10sp",SECONDARY,False,44,True)); return
         for i,r in enumerate(data,1):
@@ -230,6 +234,7 @@ class SchoolModulesScreen(Screen):
                 row=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(3))
                 label=f"{r.get('class_name') or '—'} | {r.get('weekday') or '—'} | {BELL_LABELS.get(int(r.get('period') or 0), r.get('period') or '—')} | {r.get('subject') or '—'} | {r.get('teacher_name') or '—'}"
                 row.add_widget(self.lab(label,"9sp",SECONDARY,False,44,False))
+                row.add_widget(self.btn("ویرایش",lambda *_a,x=dict(r):self._edit_week(x),PRIMARY,42))
                 row.add_widget(self.btn("حذف",lambda *_a,x=dict(r):self._delete_row("weekly_schedule_entries",x.get("id"),self.weekly_schedule),ERROR,42))
                 self.body.add_widget(row)
 
@@ -241,6 +246,25 @@ class SchoolModulesScreen(Screen):
 
     def _period(self,w):
         t=self.val(w); return next((k for k,v in BELL_LABELS.items() if v==t),int(t) if t.isdigit() else 1)
+
+    def _edit_week(self,row):
+        self.clear("ویرایش برنامه هفتگی")
+        cls=self.field("کلاس"); day=self.spin("روز",DAYS); period=self.spin("زنگ",list(BELL_LABELS.values()))
+        subject=self.field("درس"); teacher=self.field("نام دبیر")
+        cls.text=str(row.get("class_name") or "")
+        day.text=fa_display(str(row.get("weekday") or DAYS[0]))
+        period.text=fa_display(BELL_LABELS.get(int(row.get("period") or 1),"زنگ اول"))
+        subject.text=str(row.get("subject") or ""); teacher.text=str(row.get("teacher_name") or "")
+        for w in (cls,day,period,subject,teacher): self.body.add_widget(w)
+        self.body.add_widget(self.btn("ذخیره ویرایش",lambda *_:self._update_week(row,cls,day,period,subject,teacher),SUCCESS,48))
+        self.body.add_widget(self.btn("انصراف",self.weekly_schedule,SECONDARY,42))
+
+    def _update_week(self,row,cls,day,period,subject,teacher):
+        payload={"class_name":self.val(cls),"weekday":self.val(day),"period":self._period(period),
+                 "subject":self.val(subject),"teacher_name":self.val(teacher),"academic_year":SCHOOL_YEAR}
+        if not payload["class_name"] or not payload["subject"]: raise ValueError("کلاس و درس الزامی است.")
+        self.update("weekly_schedule_entries",{"id":"eq."+str(row.get("id"))},payload)
+        self.weekly_schedule()
 
     def _week_table(self,rows):
         g=GridLayout(cols=4,spacing=dp(2),size_hint_y=None)
@@ -396,6 +420,13 @@ class SchoolModulesScreen(Screen):
         self._table(["نام دانش‌آموز","علت مراجعه","تاریخ مراجعه","کارهای انجام شده","جلسه بعدی","پیشرفت","نتیجه"],
                     [[r.get("student_name"),r.get("visit_reason"),r.get("session_date"),r.get("actions_taken"),r.get("next_visit"),r.get("progress"),r.get("result")] for r in rows])
         if role in {"manager","educational","advisor"}:
+            self.body.add_widget(self.lab("مدیریت پرونده‌های مشاوره","10sp",PRIMARY,True,36,True))
+            for r in rows:
+                row=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(3))
+                row.add_widget(self.lab(f"{r.get('id')} | {r.get('student_name') or '—'} | {r.get('visit_reason') or '—'}","9sp",SECONDARY,False,44,False))
+                row.add_widget(self.btn("ویرایش",lambda *_a,x=dict(r):self._edit_counsel(x),PRIMARY,42))
+                row.add_widget(self.btn("حذف",lambda *_a,x=dict(r):self._delete_row("counseling_records",x.get("id"),self.counseling),ERROR,42))
+                self.body.add_widget(row)
             name=self.field("نام دانش‌آموز"); reason=self.field("علت مراجعه"); date=self.field("تاریخ مراجعه"); actions=self.field("کارهای انجام شده",72,True)
             nxt=self.field("جلسه بعدی"); progress=self.field("پیشرفت",72,True); result=self.field("نتیجه",72,True)
             date.text=self.today()
@@ -435,6 +466,14 @@ class SchoolModulesScreen(Screen):
         rows=self.rows(table,{"order":"id.desc","limit":"200"})
         self._table(["شناسه"]+fields,[[r.get("id")]+[r.get(k) for k in fields] for r in rows])
         if role not in {"manager","advisor"}: return
+        self.body.add_widget(self.lab("مدیریت رکوردهای مشاوره","10sp",PRIMARY,True,36,True))
+        for r in rows:
+            row=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(3))
+            preview=" | ".join(str(r.get(k) or "—") for k in fields[:3])
+            row.add_widget(self.lab(f"{r.get('id')} | {preview}","9sp",SECONDARY,False,44,False))
+            row.add_widget(self.btn("ویرایش",lambda *_a,x=dict(r):self._edit_counsel_simple(title,table,fields,x),PRIMARY,42))
+            row.add_widget(self.btn("حذف",lambda *_a,x=dict(r):self._delete_row(table,x.get("id"),self.render_route),ERROR,42))
+            self.body.add_widget(row)
         self.body.add_widget(self.lab("ثبت رکورد جدید","10sp",PRIMARY,True,36,True))
         widgets=[]
         for k in fields:
@@ -443,10 +482,39 @@ class SchoolModulesScreen(Screen):
             self.body.add_widget(w)
         self.body.add_widget(self.btn("ثبت",lambda *_:self._save_counsel_simple(table,widgets),SUCCESS,46))
 
+    def _edit_counsel_simple(self,title,table,fields,row):
+        self.clear(title + " - ویرایش")
+        widgets=[]
+        for k in fields:
+            w=self.field(k); w.text=str(row.get(k) or "")
+            widgets.append((k,w)); self.body.add_widget(w)
+        self.body.add_widget(self.btn("ذخیره ویرایش",lambda *_:self._update_counsel_simple(table,row,widgets),SUCCESS,46))
+        self.body.add_widget(self.btn("انصراف",self.render_route,SECONDARY,42))
+
+    def _update_counsel_simple(self,table,row,widgets):
+        payload={k:self.val(w) for k,w in widgets if self.val(w)}
+        self.update(table,{"id":"eq."+str(row.get("id"))},payload)
+        self.render_route()
+
     def _save_counsel_simple(self,table,widgets):
         payload={k:self.val(w) for k,w in widgets if self.val(w)}
         self.insert(table,payload)
         self.render_route()
+
+    def _edit_counsel(self,row):
+        self.clear("ویرایش پرونده مشاوره")
+        name=self.field("نام دانش‌آموز"); reason=self.field("علت مراجعه"); date=self.field("تاریخ مراجعه")
+        actions=self.field("کارهای انجام شده",72,True); nxt=self.field("جلسه بعدی")
+        progress=self.field("پیشرفت",72,True); result=self.field("نتیجه",72,True)
+        for w,v in ((name,row.get("student_name")),(reason,row.get("visit_reason")),(date,row.get("session_date")),(actions,row.get("actions_taken")),(nxt,row.get("next_visit")),(progress,row.get("progress")),(result,row.get("result"))):
+            w.text=str(v or ""); self.body.add_widget(w)
+        self.body.add_widget(self.btn("ذخیره ویرایش",lambda *_:self._update_counsel(row,name,reason,date,actions,nxt,progress,result),SUCCESS,48))
+        self.body.add_widget(self.btn("انصراف",self.counseling,SECONDARY,42))
+
+    def _update_counsel(self,row,name,reason,date,actions,nxt,progress,result):
+        if not self.val(name) or not self.val(reason): raise ValueError("نام دانش‌آموز و علت مراجعه الزامی است.")
+        self.update("counseling_records",{"id":"eq."+str(row.get("id"))},{"student_name":self.val(name),"visit_reason":self.val(reason),"session_date":self.val(date) or self.today(),"actions_taken":self.val(actions),"next_visit":self.val(nxt),"progress":self.val(progress),"result":self.val(result)})
+        self.counseling()
 
     def _save_counsel(self,name,reason,date,actions,nxt,progress,result):
         if not self.val(name) or not self.val(reason): raise ValueError("نام دانش‌آموز و علت مراجعه الزامی است.")
