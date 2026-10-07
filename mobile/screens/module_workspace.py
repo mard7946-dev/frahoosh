@@ -1074,11 +1074,11 @@ class ModuleWorkspaceScreen(Screen):
         role = self.role()
         panel_role = str(getattr(self, "panel_role", "") or "").strip().lower()
         panel_role = {
-            "management":"manager", "manager":"manager", "educational":"educational",
+            "management":"manager", "manager":"manager", "accountant":"accountant", "حسابدار":"accountant", "educational":"educational",
             "executive":"executive", "cultural":"cultural", "advisor":"advisor",
             "teachers":"teacher", "teacher":"teacher", "staff":"staff"
         }.get(panel_role, panel_role)
-        if panel_role in {"manager","educational","executive","cultural","advisor","teacher","staff"}:
+        if panel_role in {"manager","educational","executive","cultural","advisor","teacher","staff","accountant"}:
             role = panel_role
         # The UI must mirror the same role/table contract as Supabase RLS.
         # Never show write controls for a table merely because the account is
@@ -1143,6 +1143,13 @@ class ModuleWorkspaceScreen(Screen):
                     special = app.ensure_finance()
                 elif canonical in {"online_classes","virtual"}:
                     special = app.ensure_online_workflow()
+                elif canonical in {"finance_accounts","finance_transactions","payment_records","payment_offers","finance_donations","reports","finance"}:
+                    from mobile.screens.finance import FinanceScreen
+                    try:
+                        special = app.sm.get_screen("finance")
+                    except Exception:
+                        special = FinanceScreen(name="finance", app_state=self.app_state)
+                        app.sm.add_widget(special)
                 elif canonical in {"teacher_exams","quiz_links"}:
                     special = app.ensure_exam_authoring()
                 if special is not None:
