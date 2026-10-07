@@ -666,3 +666,152 @@ class PanelIOWorkflowScreen(BaseWorkflow):
                 except Exception: pass
             self.status.text = fa_display(f"{count} ردیف وارد شد.")
         except Exception as e:self.status.text = fa_display("ورود اکسل ناموفق بود: "+str(e))
+
+
+class ModuleActivationWorkflowScreen(BaseWorkflow):
+    """Real capability request -> approval/rejection workflow."""
+
+    MODULES = (
+        ("ارسال تکالیف", "assignment_submissions"),
+        ("پرداخت آنلاین", "payment_attempts"),
+        ("نظرسنجی", "survey_responses"),
+        ("سرویس مدرسه", "transport_requests"),
+        ("فعالیت‌های اولیا", "parent_activities"),
+        ("مسابقات", "activity_registrations"),
+        ("آزمون آنلاین", "teacher_exams"),
+        ("کلاس آنلاین", "online_classes"),
+    )
+
+    def on_pre_enter(self, *_):
+        self.build()
+
+    def role(self):
+        return role_of(self.app_state)
+
+    def _uid(self):
+        user = getattr(self.app_state, "user", {}) or {}
+        return str(user.get("id") or "").strip()
+
+    def build(self):
+        self.clear_widgets()
+        root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(6))
+        top = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(5))
+        top.add_widget(self.btn("بازگشت", self.back, SECONDARY, 40))
+        top.add_widget(self.lab("درخواست فعال‌سازی قابلیت‌ها", 44, "17sp", PRIMARY, True))
+        root.add_widget(top)
+
+        role = self.role()
+        if role in {"student", "parent"}:
+            self._consumer_view(root)
+        elif role in {"manager", "educational", "executive"}:
+            self._staff_view(root)
+        else:
+            root.add_widget(self.lab("این بخش برای این نقش فعال نشده است.", 70, "11sp", ERROR, True))
+        self.add_widget(root)
+
+    def _consumer_view(self, root):
+        root.add_widget(self.lab("قابلیت موردنظر را انتخاب کنید؛ درخواست پس از ثبت در صف تأیید مدرسه قرار می‌گیرد.", 58))
+        picker = self._spinner("انتخاب قابلیت", [label for label, _ in self.MODULES], 46)
+        note = self.field("توضیحات درخواست", True)
+        root.add_widget(picker)
+        root.add_widget(note)
+        root.add_widget(self.btn("ثبت درخواست فعال‌سازی", lambda *_: self._request(picker, note), SUCCESS, 46))
+
+        area = BoxLayout(orientation="vertical", spacing=dp(4), size_hint_y=None)
+        area.bind(minimum_height=area.setter("height"))
+        root.add_widget(ScrollView(do_scroll_x=False, size_hint_y=1))
+        root.children[0].add_widget(area)
+        self._load_requests(area, own=True)
+
+    def _staff_view(self, root):
+        root.add_widget(self.lab("درخواست‌های در انتظار تأیید مدیریت/معاونان", 44, "11sp", PRIMARY, True))
+        area = BoxLayout(orientation="vertical", spacing=dp(5), size_hint_y=None)
+        area.bind(minimum_height=area.setter("height"))
+        sc = ScrollView(do_scroll_x=False)
+        sc.add_widget(area)
+        root.add_widget(sc)
+        self._load_requests(area, own=False)
+
+    def _load_requests(self, area, own):
+        area.clear_widgets()
+        try:
+            filters = {"order": "requested_at.desc", "limit": "100"}
+            if own:
+                uid = self._uid()
+                filters["requested_by"] = "eq." + uid
+            else:
+                filters["status"] = "eq.pending"
+            rows = self.api().table_select("module_activations", filters) or []
+            if not rows:
+                area.add_widget(self.lab("درخواستی وجود ندارد.", 48, "10sp", SECONDARY, True))
+                return
+            for row in rows:
+                module = next((label for label, key in self.MODULES if key == row.get("module_key")), row.get("module_key") or "—")
+                text = f"{module} | وضعیت: {row.get('status') or '—'} | ثبت: {row.get('requested_at') or '—'}"
+                card = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(96), spacing=dp(3))
+                card.add_widget(self.lab(text, 42, "9sp", SECONDARY, True))
+                if not own and row.get("status") == "pending":
+                    actions = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(4))
+                    actions.add_widget(self.btn("تأیید", lambda *_a, r=dict(row): self._decide(r, True), SUCCESS, 38))
+                    actions.add_widget(self.btn("رد", lambda *_a, r=dict(row): self._decide(r, False), ERROR, 38))
+                    card.add_widget(actions)
+                area.add_widget(card)
+        except Exception as exc:
+            area.add_widget(self.lab("خطا در دریافت درخواست‌ها: " + str(exc), 70, "9sp", ERROR, False))
+
+    def _request(self, picker, note):
+        selected = picker.text
+        key = next((key for label, key in self.MODULES if label == selected), None)
+        uid = self._uid()
+        if not key or not uid:
+            self.msg("قابلیت و نشست کاربری معتبر لازم است.", ERROR)
+            return
+        try:
+            existing = self.api().table_select("module_activations", {
+                "module_key": "eq." + key,
+                "requested_by": "eq." + uid,
+                "status": "eq.pending",
+                "limit": "1",
+            }) or []
+            if existing:
+                self.msg("برای این قابلیت یک درخواست در انتظار دارید.", ERROR)
+                return
+            self.api().table_insert("module_activations", {
+                "module_key": key,
+                "active": False,
+                "status": "pending",
+                "requested_by": uid,
+                "requested_at": datetime.now(timezone.utc).isoformat(),
+                "settings": {"request_note": self._value(note)},
+            })
+            self.msg("درخواست فعال‌سازی ثبت شد.")
+            self.build()
+        except Exception as exc:
+            self.msg("ثبت درخواست انجام نشد: " + str(exc), ERROR)
+
+    def _decide(self, row, approved):
+        uid = self._uid()
+        if not row.get("id") or not uid:
+            self.msg("اطلاعات درخواست ناقص است.", ERROR)
+            return
+        try:
+            self.api().table_update(
+                "module_activations",
+                {"id": "eq." + str(row["id"]), "status": "eq.pending"},
+                {
+                    "status": "approved" if approved else "rejected",
+                    "active": bool(approved),
+                    "decision_by": uid,
+                    "decision_at": datetime.now(timezone.utc).isoformat(),
+                    "decision_note": "تأیید شد" if approved else "رد شد",
+                    "activated_by": uid if approved else None,
+                    "activated_at": datetime.now(timezone.utc).isoformat() if approved else None,
+                },
+            )
+            self.msg("درخواست تأیید شد." if approved else "درخواست رد شد.", SUCCESS if approved else ERROR)
+            self.build()
+        except Exception as exc:
+            self.msg("ثبت تصمیم انجام نشد: " + str(exc), ERROR)
+
+    def _value(self, widget):
+        return str(getattr(widget, "text", "") or "").strip()
