@@ -136,6 +136,8 @@ class SchoolModulesScreen(Screen):
                 "counseling_classes":self.counseling_classes,
                 "student_referrals":self.student_referrals,
                 "counselor_board":self.counselor_board,
+                "educational_followups":self.educational_followups,
+                "academic_followups":self.academic_followups,
                 "cultural_reports":self.counseling_reports,
                 "ai_smart_reports":self.counseling_reports,
                 "attendance":self.attendance,
@@ -450,6 +452,14 @@ class SchoolModulesScreen(Screen):
         self._counsel_simple("پیگیری جلسات مشاوره","counseling_followups",
             ["student_id","subject","description","followup_date","followup_items","decision","status"])
 
+    def educational_followups(self):
+        self._counsel_simple("پیگیری آموزشی","educational_followups",
+            ["student_id","student_name","class_name","date_shamsi","followup_item","followup_items","note","decision","status"])
+
+    def academic_followups(self):
+        self._counsel_simple("پیگیری درسی","academic_followups",
+            ["student_id","student_name","class_name","date_shamsi","followup_item","followup_items","note","decision","status"])
+
     def counseling_guidance(self):
         self._counsel_simple("هدایت تحصیلی","counseling_guidance",
             ["student_id","guidance_type","recommendation","destination","score","academic_year","status"])
@@ -478,7 +488,7 @@ class SchoolModulesScreen(Screen):
         role=self.role()
         rows=self.rows(table,{"order":"id.desc","limit":"200"})
         self._table(["شناسه"]+fields,[[r.get("id")]+[r.get(k) for k in fields] for r in rows])
-        if role not in {"manager","advisor"}: return
+        if role not in {"manager","educational","executive","advisor"}: return
         self.body.add_widget(self.lab("مدیریت رکوردهای مشاوره","10sp",PRIMARY,True,36,True))
         for r in rows:
             row=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(3))
