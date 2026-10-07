@@ -141,6 +141,7 @@ class SchoolModulesScreen(Screen):
                 "cultural_reports":self.counseling_reports,
                 "ai_smart_reports":self.counseling_reports,
                 "attendance":self.attendance,
+                "messages":self.messages,
             }.get(self.route)
             if not fn: raise RuntimeError("این ماژول در مرکز تخصصی تعریف نشده است.")
             fn()
@@ -544,6 +545,34 @@ class SchoolModulesScreen(Screen):
         self.insert("counseling_records",{"student_name":self.val(name),"visit_reason":self.val(reason),"session_date":self.val(date) or self.today(),
                     "actions_taken":self.val(actions),"next_visit":self.val(nxt),"progress":self.val(progress),"result":self.val(result),"status":"active"})
         self.counseling()
+
+    def messages(self):
+        self.clear("صندوق پیام‌ها")
+        p=self.profile(); role=self.role()
+        sender=str(p.get("email") or getattr(getattr(self.app_state,"user",{}),"email","") or p.get("username") or "").strip()
+        sender_name=self.sname(p) if p.get("first_name") or p.get("last_name") else str(p.get("display_name") or p.get("username") or sender)
+        self.body.add_widget(self.lab("ارسال پیام مستقیم به یک گیرنده","11sp",PRIMARY,True,40,True))
+        receiver=self.field("ایمیل / شناسه کاربری گیرنده")
+        title=self.field("عنوان پیام")
+        body=self.field("متن پیام",110,True)
+        for w in (receiver,title,body): self.body.add_widget(w)
+        self.body.add_widget(self.btn("ارسال پیام",lambda *_:self._send_message(sender,sender_name,receiver,title,body),SUCCESS,48))
+        self.body.add_widget(self.lab("پیام‌های ارسالی و دریافتی","11sp",PRIMARY,True,40,True))
+        params={"order":"id.desc","limit":"100"}
+        if sender:
+            params["or"]=f"(sender.eq.{sender},receiver.eq.{sender})"
+        rows=self.rows("messages",params)
+        self._table(["فرستنده","گیرنده","عنوان","متن","تاریخ"],
+                    [[r.get("sender"),r.get("receiver"),r.get("title") or "—",r.get("body") or r.get("text") or "—",r.get("created_at")] for r in rows])
+
+    def _send_message(self,sender,sender_name,receiver,title,body):
+        to=self.val(receiver); subject=self.val(title); text=self.val(body)
+        if not sender or not to or not text:
+            raise ValueError("گیرنده و متن پیام الزامی است.")
+        payload={"sender":sender,"receiver":to,"text":text,"sender_user_id":self.profile().get("user_id"),
+                 "sender_name":sender_name,"title":subject,"body":text,"audience_type":"direct","audience_value":to}
+        self.insert("messages",payload)
+        self.messages()
 
     def attendance(self):
         self.clear("حضور و غیاب")
