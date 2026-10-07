@@ -112,21 +112,61 @@ class FinalModuleScreen(ProfessionalWorkspaceScreen):
                 if screen is not None and self.manager is not None:
                     self.manager.current = "meetings"
                     return screen
-            if table == "weekly_schedule":
+            # School operational modules must bypass the generic CRUD workspace.
+            # The dedicated SchoolModulesScreen contains the real Supabase forms/tables.
+            school_routes = {
+                "transport_requests": "transport_requests",
+                "weekly_schedule": "weekly_schedule",
+                "exam_schedule": "exam_schedule",
+                "exam_seat_assignments": "exam_schedule",
+                "activity_programs": "activity_offers",
+                "activity_offers": "activity_offers",
+                "activity_registrations": "activity_offers",
+                "student_competitions": "activity_offers",
+                "cultural_competitions": "activity_offers",
+                "art_competitions": "activity_offers",
+                "sport_competitions": "activity_offers",
+                "student_council_registration": "student_council",
+                "student_council": "student_council",
+                "student_basij_registration": "basij_registration",
+                "basij_registration": "basij_registration",
+                "student_ally_registration": "school_ally",
+                "school_ally": "school_ally",
+                "student_mayor_registration": "school_mayor",
+                "school_mayor": "school_mayor",
+                "khwarizmi_registrations": "khwarizmi_registrations",
+                "educational_activities": "educational_activities",
+                "parent_activities": "parent_activities",
+                "discipline_records": "discipline_records",
+                "counseling_records": "counseling_records",
+            }
+            if table in school_routes:
+                from mobile.screens.school_operational_modules import SchoolModulesScreen
+                route_name = school_routes[table]
+                name = "school_ops_" + route_name
                 try:
-                    screen = self.manager.get_screen("weekly_schedule_real") if self.manager is not None else None
+                    screen = self.manager.get_screen(name) if self.manager is not None else None
                 except Exception:
                     screen = None
-                if screen is None and app is not None:
-                    try:
-                        from mobile.screens.weekly_schedule import WeeklyScheduleScreen
-                        screen = WeeklyScheduleScreen(name="weekly_schedule_real", app_state=getattr(app, "app_state", None))
-                        self.manager.add_widget(screen)
-                    except Exception as exc:
-                        raise RuntimeError("محیط برنامه هفتگی آماده نشد: " + str(exc))
-                screen.return_to = "panel"
-                self.manager.current = "weekly_schedule_real"
+                if screen is None:
+                    screen = SchoolModulesScreen(
+                        name=name,
+                        app_state=getattr(app, "app_state", None),
+                        route=route_name,
+                    )
+                    self.manager.add_widget(screen)
+                if self.manager is not None:
+                    self.manager.current = name
                 return screen
+
+            # Student assignment screen is a dedicated workflow: students see
+            # teacher assignments and can submit text/file/camera evidence.
+            if table in {"assignments", "assignment_submissions"} and self.route == "students":
+                if app is not None and hasattr(app, "ensure_assignment_submission_workflow"):
+                    screen = app.ensure_assignment_submission_workflow()
+                    if screen is not None and self.manager is not None:
+                        self.manager.current = screen.name
+                        return screen
 
             if table == "smart_class_preview":
                 # Smart classroom is a dedicated operational screen, never a

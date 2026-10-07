@@ -177,11 +177,10 @@ SUBMENUS = {
 "teachers":[("کلاس‌های من","teacher_classes"),("طرح درس","lesson_plans"),("برنامه هفتگی","weekly_schedule"),("کلاس‌های آنلاین فعال","online_classes"),("آزمون آنلاین","teacher_exams"),("بانک سؤال","quiz_questions"),("حضور و غیاب","attendance"),("نمرات درسی","grades"),("ریز نمرات","grade_items"),("ارزیابی دانش‌آموزان","student_grades"),("تکالیف","assignments"),("موارد انضباطی","discipline_records"),("ارجاع دانش‌آموز","student_referrals"),("فعالیت‌های دبیر","teacher_activities"),("ملاقات با اولیا","meeting_requests"),("جلسات دبیر و ولی","teacher_parent_meetings"),("صندوق پیام","messages")],
 "students":[
 ("اطلاعات دانش‌آموز","students"),("پایه و کلاس","student_class_info"),("حضور و غیاب","attendance"),
-("نمرات","student_grades"),("تکالیف","assignments"),("صندوق پیام","messages"),
+("نمرات","student_grades"),("تکالیف دبیران","assignment_submissions"),("صندوق پیام","messages"),
 ("ثبت‌نام مسابقات","student_competitions"),("ثبت‌نام جشنواره‌ها","student_competitions"),("ثبت‌نام مسابقات و فعالیت‌ها","student_competitions"),("ثبت‌نام شورای دانش‌آموزی","student_council_registration"),
 ("ثبت‌نام بسیج","student_basij_registration"),("ثبت‌نام همیار مدرسه","student_ally_registration"),("ثبت‌نام شهردار مدرسه","student_mayor_registration"),
-("ارسال تکالیف","assignment_submissions"),("برنامه هفتگی","weekly_schedule"),
-("برنامه امتحانات","exam_schedule"),("صندلی کلاسی","class_seat_assignments"),
+("برنامه هفتگی","weekly_schedule"),("برنامه امتحانات","exam_schedule"),("صندلی کلاسی","class_seat_assignments"),
 ("صندلی امتحان","exam_seat_assignments"),("درخواست گواهی","certificate_requests"),
 ("کلاس آنلاین","online_classes")
 ],
