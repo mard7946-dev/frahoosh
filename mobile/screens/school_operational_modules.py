@@ -503,21 +503,46 @@ class SchoolModulesScreen(Screen):
         if role in {"student","parent"}:
             sid=self.student_id(); rows=self.rows("discipline_records",{"student_id":"eq."+str(sid),"status":"eq.confirmed","order":"id.desc","limit":"100"}) if sid else []
             self._table(["مورد انضباطی","تاریخ بی‌انضباطی","مقدار کسر نمره","وضعیت"],[[r.get("title"),r.get("incident_date") or r.get("created_at"),r.get("deduction"),"تأیید شده"] for r in rows]); return
-        students=self.rows("students",{"order":"last_name.asc","limit":"300"})
-        vals=[f"{s.get('id')} | {self.sname(s)} | {s.get('class_name') or '—'}" for s in students]
-        sp=self.spin("انتخاب دانش‌آموز",vals or ["پرونده‌ای نیست"]); typ=self.field("مورد انضباطی، مثلاً تأخیر در ورود به کلاس"); date=self.field("تاریخ بی‌انضباطی"); ded=self.field("مقدار کسر نمره")
-        date.text=self.today()
-        for w in (sp,typ,date,ded): self.body.add_widget(w)
-        self.body.add_widget(self.btn("ثبت مورد انضباطی",lambda *_:self._save_discipline(students,sp,typ,date,ded),SUCCESS,48))
+        # Only teachers may create disciplinary records; management/deputies may
+        # review and approve them. Keep the UI contract identical to the RLS
+        # contract so a role that cannot INSERT never sees a misleading form.
+        writable = role in {"teacher","manager","educational","executive"}
+        if writable:
+            students=self.rows("students",{"order":"last_name.asc","limit":"300"})
+            vals=[f"{s.get('id')} | {self.sname(s)} | {s.get('class_name') or '—'}" for s in students]
+            sp=self.spin("انتخاب دانش‌آموز",vals or ["پرونده‌ای نیست"])
+            typ=self.field("مورد انضباطی، مثلاً تأخیر در ورود به کلاس")
+            date=self.field("تاریخ بی‌انضباطی")
+            ded=self.field("مقدار کسر نمره")
+            date.text=self.today()
+            for w in (sp,typ,date,ded): self.body.add_widget(w)
+            self.body.add_widget(self.btn(
+                "ثبت مورد انضباطی",
+                lambda *_:self._save_discipline(students,sp,typ,date,ded),
+                SUCCESS,48
+            ))
+        elif role not in {"student","parent"}:
+            self.body.add_widget(self.lab(
+                "این نقش فقط مجاز به مشاهده سوابق انضباطی است.",
+                "10sp", SECONDARY, False, 42, True
+            ))
+
         rows=self.rows("discipline_records",{"order":"id.desc","limit":"100"})
-        self._table(["مورد","تاریخ","کسر نمره","وضعیت"],[[r.get("title"),r.get("incident_date") or r.get("created_at"),r.get("deduction"),r.get("status")] for r in rows])
-        if role in {"educational","manager"}:
+        self._table(["مورد","تاریخ","کسر نمره","وضعیت"],
+                    [[r.get("title"),r.get("incident_date") or r.get("created_at"),r.get("deduction"),r.get("status")] for r in rows])
+
+        # Approval is a separate action and is available to the same management
+        # roles allowed by the backend policy.
+        if role in {"educational","executive","manager"}:
             pending=[r for r in rows if str(r.get("status") or "").lower()=="pending"]
             if pending:
                 self.body.add_widget(self.lab("موارد در انتظار تأیید","10sp",PRIMARY,True,38,True))
                 for r in pending:
-                    self.body.add_widget(self.btn(f"تأیید: {r.get('title') or 'مورد انضباطی'} | دانش‌آموز {r.get('student_id')}",
-                        lambda *_a,x=dict(r):self._approve_discipline(x),SUCCESS,44))
+                    self.body.add_widget(self.btn(
+                        f"تأیید: {r.get('title') or 'مورد انضباطی'} | دانش‌آموز {r.get('student_id')}",
+                        lambda *_a,x=dict(r):self._approve_discipline(x),
+                        SUCCESS,44
+                    ))
 
     def _save_discipline(self,students,sp,typ,date,ded):
         try:
