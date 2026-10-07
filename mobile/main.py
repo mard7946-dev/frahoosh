@@ -473,8 +473,8 @@ class FrahooshApp(App):
             return self.sm.get_screen("module_activation_workflow")
         except Exception:
             pass
-        from mobile.screens.school_workflows import ModuleActivationWorkflowScreen
-        screen = ModuleActivationWorkflowScreen(name="module_activation_workflow", app_state=self.app_state)
+        from mobile.screens.module_activation import ModuleActivationScreen
+        screen = ModuleActivationScreen(name="module_activation_workflow", app_state=self.app_state)
         self.sm.add_widget(screen)
         return screen
 
