@@ -394,6 +394,52 @@ class SchoolModulesScreen(Screen):
             for w in (name,reason,date,actions,nxt,progress,result): self.body.add_widget(w)
             self.body.add_widget(self.btn("ثبت جلسه مشاوره",lambda *_:self._save_counsel(name,reason,date,actions,nxt,progress,result),SUCCESS,48))
 
+    def counseling_followups(self):
+        self._counsel_simple("پیگیری جلسات مشاوره","counseling_followups",
+            ["student_id","subject","description","followup_date","followup_items","decision","status"])
+
+    def counseling_guidance(self):
+        self._counsel_simple("هدایت تحصیلی","counseling_guidance",
+            ["student_id","guidance_type","recommendation","destination","score","academic_year","status"])
+
+    def counseling_classes(self):
+        self._counsel_simple("کلاس‌های مشاوره","counseling_classes",
+            ["title","grade","class_name","topic","counselor_id","session_date","status"])
+
+    def student_referrals(self):
+        self._counsel_simple("ارجاع دانش‌آموز","student_referrals",
+            ["student_id","teacher_id","referral_to","reason","referral_date","status"])
+
+    def counselor_board(self):
+        self._counsel_simple("تابلوی مشاور","counselor_board",
+            ["title","content","category","published","created_by"])
+
+    def counseling_reports(self):
+        self.clear("گزارش‌های مشاوره")
+        rows=self.rows("counseling_records",{"order":"id.desc","limit":"300"})
+        self.body.add_widget(self.lab(f"تعداد پرونده‌های مشاوره: {len(rows)}","11sp",PRIMARY,True,42,True))
+        self._table(["نام دانش‌آموز","علت مراجعه","تاریخ مراجعه","پیشرفت","نتیجه"],
+                    [[r.get("student_name"),r.get("visit_reason"),r.get("session_date"),r.get("progress"),r.get("result")] for r in rows])
+
+    def _counsel_simple(self,title,table,fields):
+        self.clear(title)
+        role=self.role()
+        rows=self.rows(table,{"order":"id.desc","limit":"200"})
+        self._table(["شناسه"]+fields,[[r.get("id")]+[r.get(k) for k in fields] for r in rows])
+        if role not in {"manager","advisor"}: return
+        self.body.add_widget(self.lab("ثبت رکورد جدید","10sp",PRIMARY,True,36,True))
+        widgets=[]
+        for k in fields:
+            w=self.field(k)
+            widgets.append((k,w))
+            self.body.add_widget(w)
+        self.body.add_widget(self.btn("ثبت",lambda *_:self._save_counsel_simple(table,widgets),SUCCESS,46))
+
+    def _save_counsel_simple(self,table,widgets):
+        payload={k:self.val(w) for k,w in widgets if self.val(w)}
+        self.insert(table,payload)
+        self.render_route()
+
     def _save_counsel(self,name,reason,date,actions,nxt,progress,result):
         if not self.val(name) or not self.val(reason): raise ValueError("نام دانش‌آموز و علت مراجعه الزامی است.")
         self.insert("counseling_records",{"student_name":self.val(name),"visit_reason":self.val(reason),"session_date":self.val(date) or self.today(),
