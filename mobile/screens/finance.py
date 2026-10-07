@@ -112,17 +112,29 @@ class FinanceScreen(Screen):
         doc_no=self._field("شماره سند")
         title=self._field("شرح سند؛ مثال خرید لوازم آموزشی"); amount=self._field("مبلغ")
         typ=self._field("نوع سند؛ درآمد / هزینه / انتقال"); cat=self._field("دسته‌بندی")
+        debit=self._field("بدهکار")
+        credit=self._field("بستانکار")
         date=self._field("تاریخ تراکنش؛ مثال 1405/07/15"); inv=self._field("شماره فاکتور")
         counter=self._field("طرف حساب"); desc=self._field("توضیحات",70)
-        self._label("برای سند دوبل: یکی از بدهکار/بستانکار را در مرحله بعد از ثبت دفتر تکمیل کنید. فاکتور یا تصویر چک را نیز می‌توانید به سند پیوست کنید.",62,"10sp")
-        self._button("ثبت سند",lambda *_:self._save_tx(doc_no,title,amount,typ,cat,date,inv,counter,desc),SUCCESS)
+        self._label("برای هر سند، مبلغ و ستون‌های بدهکار/بستانکار را مستقیم ثبت کنید؛ تصویر یا PDF سند نیز به همین سند پیوست می‌شود.",62,"10sp")
+        self._button("ثبت سند",lambda *_:self._save_tx(doc_no,title,amount,typ,cat,date,inv,counter,desc,debit,credit),SUCCESS)
         self._button("بازگشت",lambda *_:self.home(),SECONDARY)
-    def _save_tx(self,doc_no,title,amount,typ,cat,date,inv,counter,desc):
+    def _save_tx(self,doc_no,title,amount,typ,cat,date,inv,counter,desc,debit=None,credit=None):
         try:a=float(str(amount.text).replace(",","").strip())
         except:return self._error("مبلغ معتبر نیست.")
         if a<=0 or not title.text.strip():return self._error("شرح و مبلغ الزامی است.")
         try:
-            rows=self.app_state.api.table_insert("finance_transactions",{"document_number":doc_no.text.strip(),"transaction_type":typ.text.strip() or "expense","title":title.text.strip(),"amount":a,"category":cat.text.strip(),"description":desc.text.strip(),"transaction_date":date.text.strip(),"invoice_number":inv.text.strip(),"counterparty":counter.text.strip(),"debit":a if (typ.text.strip() or "expense") in ("expense","debit") else 0,"credit":a if (typ.text.strip() or "expense") in ("income","credit") else 0})
+            try: d=float(str(debit.text if debit is not None else "").replace(",","").strip() or 0)
+            except: d=0
+            try: cr=float(str(credit.text if credit is not None else "").replace(",","").strip() or 0)
+            except: cr=0
+            tx_type=typ.text.strip() or "expense"
+            if d==0 and cr==0:
+                d=a if tx_type in ("expense","debit") else 0
+                cr=a if tx_type in ("income","credit") else 0
+            if d < 0 or cr < 0 or (d and cr):
+                return self._error("بدهکار و بستانکار باید معتبر باشند و در یک سند فقط یکی از آنها مبلغ داشته باشد.")
+            rows=self.app_state.api.table_insert("finance_transactions",{"document_number":doc_no.text.strip(),"transaction_type":tx_type,"title":title.text.strip(),"amount":int(a),"category":cat.text.strip(),"description":desc.text.strip(),"transaction_date":date.text.strip(),"invoice_number":inv.text.strip(),"counterparty":counter.text.strip(),"debit":d,"credit":cr,"created_by":str(getattr(self.app_state,"national_code","") or getattr(self.app_state,"user_id","") or "")})
             self._tx_id=int(rows[0]["id"] if isinstance(rows,list) else rows["id"]); self._ok("سند ثبت شد."); self.attach()
         except Exception as e:self._error("ثبت سند انجام نشد: "+str(e))
 
@@ -229,6 +241,8 @@ class FinanceScreen(Screen):
             fields=["id","transaction_type","title","amount","category","transaction_date","invoice_number","counterparty","debit","credit","description"]
             stamp=year.text.strip().replace("/","-") or "سال"
             xp=export_excel(rows,fields,"گزارش_پایان_سال_"+stamp); pp=export_pdf(rows,fields,"گزارش_پایان_سال_"+stamp)
+            self.app_state.api.table_update("finance_year_end_reports",{"fiscal_year":"eq."+year.text.strip(),"period_start":"eq."+start.text.strip(),"period_end":"eq."+end.text.strip()},
+                {"excel_path":str(xp),"pdf_path":str(pp)})
             self._ok("گزارش پایان سال ثبت و خروجی Excel/PDF ساخته شد. Excel: "+xp+" | PDF: "+pp)
         except Exception as e:self._error("بستن سال مالی انجام نشد: "+str(e))
     def _ok(self,t):self.status.color=SUCCESS; self.status.text=fa_display(t)
