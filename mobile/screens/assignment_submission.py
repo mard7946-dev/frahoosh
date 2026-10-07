@@ -75,6 +75,7 @@ class AssignmentSubmissionScreen(Screen):
         self.file_label=self._label("فایلی انتخاب نشده است","10sp",SECONDARY,48,False)
         body.add_widget(self.file_label)
         body.add_widget(self._button("اسکن / عکس از تکلیف با دوربین",self.take_photo,SUCCESS,48))
+        body.add_widget(self._button("انتخاب PDF / تصویر از دستگاه",self.pick_file,PRIMARY,48))
         body.add_widget(self._button("ثبت و ارسال",self.submit,PRIMARY,48))
         body.add_widget(self._button("بازگشت",self.back,SECONDARY,42))
         scroll.add_widget(body); root.add_widget(scroll); self.add_widget(root)
