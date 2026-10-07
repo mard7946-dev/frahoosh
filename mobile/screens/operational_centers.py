@@ -533,34 +533,143 @@ class ScheduleCenterScreen(OpsBase):
         self.status.text=fa_display(f"برای {len(students)} دانش‌آموز صندلی مستقل و تصادفی ثبت شد.");self.status.color=SUCCESS
 
 class DisciplineCenterScreen(OpsBase):
+    def _teacher_id(self):
+        p=getattr(self.app_state,"profile",{}) or {}
+        try:
+            if p.get("linked_teacher_id"): return int(p["linked_teacher_id"])
+            if p.get("teacher_id"): return int(p["teacher_id"])
+        except Exception:
+            pass
+        try:
+            n=str(getattr(self.app_state,"national_code","") or "").strip()
+            rows=self.api().table_select("teachers",{"national_code":"eq."+n,"select":"id","limit":"1"}) or []
+            return int(rows[0]["id"]) if rows else None
+        except Exception:
+            return None
+
+    def _teacher_students(self):
+        tid=self._teacher_id()
+        if not tid:
+            return []
+        classes=self.api().table_select("teacher_classes",{"teacher_id":"eq."+str(tid),"active":"eq.1","limit":"200"}) or []
+        class_names={str(r.get("class_name") or "").strip() for r in classes if str(r.get("class_name") or "").strip()}
+        students=self.students()
+        return [r for r in students if str(r.get("class_name") or "").strip() in class_names]
+
+    def _approve(self,row,status):
+        role=role_of(self.app_state)
+        if role not in {"manager","educational","executive"}:
+            self.status.text=fa_display("فقط مدیریت یا معاونت مجاز به تأیید این مورد است.")
+            self.status.color=ERROR
+            return
+        payload={"status":status}
+        try:
+            self.update("discipline_records",{"id":"eq."+str(row.get("id"))},payload)
+            self.status.text=fa_display("وضعیت مورد انضباطی به‌روزرسانی شد.")
+            self.status.color=SUCCESS
+            self.load()
+        except Exception as exc:
+            self.status.text=fa_display("تأیید مورد انجام نشد: "+str(exc))
+            self.status.color=ERROR
+
     def discipline(self):
         self.title.text=fa_display("پنل انضباطی مدرسه")
         role=role_of(self.app_state)
-        if role not in {"manager","educational","executive","cultural","advisor","teacher"}:
-            sid=self.student_id()
-            self.body.add_widget(self.lab("سوابق انضباطی پرونده شما","13sp",PRIMARY,True,38,True))
-            try:
-                filt={"student_id":"eq."+str(sid),"order":"id.desc","limit":"50"} if sid else {"order":"id.desc","limit":"50"}
-                rows=self.api().table_select("discipline_records",filt) or []
-            except Exception: rows=[]
-            if not rows:self.body.add_widget(self.lab("سابقه‌ای ثبت نشده است.","10sp",SECONDARY,False,42,True))
-            for r in rows:self.body.add_widget(self.lab(f"#{r.get('id')} | {r.get('title') or '-'} | {r.get('status') or '-'} | {r.get('description') or ''}","9sp",SECONDARY,False,48))
+
+        if role in {"manager","educational","executive"}:
+            self.body.add_widget(self.lab("موارد ثبت‌شده در انتظار تأیید","13sp",PRIMARY,True,38,True))
+            pending=self.api().table_select("discipline_records",{"status":"eq.pending","order":"id.desc","limit":"100"}) or []
+            if not pending:
+                self.body.add_widget(self.lab("موردی در انتظار تأیید نیست.","10sp",SECONDARY,False,42,True))
+            for row in pending:
+                card=BoxLayout(orientation="vertical",size_hint_y=None,height=dp(120),spacing=dp(4),padding=dp(5))
+                card.add_widget(self.lab(
+                    f"#{row.get('id')} | دانش‌آموز {row.get('student_id')} | {row.get('title') or '-'}",
+                    "10sp",SECONDARY,True,34,True
+                ))
+                card.add_widget(self.lab(
+                    str(row.get("description") or row.get("note") or "—"),
+                    "9sp",SECONDARY,False,36,True
+                ))
+                actions=BoxLayout(size_hint_y=None,height=dp(40),spacing=dp(4))
+                actions.add_widget(self.btn("تأیید",lambda *_a,r=dict(row):self._approve(r,"confirmed"),SUCCESS,38))
+                actions.add_widget(self.btn("رد",lambda *_a,r=dict(row):self._approve(r,"rejected"),ERROR,38))
+                card.add_widget(actions)
+                self.body.add_widget(card)
+            self.body.add_widget(self.lab("ثبت مورد جدید","13sp",PRIMARY,True,38,True))
+
+        if role in {"manager","educational","executive","teacher"}:
+            rows=self._teacher_students() if role=="teacher" else self.students()
+            vals=[f"{r.get('id')} | {self.sname(r)} | {r.get('grade') or '-'} | {r.get('class_name') or '-'}" for r in rows]
+            sp=self.spinner("انتخاب دانش‌آموز",vals or ["پرونده‌ای نیست"]);self.body.add_widget(sp)
+            cases=[
+                "تأخیر در ورود به کلاس","تأخیر در ورود به دبیرستان","رفتار نامناسب با دانش‌آموزان",
+                "عدم استفاده از لباس فرم","موی بلند و نامتعارف","آوردن ابزار غیر دانش‌آموزی",
+                "بی‌احترامی به عوامل دبیرستان","آسیب زدن به اموال دبیرستان","عدم انجام تکلیف",
+                "استفاده غیرمجاز از تلفن همراه","درگیری / مشاجره","بی‌نظمی","سایر"
+            ]
+            typ=self.spinner("علت / مورد انضباطی",cases);self.body.add_widget(typ)
+            desc=self.field("شرح / توضیحات",72,True);note=self.field("یادداشت / تصمیم",72,True)
+            self.body.add_widget(desc);self.body.add_widget(note)
+            self.body.add_widget(self.btn(
+                "ثبت مورد انضباطی",
+                lambda *_:self.save_disc(rows,sp,typ,desc,note),
+                SUCCESS,50
+            ))
+            self.body.add_widget(self.lab("سوابق اخیر","13sp",PRIMARY,True,36,True))
+            for r in (self.api().table_select("discipline_records",{"order":"id.desc","limit":"50"}) or []):
+                if role=="teacher" and str(r.get("teacher_id") or "") != str(self._teacher_id() or ""):
+                    continue
+                self._record_card(
+                    "discipline_records",dict(r),
+                    f"#{r.get('id')} | دانش‌آموز {r.get('student_id')} | {r.get('title') or '-'} | {r.get('status') or '-'}",
+                    editable=(role in {"manager","educational","executive","teacher"} and (role!="teacher" or str(r.get("teacher_id") or "")==str(self._teacher_id() or "")))
+                )
             return
-        rows=self.students();vals=[f"{r.get('id')} | {self.sname(r)} | {r.get('grade') or '-'} | {r.get('class_name') or '-'}" for r in rows]
-        sp=self.spinner("انتخاب دانش‌آموز",vals or ["پرونده‌ای نیست"]);self.body.add_widget(sp)
-        cases=["تأخیر در ورود به کلاس","تأخیر در ورود به دبیرستان","رفتار نامناسب با دانش‌آموزان","عدم استفاده از لباس فرم","موی بلند و نامتعارف","آوردن ابزار غیر دانش‌آموزی","بی‌احترامی به عوامل دبیرستان","آسیب زدن به اموال دبیرستان"]
-        typ=self.spinner("علت / مورد انضباطی",cases);self.body.add_widget(typ)
-        desc=self.field("شرح / توضیحات",72,True);note=self.field("یادداشت / تصمیم",72,True);self.body.add_widget(desc);self.body.add_widget(note)
-        self.body.add_widget(self.btn("ثبت مورد انضباطی",lambda *_:self.save_disc(rows,sp,typ,desc,note),SUCCESS,50))
-        self.body.add_widget(self.lab("سوابق اخیر","13sp",PRIMARY,True,36,True))
-        for r in self.api().table_select("discipline_records",{"order":"id.desc","limit":"50"}) or []:
-            self._record_card("discipline_records",dict(r),f"#{r.get('id')} | دانش‌آموز {r.get('student_id')} | {r.get('title') or '-'} | {r.get('status') or '-'}",editable=True)
+
+        sid=self.student_id()
+        self.body.add_widget(self.lab("سوابق انضباطی پرونده شما","13sp",PRIMARY,True,38,True))
+        try:
+            filt={"student_id":"eq."+str(sid),"order":"id.desc","limit":"50"} if sid else {"order":"id.desc","limit":"50"}
+            rows=self.api().table_select("discipline_records",filt) or []
+        except Exception:
+            rows=[]
+        if not rows:
+            self.body.add_widget(self.lab("سابقه‌ای ثبت نشده است.","10sp",SECONDARY,False,42,True))
+        for r in rows:
+            self.body.add_widget(self.lab(
+                f"#{r.get('id')} | {r.get('title') or '-'} | {r.get('status') or '-'} | {r.get('description') or ''}",
+                "9sp",SECONDARY,False,48
+            ))
+
     def save_disc(self,rows,sp,typ,desc,note):
-        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {}
-        p={"student_id":s.get("id"),"title":str(typ.text or ""),"description":self.val(desc),"note":self.val(note),"priority":"normal","status":"pending","actor_username":str((getattr(self.app_state,"profile",{}) or {}).get("username") or getattr(self.app_state,"national_code","") or ""),"actor_role":role_of(self.app_state),"created_at":datetime.now().isoformat()}
-        tid=(getattr(self.app_state,"profile",{}) or {}).get("linked_teacher_id") or (getattr(self.app_state,"profile",{}) or {}).get("teacher_id")
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0
+        s=rows[i] if rows else {}
+        if not s.get("id"):
+            self.status.text=fa_display("ابتدا یک دانش‌آموز را انتخاب کنید.")
+            self.status.color=ERROR
+            return
+        p={
+            "student_id":s.get("id"),
+            "title":str(typ.text or ""),
+            "description":self.val(desc),
+            "note":self.val(note),
+            "priority":"normal",
+            "status":"pending",
+            "actor_username":str((getattr(self.app_state,"profile",{}) or {}).get("username") or getattr(self.app_state,"national_code","") or ""),
+            "actor_role":role_of(self.app_state),
+            "incident_date":datetime.now().strftime("%Y-%m-%d"),
+        }
+        tid=self._teacher_id()
         if tid:p["teacher_id"]=tid
-        self.insert("discipline_records",p);self.status.text=fa_display("مورد انضباطی ثبت شد.");self.status.color=SUCCESS
+        try:
+            self.insert("discipline_records",p)
+            self.status.text=fa_display("مورد انضباطی ثبت شد و در وضعیت «در انتظار تأیید» قرار گرفت.")
+            self.status.color=SUCCESS
+            self.load()
+        except Exception as exc:
+            self.status.text=fa_display("ثبت مورد انضباطی انجام نشد: "+str(exc))
+            self.status.color=ERROR
 
 class SmartBoardCenterScreen(OpsBase):
     def smart_board(self):
