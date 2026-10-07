@@ -1925,7 +1925,7 @@ class ModuleWorkspaceScreen(Screen):
                 bar.add_widget(self.btn("ثبت",_guard_write(lambda: self.editor(table,None)),SUCCESS,dp(38)))
                 bar.add_widget(self.btn("ویرایش",_guard_write(self._edit_selected_row),PRIMARY,dp(38)))
                 bar.add_widget(self.btn("حذف",_guard_write(self._delete_selected_row),(0.72,.16,.18,1),dp(38)))
-                    self.body.add_widget(bar)
+                self.body.add_widget(bar)
                 self.status.text = fa_display("عملیات ثبت، ویرایش و حذف برای این بخش فعال است")
             else:
                 if table == "assignments" and self.role() == "teacher":
@@ -1947,7 +1947,7 @@ class ModuleWorkspaceScreen(Screen):
                     row2.add_widget(self.btn("قالب Excel",lambda *_:self.export_excel_template(),(0.18,.48,.64,1),dp(38)))
                     row2.add_widget(self.btn("گزارش PDF",lambda *_:self.export_pdf(),(0.50,.28,.58,1),dp(38)))
                     bar.add_widget(row1); bar.add_widget(row2)
-                self.body.add_widget(bar)
+                    self.body.add_widget(bar)
                     self.status.text = fa_display("عملیات واقعی فعال است و به پایگاه داده مدرسه متصل است")
         else:
             if not consumer:
