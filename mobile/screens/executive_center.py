@@ -309,21 +309,18 @@ class ExecutiveCenterScreen(Screen):
         ))
         data = []
         for i, r in enumerate(rows or [], 1):
-            score = r.get("score", "")
-            try:
-                status = "قبول" if float(score) >= 10 else "نیازمند پیگیری"
-            except Exception:
-                status = "ثبت نشده"
             data.append((
                 str(i),
                 r.get("subject", ""),
-                score,
-                status,
+                r.get("grade_type", ""),
+                r.get("exam_name", ""),
+                r.get("max_score", ""),
+                r.get("score", ""),
             ))
         # جدول همیشه با ساختار واقعی کارنامه نمایش داده می‌شود، حتی اگر هنوز نمره‌ای ثبت نشده باشد.
         if not data:
             self.body.add_widget(self._table(
-                ("ردیف", "نام درس", "نمره", "وضعیت"),
+                ("ردیف", "درس", "نوع آزمون", "نام آزمون", "نمره کل", "نمره کسب‌شده"),
                 [("—", "هنوز نمره‌ای ثبت نشده", "—", "ثبت نشده")],
                 145,
             ))
