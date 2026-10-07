@@ -582,7 +582,7 @@ class SchoolModulesScreen(Screen):
         role=self.role()
         rows=self.rows(table,{"order":"id.desc","limit":"200"})
         self._table(["شناسه"]+fields,[[r.get("id")]+[r.get(k) for k in fields] for r in rows])
-        if role not in {"manager","educational","executive","advisor"}: return
+        if role not in {"manager","educational","executive","advisor","responsible"}: return
         self.body.add_widget(self.lab("مدیریت رکوردهای مشاوره","10sp",PRIMARY,True,36,True))
         for r in rows:
             row=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(3))
