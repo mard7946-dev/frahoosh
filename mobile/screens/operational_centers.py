@@ -270,35 +270,100 @@ class OperationalCenterScreen(OpsBase):
         if table in {"art_competitions","sport_competitions"}: fields += [("registration_start_shamsi","شروع ثبت‌نام"),("registration_end_shamsi","پایان ثبت‌نام")]
         self.form(fields,save,title)
     def student_register(self):
+        """Student-facing participation is confirmation-only.
+
+        Students can see active opportunities and submit a single confirmation.
+        They never receive edit/delete/export controls for these registration
+        workflows; management-side review remains in the staff view.
+        """
         sid=self.student_id()
-        if not sid:self.body.add_widget(self.lab("پرونده دانش‌آموز پیدا نشد.","11sp",ERROR,True,50,True));return
-        programs=self.api().table_select("activity_programs",{"active":"eq.true","order":"id.desc","limit":"100"}) or []
-        self.body.add_widget(self.lab("ثبت‌نام فعالیت‌ها و اردوها","14sp",PRIMARY,True,38,True))
-        current=self.api().table_select("activity_registrations",{"student_id":"eq."+str(sid),"order":"id.desc","limit":"100"}) or []
-        if current:
-            self.body.add_widget(self.lab("ثبت‌نام‌های فعلی من","12sp",PRIMARY,True,32,True))
-            for row in current:
-                self.body.add_widget(self.lab(f"#{row.get('id')} | {row.get('competition_type') or '-'} | {row.get('payment_status') or '-'} | {row.get('status') or '-'}","9sp",SECONDARY,False,30))
-                self.body.add_widget(self.btn("لغو ثبت‌نام",lambda *_a,x=dict(row):self.cancel_registration(x),ERROR,38))
+        if not sid:
+            self.body.add_widget(self.lab("پرونده دانش‌آموز پیدا نشد.","11sp",ERROR,True,50,True))
+            return
+
+        self.body.add_widget(self.lab(
+            "ثبت‌نام فعالیت‌ها و مسابقات",
+            "14sp",PRIMARY,True,38,True
+        ))
+        self.body.add_widget(self.lab(
+            "برای هر مورد فقط «ثبت و تأیید» انجام می‌شود؛ ویرایش یا حذف از پنل دانش‌آموز مجاز نیست.",
+            "9sp",SECONDARY,False,48,True
+        ))
+
+        programs=self.api().table_select(
+            "activity_programs",{"active":"eq.true","order":"id.desc","limit":"100"}
+        ) or []
+        current=self.api().table_select(
+            "activity_registrations",{"student_id":"eq."+str(sid),"order":"id.desc","limit":"200"}
+        ) or []
+        current_keys={(str(x.get("activity_id")),str(x.get("competition_type") or "")) for x in current}
+
         for r in programs:
-            self.body.add_widget(self.lab(f"{r.get('title') or '-'} | {r.get('category') or '-'} | هزینه {r.get('amount') or 0}","10sp",SECONDARY,False,36)); self.body.add_widget(self.btn("ثبت‌نام",lambda *_a,x=dict(r):self.reg_program(x),SUCCESS,40))
-        for table,label in (("cultural_competitions","مسابقه فرهنگی"),("art_competitions","مسابقه هنری"),("sport_competitions","مسابقه ورزشی")):
-            for r in self.api().table_select(table,{"order":"id.desc","limit":"50"}) or []:
-                self.body.add_widget(self.lab(f"{label}: {r.get('title') or '-'}","10sp",SECONDARY,False,34)); self.body.add_widget(self.btn("ثبت‌نام مسابقه",lambda *_a,x=dict(r):self.reg_comp(x),SUCCESS,40))
-        simple_specs = (
-            ("student_council","شورای دانش‌آموزی",[("position","سمت پیشنهادی"),("election_date","تاریخ انتخابات")]),
-            ("basij_registration","بسیج دانش‌آموزی",[("registration_date","تاریخ ثبت‌نام"),("note","توضیحات")]),
-            ("school_ally","همیار مدرسه",[("responsibility","مسئولیت"),("start_date","تاریخ شروع"),("end_date","تاریخ پایان")]),
-            ("school_mayor","شهردار مدرسه",[("election_date","تاریخ انتخابات")]),
-            ("morning_leaders","مکبر",[("role","نقش"),("ceremony_date","تاریخ مراسم")]),
-            ("qari_registration","قاری برنامه ظهرگاهی",[("ceremony_date","تاریخ مراسم")]),
+            key=(str(r.get("id")),str(r.get("category") or "فعالیت"))
+            title=r.get("title") or "فعالیت"
+            self.body.add_widget(self.lab(
+                f"{title} | {r.get('category') or 'فعالیت'} | هزینه {r.get('amount') or 0}",
+                "10sp",SECONDARY,False,38
+            ))
+            if key in current_keys:
+                self.body.add_widget(self.lab("✓ قبلاً ثبت و تأیید شده است.","9sp",SUCCESS,True,30,True))
+            else:
+                self.body.add_widget(self.btn(
+                    "ثبت و تأیید",
+                    lambda *_a,x=dict(r):self.reg_program(x),
+                    SUCCESS,40
+                ))
+
+        for table,label in (
+            ("cultural_competitions","مسابقه فرهنگی"),
+            ("art_competitions","مسابقه هنری"),
+            ("sport_competitions","مسابقه ورزشی"),
+        ):
+            rows=self.api().table_select(table,{"status":"eq.active","order":"id.desc","limit":"100"}) or []
+            for r in rows:
+                title=r.get("title") or label
+                key=(str(r.get("id")),str(title))
+                self.body.add_widget(self.lab(
+                    f"{label}: {title}",
+                    "10sp",SECONDARY,False,36
+                ))
+                if key in current_keys:
+                    self.body.add_widget(self.lab("✓ قبلاً ثبت و تأیید شده است.","9sp",SUCCESS,True,30,True))
+                else:
+                    self.body.add_widget(self.btn(
+                        "ثبت و تأیید",
+                        lambda *_a,x=dict(r):self.reg_comp(x),
+                        SUCCESS,40
+                    ))
+
+        simple_specs=(
+            ("student_council","شورای دانش‌آموزی"),
+            ("basij_registration","بسیج دانش‌آموزی"),
+            ("school_ally","همیار مدرسه"),
+            ("school_mayor","شهردار مدرسه"),
+            ("morning_leaders","مکبر"),
+            ("qari_registration","قاری برنامه ظهرگاهی"),
         )
-        for table,label,fields in simple_specs:
-            rows = self.api().table_select(table,{"student_id":"eq."+str(sid),"order":"id.desc","limit":"20"}) or []
-            self.body.add_widget(self.lab(f"{label} | {len(rows)} ثبت", "11sp", PRIMARY, True, 32, True))
-            self.body.add_widget(self.btn("ثبت / درخواست جدید",lambda *_a,t=table,n=label,fs=fields:self.simple_student_form(t,n,fs),SUCCESS,40))
-            for row in rows:
-                self._record_card(table,dict(row),f"#{row.get('id')} | {label} | وضعیت: {row.get('status') or '-'}",editable=True)
+        for table,label in simple_specs:
+            rows=self.api().table_select(
+                table,{"student_id":"eq."+str(sid),"order":"id.desc","limit":"20"}
+            ) or []
+            self.body.add_widget(self.lab(
+                f"{label} | {len(rows)} ثبت",
+                "11sp",PRIMARY,True,34,True
+            ))
+            if rows:
+                self.body.add_widget(self.lab(
+                    "✓ درخواست شما قبلاً ثبت شده است.",
+                    "9sp",SUCCESS,True,30,True
+                ))
+            else:
+                self.body.add_widget(self.btn(
+                    "ثبت و تأیید",
+                    lambda *_a,t=table,n=label:self.reg_simple(t,n),
+                    SUCCESS,40
+                ))
+
     def cancel_registration(self,row):
         try:
             self.delete_row("activity_registrations",{"id":"eq."+str(row.get("id")),"student_id":"eq."+str(self.student_id())})
