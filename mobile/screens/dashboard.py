@@ -64,7 +64,7 @@ ROLE_ALIASES = {
 }
 ROLE_TITLES = {
     "manager":"مدیریت","executive":"معاون اجرایی","educational":"معاون آموزشی","cultural":"معاون پرورشی",
-    "advisor":"مشاوره","teacher":"دبیر","student":"دانش‌آموز","parent":"ولی"
+    "advisor":"مشاوره","teacher":"دبیر","student":"دانش‌آموز","parent":"ولی","accountant":"حسابدار مدرسه"
 }
 
 MOTHER_PANEL_CATALOG = {
@@ -529,6 +529,7 @@ class PanelHubScreen(Screen):
             "teacher": {"teachers"},
             "student": {"students"},
             "parent": {"parents"},
+            "accountant": {"finance"},
         }
         return panel_key in role_panels.get(role, set())
 
@@ -676,6 +677,7 @@ class PanelHubScreen(Screen):
             "دبیر":"teacher","دبیران":"teacher","معلم":"teacher","teacher":"teacher","teacher_staff":"teacher",
             "دانش‌آموز":"student","دانش آموز":"student","دانش‌آموزان":"student","student":"student",
             "ولی":"parent","اولیا":"parent","والد":"parent","parent":"parent","parent_guardian":"parent","guardian":"parent",
+            "حسابدار":"accountant","accountant":"accountant","school_accountant":"accountant",
         }
         return aliases.get(raw, raw)
 
