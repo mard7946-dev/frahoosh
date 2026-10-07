@@ -56,7 +56,7 @@ class SchoolModulesScreen(Screen):
         self.title=self.lab("مرکز عملیاتی", "17sp", PRIMARY, True, 42, True)
         head.add_widget(self.title)
         root.add_widget(head)
-        self.status=self.lab("آماده","9sp",SUCCESS,True,28,True); root.add_widget(self.status)
+        self.status=self.lab("در حال آماده‌سازی محیط عملیاتی…","9sp",SECONDARY,True,28,True); root.add_widget(self.status)
         sc=ScrollView(do_scroll_x=False,bar_width=dp(3))
         self.body=BoxLayout(orientation="vertical",spacing=dp(6),padding=dp(3),size_hint_y=None)
         self.body.bind(minimum_height=self.body.setter("height")); sc.add_widget(self.body); root.add_widget(sc)
@@ -115,6 +115,8 @@ class SchoolModulesScreen(Screen):
         return result
 
     def render_route(self):
+        self.status.text=fa_display("در حال بارگذاری اطلاعات واقعی این ماژول…")
+        self.status.color=SECONDARY
         try:
             fn={
                 "grades":self.grades,"student_grades":self.grades,"report_cards":self.grades,
@@ -391,7 +393,15 @@ class SchoolModulesScreen(Screen):
             for r in rows:self.body.add_widget(self.lab(f"{r.get('title')} | نوع: {r.get('category') or '—'} | تاریخ: {r.get('event_date') or '—'}","10sp",SECONDARY,False,40))
 
     def _register_offer(self,r,sid,name):
-        self.insert("activity_registrations",{"activity_id":r.get("id"),"student_id":sid,"competition_type":r.get("category") or "مسابقه","status":"confirmed","student_name":name})
+        if not sid or not r.get("id"):
+            raise ValueError("اطلاعات ثبت‌نام کامل نیست.")
+        existing=self.rows("activity_registrations",{"activity_id":"eq."+str(r.get("id")),"student_id":"eq."+str(sid),"limit":"1"})
+        if existing:
+            self.status.text=fa_display("شما قبلاً برای این مسابقه یا جشنواره ثبت‌نام کرده‌اید.")
+            self.status.color=SUCCESS
+            self.activities()
+            return
+        self.insert("activity_registrations",{"activity_id":r.get("id"),"student_id":sid,"competition_type":r.get("category") or "مسابقه","status":"confirmed"})
         self.activities()
 
     def educational_activities(self):
