@@ -611,12 +611,20 @@ class CardsCenterScreen(OpsBase):
         self.qr(c,f"frahoosh://exam-card/{sid}",w-135,h-575,72);c.save();self.status.text=fa_display("کارت امتحان جدول‌بندی‌شده ساخته شد؛ شماره صندلی هر امتحان مستقل و تصادفی است.");self.status.color=SUCCESS
 
 class OpsRouter:
+    # Specialized modules provide parity with the Web operational contract.
+    SCHOOL_ROUTES={"grades","student_grades","report_cards","student_cards","weekly_schedule","exam_schedule","exam_seat_assignments","activity_offers","activity_registrations","student_council","basij_registration","school_ally","school_mayor","khwarizmi_registrations","educational_activities","parent_activities","transport_requests","discipline_records","counseling_records","attendance"}
     MAP={"activity_programs":"activities","activity_offers":"activities","activity_registrations":"activities","cultural_activity_registrations":"activities","competitions":"activities","cultural_competitions":"activities","art_competitions":"activities","sport_competitions":"activities","student_council":"activities","basij_registration":"activities","school_ally":"activities","school_mayor":"activities","morning_leaders":"activities","qari_registration":"activities","khwarizmi_registrations":"activities","counseling_records":"counseling","counseling_followups":"counseling","counseling_guidance":"counseling","student_referrals":"counseling","counselor_board":"counseling","weekly_schedule":"schedule","generated_weekly_schedule":"schedule","exam_schedule":"exam_schedule","discipline_records":"discipline","discipline_items":"discipline","smart_board_content":"smart_board","smart_board_activities":"smart_board","smart_board_quizzes":"smart_board","student_cards":"cards","class_cards":"cards","certificates":"cards","class_seat_assignments":"cards","class_seats":"cards","exam_cards":"cards","exam_seat_assignments":"exam_schedule","exam_seats":"exam_schedule"}
     @classmethod
-    def mode_for(cls,route):return cls.MAP.get(str(route or "").strip())
+    def mode_for(cls,route):
+        route=str(route or "").strip()
+        if route in cls.SCHOOL_ROUTES:return "school_"+route
+        return cls.MAP.get(route)
     @classmethod
     def create(cls,state,route):
-        mode=cls.mode_for(route)
+        route=str(route or "").strip(); mode=cls.mode_for(route)
         if not mode:return None
+        if mode.startswith("school_"):
+            from mobile.screens.school_operational_modules import SchoolModulesScreen
+            return SchoolModulesScreen(name="ops_"+mode,app_state=state,route=route)
         K={"activities":OperationalCenterScreen,"counseling":CounselingCenterScreen,"schedule":ScheduleCenterScreen,"exam_schedule":ScheduleCenterScreen,"discipline":DisciplineCenterScreen,"smart_board":SmartBoardCenterScreen,"cards":CardsCenterScreen}[mode]
         return K(name="ops_"+mode,app_state=state,mode=mode)
