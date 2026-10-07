@@ -224,6 +224,14 @@ class SchoolModulesScreen(Screen):
             self.body.add_widget(self.btn("ثبت خانه برنامه",lambda *_:self._save_week(cls,day,period,subject,teacher),SUCCESS,46))
         rows=self.rows("weekly_schedule_entries",{"order":"weekday.asc,period.asc","limit":"300"})
         self._week_table(rows)
+        if editable and rows:
+            self.body.add_widget(self.lab("مدیریت رکوردهای برنامه هفتگی","10sp",PRIMARY,True,38,True))
+            for r in rows:
+                row=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(3))
+                label=f"{r.get('class_name') or '—'} | {r.get('weekday') or '—'} | {BELL_LABELS.get(int(r.get('period') or 0), r.get('period') or '—')} | {r.get('subject') or '—'} | {r.get('teacher_name') or '—'}"
+                row.add_widget(self.lab(label,"9sp",SECONDARY,False,44,False))
+                row.add_widget(self.btn("حذف",lambda *_a,x=dict(r):self._delete_row("weekly_schedule_entries",x.get("id"),self.weekly_schedule),ERROR,42))
+                self.body.add_widget(row)
 
     def _save_week(self,cls,day,period,subject,teacher):
         p={"class_name":self.val(cls),"weekday":self.val(day),"period":self._period(period),"subject":self.val(subject),
