@@ -10,6 +10,7 @@ from kivy.uix.spinner import Spinner
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, ERROR, WHITE, SCHOOL_YEAR
 from mobile.ui import font_name, fa_display, PersianTextInput
 from mobile.screens.operational_centers import role_of
+from mobile.services.export_service import export_excel, export_pdf
 
 DAYS = ["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه"]
 BELL_LABELS = {1:"زنگ اول",2:"زنگ دوم",3:"زنگ سوم"}
@@ -145,6 +146,7 @@ class SchoolModulesScreen(Screen):
             }.get(self.route)
             if not fn: raise RuntimeError("این ماژول در مرکز تخصصی تعریف نشده است.")
             fn()
+            self._add_route_exports()
         except Exception as exc:
             self.clear("خطا در ماژول")
             self.body.add_widget(self.lab(str(exc),"10sp",ERROR,True,70,True))
@@ -268,6 +270,60 @@ class SchoolModulesScreen(Screen):
         if not payload["class_name"] or not payload["subject"]: raise ValueError("کلاس و درس الزامی است.")
         self.update("weekly_schedule_entries",{"id":"eq."+str(row.get("id"))},payload)
         self.weekly_schedule()
+
+    def _add_route_exports(self):
+        """Add real Excel/PDF exports to specialized staff modules only.
+
+        Parent/student panels remain free of reporting controls. The export
+        contract uses the same live Supabase rows already rendered by this
+        specialized screen, so it never becomes a decorative/empty export.
+        """
+        if self.role() in {"student", "parent"}:
+            return
+        table_map = {
+            "grades": ("grades", "کارنامه_نمرات"),
+            "student_grades": ("grades", "کارنامه_نمرات"),
+            "report_cards": ("grades", "کارنامه_نمرات"),
+            "weekly_schedule": ("weekly_schedule_entries", "برنامه_هفتگی"),
+            "exam_schedule": ("exam_schedule", "برنامه_امتحانی"),
+            "exam_seat_assignments": ("exam_seat_assignments", "صندلی_امتحان"),
+            "activity_offers": ("activity_offers", "فعالیت‌ها"),
+            "activity_registrations": ("activity_registrations", "ثبت‌نام_فعالیت‌ها"),
+            "educational_activities": ("educational_activities", "فعالیت‌های_آموزشی"),
+            "parent_activities": ("parent_activities", "فعالیت‌های_اولیا"),
+            "discipline_records": ("discipline_records", "انضباط"),
+            "counseling_records": ("counseling_records", "پرونده_مشاوره"),
+            "counseling_followups": ("counseling_followups", "پیگیری_مشاوره"),
+            "educational_followups": ("educational_followups", "پیگیری_آموزشی"),
+            "academic_followups": ("academic_followups", "پیگیری_درسی"),
+            "student_referrals": ("student_referrals", "ارجاع_دانش‌آموز"),
+            "attendance": ("attendance", "حضور_و_غیاب"),
+            "messages": ("messages", "پیام‌ها"),
+        }
+        spec = table_map.get(self.route)
+        if not spec:
+            return
+        table, title = spec
+        try:
+            rows = self.rows(table, {"order": "id.desc", "limit": "1000"})
+        except Exception:
+            return
+        if not rows:
+            return
+        fields = list(rows[0].keys())
+        box = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(4))
+        box.add_widget(self.btn("خروجی اکسل", lambda *_: self._make_export(rows, fields, "excel", title), SUCCESS, 42))
+        box.add_widget(self.btn("خروجی پی‌دی‌اف", lambda *_: self._make_export(rows, fields, "pdf", title), PRIMARY, 42))
+        self.body.add_widget(box)
+
+    def _make_export(self, rows, fields, kind, title):
+        try:
+            path = export_excel(rows, fields, title) if kind == "excel" else export_pdf(rows, fields, title)
+            self.status.text = fa_display("خروجی واقعی ساخته شد: " + str(path))
+            self.status.color = SUCCESS
+        except Exception as exc:
+            self.status.text = fa_display("ساخت خروجی انجام نشد: " + str(exc))
+            self.status.color = ERROR
 
     def _week_table(self,rows):
         g=GridLayout(cols=4,spacing=dp(2),size_hint_y=None)
