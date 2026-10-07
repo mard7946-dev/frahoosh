@@ -407,10 +407,23 @@ class SchoolModulesScreen(Screen):
         self._table(["مورد","تاریخ","کسر نمره","وضعیت"],[[r.get("title"),r.get("incident_date") or r.get("created_at"),r.get("deduction"),r.get("status")] for r in rows])
 
     def _save_discipline(self,students,sp,typ,date,ded):
-        idx=list(sp.values).index(sp.text) if sp.text in sp.values else 0; s=students[idx] if students else {}
-        self.insert("discipline_records",{"student_id":s.get("id"),"title":self.val(typ),"incident_date":self.val(date) or self.today(),
-                     "deduction":float(self.val(ded) or 0),"status":"confirmed","actor_username":self.profile().get("username"),"actor_role":self.role()})
-        self.discipline()
+        try:
+            idx=list(sp.values).index(sp.text) if sp.text in sp.values else 0
+            s=students[idx] if students else {}
+            if not s.get("id") or not self.val(typ):
+                raise ValueError("دانش‌آموز و مورد انضباطی الزامی است.")
+            teacher_id=self.profile().get("teacher_id") or self.profile().get("linked_teacher_id")
+            self.insert("discipline_records",{"student_id":s.get("id"),"teacher_id":teacher_id,
+                         "title":self.val(typ),"incident_date":self.val(date) or self.today(),
+                         "deduction":float(self.val(ded) or 0),"status":"confirmed",
+                         "actor_username":self.profile().get("username"),"actor_role":self.role()})
+            self.status.text=fa_display("مورد انضباطی ثبت و تأیید شد و در سوابق دانش‌آموز قرار گرفت.")
+            self.status.color=SUCCESS
+            self.discipline()
+        except Exception as exc:
+            self.status.text=fa_display("ثبت مورد انضباطی انجام نشد: "+str(exc))
+            self.status.color=(.8,.15,.15,1)
+            print("DISCIPLINE SAVE ERROR:",repr(exc))
 
     def counseling(self):
         self.clear("پنل مشاوره")
@@ -590,7 +603,7 @@ class SchoolModulesScreen(Screen):
         if not batches:self.body.add_widget(self.lab("موردی در انتظار تأیید نیست.","10sp",SECONDARY,False,50,True)); return
         for b in batches:
             self.body.add_widget(self.lab(f"{b.get('class_name')} | {b.get('subject')} | {b.get('attendance_date')} | {BELL_LABELS.get(int(b.get('period') or 0), 'زنگ '+str(b.get('period')))}","10sp",PRIMARY,True,42))
-            self.body.add_widget(self.btn("تأیید حضور و غیاب",lambda *_a,x=dict(b):self._approve_batch(x),SUCCESS,44))
+            self.body.add_widget(self.btn("تأیید و ارسال برای اولیا",lambda *_a,x=dict(b):self._approve_batch(x),SUCCESS,44))
 
     def _approve_batch(self,b):
         now=datetime.now().isoformat(); actor=self.profile().get("username") or self.profile().get("national_code")
