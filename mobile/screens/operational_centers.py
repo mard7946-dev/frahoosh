@@ -411,15 +411,15 @@ class OperationalCenterScreen(OpsBase):
     def reg_program(self,r):
         sid=self.student_id(); old=self.api().table_select("activity_registrations",{"activity_id":"eq."+str(r["id"]),"student_id":"eq."+str(sid),"limit":"1"}) or []
         if old:return
-        self.insert("activity_registrations",{"activity_id":r["id"],"student_id":sid,"participation_type":"انفرادی","team_members":"","competition_type":r.get("category") or "فعالیت","payment_status":"pending","status":"active"}); self.status.text=fa_display("ثبت‌نام فعالیت با موفقیت ذخیره شد."); self.status.color=SUCCESS
+        self.insert("activity_registrations",{"activity_id":r["id"],"student_id":sid,"participation_type":"انفرادی","team_members":"","competition_type":r.get("category") or "فعالیت","payment_status":"pending","status":"confirmed"}); self.status.text=fa_display("ثبت و تأیید انجام شد."); self.status.color=SUCCESS
     def reg_comp(self,r):
         sid=self.student_id(); old=self.api().table_select("activity_registrations",{"student_id":"eq."+str(sid),"competition_type":"eq."+str(r.get("title") or ""),"limit":"1"}) or []
         if old:return
-        self.insert("activity_registrations",{"activity_id":r.get("id"),"student_id":sid,"participation_type":"انفرادی","team_members":"","competition_type":r.get("title") or "مسابقه","payment_status":"pending","status":"active"}); self.status.text=fa_display("ثبت‌نام مسابقه ذخیره شد."); self.status.color=SUCCESS
+        self.insert("activity_registrations",{"activity_id":r.get("id"),"student_id":sid,"participation_type":"انفرادی","team_members":"","competition_type":r.get("title") or "مسابقه","payment_status":"pending","status":"confirmed"}); self.status.text=fa_display("ثبت و تأیید انجام شد."); self.status.color=SUCCESS
     def reg_simple(self,table,label):
         sid=self.student_id(); old=self.api().table_select(table,{"student_id":"eq."+str(sid),"limit":"1"}) or []
         if old:return
-        s=(self.api().table_select("students",{"id":"eq."+str(sid),"limit":"1"}) or [{}])[0]; p={"student_id":sid,"student_name":self.sname(s),"status":"pending"}
+        s=(self.api().table_select("students",{"id":"eq."+str(sid),"limit":"1"}) or [{}])[0]; p={"student_id":sid,"student_name":self.sname(s),"status":"confirmed"}
         if table=="student_council":p["election_year"]=SCHOOL_YEAR
         if table=="school_ally":p["role"]="همیار"
         if table=="morning_leaders":p.update({"grade":s.get("grade") or "","class_name":s.get("class_name") or "","role":label,"date_shamsi":""})
