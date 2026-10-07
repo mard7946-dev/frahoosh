@@ -1151,6 +1151,8 @@ class ModuleWorkspaceScreen(Screen):
                         app.sm.add_widget(special)
                 elif canonical in {"teacher_exams","quiz_links"}:
                     special = app.ensure_exam_authoring()
+                elif canonical == "module_activations":
+                    special = app.ensure_module_activation_workflow()
                 if special is not None:
                     self.manager.current = special.name
                     return
