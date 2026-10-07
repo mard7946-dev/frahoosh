@@ -454,6 +454,18 @@ class FrahooshApp(App):
         self.sm.add_widget(screen)
         return screen
 
+    def ensure_module_activation_workflow(self):
+        if self.sm is None:
+            return None
+        try:
+            return self.sm.get_screen("module_activation_workflow")
+        except Exception:
+            pass
+        from mobile.screens.school_workflows import ModuleActivationWorkflowScreen
+        screen = ModuleActivationWorkflowScreen(name="module_activation_workflow", app_state=self.app_state)
+        self.sm.add_widget(screen)
+        return screen
+
     def ensure_certificate_workflow(self):
         if self.sm is None:return None
         try:return self.sm.get_screen("certificate_workflow")
