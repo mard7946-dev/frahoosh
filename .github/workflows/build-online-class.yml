@@ -1,0 +1,48 @@
+name: Frahoosh Standalone Online Class APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "online_class_apk/**"
+      - ".github/workflows/build-online-class.yml"
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11", cache: pip}
+      - uses: actions/setup-java@v5
+        with: {distribution: temurin, java-version: "17"}
+      - run: sudo apt-get update && sudo apt-get install -y git zip unzip wget curl autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev build-essential ccache
+      - run: python -m pip install --upgrade pip setuptools wheel && python -m pip install "cython==0.29.36" "buildozer==1.5.0"
+      - name: Android SDK
+        run: |
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358"
+      - name: Validate
+        run: python -m compileall -q online_class_apk
+      - name: Build APK
+        working-directory: online_class_apk
+        run: |
+          export ANDROID_HOME="${ANDROID_SDK_ROOT}"
+          export ANDROID_NDK_HOME="${ANDROID_SDK_ROOT}/ndk/28.2.13676358"
+          export ANDROID_NDK_ROOT="${ANDROID_SDK_ROOT}/ndk/28.2.13676358"
+          mkdir -p "${ANDROID_SDK_ROOT}/tools/bin"
+          ln -sf "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" "${ANDROID_SDK_ROOT}/tools/bin/sdkmanager"
+          buildozer -v android debug
+      - name: APK SHA256
+        working-directory: online_class_apk
+        run: sha256sum bin/*.apk | tee online-class-apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Frahoosh-Online-Class-APK-v1.0.0
+          path: |
+            online_class_apk/bin/*.apk
+            online_class_apk/online-class-apk.sha256
+          retention-days: 14
