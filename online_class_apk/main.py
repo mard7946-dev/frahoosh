@@ -1,39 +1,30 @@
 from kivy.app import App
-from kivy.uix.widget import Widget
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.clock import Clock
-from android.permissions import request_permissions, Permission
 
 CLASS_URL = "https://frahoosh.ir/online-class/"
 
-class Root(Widget):
-    pass
-
 class AppMain(App):
     def build(self):
-        return Root()
+        box = BoxLayout(orientation="vertical", padding=40, spacing=20)
+        box.add_widget(Label(text="فراهوش\nکلاس آنلاین", font_size="28sp"))
+        b = Button(text="ورود به کلاس آنلاین", font_size="22sp", size_hint_y=None, height=70)
+        b.bind(on_release=self.open_class)
+        box.add_widget(b)
+        Clock.schedule_once(self.open_class, 0.5)
+        return box
 
-    def _open_classroom(self, *_):
+    def open_class(self, *_):
         try:
             from jnius import autoclass
-            Activity = autoclass("org.kivy.android.PythonActivity")
-            Launcher = autoclass("ir.frahoosh.ClassroomLauncher")
-            Launcher.open(Activity.mActivity, CLASS_URL)
+            Intent = autoclass("android.content.Intent")
+            Uri = autoclass("android.net.Uri")
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            intent = Intent(Intent.ACTION_VIEW, Uri.parse(CLASS_URL))
+            PythonActivity.mActivity.startActivity(intent)
         except Exception as exc:
-            self.root.clear_widgets()
-            self.root.add_widget(Label(
-                text="خطا در باز کردن کلاس آنلاین\n\nلطفاً اتصال اینترنت و WebView اندروید را بررسی کنید.",
-                halign="center",
-                valign="middle",
-            ))
-
-    def on_start(self):
-        try:
-            request_permissions(
-                [Permission.INTERNET, Permission.CAMERA, Permission.RECORD_AUDIO],
-                lambda *_: Clock.schedule_once(self._open_classroom, 0.8),
-            )
-        except Exception:
-            Clock.schedule_once(self._open_classroom, 1.0)
+            self.root.children[0].text = "باز کردن کلاس انجام نشد.\nلطفاً مرورگر Chrome را نصب/فعال کنید."
 
 AppMain().run()
