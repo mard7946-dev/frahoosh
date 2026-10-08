@@ -90,7 +90,7 @@ public final class MainActivity extends Activity {
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
                     view.postDelayed(() -> {
-                        if (webView != null && !webView.isDestroyed()) {
+                        if (webView != null) {
                             webView.loadUrl(CLASSROOM_URL);
                         }
                     }, 800);
