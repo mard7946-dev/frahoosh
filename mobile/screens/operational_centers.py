@@ -464,7 +464,7 @@ class CounselingCenterScreen(OpsBase):
     def counsel_form(self):
         self.counselform([("visit_reason","علت مراجعه"),("session_date","تاریخ"),("actions_taken","اقدامات انجام‌شده"),("next_visit","جلسه بعد"),("progress","روند"),("result","نتیجه")],self.save_counsel,"ثبت جلسه مشاوره")
     def save_counsel(self,w,rows,sp):
-        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p.update({"student_id":s.get("id"),"student_name":self.sname(s),"title":"جلسه مشاوره","description":p.get("actions_taken") or "","recommendations":p.get("result") or "","status":"open"});self.insert("counseling_records",p);self.load()
+        i=list(sp.values).index(sp.text) if sp.text in sp.values else 0;s=rows[i] if rows else {};p={k:self.val(v) for k,v in w.items()};p.update({"student_id":s.get("id"),"student_name":self.sname(s),"title":"جلسه مشاوره","description":p.get("actions_taken") or "","recommendations":p.get("result") or "","session_date":p.get("session_date") or "","actions_taken":p.get("actions_taken") or "","progress":p.get("progress") or "","result":p.get("result") or "","status":"open"});self.insert("counseling_records",p);self.load()
     def follow_form(self):
         self.counselform([("subject","موضوع پیگیری"),("description","شرح پیگیری"),("followup_date","تاریخ پیگیری"),("followup_items","موارد پیگیری‌شده"),("decision","تصمیم")],self.save_follow,"ثبت پیگیری")
     def save_follow(self,w,rows,sp):
@@ -801,12 +801,16 @@ class OpsRouter:
     def mode_for(cls,route):
         route=str(route or "").strip()
         if route in {"competitions","festivals"}: return "school_activity_offers"
+        if route == "weekly_schedule": return "canonical_weekly_schedule"
         if route in cls.SCHOOL_ROUTES:return "school_"+route
         return cls.MAP.get(route)
     @classmethod
     def create(cls,state,route):
         route=str(route or "").strip(); mode=cls.mode_for(route)
         if not mode:return None
+        if mode == "canonical_weekly_schedule":
+            from mobile.screens.weekly_schedule import WeeklyScheduleScreen
+            return WeeklyScheduleScreen(name="ops_"+mode, app_state=state)
         if mode.startswith("school_"):
             from mobile.screens.school_operational_modules import SchoolModulesScreen
             effective_route="activity_offers" if route in {"competitions","festivals"} else route
