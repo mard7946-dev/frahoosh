@@ -9,24 +9,22 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
-from kivy.uix.spinner import Spinner
 
-from mobile.config import PRIMARY, SECONDARY, SUCCESS, WHITE, CARD, ERROR, SCHOOL_NAME, SCHOOL_YEAR
+from mobile.config import PRIMARY, SECONDARY, SUCCESS, WHITE, CARD, ERROR
 from mobile.ui import font_name, rtl_text, PersianTextInput
 
 
-DAYS = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه"]
-BELLS = ["زنگ ۱", "زنگ ۲", "زنگ ۳", "زنگ ۴", "زنگ ۵", "زنگ ۶"]
+DAYS = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه"]
+BELLS = [1, 2, 3]
 
 
 class WeeklyScheduleScreen(Screen):
-    """Canonical ZIP timetable: day × bell × class × subject × teacher."""
+    """Real school timetable backed by public.weekly_schedule_entries."""
 
     def __init__(self, app_state=None, **kwargs):
         super().__init__(**kwargs)
         self.app_state = app_state
         self.rows = []
-        self.generated = []
         self.selected = None
         self._build()
 
@@ -59,6 +57,16 @@ class WeeklyScheduleScreen(Screen):
         b.bind(on_release=cb)
         return b
 
+    def _role(self):
+        return str(getattr(self.app_state, "role", "") or "").strip().lower().replace("‌", " ")
+
+    def _can_write(self):
+        return self._role() in {
+            "manager", "admin", "administrator", "مدیر", "مدیریت",
+            "educational", "معاون آموزشی", "معاونت آموزشی",
+            "executive", "معاون اجرایی", "معاونت اجرایی",
+        }
+
     def _build(self):
         root = BoxLayout(orientation="vertical", padding=dp(8), spacing=dp(6))
         top = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(5))
@@ -66,16 +74,9 @@ class WeeklyScheduleScreen(Screen):
         top.add_widget(self.label("برنامه هفتگی مدرسه", "18sp", PRIMARY, True, True, 42))
         top.add_widget(self.btn("داشبورد", self.dashboard, PRIMARY, 40))
         root.add_widget(top)
-        root.add_widget(
-            self.label(
-                f"{SCHOOL_NAME} • سال تحصیلی {SCHOOL_YEAR} • روز × زنگ × کلاس × درس × دبیر",
-                "9sp", SECONDARY, False, True, 28,
-            )
-        )
+        root.add_widget(self.label("روز: شنبه تا چهارشنبه  •  زنگ: ۱ تا ۳  •  کلاس × درس × دبیر", "9sp", SECONDARY, False, True, 28))
 
-        role = str(getattr(self.app_state, "role", "") or "").strip().lower()
-        writable_roles = {"manager", "admin", "administrator", "مدیر", "مدیریت", "executive", "معاون اجرایی"}
-        if role in writable_roles:
+        if self._can_write():
             actions = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(5))
             actions.add_widget(self.btn("ثبت جدید", lambda *_: self.editor(None), SUCCESS, 40))
             actions.add_widget(self.btn("ویرایش", lambda *_: self.editor(self.selected), PRIMARY, 40))
@@ -111,162 +112,98 @@ class WeeklyScheduleScreen(Screen):
         self._async(self._fetch, self._loaded)
 
     def _fetch(self):
-        api = self._api()
-        base = api.table_select("weekly_schedule", {"order": "id.desc", "limit": "200"}) or []
-        try:
-            generated = api.table_select(
-                "generated_weekly_schedule",
-                {"order": "id.desc", "limit": "300"},
-            ) or []
-        except Exception:
-            generated = []
-        return {"base": base, "generated": generated}
+        return self._api().table_select(
+            "weekly_schedule_entries",
+            {"order": "weekday.asc,period.asc,id.asc", "limit": "300"},
+        ) or []
 
-    def _loaded(self, data, error):
+    def _loaded(self, rows, error):
         if error:
             self.status.text = rtl_text("خطا در دریافت برنامه: " + error)
             self.status.color = ERROR
             return
-        self.rows = list((data or {}).get("base") or [])
-        self.generated = list((data or {}).get("generated") or [])
+        self.rows = list(rows or [])
         self.selected = None
-        self.status.text = rtl_text(
-            f"{len(self.rows)} تعریف برنامه • {len(self.generated)} خانه تولیدشده"
-        )
+        self.status.text = rtl_text(f"{len(self.rows)} ردیف واقعی برنامه هفتگی")
         self.status.color = SUCCESS
-        self._render_timetable()
+        self._render()
 
-    @staticmethod
-    def _contains_day(raw, day):
-        raw = str(raw or "")
-        return day in raw or day.replace("‌", "") in raw.replace("‌", "")
-
-    @staticmethod
-    def _bell_number(raw):
-        text = str(raw or "")
-        for i, bell in enumerate(BELLS, 1):
-            if bell in text or str(i) in text:
-                return i
-        return 1
-
-    def _render_timetable(self):
+    def _render(self):
         self.area.clear_widgets()
-        source = self.generated or self.rows
-        if not source:
-            self.status.text = rtl_text("ساختار برنامه هفتگی آماده است؛ هنوز رکوردی برای نمایش ثبت نشده.")
-            self.status.color = SECONDARY
-
         scroll = ScrollView(do_scroll_x=True, do_scroll_y=True)
-        grid = GridLayout(
-            cols=7,
-            spacing=dp(3),
-            padding=dp(3),
-            size_hint=(None, None),
-            width=dp(7 * 190),
-        )
+        grid = GridLayout(cols=6, spacing=dp(3), padding=dp(3), size_hint=(None, None), width=dp(6 * 185))
         grid.bind(minimum_height=grid.setter("height"))
 
-        grid.add_widget(self._cell("روز / زنگ", True))
-        for day in DAYS:
-            grid.add_widget(self._cell(day, True))
+        headers = ["زنگ", *DAYS]
+        for h in headers:
+            grid.add_widget(self._cell(h, True, 58))
 
-        for bell_no, bell in enumerate(BELLS, 1):
-            grid.add_widget(self._cell(bell, True))
+        for period in BELLS:
+            grid.add_widget(self._cell(f"زنگ {period}", True, 72))
             for day in DAYS:
-                matches = []
-                for row in source:
-                    row_day = row.get("weekday") or row.get("weekdays") or row.get("day")
-                    row_bell = row.get("bell") or row.get("bell_pattern") or row.get("period")
-                    if self._contains_day(row_day, day) and self._bell_number(row_bell) == bell_no:
-                        matches.append(row)
-                values = []
-                for row in matches[:3]:
-                    subject = row.get("subject") or "درس"
-                    teacher = row.get("teacher") or row.get("teacher_name") or "دبیر"
-                    cls = row.get("class_name") or row.get("class_names") or "کلاس"
-                    values.append(f"{subject} • {teacher}\n{cls}")
-                self._add_grid_cell(grid, "\n".join(values) if values else "—")
+                matches = [
+                    r for r in self.rows
+                    if str(r.get("weekday") or "").replace("‌", "") == day.replace("‌", "")
+                    and int(r.get("period") or 0) == period
+                ]
+                text = "—" if not matches else "\n".join(
+                    f"{r.get('class_name') or 'کلاس'} • {r.get('subject') or 'درس'}\n{r.get('teacher_name') or 'دبیر'}"
+                    for r in matches[:3]
+                )
+                grid.add_widget(self._cell(text, False, 82))
 
         scroll.add_widget(grid)
         self.area.add_widget(scroll)
+        self.area.add_widget(self.label("فهرست رکوردها — برای ویرایش یا حذف، یک ردیف را انتخاب کنید.", "9sp", SECONDARY, False, True, 30))
 
-        self.area.add_widget(
-            self.label(
-                ("برای ویرایش یا حذف، یک تعریف برنامه را از فهرست پایین انتخاب کنید."
-                 if self.rows else "برای ساخت اولین برنامه، «ثبت جدید» را بزنید؛ جدول روز × زنگ همین حالا آماده است."),
-                "9sp", SECONDARY, False, True, 30,
-            )
-        )
-        list_scroll = ScrollView(do_scroll_x=False)
+        lst_scroll = ScrollView(do_scroll_x=False)
         lst = BoxLayout(orientation="vertical", spacing=dp(4), size_hint_y=None)
         lst.bind(minimum_height=lst.setter("height"))
         for row in self.rows:
-            title = " • ".join(
-                [
-                    str(row.get("teacher") or row.get("teacher_name") or "دبیر"),
-                    str(row.get("subject") or "درس"),
-                    str(row.get("class_names") or row.get("class_name") or "کلاس"),
-                    str(row.get("weekdays") or "روز ثبت نشده"),
-                    str(row.get("bell_pattern") or "زنگ ثبت نشده"),
-                ]
-            )
+            title = f"{row.get('weekday') or '-'} • زنگ {row.get('period') or '-'} • {row.get('class_name') or '-'} • {row.get('subject') or '-'} • {row.get('teacher_name') or '-'}"
             line = BoxLayout(size_hint_y=None, height=dp(50), spacing=dp(4))
             line.add_widget(self.label(title, "9sp", SECONDARY, False, False, 46))
-            line.add_widget(self.btn("انتخاب", lambda *_a, x=row: self._select(x), PRIMARY, 40))
+            if self._can_write():
+                line.add_widget(self.btn("انتخاب", lambda *_a, x=row: self._select(x), PRIMARY, 40))
             lst.add_widget(line)
-        list_scroll.add_widget(lst)
-        self.area.add_widget(list_scroll)
+        lst_scroll.add_widget(lst)
+        self.area.add_widget(lst_scroll)
 
-    def _add_grid_cell(self, grid, text):
-        grid.add_widget(self._cell(text, False))
-
-    def _cell(self, text, header=False):
-        h = 66 if header else 92
-        box = BoxLayout(
-            orientation="vertical",
-            padding=dp(5),
-            size_hint=(None, None),
-            width=dp(190),
-            height=dp(h),
-        )
-        box.add_widget(self.label(text, "9sp" if not header else "10sp",
-                                   WHITE if header else SECONDARY, header, True, h - 4))
+    def _cell(self, text, header=False, height=72):
+        box = BoxLayout(orientation="vertical", padding=dp(5), size_hint=(None, None), width=dp(185), height=dp(height))
+        box.add_widget(self.label(text, "9sp" if not header else "10sp", WHITE if header else SECONDARY, header, True, height - 4))
+        from kivy.graphics import Color, RoundedRectangle
         with box.canvas.before:
-            from kivy.graphics import Color, RoundedRectangle
             Color(*(PRIMARY if header else CARD))
             bg = RoundedRectangle(radius=[dp(7)])
-        box.bind(pos=lambda o, v: setattr(bg, "pos", v),
-                 size=lambda o, v: setattr(bg, "size", v))
+        box.bind(pos=lambda o, v: setattr(bg, "pos", v), size=lambda o, v: setattr(bg, "size", v))
         return box
 
     def _select(self, row):
         self.selected = dict(row or {})
-        self.status.text = rtl_text("تعریف برنامه انتخاب شد؛ ویرایش یا حذف را انتخاب کنید.")
+        self.status.text = rtl_text("ردیف برنامه انتخاب شد.")
         self.status.color = SUCCESS
 
     def editor(self, row):
         if row is not None and not row.get("id"):
-            self.status.text = rtl_text("شناسه این برنامه برای ویرایش موجود نیست.")
+            self.status.text = rtl_text("شناسه رکورد برای ویرایش موجود نیست.")
             self.status.color = ERROR
             return
 
         fields = [
-            ("teacher", "نام دبیر"),
-            ("teacher_id", "شناسه دبیر"),
+            ("weekday", "روز (شنبه تا چهارشنبه)"),
+            ("period", "زنگ (۱ تا ۳)"),
+            ("class_name", "کلاس"),
             ("subject", "درس"),
-            ("grade", "پایه"),
-            ("class_names", "کلاس / کلاس‌ها"),
-            ("class_count", "تعداد کلاس"),
-            ("hours", "ساعت هفتگی"),
-            ("weekdays", "روزهای هفته (مثلاً شنبه، دوشنبه)"),
-            ("bell_pattern", "زنگ / زنگ‌ها (مثلاً زنگ ۱)"),
+            ("teacher_name", "دبیر"),
+            ("teacher_id", "شناسه دبیر (اختیاری)"),
+            ("room", "کلاس/اتاق (اختیاری)"),
         ]
         root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(5))
         scroll = ScrollView()
         form = GridLayout(cols=1, spacing=dp(5), size_hint_y=None)
         form.bind(minimum_height=form.setter("height"))
         inputs = {}
-
         for key, hint in fields:
             form.add_widget(self.label(hint, "9sp", PRIMARY, True, False, 26))
             ti = PersianTextInput(
@@ -281,67 +218,78 @@ class WeeklyScheduleScreen(Screen):
             )
             inputs[key] = ti
             form.add_widget(ti)
-
         scroll.add_widget(form)
         root.add_widget(scroll)
         actions = BoxLayout(size_hint_y=None, height=dp(42), spacing=dp(5))
-        popup = Popup(
-            title=rtl_text(("ویرایش" if row else "ثبت جدید") + " • برنامه هفتگی"),
-            content=root,
-            size_hint=(.95, .90),
-            auto_dismiss=False,
-        )
+        popup = Popup(title=rtl_text(("ویرایش" if row else "ثبت جدید") + " • برنامه هفتگی"), content=root, size_hint=(.95, .90), auto_dismiss=False)
         actions.add_widget(self.btn("انصراف", lambda *_: popup.dismiss(), SECONDARY, 40))
         actions.add_widget(self.btn("ذخیره", lambda *_: self.save(row, inputs, popup), SUCCESS, 40))
         root.add_widget(actions)
         popup.open()
 
     def save(self, row, inputs, popup):
-        payload = {k: v.text.strip() for k, v in inputs.items() if v.text.strip()}
-        if not payload.get("teacher") or not payload.get("subject") or not payload.get("class_names"):
-            self.status.text = rtl_text("نام دبیر، درس و کلاس الزامی است.")
+        day = inputs["weekday"].text.strip()
+        try:
+            period = int(inputs["period"].text.strip().replace("۱", "1").replace("۲", "2").replace("۳", "3"))
+        except ValueError:
+            period = 0
+        valid_day = day.replace("‌", "") in {x.replace("‌", "") for x in DAYS}
+        if not valid_day or period not in BELLS:
+            self.status.text = rtl_text("روز باید شنبه تا چهارشنبه و زنگ باید ۱ تا ۳ باشد.")
             self.status.color = ERROR
             return
-        try:
-            payload["class_count"] = int(payload.get("class_count") or 1)
-        except ValueError:
-            payload["class_count"] = 1
+        payload = {
+            "weekday": day,
+            "period": period,
+            "class_name": inputs["class_name"].text.strip(),
+            "subject": inputs["subject"].text.strip(),
+            "teacher_name": inputs["teacher_name"].text.strip(),
+            "room": inputs["room"].text.strip() or None,
+        }
+        teacher_id = inputs["teacher_id"].text.strip()
+        if teacher_id:
+            try:
+                payload["teacher_id"] = int(teacher_id)
+            except ValueError:
+                self.status.text = rtl_text("شناسه دبیر باید عددی باشد.")
+                self.status.color = ERROR
+                return
+        if not payload["class_name"] or not payload["subject"] or not payload["teacher_name"]:
+            self.status.text = rtl_text("کلاس، درس و دبیر الزامی است.")
+            self.status.color = ERROR
+            return
 
         popup.dismiss()
-        self.status.text = rtl_text("در حال ذخیره برنامه واقعی…")
+        self.status.text = rtl_text("در حال ذخیره در Supabase…")
         self.status.color = SECONDARY
 
         def work():
             api = self._api()
             if row is None:
-                return api.table_insert("weekly_schedule", payload)
-            rid = row.get("id")
-            return api.table_update("weekly_schedule", {"id": "eq." + str(rid)}, payload)
+                return api.table_insert("weekly_schedule_entries", payload)
+            return api.table_update("weekly_schedule_entries", {"id": "eq." + str(row["id"])}, payload)
 
-        self._async(
-            work,
-            lambda _, e: self._write_done(
-                "برنامه با موفقیت " + ("ثبت شد." if row is None else "ویرایش شد."), e
-            ),
-        )
+        self._async(work, lambda _, e: self._write_done(e))
 
-    def _write_done(self, msg, error):
-        self.status.text = rtl_text(("خطا: " + error) if error else msg)
-        self.status.color = ERROR if error else SUCCESS
-        if not error:
+    def _write_done(self, error):
+        if error:
+            self.status.text = rtl_text("خطا: " + error)
+            self.status.color = ERROR
+        else:
+            self.status.text = rtl_text("برنامه در Supabase ذخیره شد و دوباره بارگذاری می‌شود.")
+            self.status.color = SUCCESS
             self.load()
 
     def delete_selected(self):
         if not self.selected or not self.selected.get("id"):
-            self.status.text = rtl_text("ابتدا یک تعریف برنامه را انتخاب کنید.")
+            self.status.text = rtl_text("ابتدا یک ردیف را انتخاب کنید.")
             self.status.color = ERROR
             return
         rid = self.selected["id"]
-
-        def work():
-            return self._api().table_delete("weekly_schedule", {"id": "eq." + str(rid)})
-
-        self._async(work, lambda _, e: self._write_done("برنامه حذف شد.", e))
+        self._async(
+            lambda: self._api().table_delete("weekly_schedule_entries", {"id": "eq." + str(rid)}),
+            lambda _, e: self._write_done(e),
+        )
 
     def back(self, *_):
         if self.manager:
