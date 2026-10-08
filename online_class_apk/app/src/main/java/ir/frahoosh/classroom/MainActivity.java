@@ -14,10 +14,10 @@ import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceError;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.WebResourceError;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
@@ -72,6 +72,9 @@ public final class MainActivity extends Activity {
         s.setLoadsImagesAutomatically(true);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(false);
+        if (Build.VERSION.SDK_INT >= 26) {
+            s.setSafeBrowsingEnabled(true);
+        }
 
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
@@ -86,7 +89,11 @@ public final class MainActivity extends Activity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
-                    view.loadUrl(CLASSROOM_URL);
+                    view.postDelayed(() -> {
+                        if (webView != null && !webView.isDestroyed()) {
+                            webView.loadUrl(CLASSROOM_URL);
+                        }
+                    }, 800);
                 }
             }
         });
@@ -94,7 +101,14 @@ public final class MainActivity extends Activity {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
-                runOnUiThread(() -> handleWebPermission(request));
+                runOnUiThread(() -> {
+                    if (hasMediaPermissions()) {
+                        grantWebMediaPermission(request);
+                    } else {
+                        pendingWebPermission = request;
+                        requestMediaPermissions();
+                    }
+                });
             }
 
             @Override
@@ -119,6 +133,12 @@ public final class MainActivity extends Activity {
         webView.loadUrl(CLASSROOM_URL);
     }
 
+    private boolean hasMediaPermissions() {
+        if (Build.VERSION.SDK_INT < 23) return true;
+        return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    }
+
     private void requestMediaPermissions() {
         if (Build.VERSION.SDK_INT < 23) return;
         ArrayList<String> missing = new ArrayList<>();
@@ -130,29 +150,31 @@ public final class MainActivity extends Activity {
         }
         if (!missing.isEmpty()) {
             requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
+        } else if (pendingWebPermission != null) {
+            PermissionRequest request = pendingWebPermission;
+            pendingWebPermission = null;
+            grantWebMediaPermission(request);
         }
     }
 
-    private void handleWebPermission(PermissionRequest request) {
+    private void grantWebMediaPermission(PermissionRequest request) {
         if (request == null) return;
-        if (Build.VERSION.SDK_INT >= 23) {
-            boolean camera = checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
-            boolean mic = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
-            ArrayList<String> allowed = new ArrayList<>();
-            for (String resource : request.getResources()) {
-                if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource) && camera) {
-                    allowed.add(resource);
-                } else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource) && mic) {
-                    allowed.add(resource);
-                }
+
+        ArrayList<String> allowed = new ArrayList<>();
+        for (String resource : request.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)
+                    && checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                allowed.add(resource);
+            } else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)
+                    && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                allowed.add(resource);
             }
-            if (!allowed.isEmpty()) {
-                request.grant(allowed.toArray(new String[0]));
-            } else {
-                request.deny();
-            }
+        }
+
+        if (!allowed.isEmpty()) {
+            request.grant(allowed.toArray(new String[0]));
         } else {
-            request.grant(request.getResources());
+            request.deny();
         }
     }
 
@@ -162,7 +184,11 @@ public final class MainActivity extends Activity {
         if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermission != null) {
             PermissionRequest request = pendingWebPermission;
             pendingWebPermission = null;
-            handleWebPermission(request);
+            if (hasMediaPermissions()) {
+                grantWebMediaPermission(request);
+            } else {
+                request.deny();
+            }
         }
     }
 
@@ -175,7 +201,9 @@ public final class MainActivity extends Activity {
                 if (data.getClipData() != null) {
                     int n = data.getClipData().getItemCount();
                     result = new Uri[n];
-                    for (int i = 0; i < n; i++) result[i] = data.getClipData().getItemAt(i).getUri();
+                    for (int i = 0; i < n; i++) {
+                        result[i] = data.getClipData().getItemAt(i).getUri();
+                    }
                 } else if (data.getData() != null) {
                     result = new Uri[] { data.getData() };
                 }
@@ -196,6 +224,14 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (pendingWebPermission != null) {
+            pendingWebPermission.deny();
+            pendingWebPermission = null;
+        }
+        if (fileCallback != null) {
+            fileCallback.onReceiveValue(null);
+            fileCallback = null;
+        }
         if (webView != null) {
             webView.stopLoading();
             webView.loadUrl("about:blank");
