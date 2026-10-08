@@ -4,8 +4,8 @@ package.name = frahooshclassroom
 package.domain = ir.frahoosh
 source.dir = .
 source.include_exts = py,kv
-version = 1.0.0
-android.numeric_version = 10000
+version = 1.1.0
+android.numeric_version = 11000
 requirements = python3==3.11.10,hostpython3==3.11.10,kivy==2.3.1,pyjnius
 orientation = landscape
 fullscreen = 1
