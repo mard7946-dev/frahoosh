@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.webkit.PermissionRequest;
@@ -12,7 +13,6 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebSettings;
-import android.view.View;
 import android.view.Window;
 
 public final class ClassroomLauncher {
@@ -21,8 +21,22 @@ public final class ClassroomLauncher {
   public static void open(final Activity activity, final String url) {
     if (activity == null) return;
 
-    new Handler(Looper.getMainLooper()).post(() -> {
+    activity.runOnUiThread(() -> {
       try {
+        if (Build.VERSION.SDK_INT >= 23) {
+          String[] permissions = new String[] {
+              Manifest.permission.CAMERA,
+              Manifest.permission.RECORD_AUDIO
+          };
+          boolean camera = activity.checkSelfPermission(Manifest.permission.CAMERA)
+              == PackageManager.PERMISSION_GRANTED;
+          boolean mic = activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+              == PackageManager.PERMISSION_GRANTED;
+          if (!camera || !mic) {
+            activity.requestPermissions(permissions, 4207);
+          }
+        }
+
         web = new WebView(activity);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -33,13 +47,14 @@ public final class ClassroomLauncher {
         s.setAllowFileAccess(true);
         s.setAllowContentAccess(true);
         s.setSupportMultipleWindows(false);
+        s.setBuiltInZoomControls(false);
+        s.setDisplayZoomControls(false);
 
         web.setBackgroundColor(Color.BLACK);
         web.setWebViewClient(new WebViewClient() {
           @Override
           public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-            view.loadUrl(request.getUrl().toString());
-            return true;
+            return false;
           }
         });
 
@@ -51,18 +66,19 @@ public final class ClassroomLauncher {
                   == PackageManager.PERMISSION_GRANTED;
               boolean mic = activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                   == PackageManager.PERMISSION_GRANTED;
-
               java.util.ArrayList<String> allowed = new java.util.ArrayList<>();
               for (String resource : request.getResources()) {
-                if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource) && camera)
+                if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource) && camera) {
                   allowed.add(resource);
-                else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource) && mic)
+                } else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource) && mic) {
                   allowed.add(resource);
+                }
               }
-              if (!allowed.isEmpty())
+              if (!allowed.isEmpty()) {
                 request.grant(allowed.toArray(new String[0]));
-              else
+              } else {
                 request.deny();
+              }
             });
           }
         });
@@ -72,8 +88,8 @@ public final class ClassroomLauncher {
         w.setStatusBarColor(Color.BLACK);
         w.setNavigationBarColor(Color.BLACK);
         web.loadUrl(url);
-      } catch (Throwable ignored) {
-        // Keep the host activity alive if WebView initialization fails.
+      } catch (Throwable error) {
+        android.util.Log.e("FrahooshClassroom", "WebView launch failed", error);
       }
     });
   }
