@@ -20,6 +20,7 @@ begin
     'module_activations'
   ] loop
     execute format('revoke all on table public.%I from anon', t);
+    execute format('revoke all on table public.%I from authenticated', t);
     execute format('grant select, insert, update, delete on table public.%I to authenticated', t);
   end loop;
 end $$;
