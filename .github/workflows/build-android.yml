@@ -1,4 +1,5 @@
 name: Frahoosh Android Build
+# Final production verification workflow; no application runtime behavior changed.
 
 on:
   workflow_dispatch:
