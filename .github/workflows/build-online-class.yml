@@ -20,12 +20,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK
+      - name: Android SDK
         run: |
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-          yes | sdkmanager --licenses >/dev/null || true
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - uses: gradle/actions/setup-gradle@v4
 
@@ -40,12 +41,12 @@ jobs:
       - name: Verify APK
         run: |
           test -s online_class_apk/app/build/outputs/apk/debug/app-debug.apk
-          sha256sum online_class_apk/app/build/outputs/apk/debug/app-debug.apk | tee online_class-apk.sha256
+          sha256sum online_class_apk/app/build/outputs/apk/debug/app-debug.apk | tee online_class_apk/online-class-apk.sha256
 
       - uses: actions/upload-artifact@v4
         with:
           name: Frahoosh-Online-Class-APK-v2.0.0
           path: |
             online_class_apk/app/build/outputs/apk/debug/app-debug.apk
-            online_class_apk/online_class-apk.sha256
+            online_class_apk/online-class-apk.sha256
           retention-days: 14
