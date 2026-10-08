@@ -160,14 +160,27 @@ class SchoolModulesScreen(Screen):
         can_write=role in {"teacher","manager","educational"}
         self.body.add_widget(self.lab("ردیف | درس | نوع آزمون | نام آزمون | نمره کل | نمره کسب‌شده","10sp",PRIMARY,True,44,True))
         if can_write:
-            self.body.add_widget(self.lab("ثبت و ویرایش نمره فقط در محدوده دبیر/درس/کلاس مجاز انجام می‌شود؛ محدودیت اصلی در RLS اعمال می‌شود.","9sp",SECONDARY,False,42,True))
-            sid=self.field("شناسه دانش‌آموز")
-            subject=self.field("نام درس")
+            self.body.add_widget(self.lab("ثبت نمره از روی پرونده‌های واقعی مدرسه انجام می‌شود؛ محدوده دبیر/درس/کلاس علاوه بر رابط کاربری در RLS نیز enforce می‌شود.","9sp",SECONDARY,False,42,True))
+            teacher_id=self.profile().get("teacher_id") or self.profile().get("linked_teacher_id")
+            if role=="teacher":
+                teacher_classes=self.rows("teacher_classes",{"teacher_id":"eq."+str(teacher_id or 0),"active":"eq.1","limit":"200"})
+                class_names=sorted({str(x.get("class_name") or "").strip() for x in teacher_classes if str(x.get("class_name") or "").strip()})
+                subjects=sorted({str(x.get("subject") or "").strip() for x in teacher_classes if str(x.get("subject") or "").strip()})
+                students=self.rows("students",{"order":"last_name.asc","limit":"500"})
+                students=[s for s in students if str(s.get("class_name") or "").strip() in class_names]
+            else:
+                teacher_classes=[]
+                class_names=[]
+                subjects=[]
+                students=self.rows("students",{"order":"last_name.asc","limit":"500"})
+            student_values=[f"{s.get('id')} | {self.sname(s)} | {s.get('class_name') or '—'}" for s in students]
+            sid=self.spin("انتخاب دانش‌آموز",student_values or ["پرونده‌ای برای این نقش/کلاس وجود ندارد"])
+            subject=self.spin("انتخاب درس",subjects or ["درس"])
             typ=self.field("نوع آزمون")
             exam=self.field("نام آزمون")
             maxs=self.field("نمره کل آزمون")
             score=self.field("نمره کسب‌شده")
-            cls=self.field("کلاس")
+            cls=self.spin("کلاس",class_names or sorted({str(s.get("class_name") or "").strip() for s in students if s.get("class_name")}) or ["کلاس"])
             for w in (sid,subject,typ,exam,maxs,score,cls): self.body.add_widget(w)
             self.body.add_widget(self.btn("ثبت نمره",lambda *_:self._save_grade(sid,subject,typ,exam,maxs,score,cls),SUCCESS,48))
 
@@ -586,11 +599,14 @@ class SchoolModulesScreen(Screen):
                 row.add_widget(self.btn("ویرایش",lambda *_a,x=dict(r):self._edit_counsel(x),PRIMARY,42))
                 row.add_widget(self.btn("حذف",lambda *_a,x=dict(r):self._delete_row("counseling_records",x.get("id"),self.counseling),ERROR,42))
                 self.body.add_widget(row)
-            name=self.field("نام دانش‌آموز"); reason=self.field("علت مراجعه"); date=self.field("تاریخ مراجعه"); actions=self.field("کارهای انجام شده",72,True)
+            students=self.rows("students",{"order":"last_name.asc","limit":"500"})
+            student_values=[f"{s.get('id')} | {self.sname(s)} | {s.get('class_name') or '—'}" for s in students]
+            student=self.spin("انتخاب دانش‌آموز",student_values or ["پرونده‌ای وجود ندارد"])
+            reason=self.field("علت مراجعه"); date=self.field("تاریخ مراجعه"); actions=self.field("کارهای انجام شده",72,True)
             nxt=self.field("جلسه بعدی"); progress=self.field("پیشرفت",72,True); result=self.field("نتیجه",72,True)
             date.text=self.today()
-            for w in (name,reason,date,actions,nxt,progress,result): self.body.add_widget(w)
-            self.body.add_widget(self.btn("ثبت جلسه مشاوره",lambda *_:self._save_counsel(name,reason,date,actions,nxt,progress,result),SUCCESS,48))
+            for w in (student,reason,date,actions,nxt,progress,result): self.body.add_widget(w)
+            self.body.add_widget(self.btn("ثبت جلسه مشاوره",lambda *_:self._save_counsel(student,reason,date,actions,nxt,progress,result,students),SUCCESS,48))
 
     def counseling_followups(self):
         self._counsel_simple("پیگیری جلسات مشاوره","counseling_followups",
@@ -683,10 +699,24 @@ class SchoolModulesScreen(Screen):
         self.update("counseling_records",{"id":"eq."+str(row.get("id"))},{"student_name":self.val(name),"visit_reason":self.val(reason),"session_date":self.val(date) or self.today(),"actions_taken":self.val(actions),"next_visit":self.val(nxt),"progress":self.val(progress),"result":self.val(result)})
         self.counseling()
 
-    def _save_counsel(self,name,reason,date,actions,nxt,progress,result):
-        if not self.val(name) or not self.val(reason): raise ValueError("نام دانش‌آموز و علت مراجعه الزامی است.")
-        self.insert("counseling_records",{"student_name":self.val(name),"visit_reason":self.val(reason),"session_date":self.val(date) or self.today(),
-                    "actions_taken":self.val(actions),"next_visit":self.val(nxt),"progress":self.val(progress),"result":self.val(result),"status":"active"})
+    def _save_counsel(self,student,reason,date,actions,nxt,progress,result,students):
+        try:
+            idx=list(student.values).index(student.text) if student.text in student.values else 0
+            record=students[idx] if students else {}
+        except Exception:
+            record={}
+        if not record.get("id") or not self.val(reason): raise ValueError("دانش‌آموز و علت مراجعه الزامی است.")
+        self.insert("counseling_records",{
+            "student_id":record.get("id"),
+            "student_name":self.sname(record),
+            "visit_reason":self.val(reason),
+            "session_date":self.val(date) or self.today(),
+            "actions_taken":self.val(actions),
+            "next_visit":self.val(nxt),
+            "progress":self.val(progress),
+            "result":self.val(result),
+            "status":"active"
+        })
         self.counseling()
 
     def messages(self):
