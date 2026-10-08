@@ -58,7 +58,7 @@ class AppState:
         metadata = user.get("user_metadata")
         if not role and isinstance(metadata, dict):
             role = metadata.get("role")
-                value = str(role or "unknown").strip().lower()
+        value = str(role or "unknown").strip().lower()
         return {
             "counselor": "advisor",
             "counselling": "advisor",
