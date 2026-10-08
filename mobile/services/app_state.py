@@ -58,7 +58,16 @@ class AppState:
         metadata = user.get("user_metadata")
         if not role and isinstance(metadata, dict):
             role = metadata.get("role")
-        return str(role or "unknown").strip().lower()
+                value = str(role or "unknown").strip().lower()
+        return {
+            "counselor": "advisor",
+            "counselling": "advisor",
+            "accounting": "accountant",
+            "finance": "accountant",
+            "حسابدار": "accountant",
+            "مشاور": "advisor",
+            "مشاوره": "advisor",
+        }.get(value, value)
 
     @property
     def national_code(self):
