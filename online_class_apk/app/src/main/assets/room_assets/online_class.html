@@ -40,9 +40,9 @@ header h2{margin:0;font-size:17px;flex:1}.toolbar,.tools{display:flex;gap:5px;fl
 <div class="boardbar">
 <div class="tools">
 <button data-tool="pen" class="active">قلم</button><button data-tool="eraser">پاک‌کن</button>
-<button data-tool="line">خط</button><button data-tool="rect">مستطیل</button><button data-tool="circle">دایره</button><button data-tool="triangle">مثلث</button><button data-tool="arrow">پیکان</button>
+<button data-tool="line">خط</button><button data-tool="rect">مستطیل</button><button data-tool="circle">دایره</button><button data-tool="triangle">مثلث</button><button data-tool="arrow">پیکان</button><button data-tool="text">متن</button>
 <select id="color"><option value="#0b1f3a">مشکی</option><option value="#d62828">قرمز</option><option value="#087f5b">سبز</option><option value="#1d4ed8">آبی</option><option value="#7c3aed">بنفش</option><option value="#f59e0b">نارنجی</option></select>
-<select id="size"><option value="2">۲</option><option value="4" selected>۴</option><option value="7">۷</option><option value="10">۱۰</option><option value="14">۱۴</option><option value="20">۲۰</option></select>
+<span>اندازه قلم/فونت</span><select id="size"><option value="2">۲</option><option value="4" selected>۴</option><option value="7">۷</option><option value="10">۱۰</option><option value="14">۱۴</option><option value="20">۲۰</option></select>
 </div>
 <div class="tools">
 <button id="prev">صفحه قبل</button><button id="next">صفحه بعد</button><button id="clear" class="danger">پاک‌کردن صفحه</button><button id="clearAll" class="danger">پاک‌کردن کل تخته</button><span class="status" id="page"></span>
@@ -68,7 +68,7 @@ const C=__CONFIG__;
 const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"};
 const $=id=>document.getElementById(id);
 let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=true,cam=true;
-let tool="pen",color="#0b1f3a",size=4,drawing=false,start=null,points=[],pageNo=1;
+let tool="pen",color="#0b1f3a",size=4,fontSize=24,drawing=false,start=null,points=[],pageNo=1;
 let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[];
 $("className").textContent=C.classId;
 function api(path,opts={}){return fetch(C.url+"/rest/v1/"+path,Object.assign({headers},opts))}
@@ -97,6 +97,7 @@ if(a.tool==="line"){ctx.moveTo(x1,y1);ctx.lineTo(x2,y2)}
 else if(a.tool==="rect"){ctx.rect(Math.min(x1,x2),Math.min(y1,y2),Math.abs(x2-x1),Math.abs(y2-y1))}
 else if(a.tool==="circle"){let x=Math.min(x1,x2),y=Math.min(y1,y2),w=Math.abs(x2-x1),h=Math.abs(y2-y1);ctx.ellipse(x+w/2,y+h/2,w/2,h/2,0,0,Math.PI*2)}
 else if(a.tool==="triangle"){ctx.moveTo((x1+x2)/2,y1);ctx.lineTo(x1,y2);ctx.lineTo(x2,y2);ctx.closePath()}
+else if(a.tool==="text"){ctx.fillStyle=a.color||color;ctx.font=(a.fontSize||fontSize)+"px Tahoma";ctx.textAlign="right";ctx.fillText(a.text||"",x2,y2)}
 else if(a.tool==="arrow"){ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);let ang=Math.atan2(y2-y1,x2-x1),len=14;ctx.moveTo(x2,y2);ctx.lineTo(x2-len*Math.cos(ang-Math.PI/6),y2-len*Math.sin(ang-Math.PI/6));ctx.moveTo(x2,y2);ctx.lineTo(x2-len*Math.cos(ang+Math.PI/6),y2-len*Math.sin(ang+Math.PI/6))}
 ctx.stroke()}
 async function loadBoard(){try{ctx.clearRect(0,0,canvas.width,canvas.height);let r=await api("smart_board_whiteboards?class_id=eq."+C.classId+"&page_no=eq."+pageNo+"&order=id.asc&limit=1000");let rows=await r.json();for(const row of rows){try{applyBoard(JSON.parse(row.payload||"{}"),false)}catch(e){}}$("page").textContent="صفحه "+pageNo+" از "+maxPages}catch(e){}}
@@ -107,11 +108,11 @@ $("prev").onclick=()=>{pageNo=Math.max(1,pageNo-1);loadBoard()};$("next").onclic
 $("clear").onclick=async()=>{if(C.role==="student")return;try{await api("smart_board_whiteboards?class_id=eq."+C.classId+"&page_no=eq."+pageNo,{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});clearLocal();await send("board",{kind:"clear",page:pageNo})}catch(e){alert("پاک‌کردن صفحه انجام نشد.")}};
 $("clearAll").onclick=async()=>{if(C.role==="student")return;if(!confirm("کل ۱۵ صفحه تخته پاک شود؟"))return;try{await api("smart_board_whiteboards?class_id=eq."+C.classId,{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});clearLocal();await send("board",{kind:"clearAll"});loadBoard()}catch(e){alert("پاک‌کردن کل تخته انجام نشد.")}};
 document.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{tool=b.dataset.tool;document.querySelectorAll("[data-tool]").forEach(x=>x.classList.remove("active"));b.classList.add("active")});
-$("color").onchange=e=>color=e.target.value;$("size").onchange=e=>size=Number(e.target.value);
+$("color").onchange=e=>color=e.target.value;$("size").onchange=e=>{size=Number(e.target.value);fontSize=Math.max(12,size*6)};
 canvas=$("board");ctx=canvas.getContext("2d");window.addEventListener("resize",resize);
 canvas.addEventListener("pointerdown",e=>{drawing=true;start=pos(e);points=[...start];if(tool==="pen"||tool==="eraser"){ctx.beginPath();ctx.moveTo(...start)}});
 canvas.addEventListener("pointermove",e=>{if(!drawing)return;let p=pos(e);if(tool==="pen"||tool==="eraser"){points.push(...p);ctx.strokeStyle=tool==="eraser"?"#fff":color;ctx.lineWidth=tool==="eraser"?Math.max(10,size*3):size;ctx.lineCap="round";ctx.lineTo(...p);ctx.stroke()}});
-canvas.addEventListener("pointerup",async e=>{if(!drawing)return;drawing=false;let end=pos(e),p;if(tool==="pen"||tool==="eraser")p={tool,points};else p={tool,x1:start[0],y1:start[1],x2:end[0],y2:end[1]};await saveBoard(p);points=[]});
+canvas.addEventListener("pointerup",async e=>{if(!drawing)return;drawing=false;let end=pos(e),p;if(tool==="text"){const text=prompt("متن مورد نظر را وارد کنید:");if(text){ctx.fillStyle=color;ctx.font=fontSize+"px Tahoma";ctx.textAlign="right";ctx.fillText(text,end[0],end[1]);await saveBoard({tool:"text",x2:end[0],y2:end[1],text,fontSize})}points=[];return;}if(tool==="pen"||tool==="eraser")p={tool,points};else p={tool,x1:start[0],y1:start[1],x2:end[0],y2:end[1]};await saveBoard(p);points=[]});
 
 async function loadFiles(){try{let r=await api("smart_board_files?class_id=eq."+C.classId+"&order=id.desc&limit=100");let rows=await r.json();$("files").innerHTML=rows.map(x=>'<div class="fileitem"><b>'+esc(x.title||x.file_type||"فایل")+'</b><br>'+esc(x.file_type||"")+"<br><button onclick='downloadFile("+JSON.stringify(x.file_path)+","+JSON.stringify(x.title||"فایل")+" )'>مشاهده / دریافت</button></div>").join("")}catch(e){}}
 async function uploadFile(file){if(!file||C.role==="student")return;try{if(file.size>50*1024*1024)throw new Error("حجم فایل بیشتر از ۵۰ مگابایت است");let safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");let path=C.classId+"/"+C.userId+"/"+Date.now()+"_"+safe;let u=C.url+"/storage/v1/object/online-class-files/"+path;let rr=await fetch(u,{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":file.type||"application/octet-stream","x-upsert":"false"},body:file});if(!rr.ok)throw new Error(await rr.text());await api("smart_board_files",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({title:file.name,file_path:path,file_type:file.type||"application/octet-stream",class_id:C.classId,description:"فایل اشتراکی کلاس هوشمند"})});await loadFiles()}catch(e){alert("ارسال فایل انجام نشد: "+e.message)}}
