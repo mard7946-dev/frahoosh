@@ -2,29 +2,31 @@ from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.clock import Clock
 
-CLASS_URL = "https://frahoosh.ir/online-class/"
-
-class AppMain(App):
+class ClassroomApp(App):
     def build(self):
-        box = BoxLayout(orientation="vertical", padding=40, spacing=20)
-        box.add_widget(Label(text="فراهوش\nکلاس آنلاین", font_size="28sp"))
-        b = Button(text="ورود به کلاس آنلاین", font_size="22sp", size_hint_y=None, height=70)
-        b.bind(on_release=self.open_class)
-        box.add_widget(b)
-        Clock.schedule_once(self.open_class, 0.5)
+        box = BoxLayout(orientation="vertical", padding=40, spacing=24)
+        box.add_widget(Label(
+            text="فراهوش\nکلاس آنلاین",
+            font_size="28sp",
+            halign="center"
+        ))
+        button = Button(
+            text="ورود به کلاس آنلاین",
+            font_size="22sp",
+            size_hint_y=None,
+            height=80
+        )
+        button.bind(on_release=self.show_status)
+        box.add_widget(button)
+        self.status = Label(
+            text="برنامه با موفقیت اجرا شد.",
+            font_size="18sp"
+        )
+        box.add_widget(self.status)
         return box
 
-    def open_class(self, *_):
-        try:
-            from jnius import autoclass
-            Intent = autoclass("android.content.Intent")
-            Uri = autoclass("android.net.Uri")
-            PythonActivity = autoclass("org.kivy.android.PythonActivity")
-            intent = Intent(Intent.ACTION_VIEW, Uri.parse(CLASS_URL))
-            PythonActivity.mActivity.startActivity(intent)
-        except Exception as exc:
-            self.root.children[0].text = "باز کردن کلاس انجام نشد.\nلطفاً مرورگر Chrome را نصب/فعال کنید."
+    def show_status(self, *_):
+        self.status.text = "محیط کلاس آماده است.\nبرای مرحله بعد، اتصال مرورگر/کلاس فعال می‌شود."
 
-AppMain().run()
+ClassroomApp().run()
