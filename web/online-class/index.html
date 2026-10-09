@@ -60,4 +60,27 @@ if(["manager","مدیر","educational","معاون آموزشی"].includes(role)
   load();
  }catch(e){$("createMsg").textContent="ساخت کلاس انجام نشد: "+e.message}
 }
-async function openRoom(id){try{const role=String(profile.role||"student").toLowerCase();if(role==="teacher"||role==="دبیر")await api("/rest/v1/rpc/start_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});const s=await api("/rest/v1/online_class_sessions?class_id=eq."+id+"&ended_at=is.null&order=id.desc&limit=1");if(!s[0])throw Error("جلسه هنوز توسط دبیر شروع نشده است.");const u=await fetch(U+"/auth/v1/user",{headers:{"apikey":K,"Authorization":"Bearer "+token}}).then(r=>r.json());let sid=null,tid=null;if(role==="student"||role==="دانش‌آموز"){const a=await api("/rest/v1/students?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");sid=a[0]?.id}if(role==="teacher"||role==="دبیر"){const a=await api("/rest/v1/teachers?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");tid=a[0]?.id}sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify({url:U,anon:K,token,userId:u.id,classId:+id,name:profile.display_name||profile.username||"کاربر",role,studentId:sid,teacherId:tid,maxBoardPages:15}));location.href="room.html"}catch(e){$("err").textContent=e.message}}$("go").onclick=login;$("pw").onkeydown=e=>{if(e.key==="Enter")login()};</script>
+async function openRoom(id){try{const role=String(profile.role||"student").toLowerCase();if(role==="teacher"||role==="دبیر")await api("/rest/v1/rpc/start_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});const s=await api("/rest/v1/online_class_sessions?class_id=eq."+id+"&ended_at=is.null&order=id.desc&limit=1");if(!s[0])throw Error("جلسه هنوز توسط دبیر شروع نشده است.");const u=await fetch(U+"/auth/v1/user",{headers:{"apikey":K,"Authorization":"Bearer "+token}}).then(r=>r.json());let sid=null,tid=null;if(role==="student"||role==="دانش‌آموز"){const a=await api("/rest/v1/students?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");sid=a[0]?.id}if(role==="teacher"||role==="دبیر"){const a=await api("/rest/v1/teachers?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");tid=a[0]?.id}sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify({url:U,anon:K,token,userId:u.id,classId:+id,name:profile.display_name||profile.username||"کاربر",role,studentId:sid,teacherId:tid,maxBoardPages:15}));location.href="room.html"}catch(e){$("err").textContent=e.message}}$("go").onclick=login;$("pw").onkeydown=e=>{if(e.key==="Enter")login()};async function guestJoin(){
+ try {
+  const first=$("guestFirst").value.trim(), last=$("guestLast").value.trim();
+  if(!first||!last) throw Error("نام و نام خانوادگی را وارد کنید.");
+  const params=new URLSearchParams(location.search);
+  const code=(params.get("code")||params.get("room_code")||params.get("invite")||"").trim().toUpperCase();
+  if(!code) throw Error("لینک دعوت این کلاس کامل نیست؛ لینک اختصاصی میزبان را باز کنید.");
+  if(!window.supabase) throw Error("امکانات ورود میهمان بارگذاری نشد.");
+  $("guestJoin").disabled=true; $("guestMsg").textContent="در حال اتصال امن به کلاس…";
+  const client=window.supabase.createClient(U,K);
+  const {data:authData,error:authError}=await client.auth.signInAnonymously();
+  if(authError) throw Error(authError.message==="Anonymous sign-ins are disabled"?"ورود میهمان در تنظیمات Supabase فعال نیست.":authError.message);
+  const name=first+" "+last;
+  const {data,error}=await client.rpc("guest_join_online_class",{p_room_code:code,p_display_name:name});
+  if(error) throw error;
+  const row=Array.isArray(data)?data[0]:data;
+  if(!row||!row.class_id) throw Error("کلاس معتبری برای این لینک پیدا نشد.");
+  sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify({url:U,anon:K,token:authData.session.access_token,userId:authData.session.user.id,classId:Number(row.class_id),name,role:"guest",guestCode:code,maxBoardPages:15}));
+  location.href="room.html";
+ } catch(e) { $("guestMsg").textContent="ورود میهمان انجام نشد: "+(e.message||"خطای نامشخص"); }
+ finally { $("guestJoin").disabled=false; }
+}
+$("guestJoin").onclick=guestJoin;
+$("guestLast").onkeydown=e=>{if(e.key==="Enter")guestJoin()};</script>
