@@ -25,7 +25,11 @@ header h2{margin:0;font-size:17px;flex:1}.toolbar,.tools{display:flex;gap:5px;fl
 .quizq,.fileitem,.attrow{background:#20304a;border-radius:8px;padding:7px;margin:5px 0;font-size:12px}.fileitem button{margin-top:4px}
 .fileinput{max-width:100%}@media(max-width:800px){.layout{grid-template-columns:1fr}.videos{height:92px;max-height:92px;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:4px;padding:4px}.tile{height:82px;min-height:82px}.boardwrap{min-height:540px;padding:4px}.board{min-height:480px}.side{min-height:430px;border-right:0;border-top:1px solid #2d3b52}.participants{max-height:120px}.chat{min-height:170px}}
 
-#toolDrawer{flex:0 0 100%;width:100%;order:10;position:relative}#toolDrawer>summary{cursor:pointer;list-style:none;text-align:right;color:#f3c65b;font-weight:bold;padding:8px 12px;border:1px solid #344c65;border-radius:10px;background:#10243a}#toolDrawer>summary::-webkit-details-marker{display:none}#toolDrawerBody{max-height:58vh;overflow:auto;padding:7px 2px}#toolDrawerBody>.toolbar{display:flex;margin:4px 0 8px}#toolDrawerBody>.boardbar{display:flex;flex-wrap:wrap}#quizToggle{background:linear-gradient(110deg,#f5cf68,#dba638);color:#09182a}#toolDrawerBody #quizPanel{margin-top:8px}
+#toolDrawer{flex:0 0 100%;width:100%;order:10;position:relative}#toolDrawer>summary{cursor:pointer;list-style:none;text-align:right;color:#f3c65b;font-weight:bold;padding:8px 12px;border:1px solid #344c65;border-radius:10px;background:#10243a}#toolDrawer>summary::-webkit-details-marker{display:none}#toolDrawerBody{max-height:58vh;overflow:auto;padding:7px 2px}#toolDrawerBody>.toolbar{display:flex;margin:4px 0 8px}#toolDrawerBody>.boardbar{display:flex;flex-wrap:wrap}#orientationToggle{background:#172b42;color:#f3c65b;border:1px solid #53677e;padding:7px 9px;font-size:11px;white-space:nowrap}
+body.force-landscape .layout{display:flex;flex-direction:row;min-width:0}
+body.force-portrait .layout{display:flex;flex-direction:column}
+@media(max-width:700px){#orientationToggle{max-width:108px;white-space:normal;line-height:1.4}#jalaliToday{display:none}}
+#quizToggle{background:linear-gradient(110deg,#f5cf68,#dba638);color:#09182a}#toolDrawerBody #quizPanel{margin-top:8px}
 /* Approved high-contrast classroom layout: maximize the board and tuck tools into a drawer */
 header{background:linear-gradient(110deg,#06101f,#0c2036 65%,#112e48);border-bottom:1px solid #d9b45b66;padding:10px 14px}header h2{color:#f3c65b}.layout{grid-template-columns:minmax(0,1fr) 265px;min-height:calc(100vh - 58px)}.main{min-height:0}.boardwrap{min-height:0;height:calc(100vh - 210px);padding:7px}.board{min-height:0;height:100%;flex:1}.boardbar{position:relative;align-items:center;background:#101f32;border:1px solid #2a4059;border-radius:12px;padding:7px;margin-bottom:7px}.tools{gap:6px}button{background:#1a3b5c;border:1px solid #37536d;color:#f5f7fb;border-radius:10px}button.active{background:#e5b94d;color:#081729}button.danger{background:#762c37}select,input{background:#081727;color:#f4f7fb;border:1px solid #344c65}.side{background:#0b1727;border-color:#2a4059}.side h3,.panel h3{color:#f0c45c}.panel{border-color:#293e56}.person,.quizq,.fileitem,.attrow,.msg{background:#13273d;color:#eaf0f8;border:1px solid #263f58}.send input{background:#071423;color:white;border:1px solid #344c65}@media(max-width:800px){.layout{grid-template-columns:1fr}.boardwrap{height:64vh;min-height:390px}.board{min-height:330px}.side{min-height:320px}}
 /* Full-screen whiteboard: all classroom controls live inside the hamburger drawer */
@@ -34,7 +38,7 @@ body{height:100dvh;min-height:100dvh;overflow:hidden}header{height:58px;min-heig
 </head>
 <body>
 <header>
-<button id="menuToggle" aria-label="ابزارهای کلاس" title="ابزارهای کلاس" style="font-size:22px;padding:5px 12px;background:#172b42">☰</button><button id="quizToggle" type="button">آزمونک آنلاین</button><h2>کلاس هوشمند فراهوش — <span id="className"></span></h2><strong id="classTimer" dir="ltr" style="color:#f3c65b;font-variant-numeric:tabular-nums">50:00</strong>
+<button id="menuToggle" aria-label="ابزارهای کلاس" title="ابزارهای کلاس" style="font-size:22px;padding:5px 12px;background:#172b42">☰</button><button id="orientationToggle" type="button" title="تغییر حالت نمایش">حالت نمایش: خودکار</button><button id="quizToggle" type="button">آزمونک آنلاین</button><h2>کلاس هوشمند فراهوش — <span id="className"></span></h2><span id="jalaliToday" dir="rtl" style="font-size:11px;color:#f3c65b;white-space:nowrap"></span><strong id="classTimer" dir="ltr" style="color:#f3c65b;font-variant-numeric:tabular-nums">50:00</strong>
 <div class="toolbar">
 <button id="mic">میکروفون</button><button id="cam">دوربین</button><button id="screen">اشتراک صدا/تصویر صفحه</button><button id="leave" class="danger">خروج</button>
 </div>
@@ -88,6 +92,19 @@ $("className").textContent=C.classId;
 function api(path,opts={}){return fetch(C.url+"/rest/v1/"+path,Object.assign({headers},opts))}
 function jsonHeaders(extra={}){return Object.assign({},headers,extra)}
 function esc(s){return String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
+function initOrientationControl(){
+ const button=$("orientationToggle");if(!button)return;
+ const modes=["auto","portrait","landscape"];let mode="auto";
+ try{mode=localStorage.getItem("frahoosh_class_orientation")||"auto"}catch(e){}
+ const paint=()=>{document.body.classList.toggle("force-portrait",mode==="portrait");document.body.classList.toggle("force-landscape",mode==="landscape");button.textContent="حالت نمایش: "+({auto:"خودکار",portrait:"عمودی",landscape:"افقی"}[mode]);button.setAttribute("aria-pressed",String(mode!=="auto"))};
+ button.onclick=async()=>{mode=modes[(modes.indexOf(mode)+1)%modes.length];paint();try{localStorage.setItem("frahoosh_class_orientation",mode)}catch(e){}
+  try{if(screen.orientation&&typeof screen.orientation.lock==="function"&&mode!=="auto")await screen.orientation.lock(mode);else if(screen.orientation&&typeof screen.orientation.unlock==="function")screen.orientation.unlock()}catch(e){if(mode!=="auto")button.title="چرخش فیزیکی دستگاه توسط مرورگر پشتیبانی نمی‌شود؛ چیدمان صفحه تغییر کرد."}
+  setTimeout(()=>{try{resize()}catch(e){}},180)
+ };
+ paint();
+ const date=$("jalaliToday");if(date)date.textContent=new Intl.DateTimeFormat("fa-IR-u-ca-persian",{weekday:"short",year:"numeric",month:"long",day:"numeric"}).format(new Date());
+ window.addEventListener("orientationchange",()=>setTimeout(()=>{try{resize()}catch(e){}},250));
+}
 function setStatus(t){let e=$("page");e.textContent=t||e.textContent}
 function parseSessionTimestamp(value){if(!value)return null;let s=String(value).trim();if(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d/.test(s)){s=s.replace(" ","T").replace(/(\.\d{3})\d+/,"$1").replace(/([+-]\d\d)$/,"$1:00")}const n=Date.parse(s);return Number.isFinite(n)?n:null}
 async function send(type,payload={},to=null){try{await api("online_class_signals",{method:"POST",body:JSON.stringify({class_id:C.classId,sender_user_id:C.userId,receiver_user_id:to,signal_type:type,payload})})}catch(e){}}
@@ -278,7 +295,7 @@ async function autoMarkEntry(){
  }catch(e){console.error("Automatic attendance failed",e);alert("ثبت حضور خودکار انجام نشد؛ ورود به کلاس متوقف شد.");location.replace("/online-class/")}
 }
 
-async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),$("quizToggle"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel"),$("videos"),document.querySelector(".side")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=false;const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await refreshSessionTimer();if(await enforceStudentBlock())return;await ensureMedia();await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
+async function startClass(){initOrientationControl();const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),$("quizToggle"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel"),$("videos"),document.querySelector(".side")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=false;const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await refreshSessionTimer();if(await enforceStudentBlock())return;await ensureMedia();await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
 </script>
 </body>
 </html>
