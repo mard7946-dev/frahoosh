@@ -143,7 +143,7 @@ async function recordAutomaticAttendance(status,checkpointNo=0){
  if(checkpointNo>0){
   response=await api("rpc/record_online_class_checkpoint",{method:"POST",body:JSON.stringify({p_class_id:Number(C.classId),p_session_id:Number(currentSession),p_student_id:Number(C.studentId),p_checkpoint_no:Number(checkpointNo)})});
  }else{
-  response=await api("online_attendance",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,session_id:currentSession,student_id:C.studentId,status:"present",source:"smart_classroom_auto",event_time:new Date().toISOString(),checkpoint_no:0})});
+  response=await api("rpc/record_online_class_entry",{method:"POST",body:JSON.stringify({p_class_id:Number(C.classId),p_session_id:Number(currentSession),p_student_id:Number(C.studentId)})});
  }
  if(!response.ok)throw Error("ثبت خودکار حضور یا صحت‌سنجی ناموفق بود");
  sessionStorage.setItem(key,"1");
@@ -160,6 +160,16 @@ async function verificationFailed(checkNo,shade){
  try{await send("leave",{name:C.name,reason:"attendance_verification_failed",checkpoint:checkNo});localStream?.getTracks().forEach(t=>t.stop());peers.forEach(p=>p.close())}catch(e){}
  location.replace("/online-class/");
 }
+async function enforceStudentBlock(){
+ if(!["student","دانش‌آموز"].includes(C.role)||!C.studentId||!currentSession)return false;
+ try{
+  const r=await api("rpc/is_online_class_student_blocked",{method:"POST",body:JSON.stringify({p_class_id:Number(C.classId),p_session_id:Number(currentSession),p_student_id:Number(C.studentId)})});
+  if(!r.ok)return false;
+  const blocked=await r.json();
+  if(blocked===true){alert("به دلیل تأیید نشدن صحت حضور، دسترسی شما به این جلسه بسته شده است.");location.replace("/online-class/");return true}
+ }catch(e){console.error("Student access check failed",e)}
+ return false;
+}
 async function autoMarkEntry(){
  if(!["student","دانش‌آموز"].includes(C.role)||!C.studentId)return;
  try{
@@ -171,7 +181,7 @@ async function autoMarkEntry(){
  }catch(e){console.error("Automatic attendance failed",e)}
 }
 
-async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await ensureMedia();await refreshSessionTimer();await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
+async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await ensureMedia();await refreshSessionTimer();if(await enforceStudentBlock())return;await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
 </script>
 </body>
 </html>
