@@ -245,9 +245,9 @@ async function answerQuiz(q,a,type="multiple"){
  if(!["student","دانش‌آموز"].includes(C.role))return;
  try{
   const meta=quizMeta(q.title);
-  answeredQuizIds.add(String(q.id));
   const response=await api("online_class_activity",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,session_id:currentSession,student_id:C.studentId,event_type:"quiz_answer",event_time:new Date().toISOString(),metadata:JSON.stringify({quiz_id:q.id,answer:a,answer_type:type,title:meta.title||""})})});
   if(!response.ok)throw new Error("ثبت پاسخ در سرور انجام نشد");
+  answeredQuizIds.add(String(q.id));
   alert("پاسخ ثبت شد؛ سؤال بعدی بارگذاری می‌شود.");
   await loadQuizzes();loadQuizResults();
  }catch(e){alert("ثبت پاسخ انجام نشد؛ اتصال سرور را بررسی کنید.")}
