@@ -155,7 +155,7 @@ function verificationPrompt(checkNo){
  shade.querySelector("#verifyNow").onclick=async()=>{clearInterval(timer);try{await recordAutomaticAttendance("present",checkNo);shade.remove()}catch(e){verificationFailed(checkNo,shade)}};
 }
 async function verificationFailed(checkNo,shade){
- try{await recordAutomaticAttendance("absent",checkNo)}catch(e){}
+ try{if(C.studentId&&currentSession){const response=await api("rpc/record_online_class_checkpoint_failure",{method:"POST",body:JSON.stringify({p_class_id:Number(C.classId),p_session_id:Number(currentSession),p_student_id:Number(C.studentId),p_checkpoint_no:Number(checkNo)})});if(!response.ok)throw Error("failed to record missed checkpoint")}}catch(e){console.error(e)}
  shade?.remove();alert("صحت‌سنجی تأیید نشد؛ دسترسی شما به این نشست بسته می‌شود.");
  try{await send("leave",{name:C.name,reason:"attendance_verification_failed",checkpoint:checkNo});localStream?.getTracks().forEach(t=>t.stop());peers.forEach(p=>p.close())}catch(e){}
  location.replace("/online-class/");
