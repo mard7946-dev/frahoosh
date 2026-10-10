@@ -92,21 +92,17 @@ function removeVideo(id){let t=document.getElementById("v-"+id);if(t)t.remove()}
 function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="person">'+esc(n)+(id===C.userId?" (شما)":"")+"</div>";$("participants").innerHTML=h}
 async function ensureMedia(){
  if(localStream&&localStream.getTracks().some(t=>t.readyState==="live"))return true;
- try{
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("getUserMedia در این محیط پشتیبانی نمی‌شود");
-  localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-  for(const t of localStream.getAudioTracks())t.enabled=mic;
-  for(const t of localStream.getVideoTracks())t.enabled=cam;
-  addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
-  for(const [,pc] of peers)for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already)pc.addTrack(track,localStream)}
-  $("mic").classList.toggle("active",mic);$("cam").classList.toggle("active",cam);
-  return true;
- }catch(e){
-  console.warn("MEDIA_PERMISSION_ERROR",e);
-  setStatus("دوربین/میکروفون در دسترس نیست: "+(e.name||"خطا"));
-  alert("دسترسی دوربین/میکروفون فعال نشد. مجوز Camera و Microphone برنامه را بررسی کنید. ("+(e.name||e.message||"خطا")+")");
-  return false;
- }
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStatus("این محیط دسترسی رسانه را پشتیبانی نمی‌کند.");return false}
+ const acquired=new MediaStream();let videoError=null,audioError=null;
+ try{const v=await navigator.mediaDevices.getUserMedia({video:true,audio:false});v.getVideoTracks().forEach(t=>{t.enabled=cam;acquired.addTrack(t)})}catch(e){videoError=e;console.warn("CAMERA_PERMISSION_ERROR",e)}
+ try{const a=await navigator.mediaDevices.getUserMedia({video:false,audio:true});a.getAudioTracks().forEach(t=>{t.enabled=mic;acquired.addTrack(t)})}catch(e){audioError=e;console.warn("MIC_PERMISSION_ERROR",e)}
+ if(!acquired.getTracks().length){setStatus("دسترسی دوربین/میکروفون فعال نشد: "+((videoError||audioError)?.name||"خطا"));alert("مجوز دوربین و میکروفون برنامه را در تنظیمات Android بررسی کنید.");return false}
+ localStream=acquired;addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
+ for(const [,pc] of peers)for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already)pc.addTrack(track,localStream)}
+ $("mic").classList.toggle("active",mic&&localStream.getAudioTracks().length>0);$("cam").classList.toggle("active",cam&&localStream.getVideoTracks().length>0);
+ if(videoError&&!audioError)setStatus("میکروفون فعال است؛ دسترسی دوربین بررسی شود.");
+ else if(audioError&&!videoError)setStatus("دوربین فعال است؛ دسترسی میکروفون بررسی شود.");
+ return true;
 }
 async function makePeer(id,name){if(peers.has(id))return peers.get(id);let pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});peers.set(id,pc);names.set(id,name||"کاربر");renderPeople();if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.onicecandidate=e=>{if(e.candidate)send("candidate",{candidate:e.candidate},id)};pc.ontrack=e=>addVideo(id,names.get(id)||"کاربر",e.streams[0]);pc.onconnectionstatechange=()=>{if(["failed","closed","disconnected"].includes(pc.connectionState)){removeVideo(id);}};return pc}
 async function offerTo(id,name){let pc=await makePeer(id,name);let o=await pc.createOffer();await pc.setLocalDescription(o);await send("offer",{sdp:pc.localDescription},id)}
