@@ -4,6 +4,7 @@ title = Frahoosh
 package.name = frahooshmobile
 package.domain = ir.frahoosh
 source.dir = .
+icon.filename = %(source.dir)s/assets/frahoosh_icon.png
 source.include_exts = py,png,jpg,jpeg,svg,kv,atlas,ttf,json,html
 version = 1.6.8
 android.numeric_version = 168
