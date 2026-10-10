@@ -70,8 +70,8 @@ public final class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
-        s.setAllowFileAccess(false);
-        s.setAllowContentAccess(false);
+        // The entry screen is bundled in app/src/main/assets. WebView must be able to read\n        // that local asset; leaving file access disabled produces a blank black screen.\n        s.setAllowFileAccess(true);
+        s.setAllowContentAccess(true);
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
