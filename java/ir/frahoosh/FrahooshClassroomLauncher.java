@@ -54,10 +54,10 @@ public final class FrahooshClassroomLauncher {
                     settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
                     try {
-                        web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+                        web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
                     } catch (Throwable ignored) {}
 
-                    web.setBackgroundColor(Color.BLACK);
+                    web.setBackgroundColor(Color.WHITE);
 
                     web.setWebViewClient(new WebViewClient() {
                         @Override
@@ -95,6 +95,15 @@ public final class FrahooshClassroomLauncher {
                         }
                     });
 
+                    web.setWebChromeClient(new android.webkit.WebChromeClient() {
+                        @Override
+                        public boolean onConsoleMessage(android.webkit.ConsoleMessage message) {
+                            Log.e(TAG, "Classroom JS [" + message.messageLevel() + "] "
+                                    + message.message() + " at " + message.sourceId() + ":" + message.lineNumber());
+                            return true;
+                        }
+                    });
+
                     try {
                         FrahooshWebChromeClient chrome = new FrahooshWebChromeClient();
                         chrome.setContext(activity);
@@ -105,7 +114,7 @@ public final class FrahooshClassroomLauncher {
                     }
 
                     FrameLayout container = new FrameLayout(activity);
-                    container.setBackgroundColor(Color.BLACK);
+                    container.setBackgroundColor(Color.WHITE);
                     container.addView(web, new FrameLayout.LayoutParams(
                             FrameLayout.LayoutParams.MATCH_PARENT,
                             FrameLayout.LayoutParams.MATCH_PARENT
@@ -138,7 +147,7 @@ public final class FrahooshClassroomLauncher {
 
                     Window window = dialog.getWindow();
                     if (window != null) {
-                        window.setBackgroundDrawableResource(android.R.color.black);
+                        window.setBackgroundDrawableResource(android.R.color.white);
                         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                         window.setDimAmount(0.0f);
                     }
