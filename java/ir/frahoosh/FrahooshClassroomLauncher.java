@@ -93,6 +93,36 @@ public final class FrahooshClassroomLauncher {
                                 Log.e(TAG, "Classroom HTTP error: " + response.getStatusCode());
                             }
                         }
+
+                        @Override
+                        public void onReceivedSslError(
+                                WebView view,
+                                android.webkit.SslErrorHandler handler,
+                                android.net.http.SslError error) {
+                            // Never bypass certificate validation. Fail closed and log
+                            // enough detail to distinguish expiry, hostname, and chain issues.
+                            String failingUrl = error == null ? "(unknown URL)" : error.getUrl();
+                            String primaryError = error == null
+                                    ? "unknown"
+                                    : android.net.http.SslError.SSL_UNTRUSTED == error.getPrimaryError()
+                                            ? "untrusted certificate"
+                                            : android.net.http.SslError.SSL_EXPIRED == error.getPrimaryError()
+                                                    ? "expired certificate"
+                                                    : android.net.http.SslError.SSL_IDMISMATCH == error.getPrimaryError()
+                                                            ? "hostname mismatch"
+                                                            : android.net.http.SslError.SSL_NOTYETVALID == error.getPrimaryError()
+                                                                    ? "certificate not yet valid"
+                                                                    : "SSL error " + error.getPrimaryError();
+                            Log.e(TAG, "HTTPS certificate validation failed: " + primaryError
+                                    + "; url=" + failingUrl
+                                    + "; certificate=" + (error == null ? "(unavailable)" : error.getCertificate()));
+                            if (handler != null) handler.cancel();
+                            MAIN.post(() -> android.widget.Toast.makeText(
+                                    activity,
+                                    "اتصال امن برقرار نشد؛ گواهی امنیتی frahoosh.ir را بررسی کنید.",
+                                    android.widget.Toast.LENGTH_LONG
+                            ).show());
+                        }
                     });
 
                     web.setWebChromeClient(new android.webkit.WebChromeClient() {
