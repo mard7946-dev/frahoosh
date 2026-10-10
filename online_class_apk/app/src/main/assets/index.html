@@ -73,6 +73,17 @@ const U=String(CONFIG.supabase_url||"https://gtmmllcxhdejwjjnyzrh.supabase.co").
 const K=String(CONFIG.supabase_anon_key||"sb_publishable_esNNTGYl6aXb6FlINJxPKA_Dl6KuInP");
 let token="",profile={};
 const $=x=>document.getElementById(x);
+function resolveRole(p){
+ const candidates=[p?.role,p?.user_role,p?.account_role,p?.position,p?.job_title,p?.user_type,p?.role_name,p?.access_level].filter(Boolean).map(v=>String(v).trim().toLowerCase());
+ const aliases={
+  manager:["manager","مدیر","مدیر مدرسه","مدیرکل","مدیر کل","مدیریت","school manager"],
+  executive:["executive","معاون اجرایی","معاون‌اجرایی"],
+  educational:["educational","معاون آموزشی","معاون‌آموزشی"],
+  principal:["principal","headmaster","مدیرعامل مدرسه"]
+ };
+ for(const value of candidates){for(const [canonical,values] of Object.entries(aliases)){if(values.includes(value))return canonical}}
+ return candidates[0]||"student";
+}
 function readableError(value){
  if(typeof value==="string"&&value.trim()) return value;
  if(value&&typeof value==="object") return value.message||value.msg||value.error_description||value.error||JSON.stringify(value);
@@ -168,7 +179,7 @@ if(role==="student"||role==="دانش‌آموز"){if(!rows.length)throw Error("
 $("who").textContent=(profile.display_name||profile.username||"")+" • "+role;
 if(["manager","مدیر","principal","administrator","admin","executive","معاون اجرایی"].includes(role)){$("adminCreate").style.display="block";$("createClass").onclick=createClass;await loadTeachers();}if(["manager","مدیر","principal","administrator","admin"].includes(role)){$("durationControl").style.display="block";$("cduration").value="50";}else{$("durationControl").style.display="none";}if(["manager","مدیر","principal","administrator","admin"].includes(role)){$("adminUsers").style.display="block";$("createTeacherAccount").onclick=createTeacherAccount;}else{$("adminUsers").style.display="none";}$("list").innerHTML=rows.map(r=>'<div class=class><span><b>'+String(r.title||r.subject||"کلاس")+'</b><br>'+String(r.class_name||"")+' • '+(r.status==="active"?"فعال":"غیرفعال")+'</span><button onclick="openRoom('+r.id+')">ورود</button></div>').join("")||"<p>کلاسی پیدا نشد.</p>";$("login").style.display="none";$("guest").style.display="none";$("classes").style.display="block"}async function createClass(){
  try{
-  const role=String(profile.role||"student").toLowerCase();const isManager=["manager","مدیر","principal","administrator","admin"].includes(role);const requestedDuration=isManager?Number($("cduration").value||50):50;if(!Number.isInteger(requestedDuration)||requestedDuration<5||requestedDuration>240)throw Error("مدت کلاس باید بین ۵ تا ۲۴۰ دقیقه باشد.");const p={title:$("ctitle").value.trim()||"کلاس آنلاین",subject:$("csubject").value.trim(),class_name:$("cname").value.trim(),status:"active",duration:requestedDuration};
+  const role=resolveRole(profile);const isManager=["manager","مدیر","principal","administrator","admin"].includes(role);const requestedDuration=isManager?Number($("cduration").value||50):50;if(!Number.isInteger(requestedDuration)||requestedDuration<5||requestedDuration>240)throw Error("مدت کلاس باید بین ۵ تا ۲۴۰ دقیقه باشد.");const p={title:$("ctitle").value.trim()||"کلاس آنلاین",subject:$("csubject").value.trim(),class_name:$("cname").value.trim(),status:"active",duration:requestedDuration};
   if(!p.class_name)return $("createMsg").textContent="نام کلاس الزامی است.";
   const result=await api("/rest/v1/online_classes",{method:"POST",headers:{"Prefer":"return=representation"},body:JSON.stringify(p)});
   const created=Array.isArray(result)?result[0]:result;if(!created||!created.id)throw Error("شناسه کلاس از سرور دریافت نشد.");
