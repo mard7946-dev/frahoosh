@@ -61,7 +61,7 @@ public final class MainActivity extends Activity {
             byte[] buffer = new byte[8192];
             int count;
             while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
-            target.loadDataWithBaseURL("https://frahoosh.ir/online-class/",
+            target.loadDataWithBaseURL("file:///android_asset/",
                     out.toString("UTF-8"), "text/html", "UTF-8", null);
         } catch (Exception e) {
             Log.e("FrahooshClassroom", "Could not load bundled room bootstrap", e);
@@ -103,13 +103,23 @@ public final class MainActivity extends Activity {
 
         webView.setBackgroundColor(Color.BLACK);
         webView.setWebViewClient(new WebViewClient() {
-            // Let the HTTPS classroom page load normally. There is no bundled room.html asset;
-            // intercepting this navigation and trying to open a missing asset caused the APK
-            // to show a local error instead of opening the real classroom.
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri uri = request == null ? null : request.getUrl();
+                if (uri != null && "frahoosh.ir".equalsIgnoreCase(uri.getHost())
+                        && uri.getPath() != null
+                        && (uri.getPath().equals("/online-class/room.html")
+                            || uri.getPath().equals("/online-class/room"))) {
+                    // Load the bundled room shell: remote navigation currently fails with
+                    // ERR_CONNECTION_CLOSED on some mobile networks.
+                    loadBundledRoom(view);
+                    return true;
+                }
+                return false;
+            }
+
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                // Do not shadow the live classroom with bundled HTML snapshots. The website is
-                // the canonical implementation; serving stale local copies caused APK/web drift.
                 return null;
             }
 
