@@ -66,19 +66,31 @@ public final class MainActivity extends Activity {
     }
 
     private void loadBundledRoom(WebView target) {
-        try {
-            String html = readAsset("room.html");
-            String classroom = readAsset("room_assets/online_class.html");
-            String patch = readAsset("room_assets/classroom_patch.js");
-            html = html.replace("__BUNDLED_CLASS_HTML__", org.json.JSONObject.quote(classroom))
-                       .replace("__BUNDLED_PATCH_JS__", org.json.JSONObject.quote(patch));
-            target.loadDataWithBaseURL("file:///android_asset/",
-                    html, "text/html", "UTF-8", null);
-        } catch (Exception e) {
-            Log.e("FrahooshClassroom", "Could not load bundled classroom", e);
-            showLoadError(target, "خطا در باز کردن تخته هوشمند",
-                    "فایل‌های کلاس داخل برنامه خوانده نشد: " + e.getMessage());
-        }
+        target.evaluateJavascript(
+                "(function(){try{return JSON.stringify(sessionStorage.getItem('frahoosh_online_class_config')||localStorage.getItem('frahoosh_online_class_config')||'')}catch(e){return ''}})()",
+                result -> {
+                    try {
+                        Object decoded = result == null ? null : new org.json.JSONTokener(result).nextValue();
+                        String saved = decoded instanceof String ? (String) decoded : "";
+                        if (saved.isEmpty()) {
+                            showLoadError(target, "نشست کلاس آماده نیست",
+                                    "اطلاعات ورود حفظ نشده است. به صفحه ورود برگردید و دوباره وارد شوید.");
+                            return;
+                        }
+                        String html = readAsset("room.html");
+                        String classroom = readAsset("room_assets/online_class.html");
+                        String patch = readAsset("room_assets/classroom_patch.js");
+                        html = html.replace("__BUNDLED_CLASS_HTML__", org.json.JSONObject.quote(classroom))
+                                   .replace("__BUNDLED_PATCH_JS__", org.json.JSONObject.quote(patch))
+                                   .replace("__INITIAL_CONFIG_JSON__", saved);
+                        target.loadDataWithBaseURL("file:///android_asset/",
+                                html, "text/html", "UTF-8", null);
+                    } catch (Exception e) {
+                        Log.e("FrahooshClassroom", "Could not load bundled classroom", e);
+                        showLoadError(target, "خطا در باز کردن تخته هوشمند",
+                                "بارگذاری محیط کلاس ناموفق بود: " + e.getMessage());
+                    }
+                });
     }
 
     private void buildWebView() {
