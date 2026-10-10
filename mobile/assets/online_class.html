@@ -139,8 +139,13 @@ async function recordAutomaticAttendance(status,checkpointNo=0){
  if(!C.studentId||!currentSession)return;
  const key="frahoosh_attendance_"+C.classId+"_"+currentSession+"_"+C.studentId+"_"+checkpointNo;
  if(sessionStorage.getItem(key))return;
- const res=await api("online_attendance",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,session_id:currentSession,student_id:C.studentId,status,source:"smart_classroom_auto",event_time:new Date().toISOString(),checkpoint_no:checkpointNo})});
- if(!res.ok)throw Error("ثبت خودکار حضور ناموفق بود");
+ let response;
+ if(checkpointNo>0){
+  response=await api("rpc/record_online_class_checkpoint",{method:"POST",body:JSON.stringify({p_class_id:Number(C.classId),p_session_id:Number(currentSession),p_student_id:Number(C.studentId),p_checkpoint_no:Number(checkpointNo)})});
+ }else{
+  response=await api("online_attendance",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,session_id:currentSession,student_id:C.studentId,status:"present",source:"smart_classroom_auto",event_time:new Date().toISOString(),checkpoint_no:0})});
+ }
+ if(!response.ok)throw Error("ثبت خودکار حضور یا صحت‌سنجی ناموفق بود");
  sessionStorage.setItem(key,"1");
 }
 function verificationPrompt(checkNo){
