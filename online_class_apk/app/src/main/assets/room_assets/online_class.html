@@ -91,18 +91,20 @@ function addVideo(id,name,stream){let tile=document.getElementById("v-"+id);if(!
 function removeVideo(id){let t=document.getElementById("v-"+id);if(t)t.remove()}
 function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="person">'+esc(n)+(id===C.userId?" (شما)":"")+"</div>";$("participants").innerHTML=h}
 async function ensureMedia(){
- if(localStream&&localStream.getTracks().some(t=>t.readyState==="live"))return true;
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStatus("این محیط دسترسی رسانه را پشتیبانی نمی‌کند.");return false}
- const acquired=new MediaStream();let videoError=null,audioError=null;
- try{const v=await navigator.mediaDevices.getUserMedia({video:true,audio:false});v.getVideoTracks().forEach(t=>{t.enabled=cam;acquired.addTrack(t)})}catch(e){videoError=e;console.warn("CAMERA_PERMISSION_ERROR",e)}
- try{const a=await navigator.mediaDevices.getUserMedia({video:false,audio:true});a.getAudioTracks().forEach(t=>{t.enabled=mic;acquired.addTrack(t)})}catch(e){audioError=e;console.warn("MIC_PERMISSION_ERROR",e)}
- if(!acquired.getTracks().length){setStatus("دسترسی دوربین/میکروفون فعال نشد: "+((videoError||audioError)?.name||"خطا"));alert("مجوز دوربین و میکروفون برنامه را در تنظیمات Android بررسی کنید.");return false}
+ const acquired=localStream&&localStream.getTracks().some(t=>t.readyState==="live")?localStream:new MediaStream();
+ let videoError=null,audioError=null;
+ const hasVideo=acquired.getVideoTracks().some(t=>t.readyState==="live");
+ const hasAudio=acquired.getAudioTracks().some(t=>t.readyState==="live");
+ if(!hasVideo){try{const v=await navigator.mediaDevices.getUserMedia({video:true,audio:false});v.getVideoTracks().forEach(t=>{t.enabled=cam;acquired.addTrack(t)})}catch(e){videoError=e;console.warn("CAMERA_PERMISSION_ERROR",e)}}
+ if(!hasAudio){try{const a=await navigator.mediaDevices.getUserMedia({video:false,audio:true});a.getAudioTracks().forEach(t=>{t.enabled=mic;acquired.addTrack(t)})}catch(e){audioError=e;console.warn("MIC_PERMISSION_ERROR",e)}}
+ if(!acquired.getTracks().some(t=>t.readyState==="live")){setStatus("دسترسی دوربین/میکروفون فعال نشد: "+((videoError||audioError)?.name||"خطا"));alert("مجوز دوربین و میکروفون برنامه را در تنظیمات Android بررسی کنید.");return false}
  localStream=acquired;addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
  for(const [,pc] of peers)for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already)pc.addTrack(track,localStream)}
  $("mic").classList.toggle("active",mic&&localStream.getAudioTracks().length>0);$("cam").classList.toggle("active",cam&&localStream.getVideoTracks().length>0);
- if(videoError&&!audioError)setStatus("میکروفون فعال است؛ دسترسی دوربین بررسی شود.");
- else if(audioError&&!videoError)setStatus("دوربین فعال است؛ دسترسی میکروفون بررسی شود.");
- return true;
+ if(videoError)setStatus("دوربین فعال نشد ("+(videoError.name||"خطا")+"). مجوز دوربین برنامه را بررسی کنید.");
+ else if(audioError)setStatus("میکروفون فعال نشد ("+(audioError.name||"خطا")+"). مجوز میکروفون برنامه را بررسی کنید.");
+ return !videoError||localStream.getAudioTracks().length>0;
 }
 async function makePeer(id,name){if(peers.has(id))return peers.get(id);let pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});peers.set(id,pc);names.set(id,name||"کاربر");renderPeople();if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.onicecandidate=e=>{if(e.candidate)send("candidate",{candidate:e.candidate},id)};pc.ontrack=e=>addVideo(id,names.get(id)||"کاربر",e.streams[0]);pc.onconnectionstatechange=()=>{if(["failed","closed","disconnected"].includes(pc.connectionState)){removeVideo(id);}};return pc}
 async function offerTo(id,name){let pc=await makePeer(id,name);let o=await pc.createOffer();await pc.setLocalDescription(o);await send("offer",{sdp:pc.localDescription},id)}
@@ -156,24 +158,29 @@ let endingSession=false,evidenceEnded=false;async function cleanupClassFiles(){t
  e.textContent=String(Math.floor(left/60)).padStart(2,"0")+":"+String(left%60).padStart(2,"0");
  if(left===0){e.style.color="#ff7373";e.textContent="پایان زمان";if(!endingSession)endClassSession()}
 }
+function sessionTimestamp(row){if(!row)return null;for(const key of ["started_at","session_started_at","start_time","started_on","created_at","inserted_at","created_on"]){const n=parseSessionTimestamp(row[key]);if(n)return n}return null}
 async function refreshSessionTimer(){
  try{
-  const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&order=id.desc&limit=1");
+  const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&ended_at=is.null&order=id.desc&limit=1");
   if(!r.ok)throw new Error("HTTP "+r.status);
   const rows=await r.json(),latest=rows[0];
   if(latest){
    currentSession=latest.id;
-   sessionStartedAt=parseSessionTimestamp(latest.started_at||latest.created_at||latest.inserted_at)||parseSessionTimestamp(C.sessionStartedAt)||null;
-   if(latest.ended_at){evidenceEnded=true;const e=$("classTimer");if(e){e.textContent="پایان‌یافته";e.style.color="#ff7373"}return}
-   if(sessionStartedAt&&Date.now()-sessionStartedAt>=Math.max(5,Math.min(240,Number(C.durationMinutes)||50))*60*1000){updateClassTimer();return}
-  }else{currentSession=null;sessionStartedAt=parseSessionTimestamp(C.sessionStartedAt)}
-  updateClassTimer();
+   sessionStartedAt=sessionTimestamp(latest)||sessionStartedAt||parseSessionTimestamp(C.sessionStartedAt)||Date.now();
+   evidenceEnded=false;
+   updateClassTimer();
+   return;
+  }
+  currentSession=null;
+  const configuredStart=parseSessionTimestamp(C.sessionStartedAt);
+  if(configuredStart){sessionStartedAt=configuredStart;updateClassTimer();}
+  else {sessionStartedAt=null;const e=$("classTimer");if(e)e.textContent="در انتظار شروع دبیر";}
  }catch(e){
   console.warn("CLASS_TIMER_REFRESH_ERROR",e);
   if(!sessionStartedAt)sessionStartedAt=parseSessionTimestamp(C.sessionStartedAt);
-  if(sessionStartedAt)updateClassTimer();else{const el=$("classTimer");if(el)el.textContent="زمان‌سنج: زمان شروع در دسترس نیست";}
- }
-}
+  if(sessionStartedAt)updateClassTimer();
+  else{const el=$("classTimer");if(el)el.textContent="زمان‌سنج: اتصال زمان شروع برقرار نشد";}
+ }}
 async function loadAttendance(){if(!["manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی"].includes(C.role)){$("attendancePanel").style.display="none";return}try{let s=await api("online_class_sessions?class_id=eq."+C.classId+"&order=id.desc&limit=1");let sr=await s.json();currentSession=sr[0]?.id||null;sessionStartedAt=parseSessionTimestamp(sr[0]?.started_at||sr[0]?.created_at||sr[0]?.inserted_at)||parseSessionTimestamp(C.sessionStartedAt)||null;updateClassTimer();let m=await api("online_class_students?class_id=eq."+C.classId+"&order=student_id.asc&limit=200");students=await m.json();let a=currentSession?await api("online_attendance?class_id=eq."+C.classId+"&session_id=eq."+currentSession+"&order=id.desc&limit=500"):null;let ar=a?await a.json():[];let latest={};for(const x of ar){if(latest[x.student_id]===undefined)latest[x.student_id]=x.status}$("attendance").innerHTML=students.map(st=>'<div class="attrow"><b>'+esc(st.student_name||st.student_id)+'</b><br>وضعیت: '+esc(latest[st.student_id]||"ثبت نشده")+'<div class="row"><button onclick="markAttendance('+st.student_id+',\'present\')">حاضر</button><button class="danger" onclick="markAttendance('+st.student_id+',\'absent\')">غایب + اطلاع ولی</button>'+(C.role==="teacher"?'<button class="secondary" onclick="referStudent('+st.student_id+','+JSON.stringify(st.student_name||"")+')">ارجاع به معاون آموزشی</button>':"")+"</div></div>").join("")}catch(e){}}
 async function markAttendance(studentId,status){try{await api("online_attendance",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,session_id:currentSession,student_id:studentId,status,source:"smart_classroom",event_time:new Date().toISOString(),checkpoint_no:0})});if(status==="absent"){let p=await api("parent_children?student_id=eq."+studentId+"&limit=50");let parents=await p.json();for(const pc of parents)await api("online_class_notifications",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,student_id:studentId,recipient:pc.parent_username,recipient_role:"parent",title:"غیبت در کلاس آنلاین",message:"دانش‌آموز در کلاس هوشمند غایب ثبت شد.",created_at:new Date().toISOString()})})}await loadAttendance()}catch(e){alert("ثبت حضور و غیاب انجام نشد.")}}
 async function referStudent(studentId,name){try{let r=await api("account_settings?role=eq.educational&limit=20");let ds=await r.json();if(!ds.length){let r2=await api("account_settings?role=eq.%D9%85%D8%B9%D8%A7%D9%88%D9%86%20%D8%A2%D9%85%D9%88%D8%B2%D8%B4%DB%8C&limit=20");ds=await r2.json()}for(const d of ds)await api("online_class_notifications",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,student_id:studentId,recipient:d.username,recipient_role:"educational",title:"ارجاع حضور دانش‌آموز",message:"وضعیت حضور "+(name||studentId)+" برای بررسی معاون آموزشی ارجاع شد.",created_at:new Date().toISOString()})});alert("ارجاع به معاون آموزشی انجام شد.")}catch(e){alert("ارجاع انجام نشد.")}}
