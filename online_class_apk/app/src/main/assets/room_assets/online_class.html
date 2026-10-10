@@ -174,7 +174,8 @@ async function refreshSessionTimer(){
   updateClassTimer();
  }catch(e){
   console.warn("CLASS_TIMER_REFRESH_ERROR",e);
-  const el=$("classTimer");if(el)el.textContent="خطای زمان‌سنج";
+  if(!sessionStartedAt)sessionStartedAt=parseSessionTimestamp(C.sessionStartedAt);
+  if(sessionStartedAt)updateClassTimer();else{const el=$("classTimer");if(el)el.textContent="زمان‌سنج: زمان شروع در دسترس نیست";}
  }
 }
 async function loadAttendance(){if(!["manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی"].includes(C.role)){$("attendancePanel").style.display="none";return}try{let s=await api("online_class_sessions?class_id=eq."+C.classId+"&order=id.desc&limit=1");let sr=await s.json();currentSession=sr[0]?.id||null;sessionStartedAt=parseSessionTimestamp(sr[0]?.started_at||sr[0]?.created_at||sr[0]?.inserted_at)||parseSessionTimestamp(C.sessionStartedAt)||null;updateClassTimer();let m=await api("online_class_students?class_id=eq."+C.classId+"&order=student_id.asc&limit=200");students=await m.json();let a=currentSession?await api("online_attendance?class_id=eq."+C.classId+"&session_id=eq."+currentSession+"&order=id.desc&limit=500"):null;let ar=a?await a.json():[];let latest={};for(const x of ar){if(latest[x.student_id]===undefined)latest[x.student_id]=x.status}$("attendance").innerHTML=students.map(st=>'<div class="attrow"><b>'+esc(st.student_name||st.student_id)+'</b><br>وضعیت: '+esc(latest[st.student_id]||"ثبت نشده")+'<div class="row"><button onclick="markAttendance('+st.student_id+',\'present\')">حاضر</button><button class="danger" onclick="markAttendance('+st.student_id+',\'absent\')">غایب + اطلاع ولی</button>'+(C.role==="teacher"?'<button class="secondary" onclick="referStudent('+st.student_id+','+JSON.stringify(st.student_name||"")+')">ارجاع به معاون آموزشی</button>':"")+"</div></div>").join("")}catch(e){}}
