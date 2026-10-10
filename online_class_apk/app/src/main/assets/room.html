@@ -2,8 +2,9 @@
 <html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>کلاس آنلاین فراهوش</title></head>
 <body style="margin:0;background:#0e1726"><div id="x" style="color:#fff;text-align:center;padding:40px;font-family:Tahoma">در حال باز کردن کلاس...</div>
 <script>
-let c=null;
-try{c=JSON.parse(sessionStorage.getItem("frahoosh_online_class_config")||"null")}catch(_){}
+let c=__INITIAL_CONFIG_JSON__;
+try{if(typeof c==="string")c=JSON.parse(c)}catch(_){c=null}
+if(!c){try{c=JSON.parse(sessionStorage.getItem("frahoosh_online_class_config")||"null")}catch(_){}}
 if(!c){try{c=JSON.parse(localStorage.getItem("frahoosh_online_class_config")||"null")}catch(_){}}
 if(!c){document.getElementById("x").innerHTML="نشست کلاس آماده نیست؛ ابتدا از صفحه ورود، میزبان یا میهمان وارد شوید.";}
 else{
