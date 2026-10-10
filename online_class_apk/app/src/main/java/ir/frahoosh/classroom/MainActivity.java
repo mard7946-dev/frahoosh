@@ -95,6 +95,16 @@ public final class MainActivity extends Activity {
                 // the canonical implementation; serving stale local copies caused APK/web drift.
                 return null;
             }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (request.isForMainFrame()) {
+                    Log.e("FrahooshClassroom", "Classroom page load failed: " + error.getDescription());
+                    view.postDelayed(() -> {
+                        if (webView != null) webView.loadUrl(CLASSROOM_URL + "index.html");
+                    }, 800);
+                }
+            }
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
