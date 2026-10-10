@@ -149,9 +149,9 @@ public final class MainActivity extends Activity {
             asset = "index.html";
         } else if (path.endsWith("/online-class/room.html")) {
             asset = "room.html";
-        } else if (path.endsWith("/online-class/online_class.html")) {
+        } else if (path.endsWith("/online-class/online_class.html") || path.endsWith("/mobile/assets/online_class.html")) {
             asset = "room_assets/online_class.html";
-        } else if (path.endsWith("/online-class/classroom_patch.js")) {
+        } else if (path.endsWith("/online-class/classroom_patch.js") || path.endsWith("/online_class_apk/classroom_patch.js")) {
             asset = "room_assets/classroom_patch.js";
         }
         if (asset == null) return null;
