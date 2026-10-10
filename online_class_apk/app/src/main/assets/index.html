@@ -68,8 +68,9 @@ body{background:radial-gradient(ellipse at 50% -10%,#214b77 0,transparent 45%),l
 </section>
 <div id=list></div></section></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/runtime-config.js"></script><script>
 const CONFIG=window.FRAHOOH_CONFIG||{};
-const U=String(CONFIG.supabase_url||"").replace(/\/$/,"");
-const K=String(CONFIG.supabase_anon_key||"");
+// Public client configuration fallback: safe to ship in the APK. Never place service-role keys here.
+const U=String(CONFIG.supabase_url||"https://gtmmllcxhdejwjjnyzrh.supabase.co").replace(/\/$/,"");
+const K=String(CONFIG.supabase_anon_key||"sb_publishable_esNNTGYl6aXb6FlINJxPKA_Dl6KuInP");
 let token="",profile={};
 const $=x=>document.getElementById(x);
 function readableError(value){
