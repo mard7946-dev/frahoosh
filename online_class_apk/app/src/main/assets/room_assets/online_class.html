@@ -15,7 +15,7 @@ header h2{margin:0;font-size:17px;flex:1}.toolbar,.tools{display:flex;gap:5px;fl
 .tile{position:relative;background:#050a12;border-radius:8px;height:clamp(78px,12vh,120px);min-height:78px;overflow:hidden}.tile video{width:100%;height:100%;object-fit:cover}
 .tile span{position:absolute;right:6px;bottom:6px;background:#000b;padding:4px 6px;border-radius:6px;font-size:11px}
 .boardwrap{flex:1;min-height:clamp(620px,78vh,1050px);padding:5px;display:flex;flex-direction:column}.boardbar{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px;align-items:center}
-.board{background:#fff;border-radius:9px;width:100%;height:100%;min-height:clamp(560px,72vh,950px);touch-action:none}
+.board{display:block;background:#fff!important;color:#111;border:1px solid #d6dce5;border-radius:9px;width:100%;height:100%;min-height:clamp(560px,72vh,950px);touch-action:none;visibility:visible;opacity:1}
 .side{background:#162238;border-right:1px solid #2d3b52;display:flex;flex-direction:column;min-width:0}
 .side h3{margin:9px}.participants{padding:0 9px;max-height:24%;overflow:auto}.person{padding:6px;border-bottom:1px solid #29374c;font-size:12px}
 .panel{border-top:1px solid #2d3b52;padding:8px}.panel h3{margin:3px 0 8px;font-size:14px}
@@ -191,7 +191,7 @@ async function autoMarkEntry(){
  }catch(e){console.error("Automatic attendance failed",e);alert("ثبت حضور خودکار انجام نشد؛ ورود به کلاس متوقف شد.");location.replace("/online-class/")}
 }
 
-async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await ensureMedia();await refreshSessionTimer();if(await enforceStudentBlock())return;await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
+async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=true;const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await ensureMedia();await refreshSessionTimer();if(await enforceStudentBlock())return;await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
 </script>
 </body>
 </html>
