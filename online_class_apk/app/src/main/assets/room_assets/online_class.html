@@ -71,6 +71,8 @@ header{background:linear-gradient(110deg,#06101f,#0c2036 65%,#112e48);border-bot
 </div>
 <script>
 const C=__CONFIG__;
+window.addEventListener("error",e=>{try{const p=document.getElementById("page");if(p)p.textContent="خطای کلاس: "+(e.message||"خطای نامشخص");}catch(_){}console.error("Frahoosh classroom error",e.message,e.filename,e.lineno);});
+window.addEventListener("unhandledrejection",e=>{try{const p=document.getElementById("page");if(p)p.textContent="خطای اجرای کلاس: "+String(e.reason||"خطای نامشخص");}catch(_){}console.error("Frahoosh classroom rejection",e.reason);});
 const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"};
 const $=id=>document.getElementById(id);
 let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=true,cam=true;
@@ -114,7 +116,7 @@ $("clear").onclick=async()=>{if(C.role==="student")return;try{await api("smart_b
 $("clearAll").onclick=async()=>{if(C.role==="student")return;if(!confirm("کل ۱۵ صفحه تخته پاک شود؟"))return;try{await api("smart_board_whiteboards?class_id=eq."+C.classId,{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});clearLocal();await send("board",{kind:"clearAll"});loadBoard()}catch(e){alert("پاک‌کردن کل تخته انجام نشد.")}};
 document.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{tool=b.dataset.tool;document.querySelectorAll("[data-tool]").forEach(x=>x.classList.remove("active"));b.classList.add("active")});
 $("color").onchange=e=>color=e.target.value;$("size").onchange=e=>size=Number(e.target.value);
-canvas=$("board");ctx=canvas.getContext("2d");window.addEventListener("resize",resize);
+canvas=$("board");ctx=canvas.getContext("2d");if(!ctx)throw new Error("Canvas 2D context unavailable");window.addEventListener("resize",resize);
 canvas.addEventListener("pointerdown",e=>{drawing=true;start=pos(e);points=[...start];if(tool==="pen"||tool==="eraser"){ctx.beginPath();ctx.moveTo(...start)}});
 canvas.addEventListener("pointermove",e=>{if(!drawing)return;let p=pos(e);if(tool==="pen"||tool==="eraser"){points.push(...p);ctx.strokeStyle=tool==="eraser"?"#fff":color;ctx.lineWidth=tool==="eraser"?Math.max(10,size*3):size;ctx.lineCap="round";ctx.lineTo(...p);ctx.stroke()}});
 canvas.addEventListener("pointerup",async e=>{if(!drawing)return;drawing=false;let end=pos(e),p;if(tool==="pen"||tool==="eraser")p={tool,points};else p={tool,x1:start[0],y1:start[1],x2:end[0],y2:end[1]};await saveBoard(p);points=[]});
