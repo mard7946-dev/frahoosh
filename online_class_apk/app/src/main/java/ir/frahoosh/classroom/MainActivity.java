@@ -30,7 +30,7 @@ import java.util.ArrayList;
 public final class MainActivity extends Activity {
     private static final int MEDIA_PERMISSION_REQUEST = 4207;
     private static final int FILE_CHOOSER_REQUEST = 4208;
-    private static final String CLASSROOM_URL = "https://frahoosh.ir/online-class/";
+    private static final String CLASSROOM_URL = "file:///android_asset/index.html";
 
     private WebView webView;
     private final ArrayList<PermissionRequest> pendingWebPermissions = new ArrayList<>();
@@ -190,7 +190,7 @@ public final class MainActivity extends Activity {
             }
         });
 
-        webView.loadUrl(CLASSROOM_URL);
+        // Load the bundled classroom entry point first. This avoids making app startup depend\n        // on the website certificate; remote Supabase/WebRTC endpoints still use normal TLS.\n        webView.loadUrl(CLASSROOM_URL);
     }
 
     private void showLoadError(WebView view, String title, String detail) {
