@@ -216,11 +216,9 @@ public final class MainActivity extends Activity {
         if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermission != null) {
             PermissionRequest request = pendingWebPermission;
             pendingWebPermission = null;
-            if (hasMediaPermissions()) {
-                grantWebMediaPermission(request);
-            } else {
-                request.deny();
-            }
+            // Grant each WebView media capability independently. A user may allow
+            // camera but deny microphone (or vice versa); do not block both.
+            grantWebMediaPermission(request);
         }
     }
 
