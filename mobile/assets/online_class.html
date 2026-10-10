@@ -5,25 +5,25 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>کلاس هوشمند فراهوش</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#0e1726;color:#fff}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;min-height:100%;overflow:hidden;font-family:Tahoma,Arial,sans-serif;background:#0e1726;color:#fff}body{height:100dvh;min-height:100dvh;display:flex;flex-direction:column}
 button,select,input{font-family:inherit}button{border:0;border-radius:9px;padding:9px 11px;background:#244d82;color:#fff;font-weight:700}
 button.active{background:#16804a}.danger{background:#9e2831}.secondary{background:#56647a}
-header{padding:9px;background:#162238;display:flex;gap:7px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+header{flex:0 0 auto;padding:7px;background:#162238;display:flex;gap:7px;align-items:center;flex-wrap:wrap;position:relative;z-index:20}
 header h2{margin:0;font-size:17px;flex:1}.toolbar,.tools{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
-.layout{display:grid;grid-template-columns:1fr 310px;min-height:calc(100vh - 58px)}.main{min-width:0;display:flex;flex-direction:column}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 0;flex:1;min-height:0;height:calc(100dvh - 58px);overflow:hidden}.main{min-width:0;display:flex;flex-direction:column}
 .videos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:5px;padding:5px;height:clamp(86px,14vh,135px);max-height:14vh;overflow:auto}
 .tile{position:relative;background:#050a12;border-radius:8px;height:clamp(78px,12vh,120px);min-height:78px;overflow:hidden}.tile video{width:100%;height:100%;object-fit:cover}
 .tile span{position:absolute;right:6px;bottom:6px;background:#000b;padding:4px 6px;border-radius:6px;font-size:11px}
-.boardwrap{flex:1;min-height:clamp(620px,78vh,1050px);padding:5px;display:flex;flex-direction:column}.boardbar{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px;align-items:center}
-.board{background:#fff;border-radius:9px;width:100%;height:100%;min-height:clamp(560px,72vh,950px);touch-action:none}
-.side{background:#162238;border-right:1px solid #2d3b52;display:flex;flex-direction:column;min-width:0}
+.boardwrap{flex:1;min-height:0;height:100%;padding:4px;display:flex;flex-direction:column}.boardbar{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px;align-items:center}
+.board{background:#fff;border-radius:9px;width:100%;height:100%;min-height:0;flex:1;touch-action:none}
+.side{display:none;background:#162238;border-right:1px solid #2d3b52;flex-direction:column;min-width:0;overflow:auto}.layout.drawer-open{grid-template-columns:minmax(0,1fr) minmax(260px,32vw)}.layout.drawer-open .side{display:flex}
 .side h3{margin:9px}.participants{padding:0 9px;max-height:24%;overflow:auto}.person{padding:6px;border-bottom:1px solid #29374c;font-size:12px}
 .panel{border-top:1px solid #2d3b52;padding:8px}.panel h3{margin:3px 0 8px;font-size:14px}
 .chat{flex:1;display:flex;flex-direction:column;min-height:170px}.msgs{flex:1;overflow:auto;padding:7px}.msg{background:#20304a;border-radius:8px;padding:6px;margin-bottom:5px;font-size:12px}
 .send{display:flex;gap:5px;padding:7px}.send input{flex:1;border-radius:8px;border:0;padding:9px;direction:rtl}
 .status{font-size:11px;opacity:.9;min-height:18px}.row{display:flex;gap:5px;flex-wrap:wrap;align-items:center}.row input,.row select{border:0;border-radius:7px;padding:8px;min-width:90px}
 .quizq,.fileitem,.attrow{background:#20304a;border-radius:8px;padding:7px;margin:5px 0;font-size:12px}.fileitem button{margin-top:4px}
-.fileinput{max-width:100%}@media(max-width:800px){.layout{grid-template-columns:1fr}.videos{height:92px;max-height:92px;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:4px;padding:4px}.tile{height:82px;min-height:82px}.boardwrap{min-height:540px;padding:4px}.board{min-height:480px}.side{min-height:430px;border-right:0;border-top:1px solid #2d3b52}.participants{max-height:120px}.chat{min-height:170px}}
+.fileinput{max-width:100%}@media(max-width:800px){.layout{grid-template-columns:minmax(0,1fr)}.layout.drawer-open{grid-template-columns:minmax(0,1fr)}.layout.drawer-open .side{position:fixed;z-index:15;top:58px;right:0;bottom:0;width:min(88vw,360px);box-shadow:-18px 0 40px #0009;border-top:1px solid #d9b45b}.videos{height:68px;max-height:68px;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:3px;padding:3px}.tile{height:62px;min-height:62px}.boardwrap{height:100%;min-height:0;padding:3px}.board{min-height:0;height:100%}.side{min-height:0;border-right:0;border-top:1px solid #2d3b52}.participants{max-height:120px}.chat{min-height:170px}}
 
 #toolDrawer{flex:0 0 100%;width:100%;order:10;position:relative}#toolDrawer>summary{cursor:pointer;list-style:none;text-align:right;color:#f3c65b;font-weight:bold;padding:8px 12px;border:1px solid #344c65;border-radius:10px;background:#10243a}#toolDrawer>summary::-webkit-details-marker{display:none}#toolDrawerBody{max-height:58vh;overflow:auto;padding:7px 2px}#toolDrawerBody>.toolbar{display:flex;margin:4px 0 8px}#toolDrawerBody>.boardbar{display:flex;flex-wrap:wrap}#quizToggle{background:linear-gradient(110deg,#f5cf68,#dba638);color:#09182a}#toolDrawerBody #quizPanel{margin-top:8px}
 /* Approved high-contrast classroom layout: maximize the board and tuck tools into a drawer */
@@ -77,7 +77,7 @@ const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":
 const $=id=>document.getElementById(id);
 let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=true,cam=true;
 let tool="pen",color="#0b1f3a",size=4,drawing=false,start=null,points=[],pageNo=1;
-let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null;
+let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null;const teacherRoles=["teacher","دبیر"],studentRoles=["student","دانش‌آموز"];const isTeacher=()=>teacherRoles.includes(String(C.role||"").toLowerCase())||C.role==="teacher";const isStudent=()=>studentRoles.includes(String(C.role||""));
 $("className").textContent=C.classId;
 function api(path,opts={}){return fetch(C.url+"/rest/v1/"+path,Object.assign({headers},opts))}
 function jsonHeaders(extra={}){return Object.assign({},headers,extra)}
@@ -234,6 +234,7 @@ async function verificationFailed(checkNo,shade){
  try{await send("leave",{name:C.name,reason:"attendance_verification_failed",checkpoint:checkNo});localStream?.getTracks().forEach(t=>t.stop());peers.forEach(p=>p.close())}catch(e){}
  location.replace("/online-class/");
 }
+async function waitForTeacherSession(){const status=$("page");if(status)status.textContent="در انتظار ورود دبیر و شروع کلاس…";while(!currentSession){if(!navigator.onLine){if(status)status.textContent="اتصال اینترنت برقرار نیست؛ در انتظار اتصال…";await new Promise(r=>setTimeout(r,2500));continue}await refreshSessionTimer();if(currentSession)break;await new Promise(r=>setTimeout(r,2500));}if(!currentSession){alert("کلاس هنوز توسط دبیر شروع نشده است.");location.replace("/online-class/");return false}if(status)status.textContent="دبیر وارد شده است؛ در حال اتصال به کلاس…";return true;}
 async function enforceStudentBlock(){
  if(!["student","دانش‌آموز"].includes(C.role)||!C.studentId||!currentSession)return false;
  try{
@@ -263,7 +264,7 @@ async function autoMarkEntry(){
  }catch(e){console.error("Automatic attendance failed",e);alert("ثبت حضور خودکار انجام نشد؛ ورود به کلاس متوقف شد.");location.replace("/online-class/")}
 }
 
-async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await refreshSessionTimer();if(await enforceStudentBlock())return;await ensureMedia();await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
+async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody"),layout=document.querySelector(".layout");const teacher=isTeacher();document.querySelectorAll("[data-tool],#color,#size,#prev,#next,#clear,#clearAll,#fileManager,#quizPanel,#quizToggle,#screen").forEach(el=>{if(el)el.style.display=teacher?"":"none"});if(!teacher){drawer.style.display="none";document.querySelector(".boardbar").style.display="none";$("mic").style.display="";$("cam").style.display="";}for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);const mt=$("menuToggle");if(mt)mt.onclick=()=>{if(teacher){drawer.open=!drawer.open;layout.classList.toggle("drawer-open",drawer.open)}else{layout.classList.toggle("drawer-open");}};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await refreshSessionTimer();if(isStudent()){const ready=await waitForTeacherSession();if(!ready)return;}if(await enforceStudentBlock())return;await ensureMedia();await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
 </script>
 </body>
 </html>
