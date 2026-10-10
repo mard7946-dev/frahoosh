@@ -1452,6 +1452,26 @@ class DashboardScreen(Screen):
         except Exception:
             pass
 
+    def _remove_guest_login_actions(self):
+        """Guest access belongs only on the initial login screen, never after authentication."""
+        try:
+            from kivy.uix.button import Button as _Button
+            needles = ("guest", "میهمان", "مهمان")
+            def clean(parent):
+                for child in list(getattr(parent, "children", ())):
+                    if isinstance(child, _Button):
+                        label = str(getattr(child, "text", "") or "").lower()
+                        if any(term in label for term in needles):
+                            try:
+                                parent.remove_widget(child)
+                                continue
+                            except Exception:
+                                pass
+                    clean(child)
+            clean(self)
+        except Exception as exc:
+            print("POST-LOGIN GUEST ACTION CLEANUP ERROR:", repr(exc))
+
     def on_pre_enter(self,*_):
         # Never let a dashboard refresh exception escape the Kivy lifecycle.
         # On Android an uncaught exception here can terminate the process
@@ -1469,6 +1489,7 @@ class DashboardScreen(Screen):
                 self.role_text.text = rtl_text("در حال آماده‌سازی پنل‌ها...")
             except Exception:
                 pass
+        self._remove_guest_login_actions()
         if self.role() in {"parent","student","teacher","manager","educational","executive","cultural","advisor","counselor"}:
             try:
                 self._start_parent_poll()
