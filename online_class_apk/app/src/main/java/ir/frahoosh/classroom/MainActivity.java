@@ -101,7 +101,7 @@ public final class MainActivity extends Activity {
                 if (request.isForMainFrame()) {
                     Log.e("FrahooshClassroom", "Classroom page load failed: " + error.getDescription());
                     view.postDelayed(() -> {
-                        if (webView != null) webView.loadUrl(CLASSROOM_URL + "index.html");
+                        if (webView != null) webView.loadUrl(CLASSROOM_URL);
                     }, 800);
                 }
             }
@@ -156,7 +156,7 @@ public final class MainActivity extends Activity {
             }
         });
 
-        webView.loadUrl(CLASSROOM_URL + "index.html");
+        webView.loadUrl(CLASSROOM_URL);
     }
 
     private boolean isTrustedClassroomOrigin(Uri origin) {
