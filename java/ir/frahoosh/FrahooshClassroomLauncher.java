@@ -53,10 +53,13 @@ public final class FrahooshClassroomLauncher {
                     settings.setUseWideViewPort(true);
                     settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
-                    try {
-                        web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-                    } catch (Throwable ignored) {}
-
+                    /*
+                     * Keep WebView hardware-accelerated. Forcing a WebView to
+                     * LAYER_TYPE_SOFTWARE can break WebRTC video rendering on
+                     * Android devices and produce black remote/local video
+                     * surfaces even when getUserMedia succeeds.
+                     */
+                    web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                     web.setBackgroundColor(Color.WHITE);
 
                     web.setWebViewClient(new WebViewClient() {
@@ -125,15 +128,6 @@ public final class FrahooshClassroomLauncher {
                         }
                     });
 
-                    web.setWebChromeClient(new android.webkit.WebChromeClient() {
-                        @Override
-                        public boolean onConsoleMessage(android.webkit.ConsoleMessage message) {
-                            Log.e(TAG, "Classroom JS [" + message.messageLevel() + "] "
-                                    + message.message() + " at " + message.sourceId() + ":" + message.lineNumber());
-                            return true;
-                        }
-                    });
-
                     try {
                         FrahooshWebChromeClient chrome = new FrahooshWebChromeClient();
                         chrome.setContext(activity);
@@ -179,6 +173,7 @@ public final class FrahooshClassroomLauncher {
                     if (window != null) {
                         window.setBackgroundDrawableResource(android.R.color.white);
                         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                        window.addFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
                         window.setDimAmount(0.0f);
                     }
 
@@ -190,6 +185,7 @@ public final class FrahooshClassroomLauncher {
                                 WindowManager.LayoutParams.MATCH_PARENT,
                                 WindowManager.LayoutParams.MATCH_PARENT
                         );
+                        window.addFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
                     }
 
                     container.setVisibility(View.VISIBLE);
@@ -207,7 +203,7 @@ public final class FrahooshClassroomLauncher {
                             "https://frahoosh.ir/online-class/"
                     );
 
-                    Log.i(TAG, "Classroom dialog shown");
+                    Log.i(TAG, "Classroom dialog shown with hardware acceleration");
                 } catch (Throwable error) {
                     Log.e(TAG, "Classroom launcher failed", error);
                     closeInternal();
