@@ -3,7 +3,6 @@ package ir.frahoosh.classroom;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.res.AssetManager;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
@@ -22,7 +21,6 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceResponse;
 
-import java.io.InputStream;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
@@ -93,18 +91,9 @@ public final class MainActivity extends Activity {
 
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return localAssetResponse(request.getUrl().getPath());
-            }
-
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) {
-                    view.postDelayed(() -> {
-                        if (webView != null) {
-                            webView.loadUrl(CLASSROOM_URL + "index.html");
-                        }
-                    }, 800);
-                }
+                // Do not shadow the live classroom with bundled HTML snapshots. The website is
+                // the canonical implementation; serving stale local copies caused APK/web drift.
+                return null;
             }
         });
 
@@ -158,29 +147,6 @@ public final class MainActivity extends Activity {
         });
 
         webView.loadUrl(CLASSROOM_URL + "index.html");
-    }
-
-    private WebResourceResponse localAssetResponse(String path) {
-        if (path == null) return null;
-        String asset = null;
-        if (path.endsWith("/online-class/") || path.endsWith("/online-class/index.html")) {
-            asset = "index.html";
-        } else if (path.endsWith("/online-class/room.html")) {
-            asset = "room.html";
-        } else if (path.endsWith("/online-class/online_class.html") || path.endsWith("/mobile/assets/online_class.html")) {
-            asset = "room_assets/online_class.html";
-        } else if (path.endsWith("/online-class/classroom_patch.js") || path.endsWith("/online_class_apk/classroom_patch.js")) {
-            asset = "room_assets/classroom_patch.js";
-        }
-        if (asset == null) return null;
-        try {
-            AssetManager am = getAssets();
-            InputStream in = am.open(asset, AssetManager.ACCESS_STREAMING);
-            String mime = asset.endsWith(".js") ? "application/javascript" : "text/html";
-            return new WebResourceResponse(mime, "UTF-8", in);
-        } catch (Exception ignored) {
-            return null;
-        }
     }
 
     private boolean isTrustedClassroomOrigin(Uri origin) {
