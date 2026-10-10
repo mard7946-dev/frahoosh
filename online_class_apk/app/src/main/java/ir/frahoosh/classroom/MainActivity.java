@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.util.Log;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -116,16 +117,19 @@ public final class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     if (request == null) return;
                     Uri origin = request.getOrigin();
-                    if (origin == null || !"https".equalsIgnoreCase(origin.getScheme())
-                            || !"frahoosh.ir".equalsIgnoreCase(origin.getHost())) {
+                    if (!isTrustedClassroomOrigin(origin)) {
+                        Log.w("FrahooshClassroom", "Denied WebView media request from untrusted origin: " + origin);
                         request.deny();
                         return;
                     }
-                    if (hasMediaPermissions()) {
+                    // Handle camera and microphone independently. A granted camera must not
+                    // wait for microphone permission (or vice versa), otherwise WebRTC can
+                    // appear to ignore the classroom buttons on devices with partial grants.
+                    if (hasRequestedMediaPermissions(request)) {
                         grantWebMediaPermission(request);
                     } else {
-                        pendingWebPermissions.add(request);
-                        requestMediaPermissions();
+                        if (!pendingWebPermissions.contains(request)) pendingWebPermissions.add(request);
+                        requestMediaPermissions(request);
                     }
                 });
             }
@@ -180,24 +184,57 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private boolean hasMediaPermissions() {
+    private boolean isTrustedClassroomOrigin(Uri origin) {
+        if (origin == null || !"https".equalsIgnoreCase(origin.getScheme())) return false;
+        String host = origin.getHost();
+        return "frahoosh.ir".equalsIgnoreCase(host) || "www.frahoosh.ir".equalsIgnoreCase(host);
+    }
+
+    private boolean hasRequestedMediaPermissions(PermissionRequest request) {
         if (Build.VERSION.SDK_INT < 23) return true;
-        return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        boolean requestedMedia = false;
+        for (String resource : request.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) {
+                requestedMedia = true;
+                if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) return false;
+            } else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) {
+                requestedMedia = true;
+                if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return false;
+            }
+        }
+        return requestedMedia;
     }
 
     private void requestMediaPermissions() {
+        requestMediaPermissions(null);
+    }
+
+    private void requestMediaPermissions(PermissionRequest request) {
         if (Build.VERSION.SDK_INT < 23) {
             grantPendingWebPermissions();
             return;
         }
         if (mediaPermissionRequestInFlight) return;
         ArrayList<String> missing = new ArrayList<>();
-        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            missing.add(Manifest.permission.CAMERA);
-        }
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            missing.add(Manifest.permission.RECORD_AUDIO);
+        if (request == null) {
+            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                missing.add(Manifest.permission.CAMERA);
+            }
+            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                missing.add(Manifest.permission.RECORD_AUDIO);
+            }
+        } else {
+            for (String resource : request.getResources()) {
+                if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)
+                        && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
+                        && !missing.contains(Manifest.permission.CAMERA)) {
+                    missing.add(Manifest.permission.CAMERA);
+                } else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)
+                        && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
+                        && !missing.contains(Manifest.permission.RECORD_AUDIO)) {
+                    missing.add(Manifest.permission.RECORD_AUDIO);
+                }
+            }
         }
         if (!missing.isEmpty()) {
             mediaPermissionRequestInFlight = true;
