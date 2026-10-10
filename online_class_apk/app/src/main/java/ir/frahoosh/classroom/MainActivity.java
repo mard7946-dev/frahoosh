@@ -55,31 +55,30 @@ public final class MainActivity extends Activity {
         buildWebView();
     }
 
+    private String readAsset(String path) throws Exception {
+        try (InputStream in = getAssets().open(path);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
+            return out.toString("UTF-8");
+        }
+    }
+
     private void loadBundledRoom(WebView target) {
-        // The entry page runs under the HTTPS origin so sessionStorage belongs to that
-        // origin. Read the session before switching to the APK asset origin, then inject
-        // it into the bundled room bootstrap; otherwise room.html incorrectly says the
-        // class session is missing after a successful guest/host login.
-        target.evaluateJavascript(
-                "JSON.stringify(sessionStorage.getItem('frahoosh_online_class_config') || localStorage.getItem('frahoosh_online_class_config') || '')",
-                result -> {
-                    try (InputStream in = getAssets().open("room.html");
-                         ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                        byte[] buffer = new byte[8192];
-                        int count;
-                        while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
-                        String html = out.toString("UTF-8");
-                        String encodedResult = result == null ? "null" : result;
-                        html = html.replace("let c=null;", "let c=null;try{const saved=JSON.parse("
-                                + encodedResult + "||\"\\\"\\\");c=saved?JSON.parse(saved):null;}catch(_){}");
-                        target.loadDataWithBaseURL("file:///android_asset/",
-                                html, "text/html", "UTF-8", null);
-                    } catch (Exception e) {
-                        Log.e("FrahooshClassroom", "Could not load bundled room bootstrap", e);
-                        showLoadError(target, "خطا در باز کردن تخته هوشمند",
-                                "فایل محیط کلاس داخل برنامه خوانده نشد: " + e.getMessage());
-                    }
-                });
+        try {
+            String html = readAsset("room.html");
+            String classroom = readAsset("room_assets/online_class.html");
+            String patch = readAsset("room_assets/classroom_patch.js");
+            html = html.replace("__BUNDLED_CLASS_HTML__", org.json.JSONObject.quote(classroom))
+                       .replace("__BUNDLED_PATCH_JS__", org.json.JSONObject.quote(patch));
+            target.loadDataWithBaseURL("file:///android_asset/",
+                    html, "text/html", "UTF-8", null);
+        } catch (Exception e) {
+            Log.e("FrahooshClassroom", "Could not load bundled classroom", e);
+            showLoadError(target, "خطا در باز کردن تخته هوشمند",
+                    "فایل‌های کلاس داخل برنامه خوانده نشد: " + e.getMessage());
+        }
     }
 
     private void buildWebView() {
