@@ -192,7 +192,7 @@ async function load(){const role=resolveRole(profile),nc=profile.national_code;l
 if(role==="teacher"||role==="دبیر"){if(!rows.length)throw Error("هنوز کلاسی به حساب دبیر اختصاص داده نشده است.");await openRoom(rows[0].id);return}
 if(role==="student"||role==="دانش‌آموز"){if(!rows.length)throw Error("کلاسی برای حساب دانش‌آموز پیدا نشد.");const ids=rows.map(x=>x.id);const active=await api("/rest/v1/online_class_sessions?class_id=in.("+ids.join(",")+")&ended_at=is.null&order=id.desc&limit=100");if(!active.length)throw Error("هنوز دبیر کلاس را شروع نکرده است. پس از شروع کلاس دوباره وارد شوید.");await openRoom(active[0].class_id);return}
 $("who").textContent=(profile.display_name||profile.username||"")+" • "+role;
-if(["manager","مدیر","principal","administrator","admin","executive","معاون اجرایی","educational","معاون آموزشی"].includes(role)){$("adminCreate").style.display="block";$("createClass").onclick=createClass;$("activateToday").onclick=()=>bulkTodayClasses("active");$("closeToday").onclick=()=>bulkTodayClasses("inactive");await loadTeachers();await syncTodaySchedule(rows);if(!scheduleSyncTimer)scheduleSyncTimer=setInterval(()=>load().catch(e=>{$("scheduleAdminMsg").textContent="به‌روزرسانی خودکار زمان‌بندی انجام نشد: "+readableError(e?.message||e)}),30000);}if(["manager","مدیر","principal","administrator","admin"].includes(role)){$("durationControl").style.display="block";$("cduration").value="50";}else{$("durationControl").style.display="none";}if(["manager","مدیر","principal","administrator","admin"].includes(role)){$("adminUsers").style.display="block";$("createTeacherAccount").onclick=createTeacherAccount;}else{$("adminUsers").style.display="none";}if(["manager","مدیر","principal","administrator","admin","executive","معاون اجرایی","educational","معاون آموزشی"].includes(role)){
+if(["manager","مدیر","principal","administrator","admin","executive","معاون اجرایی","educational","معاون آموزشی"].includes(role)){$("adminCreate").style.display="block";$("createClass").onclick=createClass;$("activateToday").onclick=()=>bulkTodayClasses("active");$("closeToday").onclick=()=>bulkTodayClasses("closed");await loadTeachers();await syncTodaySchedule(rows);if(!scheduleSyncTimer)scheduleSyncTimer=setInterval(()=>load().catch(e=>{$("scheduleAdminMsg").textContent="به‌روزرسانی خودکار زمان‌بندی انجام نشد: "+readableError(e?.message||e)}),30000);}if(["manager","مدیر","principal","administrator","admin"].includes(role)){$("durationControl").style.display="block";$("cduration").value="50";}else{$("durationControl").style.display="none";}if(["manager","مدیر","principal","administrator","admin"].includes(role)){$("adminUsers").style.display="block";$("createTeacherAccount").onclick=createTeacherAccount;}else{$("adminUsers").style.display="none";}if(["manager","مدیر","principal","administrator","admin","executive","معاون اجرایی","educational","معاون آموزشی"].includes(role)){
  $("rosterImport").style.display="block";$("importRoster").onclick=()=>importStudentRoster().catch(e=>{$("rosterMsg").textContent=readableError(e?.message||e)});
  $("rosterClass").innerHTML='<option value="">انتخاب کلاس مقصد</option>'+rows.map(r=>'<option value="'+Number(r.id)+'">'+escapeHtml(r.title||r.subject||"کلاس")+' — '+escapeHtml(r.class_name||"")+'</option>').join("");
 }else $("rosterImport").style.display="none";
@@ -214,16 +214,8 @@ function schoolToday(){const p=Object.fromEntries(new Intl.DateTimeFormat("en-CA
 function tehranClock(){return new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Tehran",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date())}
 function tehranDayBounds(){const today=schoolToday(),next=new Date(today+"T12:00:00+03:30");next.setUTCDate(next.getUTCDate()+1);const nextParts=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Tehran",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(next).map(x=>[x.type,x.value]));const nextDay=nextParts.year+"-"+nextParts.month+"-"+nextParts.day;return {start:encodeURIComponent(today+"T00:00:00+03:30"),end:encodeURIComponent(nextDay+"T00:00:00+03:30")}}
 async function syncTodaySchedule(rows){
- const role=resolveRole(profile);if(!["manager","مدیر","مدیریت","principal","administrator","admin","executive","معاون اجرایی","educational","معاون آموزشی"].includes(role))return;
- const now=Date.now();let changed=0;
- for(const row of rows||[]){
-  if(!row.start_at||row.auto_activate===false)continue;
-  const start=Date.parse(row.start_at),end=Date.parse(row.end_at||"");
-  if(!Number.isFinite(start))continue;
-  const targetStatus=now<start?"inactive":(row.auto_close!==false&&Number.isFinite(end)&&now>=end)?"inactive":"active";
-  if(row.status!==targetStatus){try{await api("/rest/v1/online_classes?id=eq."+Number(row.id),{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({status:targetStatus})});row.status=targetStatus;changed++}catch(e){console.warn("Schedule status sync failed",row.id,e)}}
- }
- if(changed)$("scheduleAdminMsg").textContent="وضعیت زمان‌بندی "+changed+" کلاس به‌روزرسانی شد.";
+ // The Supabase pg_cron job refreshes statuses every minute; do not override its closed state in the client.
+ return;
 }
 async function bulkTodayClasses(status){
  const msg=$("scheduleAdminMsg"),buttons=[$("activateToday"),$("closeToday")];buttons.forEach(b=>{if(b)b.disabled=true});
@@ -232,8 +224,15 @@ async function bulkTodayClasses(status){
   if(!rows.length){msg.textContent="برای امروز کلاس زمان‌بندی‌شده‌ای ثبت نشده است.";return}
   const ids=rows.filter(r=>r.status!==status).map(r=>Number(r.id));
   if(!ids.length){msg.textContent="وضعیت همه کلاس‌های امروز از قبل همین است.";return}
-  let done=0;for(const id of ids){await api("/rest/v1/online_classes?id=eq."+id,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({status})});done++}
-  msg.textContent=done+" کلاس "+(status==="active"?"فعال":"به پایان رسیده")+" شد.";await load();
+  let done=0;for(const id of ids){
+   if(status==="closed"){
+    const sessions=await api("/rest/v1/online_class_sessions?select=id&class_id=eq."+id+"&ended_at=is.null&order=id.desc&limit=1");
+    if(sessions.length){try{await api("/rest/v1/rpc/end_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:id})})}catch(e){await api("/rest/v1/online_classes?id=eq."+id,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({status:"closed"})})}}
+    else await api("/rest/v1/online_classes?id=eq."+id,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({status:"closed"})});
+   }else await api("/rest/v1/online_classes?id=eq."+id,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({status})});
+   done++
+  }
+  msg.textContent=done+" کلاس "+(status==="active"?"فعال":"بسته")+" شد.";await load();
  }catch(e){msg.textContent="تغییر گروهی انجام نشد؛ مجوز مدیر و اتصال سرور را بررسی کنید. "+readableError(e)}
  finally{buttons.forEach(b=>{if(b)b.disabled=false})}
 }
@@ -256,14 +255,14 @@ async function importStudentRoster(){
   const unique=[...new Set(prepared.map(x=>x.code))];
   const chunks=[];for(let i=0;i<unique.length;i+=80)chunks.push(unique.slice(i,i+80));
   const students=[];
-  for(const codes of chunks){const filter=codes.map(v=>'"'+v.replace(/"/g,'\\"')+'"').join(",");const found=await api("/rest/v1/students?select=id,national_code&national_code=in.("+encodeURIComponent(filter)+")&limit=1000");students.push(...found)}
+  for(const codes of chunks){const filter=codes.map(v=>'"'+v.replace(/"/g,'\\"')+'"').join(",");const found=await api("/rest/v1/students?select=id,national_code,first_name,last_name&national_code=in.("+encodeURIComponent(filter)+")&limit=1000");students.push(...found)}
   let linked=0,already=0,missing=0;
   for(const code of unique){
    const student=students.find(s=>String(s.national_code||"").trim()===code);
    if(!student){missing++;continue}
    const exists=await api("/rest/v1/online_class_students?select=student_id&class_id=eq."+classId+"&student_id=eq."+Number(student.id)+"&limit=1");
    if(exists.length){already++;continue}
-   await api("/rest/v1/online_class_students",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({class_id:classId,student_id:Number(student.id)})});linked++;
+   await api("/rest/v1/online_class_students",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({class_id:classId,student_id:Number(student.id),student_name:[student.first_name,student.last_name].filter(Boolean).join(" ")})});linked++;
   }
   msg.textContent="نتیجه: "+linked+" دانش‌آموز متصل شد؛ "+already+" از قبل عضو بودند؛ "+missing+" کد ملی در پرونده مدرسه پیدا نشد.";
  }catch(e){msg.textContent="ورود Excel ناموفق: "+readableError(e?.message||e)}
