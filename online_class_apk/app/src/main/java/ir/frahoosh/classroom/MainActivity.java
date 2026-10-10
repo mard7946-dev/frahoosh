@@ -55,6 +55,21 @@ public final class MainActivity extends Activity {
         buildWebView();
     }
 
+    private void loadBundledRoom(WebView target) {
+        try (InputStream in = getAssets().open("room.html");
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
+            target.loadDataWithBaseURL("https://frahoosh.ir/online-class/",
+                    out.toString("UTF-8"), "text/html", "UTF-8", null);
+        } catch (Exception e) {
+            Log.e("FrahooshClassroom", "Could not load bundled room bootstrap", e);
+            showLoadError(target, "خطا در باز کردن تخته هوشمند",
+                    "فایل محیط کلاس داخل برنامه خوانده نشد: " + e.getMessage());
+        }
+    }
+
     private void buildWebView() {
         webView = new WebView(this);
         FrameLayout root = new FrameLayout(this);
@@ -90,6 +105,14 @@ public final class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri uri = request == null ? null : request.getUrl();
+                if (uri != null && "frahoosh.ir".equalsIgnoreCase(uri.getHost())
+                        && uri.getPath() != null && uri.getPath().endsWith("/room.html")) {
+                    // Keep the room bootstrap bundled too; navigating to the HTTPS base URL
+                    // otherwise replaces the APK's entry page with a server copy.
+                    loadBundledRoom(view);
+                    return true;
+                }
                 return false;
             }
 
