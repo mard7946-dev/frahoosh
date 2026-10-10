@@ -103,19 +103,9 @@ public final class MainActivity extends Activity {
 
         webView.setBackgroundColor(Color.BLACK);
         webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                Uri uri = request == null ? null : request.getUrl();
-                if (uri != null && "frahoosh.ir".equalsIgnoreCase(uri.getHost())
-                        && uri.getPath() != null && uri.getPath().endsWith("/room.html")) {
-                    // Keep the room bootstrap bundled too; navigating to the HTTPS base URL
-                    // otherwise replaces the APK's entry page with a server copy.
-                    loadBundledRoom(view);
-                    return true;
-                }
-                return false;
-            }
-
+            // Let the HTTPS classroom page load normally. There is no bundled room.html asset;
+            // intercepting this navigation and trying to open a missing asset caused the APK
+            // to show a local error instead of opening the real classroom.
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 // Do not shadow the live classroom with bundled HTML snapshots. The website is
