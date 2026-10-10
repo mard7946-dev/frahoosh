@@ -20,6 +20,8 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceResponse;
+import android.webkit.SslErrorHandler;
+import android.net.http.SslError;
 
 import android.widget.FrameLayout;
 
@@ -99,11 +101,18 @@ public final class MainActivity extends Activity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
-                    Log.e("FrahooshClassroom", "Classroom page load failed: " + error.getDescription());
-                    view.postDelayed(() -> {
-                        if (webView != null) webView.loadUrl(CLASSROOM_URL);
-                    }, 800);
+                    String description = error == null ? "خطای نامشخص در بارگذاری صفحه" : String.valueOf(error.getDescription());
+                    int code = error == null ? 0 : error.getErrorCode();
+                    Log.e("FrahooshClassroom", "Main page load failed (" + code + "): " + description);
+                    showLoadError(view, "خطا در باز کردن کلاس آنلاین", "کد خطا: " + code + "\\n" + description);
                 }
+            }
+
+            @Override
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                Log.e("FrahooshClassroom", "TLS certificate error: " + error);
+                handler.cancel();
+                showLoadError(view, "خطای گواهی امنیتی سایت", "ارتباط امن با frahoosh.ir برقرار نشد. تاریخ و ساعت گوشی و گواهی امنیتی دامنه باید بررسی شود.");
             }
         });
 
@@ -157,6 +166,13 @@ public final class MainActivity extends Activity {
         });
 
         webView.loadUrl(CLASSROOM_URL);
+    }
+
+    private void showLoadError(WebView view, String title, String detail) {
+        String safeTitle = title.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        String safeDetail = detail.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\\n", "<br>");
+        String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='margin:0;background:#101522;color:#fff;font-family:sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center'><main style='padding:28px'><h2>" + safeTitle + "</h2><p style='line-height:1.8;color:#d6d9e2'>" + safeDetail + "</p><a style='display:inline-block;margin-top:18px;padding:13px 22px;background:#b7202e;color:white;text-decoration:none;border-radius:10px' href='https://frahoosh.ir/online-class/'>باز کردن دوباره کلاس</a></main></body></html>";
+        view.loadDataWithBaseURL("https://frahoosh.ir/", html, "text/html", "UTF-8", null);
     }
 
     private boolean isTrustedClassroomOrigin(Uri origin) {
