@@ -51,6 +51,21 @@ body{background:radial-gradient(ellipse at 50% -10%,#214b77 0,transparent 45%),l
 </div>
 <button id=createClass style="margin-top:10px">ساخت کلاس</button><span id=createMsg style="margin-right:10px"></span>
 </div>
+<section id="adminUsers" style="display:none;margin:14px 0;padding:18px;border:1px solid #d8b45b70;border-radius:16px;background:#0d1c2e;color:#fff">
+<h3 style="margin:0 0 8px;color:#f4ca62">مدیریت کاربران و ایجاد حساب دبیر</h3>
+<p style="margin:0 0 12px;color:#b7c5d7;font-size:12px;line-height:1.9">ایجاد حساب فقط برای مدیر مجاز است. حساب دبیر در سرور ثبت می‌شود؛ ثبت‌نام عمومی وجود ندارد.</p>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+<input id="teacherFirst" autocomplete="given-name" placeholder="نام دبیر">
+<input id="teacherLast" autocomplete="family-name" placeholder="نام خانوادگی دبیر">
+<input id="teacherCode" inputmode="numeric" placeholder="کد ملی / شناسه">
+<input id="teacherEmail" type="email" autocomplete="email" placeholder="ایمیل ورود دبیر">
+<input id="teacherPhone" type="tel" placeholder="شماره تماس (اختیاری)">
+<input id="teacherSubject" placeholder="درس / تخصص (اختیاری)">
+<input id="teacherPassword" type="password" autocomplete="new-password" placeholder="رمز اولیه (حداقل ۸ نویسه)">
+</div>
+<button id="createTeacherAccount" class="primary" type="button">ایجاد حساب دبیر</button>
+<div id="teacherAccountMsg" class="message" role="status" aria-live="polite"></div>
+</section>
 <div id=list></div></section></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/runtime-config.js"></script><script>
 const CONFIG=window.FRAHOOH_CONFIG||{};
 const U=String(CONFIG.supabase_url||"").replace(/\/$/,"");
@@ -120,11 +135,35 @@ async function login(){
   button.disabled=false;button.innerText=oldLabel;
  }
 }
+async function createTeacherAccount(){
+ const button=$("createTeacherAccount"),msg=$("teacherAccountMsg");
+ if(button.disabled)return;
+ button.disabled=true;button.textContent="در حال ایجاد حساب امن…";msg.textContent="";
+ try{
+  if(!U||!K||!token)throw Error("اتصال سرور یا نشست مدیر آماده نیست؛ دوباره وارد شوید.");
+  const payload={
+   first_name:$("teacherFirst").value.trim(),
+   last_name:$("teacherLast").value.trim(),
+   national_code:$("teacherCode").value.trim(),
+   email:$("teacherEmail").value.trim(),
+   phone:$("teacherPhone").value.trim(),
+   subject:$("teacherSubject").value.trim(),
+   password:$("teacherPassword").value
+  };
+  if(!payload.first_name||!payload.last_name||!payload.national_code||!payload.email||!payload.password)throw Error("نام، نام خانوادگی، کد ملی، ایمیل و رمز اولیه را کامل کنید.");
+  const response=await fetch(U+"/functions/v1/admin-create-teacher",{method:"POST",headers:{"apikey":K,"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const result=await readResponse(response);
+  if(!result||result.success!==true)throw Error(result?.error||"سرور ایجاد حساب را تأیید نکرد.");
+  msg.textContent="حساب دبیر با موفقیت ایجاد شد. نام کاربری: "+result.username+" | ایمیل ورود: "+result.email;
+  $("teacherFirst").value=$("teacherLast").value=$("teacherCode").value=$("teacherEmail").value=$("teacherPhone").value=$("teacherSubject").value=$("teacherPassword").value="";
+ }catch(e){msg.textContent="ایجاد حساب انجام نشد: "+readableError(e&&e.message?e.message:e)}
+ finally{button.disabled=false;button.textContent="ایجاد حساب دبیر"}
+}
 async function load(){const role=String(profile.role||"student").toLowerCase(),nc=profile.national_code;let rows=[];if(role==="teacher"||role==="دبیر"){const t=await api("/rest/v1/teachers?national_code=eq."+encodeURIComponent(nc)+"&limit=1"),tid=t[0]?.id;if(tid){const m=await api("/rest/v1/online_class_teachers?teacher_id=eq."+tid+"&limit=100"),ids=m.map(x=>x.class_id);if(ids.length)rows=await api("/rest/v1/online_classes?id=in.("+ids.join(",")+")&order=id.desc")}}else if(role==="student"||role==="دانش‌آموز"){const s=await api("/rest/v1/students?national_code=eq."+encodeURIComponent(nc)+"&limit=1"),sid=s[0]?.id;if(sid){const m=await api("/rest/v1/online_class_students?student_id=eq."+sid+"&limit=100"),ids=m.map(x=>x.class_id);if(ids.length)rows=await api("/rest/v1/online_classes?id=in.("+ids.join(",")+")&order=id.desc")}}else if(role==="parent"||role==="ولی"||role==="اولیا"){const pcs=await api("/rest/v1/parent_children?parent_username=eq."+encodeURIComponent(profile.username)+"&limit=100"),ids=[];for(const pc of pcs){const m=await api("/rest/v1/online_class_students?student_id=eq."+pc.student_id+"&limit=100");m.forEach(x=>{if(!ids.includes(x.class_id))ids.push(x.class_id)})}if(ids.length)rows=await api("/rest/v1/online_classes?id=in.("+ids.join(",")+")&order=id.desc")}else if(["manager","مدیر","principal","administrator","admin","educational","executive","counselor","معاون آموزشی","معاون اجرایی","معاون پرورشی","مشاوره"].includes(role)){rows=await api("/rest/v1/online_classes?order=id.desc&limit=200")}
 if(role==="teacher"||role==="دبیر"){if(!rows.length)throw Error("هنوز کلاسی به حساب دبیر اختصاص داده نشده است.");await openRoom(rows[0].id);return}
 if(role==="student"||role==="دانش‌آموز"){if(!rows.length)throw Error("کلاسی برای حساب دانش‌آموز پیدا نشد.");const ids=rows.map(x=>x.id);const active=await api("/rest/v1/online_class_sessions?class_id=in.("+ids.join(",")+")&ended_at=is.null&order=id.desc&limit=100");if(!active.length)throw Error("هنوز دبیر کلاس را شروع نکرده است. پس از شروع کلاس دوباره وارد شوید.");await openRoom(active[0].class_id);return}
 $("who").textContent=(profile.display_name||profile.username||"")+" • "+role;
-if(["manager","مدیر","principal","administrator","admin","executive","معاون اجرایی"].includes(role)){$("adminCreate").style.display="block";$("createClass").onclick=createClass;await loadTeachers();}if(["manager","مدیر","principal","administrator","admin"].includes(role)){$("durationControl").style.display="block";$("cduration").value="50";}else{$("durationControl").style.display="none";}$("list").innerHTML=rows.map(r=>'<div class=class><span><b>'+String(r.title||r.subject||"کلاس")+'</b><br>'+String(r.class_name||"")+' • '+(r.status==="active"?"فعال":"غیرفعال")+'</span><button onclick="openRoom('+r.id+')">ورود</button></div>').join("")||"<p>کلاسی پیدا نشد.</p>";$("login").style.display="none";$("classes").style.display="block"}async function createClass(){
+if(["manager","مدیر","principal","administrator","admin","executive","معاون اجرایی"].includes(role)){$("adminCreate").style.display="block";$("createClass").onclick=createClass;await loadTeachers();}if(["manager","مدیر","principal","administrator","admin"].includes(role)){$("durationControl").style.display="block";$("cduration").value="50";}else{$("durationControl").style.display="none";}if(["manager","مدیر","principal","administrator","admin"].includes(role)){$("adminUsers").style.display="block";$("createTeacherAccount").onclick=createTeacherAccount;}else{$("adminUsers").style.display="none";}$("list").innerHTML=rows.map(r=>'<div class=class><span><b>'+String(r.title||r.subject||"کلاس")+'</b><br>'+String(r.class_name||"")+' • '+(r.status==="active"?"فعال":"غیرفعال")+'</span><button onclick="openRoom('+r.id+')">ورود</button></div>').join("")||"<p>کلاسی پیدا نشد.</p>";$("login").style.display="none";$("classes").style.display="block"}async function createClass(){
  try{
   const role=String(profile.role||"student").toLowerCase();const isManager=["manager","مدیر","principal","administrator","admin"].includes(role);const requestedDuration=isManager?Number($("cduration").value||50):50;if(!Number.isInteger(requestedDuration)||requestedDuration<5||requestedDuration>240)throw Error("مدت کلاس باید بین ۵ تا ۲۴۰ دقیقه باشد.");const p={title:$("ctitle").value.trim()||"کلاس آنلاین",subject:$("csubject").value.trim(),class_name:$("cname").value.trim(),status:"active",duration:requestedDuration};
   if(!p.class_name)return $("createMsg").textContent="نام کلاس الزامی است.";
