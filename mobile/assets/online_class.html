@@ -109,7 +109,25 @@ async function offerTo(id,name){let pc=await makePeer(id,name);let o=await pc.cr
 async function poll(){try{let r=await api("online_class_signals?class_id=eq."+C.classId+"&id=gt."+lastId+"&order=id.asc&limit=200");let rows=await r.json();for(const x of rows){lastId=Math.max(lastId,Number(x.id));if(x.sender_user_id===C.userId)continue;if(x.receiver_user_id&&x.receiver_user_id!==C.userId)continue;let p=x.payload||{};if(x.signal_type==="join"){names.set(x.sender_user_id,p.name||"کاربر");renderPeople();if(C.userId<x.sender_user_id)await offerTo(x.sender_user_id,p.name)}else if(x.signal_type==="leave"){peers.get(x.sender_user_id)?.close();peers.delete(x.sender_user_id);names.delete(x.sender_user_id);removeVideo(x.sender_user_id);renderPeople()}else if(x.signal_type==="offer"){names.set(x.sender_user_id,p.name||"کاربر");let pc=await makePeer(x.sender_user_id,p.name);await pc.setRemoteDescription(p.sdp);let a=await pc.createAnswer();await pc.setLocalDescription(a);await send("answer",{sdp:pc.localDescription},x.sender_user_id)}else if(x.signal_type==="answer"){let pc=peers.get(x.sender_user_id);if(pc)await pc.setRemoteDescription(p.sdp)}else if(x.signal_type==="candidate"){let pc=peers.get(x.sender_user_id);if(pc&&p.candidate)try{await pc.addIceCandidate(p.candidate)}catch(e){}}else if(x.signal_type==="chat"){appendMsg(p.name||"کاربر",p.text||"")}else if(x.signal_type==="board"){applyBoard(p,false)}else if(x.signal_type==="quiz_answer"&&C.role!=="student"){loadQuizResults()}}}catch(e){}}
 function appendMsg(n,t){let d=document.createElement("div");d.className="msg";d.innerHTML="<b>"+esc(n)+"</b><br>"+esc(t);$("msgs").appendChild(d);$("msgs").scrollTop=$("msgs").scrollHeight}
 $("send").onclick=async()=>{let t=$("chatInput").value.trim();if(!t)return;appendMsg(C.name,t);$("chatInput").value="";await send("chat",{name:C.name,text:t})};
-$("mic").onclick=async()=>{const next=!mic;if(!await ensureMedia())return;mic=next;(localStream?.getAudioTracks()||[]).forEach(t=>t.enabled=mic);$("mic").classList.toggle("active",mic);$("mic").textContent=mic?"میکروفون روشن":"میکروفون خاموش"};
+$("mic").onclick=async()=>{
+  const next=!mic;
+  try{
+   if(!navigator.mediaDevices?.getUserMedia)throw new Error("MEDIA_API_UNAVAILABLE");
+   let tracks=localStream?.getAudioTracks?.().filter(t=>t.readyState==="live")||[];
+   if(!tracks.length){
+    const audioStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    tracks=audioStream.getAudioTracks();
+    if(!tracks.length)throw new Error("NO_AUDIO_TRACK");
+    if(!localStream)localStream=new MediaStream();
+    tracks.forEach(t=>{t.enabled=next;localStream.addTrack(t)});
+    for(const [,pc] of peers)for(const track of tracks){const sender=pc.getSenders().find(s=>s.track?.kind==="audio");if(sender)await sender.replaceTrack(track);else pc.addTrack(track,localStream)}
+    addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
+   }else tracks.forEach(t=>t.enabled=next);
+   mic=next;
+   $("mic").classList.toggle("active",mic);
+   $("mic").textContent=mic?"میکروفون روشن":"میکروفون خاموش";
+  }catch(e){console.warn("MIC_START_FAILED",e);alert("میکروفون فعال نشد. مجوز میکروفون را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")")}
+ };
 $("cam").onclick=async()=>{
  const tracks=localStream?.getVideoTracks?.().filter(t=>t.readyState==="live")||[];
  if(!tracks.length){
