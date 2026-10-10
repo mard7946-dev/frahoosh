@@ -170,7 +170,7 @@ async function refreshSessionTimer(){
    sessionStartedAt=parseSessionTimestamp(latest.started_at||latest.created_at||latest.inserted_at)||parseSessionTimestamp(C.sessionStartedAt)||null;
    if(latest.ended_at){evidenceEnded=true;const e=$("classTimer");if(e){e.textContent="پایان‌یافته";e.style.color="#ff7373"}return}
    if(sessionStartedAt&&Date.now()-sessionStartedAt>=Math.max(5,Math.min(240,Number(C.durationMinutes)||50))*60*1000){updateClassTimer();return}
-  }else{currentSession=null;sessionStartedAt=null}
+  }else{currentSession=null;sessionStartedAt=parseSessionTimestamp(C.sessionStartedAt)}
   updateClassTimer();
  }catch(e){
   console.warn("CLASS_TIMER_REFRESH_ERROR",e);
