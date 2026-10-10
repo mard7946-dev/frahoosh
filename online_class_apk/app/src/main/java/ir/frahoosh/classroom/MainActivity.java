@@ -139,7 +139,7 @@ public final class MainActivity extends Activity {
             }
         });
 
-        webView.loadUrl(CLASSROOM_URL);
+        webView.loadUrl(CLASSROOM_URL + "index.html");
     }
 
     private WebResourceResponse localAssetResponse(String path) {
