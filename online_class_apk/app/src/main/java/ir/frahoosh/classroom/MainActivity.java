@@ -110,9 +110,34 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                Log.e("FrahooshClassroom", "TLS certificate error: " + error);
-                handler.cancel();
-                showLoadError(view, "خطای گواهی امنیتی سایت", "ارتباط امن با frahoosh.ir برقرار نشد. تاریخ و ساعت گوشی و گواهی امنیتی دامنه باید بررسی شود.");
+                // Keep TLS validation strict: never proceed through an invalid certificate.
+                String reason = "خطای گواهی امنیتی";
+                if (error != null) {
+                    switch (error.getPrimaryError()) {
+                        case SslError.SSL_EXPIRED:
+                            reason = "گواهی امنیتی سایت منقضی شده است.";
+                            break;
+                        case SslError.SSL_IDMISMATCH:
+                            reason = "نام دامنه با گواهی امنیتی مطابقت ندارد.";
+                            break;
+                        case SslError.SSL_NOTYETVALID:
+                            reason = "گواهی امنیتی هنوز معتبر نشده است.";
+                            break;
+                        case SslError.SSL_UNTRUSTED:
+                            reason = "گواهی امنیتی توسط مرجع معتبر تأیید نشده است.";
+                            break;
+                        default:
+                            reason = "اعتبار گواهی امنیتی سایت تأیید نشد.";
+                            break;
+                    }
+                }
+                Log.e("FrahooshClassroom", "TLS certificate validation failed; url="
+                        + (error == null ? "(unknown)" : error.getUrl())
+                        + "; primaryError=" + (error == null ? -1 : error.getPrimaryError())
+                        + "; details=" + error);
+                if (handler != null) handler.cancel();
+                showLoadError(view, "خطای گواهی امنیتی سایت",
+                        reason + " ارتباط امن با frahoosh.ir برقرار نشد. تاریخ و ساعت گوشی و گواهی دامنه را بررسی کنید.");
             }
         });
 
