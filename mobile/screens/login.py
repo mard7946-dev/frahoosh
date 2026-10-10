@@ -239,7 +239,7 @@ class LoginScreen(Screen):
             background_color=(0.70, 0.07, 0.12, 1),
             color=WHITE, size_hint_y=None, height=dp(48),
         )
-        self.login_button.bind(on_press=self.login)
+        self.login_button.bind(on_release=self.login)
         form.add_widget(self.login_button)
 
         self.status = self.label("", "8.2sp", MUTED, False, "center")
@@ -335,10 +335,26 @@ class LoginScreen(Screen):
             self._set_status("تنظیمات اتصال سرور در برنامه وجود ندارد.", ERROR)
             return
 
+        # Give immediate, visible feedback on Android and reliably launch auth
+        # after the touch is released.
         self._busy = True
         self.login_button.disabled = True
-        self._set_status("در حال بررسی اطلاعات...", MUTED)
-        Thread(target=self._authenticate, args=(identifier, password, remember), daemon=True).start()
+        self.login_button.text = fa_display("در حال ورود...")
+        self._set_status("در حال بررسی اطلاعات و اتصال به سرور...", BLUE)
+        try:
+            worker = Thread(
+                target=self._authenticate,
+                args=(identifier, password, remember),
+                daemon=True,
+                name="frahoosh-login-auth",
+            )
+            worker.start()
+        except Exception as exc:
+            print("LOGIN THREAD START ERROR:", repr(exc))
+            self._busy = False
+            self.login_button.disabled = False
+            self.login_button.text = fa_display("ورود به فراهوش")
+            self._set_status("شروع فرایند ورود انجام نشد؛ دوباره تلاش کنید.", ERROR)
 
     def _authenticate(self, identifier, password, remember):
         try:
@@ -356,7 +372,8 @@ class LoginScreen(Screen):
     def _login_success(self):
         self._busy = False
         self.login_button.disabled = False
-        self._set_status("ورود موفق بود.", SUCCESS)
+        self.login_button.text = fa_display("ورود به فراهوش")
+        self._set_status("ورود موفق بود؛ در حال باز کردن پنل...", SUCCESS)
         try:
             app = App.get_running_app()
             if app is not None and hasattr(app, "open_dashboard"):
@@ -372,6 +389,7 @@ class LoginScreen(Screen):
     def _login_failed(self, message):
         self._busy = False
         self.login_button.disabled = False
+        self.login_button.text = fa_display("ورود به فراهوش")
         self._set_status(message if message and len(str(message)) < 120 else "ارتباط با سرور برقرار نشد. دوباره تلاش کنید.", ERROR)
 
     def forgot_password(self, *_):
