@@ -26,6 +26,8 @@ import android.net.http.SslError;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 
 public final class MainActivity extends Activity {
     private static final int MEDIA_PERMISSION_REQUEST = 4207;
@@ -190,7 +192,20 @@ public final class MainActivity extends Activity {
             }
         });
 
-        // Load the bundled classroom entry point first. This avoids making app startup depend\n        // on the website certificate; remote Supabase/WebRTC endpoints still use normal TLS.\n        webView.loadUrl(CLASSROOM_URL);
+        // Load the bundled classroom entry point first. This avoids making app startup depend\n        // on the website certificate; remote Supabase/WebRTC endpoints still use normal TLS.\n        // Keep the HTML bundled, but use the real HTTPS origin so root-relative
+        // runtime configuration and Supabase requests resolve correctly.
+        try (InputStream in = getAssets().open("index.html");
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
+            webView.loadDataWithBaseURL("https://frahoosh.ir/online-class/",
+                    out.toString("UTF-8"), "text/html", "UTF-8", null);
+        } catch (Exception e) {
+            Log.e("FrahooshClassroom", "Could not load bundled classroom HTML", e);
+            showLoadError(webView, "خطا در باز کردن کلاس آنلاین",
+                    "فایل اصلی کلاس داخل برنامه خوانده نشد: " + e.getMessage());
+        }
     }
 
     private void showLoadError(WebView view, String title, String detail) {
