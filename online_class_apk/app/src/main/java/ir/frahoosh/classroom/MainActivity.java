@@ -51,7 +51,6 @@ public final class MainActivity extends Activity {
         );
 
         buildWebView();
-        requestMediaPermissions();
     }
 
     private void buildWebView() {
