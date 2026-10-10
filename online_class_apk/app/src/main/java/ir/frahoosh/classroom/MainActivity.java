@@ -33,6 +33,7 @@ public final class MainActivity extends Activity {
 
     private WebView webView;
     private final ArrayList<PermissionRequest> pendingWebPermissions = new ArrayList<>();
+    private boolean mediaPermissionRequestInFlight = false;
     private ValueCallback<Uri[]> fileCallback;
 
     @Override
@@ -186,7 +187,11 @@ public final class MainActivity extends Activity {
     }
 
     private void requestMediaPermissions() {
-        if (Build.VERSION.SDK_INT < 23) return;
+        if (Build.VERSION.SDK_INT < 23) {
+            grantPendingWebPermissions();
+            return;
+        }
+        if (mediaPermissionRequestInFlight) return;
         ArrayList<String> missing = new ArrayList<>();
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             missing.add(Manifest.permission.CAMERA);
@@ -195,6 +200,7 @@ public final class MainActivity extends Activity {
             missing.add(Manifest.permission.RECORD_AUDIO);
         }
         if (!missing.isEmpty()) {
+            mediaPermissionRequestInFlight = true;
             requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
         } else {
             grantPendingWebPermissions();
@@ -233,7 +239,8 @@ public final class MainActivity extends Activity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
         if (requestCode == MEDIA_PERMISSION_REQUEST) {
-            // Grant each capability independently after Android's permission dialog.
+            mediaPermissionRequestInFlight = false;
+            // Grant each requested capability independently after Android's permission dialog.
             grantPendingWebPermissions();
         }
     }
