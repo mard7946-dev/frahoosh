@@ -8,6 +8,8 @@
     <application
         android:allowBackup="false"
         android:label="فراهوش کلاس آنلاین"
+        android:icon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="false">
         <activity
