@@ -32,7 +32,7 @@ public final class MainActivity extends Activity {
     private static final String CLASSROOM_URL = "https://frahoosh.ir/online-class/";
 
     private WebView webView;
-    private PermissionRequest pendingWebPermission;
+    private final ArrayList<PermissionRequest> pendingWebPermissions = new ArrayList<>();
     private ValueCallback<Uri[]> fileCallback;
 
     @Override
@@ -110,14 +110,28 @@ public final class MainActivity extends Activity {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
+                // Keep WebRTC requests while Android runtime permissions are requested.
+                // Camera and microphone may arrive as separate WebView requests.
                 runOnUiThread(() -> {
+                    if (request == null) return;
+                    Uri origin = request.getOrigin();
+                    if (origin == null || !"https".equalsIgnoreCase(origin.getScheme())
+                            || !"frahoosh.ir".equalsIgnoreCase(origin.getHost())) {
+                        request.deny();
+                        return;
+                    }
                     if (hasMediaPermissions()) {
                         grantWebMediaPermission(request);
                     } else {
-                        pendingWebPermission = request;
+                        pendingWebPermissions.add(request);
                         requestMediaPermissions();
                     }
                 });
+            }
+
+            @Override
+            public void onPermissionRequestCanceled(PermissionRequest request) {
+                pendingWebPermissions.remove(request);
             }
 
             @Override
@@ -182,10 +196,8 @@ public final class MainActivity extends Activity {
         }
         if (!missing.isEmpty()) {
             requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
-        } else if (pendingWebPermission != null) {
-            PermissionRequest request = pendingWebPermission;
-            pendingWebPermission = null;
-            grantWebMediaPermission(request);
+        } else {
+            grantPendingWebPermissions();
         }
     }
 
@@ -210,15 +222,19 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private void grantPendingWebPermissions() {
+        if (pendingWebPermissions.isEmpty()) return;
+        ArrayList<PermissionRequest> requests = new ArrayList<>(pendingWebPermissions);
+        pendingWebPermissions.clear();
+        for (PermissionRequest request : requests) grantWebMediaPermission(request);
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
-        if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermission != null) {
-            PermissionRequest request = pendingWebPermission;
-            pendingWebPermission = null;
-            // Grant each WebView media capability independently. A user may allow
-            // camera but deny microphone (or vice versa); do not block both.
-            grantWebMediaPermission(request);
+        if (requestCode == MEDIA_PERMISSION_REQUEST) {
+            // Grant each capability independently after Android's permission dialog.
+            grantPendingWebPermissions();
         }
     }
 
@@ -254,10 +270,8 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        if (pendingWebPermission != null) {
-            pendingWebPermission.deny();
-            pendingWebPermission = null;
-        }
+        for (PermissionRequest request : new ArrayList<>(pendingWebPermissions)) request.deny();
+        pendingWebPermissions.clear();
         if (fileCallback != null) {
             fileCallback.onReceiveValue(null);
             fileCallback = null;
