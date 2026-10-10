@@ -4,6 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#071a36"><title>ورود به کلاس آنلاین | فراهوش</title>
 <style>
+/* برنامه اختصاصی مدرسه: ورود میهمان عمومی حذف شده است */ #guest{display:none!important}
 :root{color-scheme:light;--navy:#071a36;--blue:#155eef;--gold:#f4bd50;--ink:#14243b;--muted:#66758b;--line:#e2e9f2}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Tahoma,"Noto Sans Arabic",Arial,sans-serif;color:var(--ink);background:radial-gradient(ellipse at 10% 0%,#1e4779 0,transparent 42%),linear-gradient(135deg,#06142b,#0c2b50 60%,#123e68);padding:clamp(14px,3vw,36px);display:grid;place-items:center}
 .box{width:min(1020px,100%);margin:auto;background:#fff;border:1px solid #ffffff75;border-radius:28px;overflow:hidden;box-shadow:0 28px 90px #020b1b66;padding:0;color:var(--ink)}
@@ -32,7 +33,7 @@ body{background:radial-gradient(ellipse at 50% -10%,#214b77 0,transparent 45%),l
 <label for="pw">رمز عبور</label><input id="pw" type="password" autocomplete="current-password" placeholder="رمز عبور حساب مدرسه">
 <label for="displayName">نام نمایشی شما در کلاس (برای دبیر)</label><input id="displayName" autocomplete="name" placeholder="مثلاً آقای رضایی">
 <button id="go" class="primary"><span>ورود به پنل کلاس</span><span aria-hidden="true">←</span></button><div id="err" class="err" role="status" aria-live="polite"></div><div class="secure"><span>●</span> ورود امن با احراز هویت Supabase</div></section>
-<section id="guest" class="entry-card guest"><div class="card-head"><div class="card-icon">♧</div><div><h2>ورود میهمان</h2><p>بدون ساخت حساب کاربری مدرسه</p></div></div>
+<section id="guest" class="entry-card guest" aria-hidden="true"><div class="card-head"><div class="card-icon">♧</div><div><h2>ورود میهمان</h2><p>بدون ساخت حساب کاربری مدرسه</p></div></div>
 <label for="guestFirst">نام</label><input id="guestFirst" autocomplete="given-name" placeholder="نام">
 <label for="guestLast">نام خانوادگی</label><input id="guestLast" autocomplete="family-name" placeholder="نام خانوادگی">
 <button id="guestJoin" class="primary"><span>ورود به کلاس به‌عنوان میهمان</span><span aria-hidden="true">←</span></button><div id="guestMsg" class="message" role="status" aria-live="polite">برای ورود، لینک دعوت اختصاصی همان کلاس را باز کنید.</div><div class="secure"><span>●</span> دسترسی میهمان محدود به کلاس دعوت‌شده</div></section>
