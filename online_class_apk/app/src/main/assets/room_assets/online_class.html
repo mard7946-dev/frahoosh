@@ -88,7 +88,7 @@ const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":
 const $=id=>document.getElementById(id);
 let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=true,cam=true;
 let tool="pen",color="#0b1f3a",size=4,drawing=false,start=null,points=[],pageNo=1;
-let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null,sessionDurationMinutes=50,sessionClosedLocally=false;
+let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null,sessionDurationMinutes=50,sessionClosedLocally=false,timerRemainingSeconds=3000,timerSessionId=null;
 let toolsAllowed=false, classroomLive=false, waitingForTeacher=false;
 $("className").textContent=C.classId;
 function api(path,opts={}){return fetch(C.url+"/rest/v1/"+path,Object.assign({headers},opts))}
@@ -145,8 +145,42 @@ async function loadQuizResults(){if(!["teacher","دبیر","manager","مدیر",
 
 let endingSession=false,evidenceEnded=false;async function cleanupClassFiles(){try{const q=await api("smart_board_files?class_id=eq."+encodeURIComponent(C.classId)+"&select=id,file_path");if(!q.ok)return;const rows=await q.json();for(const f of rows){if(!f.file_path)continue;try{await fetch(C.url+"/storage/v1/object/online-class-files/"+f.file_path,{method:"DELETE",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token}})}catch(e){}}await api("smart_board_files?class_id=eq."+encodeURIComponent(C.classId),{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});$("files").innerHTML="";}catch(e){console.warn("Class file cleanup failed",e)}}async function closeClassSessionUI(){if(sessionClosedLocally)return;sessionClosedLocally=true;classroomLive=false;waitingForTeacher=false;const o=$("teacherWaitOverlay");if(o){o.style.display="grid";const h=o.querySelector("h2"),p=o.querySelector("p");if(h)h.textContent="کلاس به پایان رسید";if(p)p.textContent="زمان ۵۰ دقیقه‌ای کلاس به پایان رسید. ورود به کلاس بسته شد.";if($("teacherWaitStatus"))$("teacherWaitStatus").textContent="جلسه کلاس پایان یافته است.";};try{document.querySelectorAll("button,input,select,textarea").forEach(el=>{if(el.id!=="leave")el.disabled=true});document.querySelectorAll("video").forEach(v=>{try{v.pause();if(v.srcObject)v.srcObject.getTracks().forEach(t=>t.stop())}catch(_){}});await cleanupClassFiles()}catch(e){console.warn("Class close UI failed",e)}setStatus("زمان کلاس پایان یافت؛ کلاس بسته شد.")}
 async function endClassSession(){if(endingSession||!currentSession)return;endingSession=true;try{await api("online_class_sessions?id=eq."+encodeURIComponent(currentSession),{method:"PATCH",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({ended_at:new Date().toISOString()})});}catch(e){console.error("Could not end class session",e)}finally{endingSession=false;await closeClassSessionUI()}}
-function updateClassTimer(){const e=$("classTimer");if(!e)return;if(sessionClosedLocally){e.textContent="00:00";return}if(!sessionStartedAt){e.textContent="50:00";return}const total=Math.max(1,Math.min(240,Number(sessionDurationMinutes)||50))*60;const elapsed=Math.max(0,Math.floor((Date.now()-sessionStartedAt)/1000));const left=Math.max(0,total-elapsed);e.textContent=String(Math.floor(left/60)).padStart(2,"0")+":"+String(left%60).padStart(2,"0");if(left===0){e.style.color="#ff7373";if(!endingSession){if(isTeacherRole())endClassSession();else closeClassSessionUI()}}}
-async function refreshSessionTimer(){try{const teacherOnly="&teacher_user_id=not.is.null";let r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+teacherOnly+"&order=id.desc&limit=1");let rows=await r.json();const latest=rows[0];if(!latest){if(!classroomLive){currentSession=null;sessionStartedAt=null;sessionDurationMinutes=50;updateClassTimer()}return}const started=latest.started_at?Date.parse(latest.started_at):NaN;const duration=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50));if(latest.ended_at){if(currentSession===latest.id){sessionStartedAt=started;sessionDurationMinutes=duration;await closeClassSessionUI();evidenceEnded=true}return}if(!Number.isFinite(started)){return}if(Date.now()-started>=duration*60*1000){if(currentSession===latest.id){if(isTeacherRole())await endClassSession();else await closeClassSessionUI()}return}currentSession=latest.id;sessionStartedAt=started;sessionDurationMinutes=duration;classroomLive=true;updateClassTimer()}catch(e){console.error("Session timer refresh failed",e)}}
+function updateClassTimer(){
+ const e=$("classTimer"); if(!e)return;
+ if(sessionClosedLocally){e.textContent="00:00";return}
+ const left=Math.max(0,Math.floor(Number(timerRemainingSeconds)||0));
+ e.textContent=String(Math.floor(left/60)).padStart(2,"0")+":"+String(left%60).padStart(2,"0");
+ if(left===0){e.style.color="#ff7373";if(!endingSession){if(isTeacherRole())endClassSession();else closeClassSessionUI()}}
+}
+async function refreshSessionTimer(){
+ try{
+  const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&teacher_user_id=not.is.null&order=id.desc&limit=1");
+  const rows=await r.json(),latest=rows[0];
+  if(!latest){
+   if(!classroomLive){currentSession=null;sessionStartedAt=null;timerSessionId=null;timerRemainingSeconds=3000;updateClassTimer()}
+   return;
+  }
+  const started=latest.started_at?Date.parse(latest.started_at):NaN;
+  const duration=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50));
+  if(latest.ended_at){
+   if(currentSession===latest.id)await closeClassSessionUI();
+   return;
+  }
+  if(!Number.isFinite(started))return;
+  if(currentSession!==latest.id || timerSessionId!==latest.id){
+   currentSession=latest.id;
+   timerSessionId=latest.id;
+   sessionStartedAt=started;
+   sessionDurationMinutes=duration;
+   timerRemainingSeconds=Math.max(0,Math.ceil((started+duration*60000-Date.now())/1000));
+   classroomLive=true;
+   updateClassTimer();
+  }
+  if(timerRemainingSeconds<=0){
+   if(isTeacherRole())await endClassSession();else await closeClassSessionUI();
+  }
+ }catch(e){console.error("Session timer refresh failed",e)}
+}
 async function loadAttendance(){if(!["manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی"].includes(C.role)){$("attendancePanel").style.display="none";return}try{let s=await api("online_class_sessions?class_id=eq."+C.classId+"&order=id.desc&limit=1");let sr=await s.json();currentSession=sr[0]?.id||null;sessionStartedAt=sr[0]?.started_at?Date.parse(sr[0].started_at):null;sessionDurationMinutes=Math.max(1,Math.min(240,Number(sr[0]?.duration_minutes)||50));updateClassTimer();let m=await api("online_class_students?class_id=eq."+C.classId+"&order=student_id.asc&limit=200");students=await m.json();let a=currentSession?await api("online_attendance?class_id=eq."+C.classId+"&session_id=eq."+currentSession+"&order=id.desc&limit=500"):null;let ar=a?await a.json():[];let latest={};for(const x of ar){if(latest[x.student_id]===undefined)latest[x.student_id]=x.status}$("attendance").innerHTML=students.map(st=>'<div class="attrow"><b>'+esc(st.student_name||st.student_id)+'</b><br>وضعیت: '+esc(latest[st.student_id]||"ثبت نشده")+'<div class="row"><button onclick="markAttendance('+st.student_id+',\'present\')">حاضر</button><button class="danger" onclick="markAttendance('+st.student_id+',\'absent\')">غایب + اطلاع ولی</button>'+(C.role==="teacher"?'<button class="secondary" onclick="referStudent('+st.student_id+','+JSON.stringify(st.student_name||"")+')">ارجاع به معاون آموزشی</button>':"")+"</div></div>").join("")}catch(e){}}
 async function markAttendance(studentId,status){try{await api("online_attendance",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,session_id:currentSession,student_id:studentId,status,source:"smart_classroom",event_time:new Date().toISOString(),checkpoint_no:0})});if(status==="absent"){let p=await api("parent_children?student_id=eq."+studentId+"&limit=50");let parents=await p.json();for(const pc of parents)await api("online_class_notifications",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,student_id:studentId,recipient:pc.parent_username,recipient_role:"parent",title:"غیبت در کلاس آنلاین",message:"دانش‌آموز در کلاس هوشمند غایب ثبت شد.",created_at:new Date().toISOString()})})}await loadAttendance()}catch(e){alert("ثبت حضور و غیاب انجام نشد.")}}
 async function referStudent(studentId,name){try{let r=await api("account_settings?role=eq.educational&limit=20");let ds=await r.json();if(!ds.length){let r2=await api("account_settings?role=eq.%D9%85%D8%B9%D8%A7%D9%88%D9%86%20%D8%A2%D9%85%D9%88%D8%B2%D8%B4%DB%8C&limit=20");ds=await r2.json()}for(const d of ds)await api("online_class_notifications",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,student_id:studentId,recipient:d.username,recipient_role:"educational",title:"ارجاع حضور دانش‌آموز",message:"وضعیت حضور "+(name||studentId)+" برای بررسی معاون آموزشی ارجاع شد.",created_at:new Date().toISOString()})});alert("ارجاع به معاون آموزشی انجام شد.")}catch(e){alert("ارجاع انجام نشد.")}}
@@ -321,7 +355,7 @@ if(isTeacherRole()){
 }else if(isStudentRole()){
   if(!(await waitForTeacherSession()))return;
 }
-const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=true;const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await ensureMedia();await refreshSessionTimer();if(!classroomLive){if(isStudentRole()){if(!(await waitForTeacherSession()))return}else{return}}if(await enforceStudentBlock())return;await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
+const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=true;const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(()=>{if(!sessionClosedLocally&&classroomLive&&timerRemainingSeconds>0){timerRemainingSeconds--;updateClassTimer()}else updateClassTimer()},1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await ensureMedia();await refreshSessionTimer();if(!classroomLive){if(isStudentRole()){if(!(await waitForTeacherSession()))return}else{return}}if(await enforceStudentBlock())return;await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
 </script>
 </body>
 </html>
