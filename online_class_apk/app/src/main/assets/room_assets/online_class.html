@@ -127,12 +127,25 @@ async function send(type,payload={},to=null){try{const response=await api("onlin
 function addVideo(id,name,stream){
  let tile=document.getElementById("v-"+id);
  if(!tile){tile=document.createElement("div");tile.className="tile";tile.id="v-"+id;tile.innerHTML='<video autoplay playsinline webkit-playsinline></video><span>'+esc(name)+'</span>';$("videos").appendChild(tile)}
- const video=tile.querySelector("video");video.autoplay=true;video.playsInline=true;video.setAttribute("playsinline","");video.setAttribute("webkit-playsinline","");
- // Known-good APK path: attach the remote MediaStream directly to the visible
- // video element so its audio track uses the same playback path.
- const local=String(id)===String(C.userId);
- video.muted=local;video.defaultMuted=local;video.volume=local?0:1;video.srcObject=stream;
- const playback=video.play();if(playback&&playback.catch)playback.catch(e=>console.warn("VIDEO_AUDIO_PLAY_BLOCKED",{peerId:id,error:e&&e.name}));
+ const video=tile.querySelector("video");
+ video.autoplay=true;video.playsInline=true;video.setAttribute("playsinline","");video.setAttribute("webkit-playsinline","");
+ // Use the same playback path as the known-good APK: the remote MediaStream is
+ // attached directly to an unmuted video element. Keeping remote audio in a
+ // separate muted <audio> element caused Android WebView autoplay blocking.
+ const isLocal=String(id)===String(C.userId);
+ video.muted=isLocal;video.defaultMuted=isLocal;video.volume=isLocal?0:1;video.srcObject=stream;
+ const playback=video.play();if(playback&&playback.catch)pPlayback=playback.catch(e=>{
+   console.warn("VIDEO_PLAY_BLOCKED",id,e&&e.name);
+   if(!isLocal)setStatus("پخش صدا/تصویر طرف مقابل توسط WebView مسدود شد؛ یک‌بار داخل کلاس لمس کنید.")
+ });
+}
+async function unlockClassAudio(){
+ audioUnlocked=true;let failed=0,remoteAudioTracks=0;
+ for(const [id,pc] of peers){if(String(id)===String(C.userId))continue;const liveTracks=pc.getReceivers().map(r=>r.track).filter(t=>t&&t.kind==="audio"&&t.readyState==="live");remoteAudioTracks+=liveTracks.length;let stream=remoteStreams.get(id);if(!stream)stream=new MediaStream();for(const track of liveTracks)if(!stream.getTracks().includes(track))stream.addTrack(track);remoteStreams.set(id,stream);let el=document.getElementById("audio-"+id);if(!el){el=document.createElement("audio");el.id="audio-"+id;el.autoplay=true;el.playsInline=true;el.setAttribute("playsinline","");el.style.display="none";document.body.appendChild(el)}if(el.srcObject!==stream)el.srcObject=stream;el.autoplay=true;el.muted=false;el.volume=1;try{await el.play()}catch(e){failed++;console.warn("AUDIO_OUTPUT_UNLOCK_FAILED",id,e)}}
+ if(failed)setStatus("پخش صدای کلاس مسدود است؛ صدای رسانه گوشی و مجوزها را بررسی کنید.");
+ else if(remoteAudioTracks===0)setStatus("خروجی صدا فعال شد؛ هنوز ترک صوتی از اعضای دیگر دریافت نشده است. میکروفون طرف مقابل یا مذاکره اتصال بررسی شود.");
+ else setStatus("صدای کلاس فعال است؛ مسیرهای صوتی دریافتی: "+remoteAudioTracks);
+ const b=$("audioOutput");if(b)b.textContent=failed?"تلاش دوباره برای صدای کلاس":"صدای کلاس فعال است";
 }
 function removeVideo(id){let t=document.getElementById("v-"+id);if(t)t.remove();let a=document.getElementById("audio-"+id);if(a){a.pause();a.srcObject=null;a.remove()}}
 function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="person">'+esc(n)+(id===C.userId?" (شما)":"")+"</div>";$("participants").innerHTML=h}
