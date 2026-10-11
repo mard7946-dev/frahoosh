@@ -3,13 +3,13 @@ package ir.frahoosh.classroom;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
-import android.util.Log;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -20,23 +20,19 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceResponse;
-import android.webkit.SslErrorHandler;
-import android.net.http.SslError;
 
+import java.io.InputStream;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 
 public final class MainActivity extends Activity {
     private static final int MEDIA_PERMISSION_REQUEST = 4207;
     private static final int FILE_CHOOSER_REQUEST = 4208;
-    private static final String CLASSROOM_URL = "file:///android_asset/index.html";
+    private static final String CLASSROOM_URL = "https://frahoosh.ir/online-class/";
 
     private WebView webView;
-    private final ArrayList<PermissionRequest> pendingWebPermissions = new ArrayList<>();
-    private boolean mediaPermissionRequestInFlight = false;
+    private PermissionRequest pendingWebPermission;
     private ValueCallback<Uri[]> fileCallback;
 
     @Override
@@ -53,56 +49,7 @@ public final class MainActivity extends Activity {
         );
 
         buildWebView();
-    }
-
-    private String readAsset(String path) throws Exception {
-        try (InputStream in = getAssets().open(path);
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[8192];
-            int count;
-            while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
-            return out.toString("UTF-8");
-        }
-    }
-
-    private void loadBundledRoom(WebView target) {
-        target.evaluateJavascript(
-                "(function(){try{return JSON.stringify(sessionStorage.getItem('frahoosh_online_class_config')||localStorage.getItem('frahoosh_online_class_config')||'')}catch(e){return ''}})()",
-                result -> {
-                    try {
-                        Object decoded = result == null ? null : new org.json.JSONTokener(result).nextValue();
-                        String saved = decoded instanceof String ? (String) decoded : "";
-                        if (saved.isEmpty()) {
-                            showLoadError(target, "نشست کلاس آماده نیست",
-                                    "اطلاعات ورود حفظ نشده است. به صفحه ورود برگردید و دوباره وارد شوید.");
-                            return;
-                        }
-                        String html = readAsset("room.html");
-                        String classroom = readAsset("room_assets/online_class.html");
-                        String patch = readAsset("room_assets/classroom_patch.js");
-                        // JSON strings are embedded inside an HTML <script> block.
-                        // JSONObject.quote alone does not escape </script>, so the HTML
-                        // parser prematurely terminates the bootstrap script and leaves the
-                        // screen stuck on "در حال باز کردن کلاس...". Escape '<' as unicode.
-                        String safeClassroom = org.json.JSONObject.quote(classroom).replace("<", "\\u003c");
-                        String safePatch = org.json.JSONObject.quote(patch).replace("<", "\\u003c");
-                        String safeConfig = saved.replace("<", "\\u003c");
-                        html = html.replace("__BUNDLED_CLASS_HTML__", safeClassroom)
-                                   .replace("__BUNDLED_PATCH_JS__", safePatch)
-                                   .replace("__INITIAL_CONFIG_JSON__", safeConfig);
-                        // Keep the bundled room on the same secure HTTPS origin as
-                        // the entry page. Using file:///android_asset/ here makes some
-                        // Android WebView builds treat getUserMedia as an insecure/local
-                        // origin and reject camera/microphone with NotAllowedError even
-                        // after Android runtime permissions have been granted.
-                        target.loadDataWithBaseURL("https://frahoosh.ir/online-class/",
-                                html, "text/html", "UTF-8", null);
-                    } catch (Exception e) {
-                        Log.e("FrahooshClassroom", "Could not load bundled classroom", e);
-                        showLoadError(target, "خطا در باز کردن تخته هوشمند",
-                                "بارگذاری محیط کلاس ناموفق بود: " + e.getMessage());
-                    }
-                });
+        requestMediaPermissions();
     }
 
     private void buildWebView() {
@@ -122,8 +69,8 @@ public final class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
-        // The entry screen is bundled in app/src/main/assets. WebView must be able to read\n        // that local asset; leaving file access disabled produces a blank black screen.\n        s.setAllowFileAccess(true);
-        s.setAllowContentAccess(true);
+        s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false);
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
         s.setLoadsImagesAutomatically(true);
@@ -140,101 +87,37 @@ public final class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                Uri uri = request == null ? null : request.getUrl();
-                if (uri != null) {
-                    String path = uri.getPath();
-                    boolean roomPath = path != null
-                            && (path.endsWith("/room.html") || path.endsWith("/room"));
-                    boolean localAsset = "file".equalsIgnoreCase(uri.getScheme())
-                            && uri.toString().startsWith("file:///android_asset/");
-                    boolean classroomSite = "frahoosh.ir".equalsIgnoreCase(uri.getHost());
-                    if (roomPath && (localAsset || classroomSite)) {
-                        // The entry page itself is bundled under file:///android_asset/.
-                        // Intercept that local navigation too, otherwise the unresolved
-                        // bootstrap placeholders remain visible forever.
-                        loadBundledRoom(view);
-                        return true;
-                    }
-                }
                 return false;
             }
 
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return null;
+                return localAssetResponse(request.getUrl().getPath());
             }
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
-                    String description = error == null ? "خطای نامشخص در بارگذاری صفحه" : String.valueOf(error.getDescription());
-                    int code = error == null ? 0 : error.getErrorCode();
-                    Log.e("FrahooshClassroom", "Main page load failed (" + code + "): " + description);
-                    showLoadError(view, "خطا در باز کردن کلاس آنلاین", "کد خطا: " + code + "\\n" + description);
+                    view.postDelayed(() -> {
+                        if (webView != null) {
+                            webView.loadUrl(CLASSROOM_URL + "index.html");
+                        }
+                    }, 800);
                 }
-            }
-
-            @Override
-            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                // Keep TLS validation strict: never proceed through an invalid certificate.
-                String reason = "خطای گواهی امنیتی";
-                if (error != null) {
-                    switch (error.getPrimaryError()) {
-                        case SslError.SSL_EXPIRED:
-                            reason = "گواهی امنیتی سایت منقضی شده است.";
-                            break;
-                        case SslError.SSL_IDMISMATCH:
-                            reason = "نام دامنه با گواهی امنیتی مطابقت ندارد.";
-                            break;
-                        case SslError.SSL_NOTYETVALID:
-                            reason = "گواهی امنیتی هنوز معتبر نشده است.";
-                            break;
-                        case SslError.SSL_UNTRUSTED:
-                            reason = "گواهی امنیتی توسط مرجع معتبر تأیید نشده است.";
-                            break;
-                        default:
-                            reason = "اعتبار گواهی امنیتی سایت تأیید نشد.";
-                            break;
-                    }
-                }
-                Log.e("FrahooshClassroom", "TLS certificate validation failed; url="
-                        + (error == null ? "(unknown)" : error.getUrl())
-                        + "; primaryError=" + (error == null ? -1 : error.getPrimaryError())
-                        + "; details=" + error);
-                if (handler != null) handler.cancel();
-                showLoadError(view, "خطای گواهی امنیتی سایت",
-                        reason + " ارتباط امن با frahoosh.ir برقرار نشد. تاریخ و ساعت گوشی و گواهی دامنه را بررسی کنید.");
             }
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
-                // Keep WebRTC requests while Android runtime permissions are requested.
-                // Camera and microphone may arrive as separate WebView requests.
                 runOnUiThread(() -> {
-                    if (request == null) return;
-                    Uri origin = request.getOrigin();
-                    if (!isTrustedClassroomOrigin(origin)) {
-                        Log.w("FrahooshClassroom", "Denied WebView media request from untrusted origin: " + origin);
-                        request.deny();
-                        return;
-                    }
-                    // Handle camera and microphone independently. A granted camera must not
-                    // wait for microphone permission (or vice versa), otherwise WebRTC can
-                    // appear to ignore the classroom buttons on devices with partial grants.
-                    if (hasRequestedMediaPermissions(request)) {
+                    if (hasMediaPermissions()) {
                         grantWebMediaPermission(request);
                     } else {
-                        if (!pendingWebPermissions.contains(request)) pendingWebPermissions.add(request);
-                        requestMediaPermissions(request);
+                        pendingWebPermission = request;
+                        requestMediaPermissions();
                     }
                 });
-            }
-
-            @Override
-            public void onPermissionRequestCanceled(PermissionRequest request) {
-                pendingWebPermissions.remove(request);
             }
 
             @Override
@@ -256,101 +139,53 @@ public final class MainActivity extends Activity {
             }
         });
 
-        // Load the bundled classroom entry point first. This avoids making app startup depend\n        // on the website certificate; remote Supabase/WebRTC endpoints still use normal TLS.\n        // Keep the HTML bundled, but use the real HTTPS origin so root-relative
-        // runtime configuration and Supabase requests resolve correctly.
-        try (InputStream in = getAssets().open("index.html");
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[8192];
-            int count;
-            while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
-            webView.loadDataWithBaseURL("https://frahoosh.ir/online-class/",
-                    out.toString("UTF-8"), "text/html", "UTF-8", null);
-        } catch (Exception e) {
-            Log.e("FrahooshClassroom", "Could not load bundled classroom HTML", e);
-            showLoadError(webView, "خطا در باز کردن کلاس آنلاین",
-                    "فایل اصلی کلاس داخل برنامه خوانده نشد: " + e.getMessage());
+        webView.loadUrl(CLASSROOM_URL + "index.html");
+    }
+
+    private WebResourceResponse localAssetResponse(String path) {
+        if (path == null) return null;
+        String asset = null;
+        if (path.endsWith("/online-class/") || path.endsWith("/online-class/index.html")) {
+            asset = "index.html";
+        } else if (path.endsWith("/online-class/room.html")) {
+            asset = "room.html";
+        } else if (path.endsWith("/online-class/online_class.html") || path.endsWith("/mobile/assets/online_class.html")) {
+            asset = "room_assets/online_class.html";
+        } else if (path.endsWith("/online-class/classroom_patch.js") || path.endsWith("/online_class_apk/classroom_patch.js")) {
+            asset = "room_assets/classroom_patch.js";
+        }
+        if (asset == null) return null;
+        try {
+            AssetManager am = getAssets();
+            InputStream in = am.open(asset, AssetManager.ACCESS_STREAMING);
+            String mime = asset.endsWith(".js") ? "application/javascript" : "text/html";
+            return new WebResourceResponse(mime, "UTF-8", in);
+        } catch (Exception ignored) {
+            return null;
         }
     }
 
-    private void showLoadError(WebView view, String title, String detail) {
-        String safeTitle = title.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-        String safeDetail = detail.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\\n", "<br>");
-        String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='margin:0;background:#101522;color:#fff;font-family:sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center'><main style='padding:28px'><h2>" + safeTitle + "</h2><p style='line-height:1.8;color:#d6d9e2'>" + safeDetail + "</p><a style='display:inline-block;margin-top:18px;padding:13px 22px;background:#b7202e;color:white;text-decoration:none;border-radius:10px' href='https://frahoosh.ir/online-class/'>باز کردن دوباره کلاس</a></main></body></html>";
-        view.loadDataWithBaseURL("https://frahoosh.ir/", html, "text/html", "UTF-8", null);
-    }
-
-    private boolean isTrustedClassroomOrigin(Uri origin) {
-        if (origin == null) return false;
-        String scheme = origin.getScheme();
-        String host = origin.getHost();
-
-        // The classroom entry and room are bundled in the APK. Depending on the
-        // Android System WebView version, getUserMedia permission requests for
-        // document.write()-loaded bundled HTML can report the app-asset file
-        // origin instead of the HTTPS base URL supplied to loadDataWithBaseURL.
-        // Trust only the packaged asset path in that case; never trust arbitrary
-        // file:// URLs or unrelated web origins.
-        if ("file".equalsIgnoreCase(scheme)) {
-            String path = origin.getPath();
-            return path != null && path.startsWith("/android_asset/");
-        }
-
-        if (!"https".equalsIgnoreCase(scheme)) return false;
-        return "frahoosh.ir".equalsIgnoreCase(host)
-                || "www.frahoosh.ir".equalsIgnoreCase(host);
-    }
-
-    private boolean hasRequestedMediaPermissions(PermissionRequest request) {
+    private boolean hasMediaPermissions() {
         if (Build.VERSION.SDK_INT < 23) return true;
-        boolean requestedMedia = false;
-        for (String resource : request.getResources()) {
-            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) {
-                requestedMedia = true;
-                if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) return false;
-            } else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) {
-                requestedMedia = true;
-                if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return false;
-            }
-        }
-        return requestedMedia;
+        return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestMediaPermissions() {
-        requestMediaPermissions(null);
-    }
-
-    private void requestMediaPermissions(PermissionRequest request) {
-        if (Build.VERSION.SDK_INT < 23) {
-            grantPendingWebPermissions();
-            return;
-        }
-        if (mediaPermissionRequestInFlight) return;
+        if (Build.VERSION.SDK_INT < 23) return;
         ArrayList<String> missing = new ArrayList<>();
-        if (request == null) {
-            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                missing.add(Manifest.permission.CAMERA);
-            }
-            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                missing.add(Manifest.permission.RECORD_AUDIO);
-            }
-        } else {
-            for (String resource : request.getResources()) {
-                if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)
-                        && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
-                        && !missing.contains(Manifest.permission.CAMERA)) {
-                    missing.add(Manifest.permission.CAMERA);
-                } else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)
-                        && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
-                        && !missing.contains(Manifest.permission.RECORD_AUDIO)) {
-                    missing.add(Manifest.permission.RECORD_AUDIO);
-                }
-            }
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.CAMERA);
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.RECORD_AUDIO);
         }
         if (!missing.isEmpty()) {
-            mediaPermissionRequestInFlight = true;
             requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
-        } else {
-            grantPendingWebPermissions();
+        } else if (pendingWebPermission != null) {
+            PermissionRequest request = pendingWebPermission;
+            pendingWebPermission = null;
+            grantWebMediaPermission(request);
         }
     }
 
@@ -375,26 +210,17 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void grantPendingWebPermissions() {
-        if (pendingWebPermissions.isEmpty()) return;
-        ArrayList<PermissionRequest> requests = new ArrayList<>(pendingWebPermissions);
-        pendingWebPermissions.clear();
-        for (PermissionRequest request : requests) grantWebMediaPermission(request);
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
-        if (requestCode == MEDIA_PERMISSION_REQUEST) {
-            mediaPermissionRequestInFlight = false;
-            // WebView can issue separate camera and microphone requests almost simultaneously.
-            // Re-check both runtime permissions while requests are still queued; otherwise the
-            // second request can be denied merely because the first dialog was already in flight.
-            if (!pendingWebPermissions.isEmpty()) {
-                requestMediaPermissions();
-                if (mediaPermissionRequestInFlight) return;
+        if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermission != null) {
+            PermissionRequest request = pendingWebPermission;
+            pendingWebPermission = null;
+            if (hasMediaPermissions()) {
+                grantWebMediaPermission(request);
+            } else {
+                request.deny();
             }
-            grantPendingWebPermissions();
         }
     }
 
@@ -430,8 +256,10 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        for (PermissionRequest request : new ArrayList<>(pendingWebPermissions)) request.deny();
-        pendingWebPermissions.clear();
+        if (pendingWebPermission != null) {
+            pendingWebPermission.deny();
+            pendingWebPermission = null;
+        }
         if (fileCallback != null) {
             fileCallback.onReceiveValue(null);
             fileCallback = null;
