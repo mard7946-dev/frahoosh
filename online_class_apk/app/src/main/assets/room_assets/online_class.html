@@ -94,7 +94,7 @@ const faDateFormatter=new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn",{year
 function formatSchoolDate(value){if(!value)return "—";const d=value instanceof Date?value:new Date(value);return Number.isNaN(d.getTime())?String(value):faDateFormatter.format(d)}
 function formatSchoolDateTime(value){if(!value)return "—";const d=value instanceof Date?value:new Date(value);if(Number.isNaN(d.getTime()))return String(value);return formatSchoolDate(d)+" "+new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn",{hour:"2-digit",minute:"2-digit",hour12:false}).format(d)}
 
-let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=true,cam=true;
+let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=true,cam=true,audioUnlocked=false;
 let tool="pen",color="#0b1f3a",size=4,drawing=false,start=null,points=[],pageNo=1;
 let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null,answeredQuizIds=new Set();
 $("className").textContent=C.classId;$("teacherDisplayName").textContent=(C.name||"").trim()?"دبیر / کاربر: "+C.name:"";
@@ -117,9 +117,29 @@ function initOrientationControl(){
 function setStatus(t){let e=$("page");e.textContent=t||e.textContent}
 function parseSessionTimestamp(value){if(!value)return null;let s=String(value).trim();if(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d/.test(s)){s=s.replace(" ","T").replace(/(\.\d{3})\d+/,"$1").replace(/([+-]\d\d)$/,"$1:00")}const n=Date.parse(s);return Number.isFinite(n)?n:null}
 async function send(type,payload={},to=null){try{await api("online_class_signals",{method:"POST",body:JSON.stringify({class_id:C.classId,sender_user_id:C.userId,receiver_user_id:to,signal_type:type,payload})})}catch(e){}}
-function addVideo(id,name,stream){let tile=document.getElementById("v-"+id);if(!tile){tile=document.createElement("div");tile.className="tile";tile.id="v-"+id;tile.innerHTML='<video autoplay playsinline webkit-playsinline></video><span>'+esc(name)+'</span>';$("videos").appendChild(tile)}const video=tile.querySelector("video");video.autoplay=true;video.playsInline=true;video.setAttribute("playsinline","");video.setAttribute("webkit-playsinline","");video.muted=String(id)===String(C.userId);video.defaultMuted=video.muted;video.volume=1;video.srcObject=stream;const playback=video.play();if(playback&&playback.catch)playback.catch(e=>{console.warn("VIDEO_PLAY_BLOCKED",e&&e.name);if(String(id)!==String(C.userId))setStatus("برای شنیدن صدای کلاس، دکمه «فعال‌سازی صدای کلاس» را بزنید.")})}
-async function unlockClassAudio(){let failed=0;for(const video of document.querySelectorAll("#videos video")){if(video.srcObject&&video.srcObject.getAudioTracks&&video.srcObject.getAudioTracks().length){video.muted=String(video.closest(".tile")?.id||"").slice(2)===String(C.userId);video.volume=1;try{await video.play()}catch(e){failed++;console.warn("AUDIO_OUTPUT_UNLOCK_FAILED",e)}}}if(failed)setStatus("پخش صدا مسدود است؛ صدای رسانه گوشی را زیاد کنید و دوباره دکمه صدا را بزنید.");else setStatus("صدای کلاس فعال شد.");const b=$("audioOutput");if(b)b.textContent=failed?"تلاش دوباره برای صدای کلاس":"صدای کلاس فعال است";}
-function removeVideo(id){let t=document.getElementById("v-"+id);if(t)t.remove()}
+function addVideo(id,name,stream){
+ let tile=document.getElementById("v-"+id);
+ if(!tile){tile=document.createElement("div");tile.className="tile";tile.id="v-"+id;tile.innerHTML='<video autoplay playsinline webkit-playsinline></video><span>'+esc(name)+'</span>';$("videos").appendChild(tile)}
+ const video=tile.querySelector("video");video.autoplay=true;video.playsInline=true;video.setAttribute("playsinline","");video.setAttribute("webkit-playsinline","");video.muted=true;video.defaultMuted=true;video.volume=0;video.srcObject=stream;
+ const playback=video.play();if(playback&&playback.catch)playback.catch(e=>console.warn("VIDEO_PLAY_BLOCKED",e&&e.name));
+ if(String(id)!==String(C.userId)){
+  let audio=document.getElementById("audio-"+id);
+  if(!audio){audio=document.createElement("audio");audio.id="audio-"+id;audio.autoplay=true;audio.playsInline=true;audio.setAttribute("playsinline","");audio.style.display="none";document.body.appendChild(audio)}
+  audio.autoplay=true;audio.volume=1;audio.muted=!audioUnlocked;audio.srcObject=stream;
+  if(audioUnlocked){const ap=audio.play();if(ap&&ap.catch)ap.catch(e=>{console.warn("REMOTE_AUDIO_PLAY_BLOCKED",e&&e.name);setStatus("صدای دریافتی مسدود است؛ دکمه «فعال‌سازی صدای کلاس» را لمس کنید.")})}
+ }
+}
+async function unlockClassAudio(){
+ audioUnlocked=true;let failed=0,remoteCount=0,remoteAudioTracks=0;
+ for(const [id,pc] of peers){if(String(id)===String(C.userId))continue;const streams=[];const audio=document.getElementById("audio-"+id);if(audio&&audio.srcObject)streams.push(audio.srcObject);for(const receiver of pc.getReceivers()){if(receiver.track&&receiver.track.kind==="audio"&&receiver.track.readyState==="live"){remoteAudioTracks++;if(!streams.some(st=>st.getTracks().includes(receiver.track)))streams.push(new MediaStream([receiver.track]))}}
+  for(const stream of streams){let el=document.getElementById("audio-"+id);if(!el){el=document.createElement("audio");el.id="audio-"+id;el.autoplay=true;el.playsInline=true;el.style.display="none";document.body.appendChild(el)}if(!el.srcObject||el.srcObject!==stream)el.srcObject=stream;el.muted=false;el.volume=1;remoteCount++;try{await el.play()}catch(e){failed++;console.warn("AUDIO_OUTPUT_UNLOCK_FAILED",e)}}
+ }
+ if(failed)setStatus("پخش صدای کلاس مسدود است؛ صدای رسانه گوشی و مجوزها را بررسی کنید.");
+ else if(remoteAudioTracks===0)setStatus("خروجی صدا فعال شد؛ هنوز صدای دریافتی از اعضای دیگر نرسیده است. میکروفون طرف مقابل و اتصال شبکه را بررسی کنید.");
+ else setStatus("صدای کلاس فعال است؛ مسیرهای صوتی دریافتی: "+remoteAudioTracks);
+ const b=$("audioOutput");if(b)b.textContent=failed?"تلاش دوباره برای صدای کلاس":"صدای کلاس فعال است";
+}
+function removeVideo(id){let t=document.getElementById("v-"+id);if(t)t.remove();let a=document.getElementById("audio-"+id);if(a){a.pause();a.srcObject=null;a.remove()}}
 function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="person">'+esc(n)+(id===C.userId?" (شما)":"")+"</div>";$("participants").innerHTML=h}
 async function ensureMedia(){
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStatus("این محیط دسترسی رسانه را پشتیبانی نمی‌کند.");return false}
