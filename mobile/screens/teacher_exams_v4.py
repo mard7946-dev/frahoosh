@@ -201,7 +201,10 @@ class TeacherExamsV4Screen(Screen):
         title=self._field("عنوان آزمون")
         subject=self._spinner("ریاضی",["ریاضی","فیزیک","شیمی","زیست","علوم","فارسی","انگلیسی","عربی","دینی","مطالعات اجتماعی","سایر"])
         grade=self._field("پایه / رشته")
-        class_name=self._field("کلاس هدف؛ مثال هفتم-الف")
+        # کلاس باید از فهرست کلاس‌های واقعی متصل به دبیر انتخاب شود؛
+        # ورود دستی نام متفاوت باعث رد شدن زمان‌بندی در trigger پایگاه داده می‌شد.
+        class_picker=self._spinner("انتخاب کلاس واقعی",[])
+        self._refresh_exam_classes(class_picker, self._teacher_id())
         duration=self._field("مدت پیش‌فرض آزمون (دقیقه)"); duration.text="45"
         attempts=self._field("حداکثر تعداد شرکت هر دانش‌آموز"); attempts.text="1"
         passing=self._field("نمره قبولی (اختیاری)"); passing.text="0"
@@ -220,8 +223,52 @@ class TeacherExamsV4Screen(Screen):
         self._button("＋ افزودن سؤال",lambda *_:self._add_question(),SUCCESS)
         if teacher_picker is not None:
             self._exam_teacher_picker = teacher_picker
-        self._button("ذخیره آزمون و رفتن به زمان‌بندی",lambda *_:self._save_exam(title,subject,grade,class_name,duration,attempts,passing,mode,desc,teacher_picker),PRIMARY)
+            teacher_picker.bind(text=lambda *_: self._refresh_exam_classes(class_picker, self._selected_manager_teacher_id(teacher_picker)))
+        self._button("ذخیره آزمون و رفتن به زمان‌بندی",lambda *_:self._save_exam(title,subject,grade,class_picker,duration,attempts,passing,mode,desc,teacher_picker),PRIMARY)
         self._button("انصراف",lambda *_:self.show_home())
+
+    def _selected_manager_teacher_id(self, picker):
+        try:
+            idx=list(picker.values).index(picker.text)
+            rows=getattr(self, "_manager_teacher_rows", [])
+            if 0 <= idx < len(rows):
+                return int(rows[idx].get("id"))
+        except Exception:
+            pass
+        return self._teacher_id()
+
+    def _refresh_exam_classes(self, picker, teacher_id=None):
+        """Load real active classes assigned to the selected teacher."""
+        if picker is None:
+            return
+        try:
+            tid=int(teacher_id) if teacher_id else None
+        except Exception:
+            tid=None
+        if not tid:
+            picker.values=tuple()
+            picker.text=fa_display("ابتدا دبیر آزمون را مشخص کنید")
+            return
+        try:
+            rows=self.app_state.api.table_select(
+                "teacher_classes",
+                {"teacher_id":f"eq.{tid}","active":"eq.1","order":"id.asc","limit":"200"}
+            ) or []
+            names=[]
+            seen=set()
+            for row in rows:
+                name=str(row.get("class_name") or "").strip()
+                if name and name not in seen:
+                    seen.add(name)
+                    names.append(name)
+            picker.values=tuple(fa_display(name) for name in names)
+            picker.text=fa_display(names[0]) if names else fa_display("برای این دبیر کلاس فعالی ثبت نشده است")
+            if not names:
+                self._error("برای دبیر انتخاب‌شده هیچ کلاس فعالی در پرونده دبیر ثبت نشده است.")
+        except Exception as exc:
+            picker.values=tuple()
+            picker.text=fa_display("خطا در دریافت کلاس‌ها")
+            self._error("دریافت کلاس‌های دبیر انجام نشد: "+str(exc))
 
     def _refresh_teacher_picker(self, picker):
         try:
@@ -336,6 +383,9 @@ class TeacherExamsV4Screen(Screen):
 
     def _save_exam(self,title,subject,grade,class_name,duration,attempts,passing,mode,desc,teacher_picker=None):
         if not self._value(title) or not self.questions:self._error("عنوان آزمون و حداقل یک سؤال لازم است.");return
+        selected_class=self._value(class_name)
+        if not selected_class or selected_class in {"انتخاب کلاس واقعی","ابتدا دبیر آزمون را مشخص کنید","برای این دبیر کلاس فعالی ثبت نشده است","خطا در دریافت کلاس‌ها"}:
+            self._error("کلاس آزمون را از فهرست کلاس‌های واقعی دبیر انتخاب کنید."); return
         try: dur=max(1,min(600,int(self._value(duration) or 45))); mx=max(1,int(self._value(attempts) or 1)); ps=max(0,float(self._value(passing) or 0))
         except Exception:self._error("مدت، تعداد دفعات و نمره قبولی باید عدد باشند.");return
         tid=self._teacher_id()
@@ -350,7 +400,7 @@ class TeacherExamsV4Screen(Screen):
             self._error("دبیر آزمون برای حساب فعلی پیدا نشد."); return
 
         self.status.text=fa_display("در حال ذخیره آزمون…"); self.status.color=SECONDARY
-        payload={"teacher_id":tid,"title":self._value(title),"subject":self._value(subject),"grade":self._value(grade),"class_name":self._value(class_name),"exam_type":"آزمون آنلاین","duration":dur,"description":self._value(desc),"published":False,"secure_mode":True,"standard_mode":mode.text==fa_display("استاندارد"),"max_attempts":mx,"passing_score":ps}
+        payload={"teacher_id":tid,"title":self._value(title),"subject":self._value(subject),"grade":self._value(grade),"class_name":selected_class,"exam_type":"آزمون آنلاین","duration":dur,"description":self._value(desc),"published":False,"secure_mode":True,"standard_mode":mode.text==fa_display("استاندارد"),"max_attempts":mx,"passing_score":ps}
         Thread(target=self._save_worker,args=(payload,dur),daemon=True).start()
 
     def _save_worker(self,payload,dur):
