@@ -89,11 +89,11 @@ const C=__CONFIG__;
 // Remove its loading placeholder as soon as the real classroom script begins.
 try{document.getElementById("x")?.remove()}catch(_){}
 const pendingCandidates=new Map();
-window.addEventListener("error",e=>{try{const p=document.getElementById("page");if(p)p.textContent="خطای کلاس: "+(e.message||"خطای نامشخص");}catch(_){}console.error("Frahoosh classroom error",e.message,e.filename,e.lineno);});
-window.addEventListener("unhandledrejection",e=>{try{const p=document.getElementById("page");if(p)p.textContent="خطای اجرای کلاس: "+String(e.reason||"خطای نامشخص");}catch(_){}console.error("Frahoosh classroom rejection",e.reason);});
+window.addEventListener("error",e=>{const message="خطای اجرای کلاس: "+(e.message||"خطای نامشخص")+(e.lineno?" (خط "+e.lineno+")":"");try{const p=document.getElementById("page");if(p)p.textContent=message;if(typeof setStatus==="function")setStatus(message);else{const box=document.createElement("div");box.dir="rtl";box.style.cssText="position:fixed;z-index:100000;bottom:8px;left:8px;right:8px;padding:10px;background:#7f1d1d;color:#fff;font:13px/1.8 Tahoma;border-radius:8px";box.textContent=message;document.body.appendChild(box)}}catch(_){}console.error("Frahoosh classroom error",e.message,e.filename,e.lineno);});
+window.addEventListener("unhandledrejection",e=>{const reason=e.reason&&e.reason.message?e.reason.message:String(e.reason||"خطای نامشخص");try{if(typeof setStatus==="function")setStatus("خطای اجرای عملیات کلاس: "+reason);else{const p=document.getElementById("page");if(p)p.textContent=reason}}catch(_){}console.error("Frahoosh classroom rejection",e.reason);});
 const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"};
 const $=id=>document.getElementById(id);
-const faDateFormatter=new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn",{year:"numeric",month:"2-digit",day:"2-digit"});
+let faDateFormatter;try{faDateFormatter=new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn",{year:"numeric",month:"2-digit",day:"2-digit"});}catch(_){try{faDateFormatter=new Intl.DateTimeFormat("fa-IR",{year:"numeric",month:"2-digit",day:"2-digit"});}catch(__){faDateFormatter={format:d=>String(d||"")}}}
 function formatSchoolDate(value){if(!value)return "—";const d=value instanceof Date?value:new Date(value);return Number.isNaN(d.getTime())?String(value):faDateFormatter.format(d)}
 function formatSchoolDateTime(value){if(!value)return "—";const d=value instanceof Date?value:new Date(value);if(Number.isNaN(d.getTime()))return String(value);return formatSchoolDate(d)+" "+new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn",{hour:"2-digit",minute:"2-digit",hour12:false}).format(d)}
 
