@@ -224,6 +224,7 @@ class TeacherExamsV4Screen(Screen):
         if teacher_picker is not None:
             self._exam_teacher_picker = teacher_picker
             teacher_picker.bind(text=lambda *_: self._refresh_exam_classes(class_picker, self._selected_manager_teacher_id(teacher_picker)))
+            self._refresh_exam_classes(class_picker, self._selected_manager_teacher_id(teacher_picker))
         self._button("ذخیره آزمون و رفتن به زمان‌بندی",lambda *_:self._save_exam(title,subject,grade,class_picker,duration,attempts,passing,mode,desc,teacher_picker),PRIMARY)
         self._button("انصراف",lambda *_:self.show_home())
 
@@ -428,8 +429,15 @@ class TeacherExamsV4Screen(Screen):
     def _schedule(self,eid,dur):
         self._clear(); self._label("زمان‌بندی آزمون","22sp",PRIMARY,52,True)
         self._label("یک آزمون را برای چند کلاس با زمان مشترک یا برای هر کلاس با زمان متفاوت منتشر کنید.",height=65)
-        cls=self._field("کلاس‌ها با زمان مشترک: هفتم-الف، هفتم-ب، هفتم-ج")
-        per=self._field("زمان متفاوت اختیاری: هفتم-الف=10:00؛ هفتم-ب=11:00؛ هفتم-ج=10:00",78,True)
+        cls=self._field("کلاس‌ها با زمان مشترک: نام کلاس‌های واقعی دبیر، جداشده با ویرگول")
+        # پیش‌فرض را از خود آزمون می‌گیریم تا کاربر مجبور نباشد نام کلاس را دوباره حدس بزند.
+        try:
+            exam_rows=self.app_state.api.table_select("teacher_exams",{"id":f"eq.{eid}","select":"class_name","limit":"1"}) or []
+            if exam_rows:
+                cls.text=str(exam_rows[0].get("class_name") or "")
+        except Exception:
+            pass
+        per=self._field("زمان متفاوت اختیاری: نام‌کلاس=10:00-10:45؛ با ; جدا کنید",78,True)
         date=self._field("تاریخ شمسی؛ مثال 1405/07/01"); start=self._field("ساعت شروع مشترک؛ مثال 10:00"); end=self._field("ساعت پایان مشترک؛ اگر خالی باشد از مدت محاسبه می‌شود")
         self._label("کلاس‌های بدون زمان اختصاصی از زمان مشترک استفاده می‌کنند. کلاس‌های دارای «=» زمان خودشان را می‌گیرند.","10sp",SECONDARY,55)
         self._button("ثبت زمان‌بندی کلاس‌ها",lambda *_:self._save_slot(eid,dur,cls,per,date,start,end),SUCCESS)
