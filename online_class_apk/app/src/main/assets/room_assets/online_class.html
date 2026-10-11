@@ -182,22 +182,27 @@ async function makePeer(id,name){
  if(peers.has(id))return peers.get(id);
  const pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
  peers.set(id,pc);names.set(id,name||"کاربر");renderPeople();
- // Reserve both media directions before SDP negotiation. This guarantees that
- // Android WebView negotiates an audio m-line even when the first remote track
- // arrives before the local capture tracks are attached.
- try{pc.addTransceiver("audio",{direction:"sendrecv"})}catch(e){console.warn("AUDIO_TRANSCEIVER_SETUP_FAILED",e)}
- try{pc.addTransceiver("video",{direction:"sendrecv"})}catch(e){console.warn("VIDEO_TRANSCEIVER_SETUP_FAILED",e)}
  if(localStream)localStream.getTracks().forEach(track=>pc.addTrack(track,localStream));
  pc.onicecandidate=e=>{if(e.candidate)send("candidate",{candidate:e.candidate},id)};
- // Match the APK's media path: one remote MediaStream feeds one unmuted video.
+ // Keep ONE persistent MediaStream per remote peer. Android WebView may fire
+ // video and audio as separate ontrack events; replacing the stream on the
+ // second event can silently drop the first track. The APK playback path is
+ // preserved: the combined stream is attached directly to the same <video>.
  pc.ontrack=e=>{
-  let stream=e.streams&&e.streams[0];
-  if(!stream){
-   stream=remoteStreams.get(id)||new MediaStream();
-   if(e.track&&!stream.getTracks().some(track=>track.id===e.track.id))stream.addTrack(e.track);
-   remoteStreams.set(id,stream);
-  }else remoteStreams.set(id,stream);
+  let stream=remoteStreams.get(id);
+  if(!stream){stream=new MediaStream();remoteStreams.set(id,stream)}
+  if(e.streams&&e.streams[0]){
+   for(const track of e.streams[0].getTracks()){
+    if(!stream.getTracks().some(t=>t.id===track.id))stream.addTrack(track);
+   }
+  }
+  if(e.track&&!stream.getTracks().some(track=>track.id===e.track.id))stream.addTrack(e.track);
+  const audioTracks=stream.getAudioTracks();
+  console.log("REMOTE_TRACK",id,e.track?.kind,e.track?.readyState,"audioTracks",audioTracks.length);
   addVideo(id,names.get(id)||"کاربر",stream);
+  if(e.track){
+   e.track.onunmute=()=>{addVideo(id,names.get(id)||"کاربر",stream);if(audioUnlocked)unlockClassAudio().catch(error=>console.warn("AUDIO_UNLOCK_ERROR",error))};
+  }
   if(audioUnlocked)unlockClassAudio().catch(error=>console.warn("AUDIO_UNLOCK_ERROR",error));
  };
  pc.onconnectionstatechange=()=>{if(["failed","closed","disconnected"].includes(pc.connectionState)){removeVideo(id)}};
