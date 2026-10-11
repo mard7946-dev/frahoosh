@@ -28,6 +28,14 @@ header h2{margin:0;font-size:17px;flex:1}.toolbar,.tools{display:flex;gap:5px;fl
 #toolDrawer{flex:0 0 100%;width:100%;order:10;position:relative}#toolDrawer>summary{cursor:pointer;list-style:none;text-align:right;color:#f3c65b;font-weight:bold;padding:8px 12px;border:1px solid #344c65;border-radius:10px;background:#10243a}#toolDrawer>summary::-webkit-details-marker{display:none}#toolDrawerBody{max-height:58vh;overflow:auto;padding:7px 2px}#toolDrawerBody>.toolbar{display:flex;margin:4px 0 8px}#toolDrawerBody>.boardbar{display:flex;flex-wrap:wrap}#quizToggle{background:linear-gradient(110deg,#f5cf68,#dba638);color:#09182a}#toolDrawerBody #quizPanel{margin-top:8px}
 /* Approved high-contrast classroom layout: maximize the board and tuck tools into a drawer */
 header{background:linear-gradient(110deg,#06101f,#0c2036 65%,#112e48);border-bottom:1px solid #d9b45b66;padding:10px 14px}header h2{color:#f3c65b}.layout{grid-template-columns:minmax(0,1fr) 265px;min-height:calc(100vh - 58px)}.main{min-height:0}.boardwrap{min-height:0;height:calc(100vh - 210px);padding:7px}.board{min-height:0;height:100%;flex:1}.boardbar{position:relative;align-items:center;background:#101f32;border:1px solid #2a4059;border-radius:12px;padding:7px;margin-bottom:7px}.tools{gap:6px}button{background:#1a3b5c;border:1px solid #37536d;color:#f5f7fb;border-radius:10px}button.active{background:#e5b94d;color:#081729}button.danger{background:#762c37}select,input{background:#081727;color:#f4f7fb;border:1px solid #344c65}.side{background:#0b1727;border-color:#2a4059}.side h3,.panel h3{color:#f0c45c}.panel{border-color:#293e56}.person,.quizq,.fileitem,.attrow,.msg{background:#13273d;color:#eaf0f8;border:1px solid #263f58}.send input{background:#071423;color:white;border:1px solid #344c65}@media(max-width:800px){.layout{grid-template-columns:1fr}.boardwrap{height:64vh;min-height:390px}.board{min-height:600px;height:145%}.side{min-height:320px}}
+#teacherToolPermission{display:none;background:#e5b94d;color:#081729}
+.studentLocked{opacity:.55!important;pointer-events:none!important}
+#teacherWaitOverlay{position:fixed;inset:0;z-index:99998;background:#020812f2;display:none;place-items:center;padding:20px}
+#teacherWaitOverlay section{max-width:440px;width:100%;background:#10243a;border:1px solid #e5b94d;border-radius:18px;padding:28px;color:#fff;text-align:center;font-family:Tahoma,Arial}
+#teacherWaitOverlay h2{color:#f3c65b;margin-top:0}
+#teacherWaitOverlay .waitdot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#f3c65b;margin:0 3px;animation:fw 1.2s infinite}
+@keyframes fw{0%,100%{opacity:.25}50%{opacity:1}}
+@media(max-width:800px){#teacherWaitOverlay section{padding:22px}}
 </style>
 </head>
 <body>
@@ -50,7 +58,7 @@ header{background:linear-gradient(110deg,#06101f,#0c2036 65%,#112e48);border-bot
 <select id="size"><option value="2">۲</option><option value="4" selected>۴</option><option value="7">۷</option><option value="10">۱۰</option><option value="14">۱۴</option><option value="20">۲۰</option></select>
 </div>
 <div class="tools">
-<button id="prev">صفحه قبل</button><button id="next">صفحه بعد</button><button id="clear" class="danger">پاک‌کردن صفحه</button><button id="clearAll" class="danger">پاک‌کردن کل تخته</button><span class="status" id="page"></span>
+<button id="prev">صفحه قبل</button><button id="next">صفحه بعد</button><button id="clear" class="danger">پاک‌کردن صفحه</button><button id="clearAll" class="danger">پاک‌کردن کل تخته</button><button id="teacherToolPermission" type="button">اجازه استفاده از ابزار برای دانش‌آموزان</button><span class="status" id="page"></span>
 </div>
 </div>
 <canvas id="board" class="board"></canvas>
@@ -69,6 +77,7 @@ header{background:linear-gradient(110deg,#06101f,#0c2036 65%,#112e48);border-bot
 <div class="chat"><h3>گفت‌وگوی کلاس</h3><div id="msgs" class="msgs"></div><div class="send"><input id="chatInput" placeholder="پیام..."><button id="send">ارسال</button></div></div>
 </aside>
 </div>
+<div id="teacherWaitOverlay"><section dir="rtl"><h2>در انتظار ورود دبیر</h2><p>تا زمانی که دبیر کلاس وارد نشود، ورود دانش‌آموز به کلاس امکان‌پذیر نیست.</p><div><span class="waitdot"></span><span class="waitdot"></span><span class="waitdot"></span></div><p id="teacherWaitStatus">در حال بررسی وضعیت کلاس...</p></section></div>
 <script>
 const C=__CONFIG__;
 window.addEventListener("error",e=>{try{const p=document.getElementById("page");if(p)p.textContent="خطای کلاس: "+(e.message||"خطای نامشخص");}catch(_){}console.error("Frahoosh classroom error",e.message,e.filename,e.lineno);});
@@ -78,6 +87,7 @@ const $=id=>document.getElementById(id);
 let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=true,cam=true;
 let tool="pen",color="#0b1f3a",size=4,drawing=false,start=null,points=[],pageNo=1;
 let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null;
+let toolsAllowed=false, classroomLive=false, waitingForTeacher=false;
 $("className").textContent=C.classId;
 function api(path,opts={}){return fetch(C.url+"/rest/v1/"+path,Object.assign({headers},opts))}
 function jsonHeaders(extra={}){return Object.assign({},headers,extra)}
@@ -90,7 +100,7 @@ function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="perso
 async function ensureMedia(){if(localStream)return true;try{localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();for(const [,pc] of peers){for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already)pc.addTrack(track,localStream)}}return true}catch(e){console.warn("MEDIA_PERMISSION_ERROR",e);alert("دسترسی دوربین/میکروفون داده نشد؛ کلاس بدون صدا/تصویر ادامه می‌یابد.");return false}}
 async function makePeer(id,name){if(peers.has(id))return peers.get(id);let pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});peers.set(id,pc);names.set(id,name||"کاربر");renderPeople();if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.onicecandidate=e=>{if(e.candidate)send("candidate",{candidate:e.candidate},id)};pc.ontrack=e=>addVideo(id,names.get(id)||"کاربر",e.streams[0]);pc.onconnectionstatechange=()=>{if(["failed","closed","disconnected"].includes(pc.connectionState)){removeVideo(id);}};return pc}
 async function offerTo(id,name){let pc=await makePeer(id,name);let o=await pc.createOffer();await pc.setLocalDescription(o);await send("offer",{sdp:pc.localDescription},id)}
-async function poll(){try{let r=await api("online_class_signals?class_id=eq."+C.classId+"&id=gt."+lastId+"&order=id.asc&limit=200");let rows=await r.json();for(const x of rows){lastId=Math.max(lastId,Number(x.id));if(x.sender_user_id===C.userId)continue;if(x.receiver_user_id&&x.receiver_user_id!==C.userId)continue;let p=x.payload||{};if(x.signal_type==="join"){names.set(x.sender_user_id,p.name||"کاربر");renderPeople();if(C.userId<x.sender_user_id)await offerTo(x.sender_user_id,p.name)}else if(x.signal_type==="leave"){peers.get(x.sender_user_id)?.close();peers.delete(x.sender_user_id);names.delete(x.sender_user_id);removeVideo(x.sender_user_id);renderPeople()}else if(x.signal_type==="offer"){names.set(x.sender_user_id,p.name||"کاربر");let pc=await makePeer(x.sender_user_id,p.name);await pc.setRemoteDescription(p.sdp);let a=await pc.createAnswer();await pc.setLocalDescription(a);await send("answer",{sdp:pc.localDescription},x.sender_user_id)}else if(x.signal_type==="answer"){let pc=peers.get(x.sender_user_id);if(pc)await pc.setRemoteDescription(p.sdp)}else if(x.signal_type==="candidate"){let pc=peers.get(x.sender_user_id);if(pc&&p.candidate)try{await pc.addIceCandidate(p.candidate)}catch(e){}}else if(x.signal_type==="chat"){appendMsg(p.name||"کاربر",p.text||"")}else if(x.signal_type==="board"){applyBoard(p,false)}else if(x.signal_type==="quiz_answer"&&C.role!=="student"){loadQuizResults()}}}catch(e){}}
+async function poll(){try{let r=await api("online_class_signals?class_id=eq."+C.classId+"&id=gt."+lastId+"&order=id.asc&limit=200");let rows=await r.json();for(const x of rows){lastId=Math.max(lastId,Number(x.id));if(x.sender_user_id===C.userId)continue;if(x.receiver_user_id&&x.receiver_user_id!==C.userId)continue;let p=x.payload||{};if(x.signal_type==="join"){names.set(x.sender_user_id,p.name||"کاربر");renderPeople();if(C.userId<x.sender_user_id)await offerTo(x.sender_user_id,p.name)}else if(x.signal_type==="leave"){peers.get(x.sender_user_id)?.close();peers.delete(x.sender_user_id);names.delete(x.sender_user_id);removeVideo(x.sender_user_id);renderPeople()}else if(x.signal_type==="offer"){names.set(x.sender_user_id,p.name||"کاربر");let pc=await makePeer(x.sender_user_id,p.name);await pc.setRemoteDescription(p.sdp);let a=await pc.createAnswer();await pc.setLocalDescription(a);await send("answer",{sdp:pc.localDescription},x.sender_user_id)}else if(x.signal_type==="answer"){let pc=peers.get(x.sender_user_id);if(pc)await pc.setRemoteDescription(p.sdp)}else if(x.signal_type==="candidate"){let pc=peers.get(x.sender_user_id);if(pc&&p.candidate)try{await pc.addIceCandidate(p.candidate)}catch(e){}}else if(x.signal_type==="chat"){appendMsg(p.name||"کاربر",p.text||"")}else if(x.signal_type==="board"){applyBoard(p,false)}else if(x.signal_type==="quiz_answer"&&C.role!=="student"){loadQuizResults()}else if(x.signal_type==="tools_permission"){setStudentToolsPermission(!!p.allowed)}}}catch(e){}}
 function appendMsg(n,t){let d=document.createElement("div");d.className="msg";d.innerHTML="<b>"+esc(n)+"</b><br>"+esc(t);$("msgs").appendChild(d);$("msgs").scrollTop=$("msgs").scrollHeight}
 $("send").onclick=async()=>{let t=$("chatInput").value.trim();if(!t)return;appendMsg(C.name,t);$("chatInput").value="";await send("chat",{name:C.name,text:t})};
 $("mic").onclick=async()=>{await ensureMedia();mic=!mic;(localStream?.getAudioTracks()||[]).forEach(t=>t.enabled=mic);$("mic").classList.toggle("active",mic)};
@@ -109,17 +119,17 @@ else if(a.tool==="arrow"){ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);let ang=Math.atan2
 ctx.stroke()}
 async function loadBoard(){try{ctx.clearRect(0,0,canvas.width,canvas.height);let r=await api("smart_board_whiteboards?class_id=eq."+C.classId+"&page_no=eq."+pageNo+"&order=id.asc&limit=1000");let rows=await r.json();for(const row of rows){try{applyBoard(JSON.parse(row.payload||"{}"),false)}catch(e){}}$("page").textContent="صفحه "+pageNo+" از "+maxPages}catch(e){}}
 function applyBoard(p,broadcast=true){if(Number(p.page||pageNo)!==pageNo)return;if(p.kind==="clear"){ctx.clearRect(0,0,canvas.width,canvas.height);return}if(p.tool==="pen"||p.tool==="eraser"){ctx.strokeStyle=p.tool==="eraser"?"#fff":(p.color||color);ctx.lineWidth=p.tool==="eraser"?Math.max(10,Number(p.size||size)*3):Number(p.size||size);ctx.lineCap="round";ctx.beginPath();let a=p.points||[];for(let i=0;i<a.length;i+=2)i?ctx.lineTo(a[i],a[i+1]):ctx.moveTo(a[i],a[i+1]);ctx.stroke()}else drawShape(p)}
-async function saveBoard(p){p.page=pageNo;p.color=color;p.size=size;try{await api("smart_board_whiteboards",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,page_no:pageNo,tool:p.tool||"board",payload:JSON.stringify(p),shared:true,title:"صفحه "+pageNo,content:""})});await send("board",p)}catch(e){alert("ذخیره تخته انجام نشد.")}}
+async function saveBoard(p){if(isStudentRole()&&!toolsAllowed){setStatus("تا اجازه دبیر داده نشود، استفاده از ابزار امکان‌پذیر نیست.");return}p.page=pageNo;p.color=color;p.size=size;try{await api("smart_board_whiteboards",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,page_no:pageNo,tool:p.tool||"board",payload:JSON.stringify(p),shared:true,title:"صفحه "+pageNo,content:""})});await send("board",p)}catch(e){alert("ذخیره تخته انجام نشد.")}}
 function clearLocal(){ctx.clearRect(0,0,canvas.width,canvas.height)}
-$("prev").onclick=()=>{pageNo=Math.max(1,pageNo-1);loadBoard()};$("next").onclick=()=>{pageNo=Math.min(maxPages,pageNo+1);loadBoard()};
-$("clear").onclick=async()=>{if(C.role==="student")return;try{await api("smart_board_whiteboards?class_id=eq."+C.classId+"&page_no=eq."+pageNo,{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});clearLocal();await send("board",{kind:"clear",page:pageNo})}catch(e){alert("پاک‌کردن صفحه انجام نشد.")}};
-$("clearAll").onclick=async()=>{if(C.role==="student")return;if(!confirm("کل ۱۵ صفحه تخته پاک شود؟"))return;try{await api("smart_board_whiteboards?class_id=eq."+C.classId,{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});clearLocal();await send("board",{kind:"clearAll"});loadBoard()}catch(e){alert("پاک‌کردن کل تخته انجام نشد.")}};
+$("prev").onclick=()=>{if(isStudentRole()&&!toolsAllowed)return;pageNo=Math.max(1,pageNo-1);loadBoard()};$("next").onclick=()=>{if(isStudentRole()&&!toolsAllowed)return;pageNo=Math.min(maxPages,pageNo+1);loadBoard()};
+$("clear").onclick=async()=>{if(C.role==="student"||isStudentRole()&&!toolsAllowed)return;try{await api("smart_board_whiteboards?class_id=eq."+C.classId+"&page_no=eq."+pageNo,{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});clearLocal();await send("board",{kind:"clear",page:pageNo})}catch(e){alert("پاک‌کردن صفحه انجام نشد.")}};
+$("clearAll").onclick=async()=>{if(C.role==="student"||isStudentRole()&&!toolsAllowed)return;if(!confirm("کل ۱۵ صفحه تخته پاک شود؟"))return;try{await api("smart_board_whiteboards?class_id=eq."+C.classId,{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});clearLocal();await send("board",{kind:"clearAll"});loadBoard()}catch(e){alert("پاک‌کردن کل تخته انجام نشد.")}};
 document.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{tool=b.dataset.tool;document.querySelectorAll("[data-tool]").forEach(x=>x.classList.remove("active"));b.classList.add("active")});
 $("color").onchange=e=>color=e.target.value;$("size").onchange=e=>size=Number(e.target.value);
 canvas=$("board");ctx=canvas.getContext("2d");if(!ctx)throw new Error("Canvas 2D context unavailable");window.addEventListener("resize",resize);
-canvas.addEventListener("pointerdown",e=>{drawing=true;start=pos(e);points=[...start];if(tool==="pen"||tool==="eraser"){ctx.beginPath();ctx.moveTo(...start)}});
-canvas.addEventListener("pointermove",e=>{if(!drawing)return;let p=pos(e);if(tool==="pen"||tool==="eraser"){points.push(...p);ctx.strokeStyle=tool==="eraser"?"#fff":color;ctx.lineWidth=tool==="eraser"?Math.max(10,size*3):size;ctx.lineCap="round";ctx.lineTo(...p);ctx.stroke()}});
-canvas.addEventListener("pointerup",async e=>{if(!drawing)return;drawing=false;let end=pos(e),p;if(tool==="pen"||tool==="eraser")p={tool,points};else p={tool,x1:start[0],y1:start[1],x2:end[0],y2:end[1]};await saveBoard(p);points=[]});
+canvas.addEventListener("pointerdown",e=>{if(isStudentRole()&&!toolsAllowed)return;drawing=true;start=pos(e);points=[...start];if(tool==="pen"||tool==="eraser"){ctx.beginPath();ctx.moveTo(...start)}});
+canvas.addEventListener("pointermove",e=>{if(isStudentRole()&&!toolsAllowed)return;if(!drawing)return;let p=pos(e);if(tool==="pen"||tool==="eraser"){points.push(...p);ctx.strokeStyle=tool==="eraser"?"#fff":color;ctx.lineWidth=tool==="eraser"?Math.max(10,size*3):size;ctx.lineCap="round";ctx.lineTo(...p);ctx.stroke()}});
+canvas.addEventListener("pointerup",async e=>{if(isStudentRole()&&!toolsAllowed){drawing=false;return}if(!drawing)return;drawing=false;let end=pos(e),p;if(tool==="pen"||tool==="eraser")p={tool,points};else p={tool,x1:start[0],y1:start[1],x2:end[0],y2:end[1]};await saveBoard(p);points=[]});
 
 async function loadFiles(){try{let r=await api("smart_board_files?class_id=eq."+C.classId+"&order=id.desc&limit=100");let rows=await r.json();$("files").innerHTML=rows.map(x=>'<div class="fileitem"><b>'+esc(x.title||x.file_type||"فایل")+'</b><br>'+esc(x.file_type||"")+"<br><button onclick='downloadFile("+JSON.stringify(x.file_path)+","+JSON.stringify(x.title||"فایل")+" )'>مشاهده / دریافت</button></div>").join("")}catch(e){}}
 async function uploadFile(file){if(!file||C.role==="student")return;try{if(file.size>50*1024*1024)throw new Error("حجم فایل بیشتر از ۵۰ مگابایت است");let safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");let path=C.classId+"/"+C.userId+"/"+Date.now()+"_"+safe;let u=C.url+"/storage/v1/object/online-class-files/"+path;let rr=await fetch(u,{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":file.type||"application/octet-stream","x-upsert":"false"},body:file});if(!rr.ok)throw new Error(await rr.text());await api("smart_board_files",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({title:file.name,file_path:path,file_type:file.type||"application/octet-stream",class_id:C.classId,description:"فایل اشتراکی کلاس هوشمند"})});await loadFiles()}catch(e){alert("ارسال فایل انجام نشد: "+e.message)}}
@@ -191,7 +201,104 @@ async function autoMarkEntry(){
  }catch(e){console.error("Automatic attendance failed",e);alert("ثبت حضور خودکار انجام نشد؛ ورود به کلاس متوقف شد.");location.replace("/online-class/")}
 }
 
-async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=true;const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await ensureMedia();await refreshSessionTimer();if(await enforceStudentBlock())return;await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
+function isTeacherRole(){return ["teacher","دبیر","manager","مدیر","executive","معاون اجرایی"].includes(C.role)}
+function isStudentRole(){return ["student","دانش‌آموز"].includes(C.role)}
+
+function showTeacherWait(show,msg){
+  const o=$("teacherWaitOverlay"); if(!o)return;
+  o.style.display=show?"grid":"none";
+  if(msg&&$("teacherWaitStatus"))$("teacherWaitStatus").textContent=msg;
+}
+
+function setStudentToolsPermission(allowed){
+  toolsAllowed=!!allowed;
+  if(!isStudentRole())return;
+  document.querySelectorAll("[data-tool],#color,#size,#clear,#clearAll,#file,#qsave,#screen,#mic,#cam").forEach(el=>{
+    if(el)el.classList.toggle("studentLocked",!toolsAllowed);
+    if(el && "disabled" in el)el.disabled=!toolsAllowed;
+  });
+  const st=$("page");
+  if(st)st.textContent=toolsAllowed?"ابزارهای کلاس برای شما فعال شد.":"تا اجازه دبیر داده نشود، ابزارهای کلاس غیرفعال است.";
+}
+
+async function ensureTeacherSession(){
+  if(!isTeacherRole())return false;
+  try{
+    let r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&order=id.desc&limit=1");
+    let rows=await r.json();
+    let latest=rows[0];
+    if(latest && !latest.ended_at && latest.started_at){
+      currentSession=latest.id; sessionStartedAt=Date.parse(latest.started_at); classroomLive=true; return true;
+    }
+    const started=new Date().toISOString();
+    const payload={class_id:C.classId,started_at:started};
+    r=await api("online_class_sessions",{method:"POST",headers:jsonHeaders({"Prefer":"return=representation"}),body:JSON.stringify(payload)});
+    if(!r.ok){
+      console.error("Could not create online class session",await r.text());
+      alert("شروع جلسه کلاس انجام نشد.");
+      return false;
+    }
+    rows=await r.json();
+    const created=Array.isArray(rows)?rows[0]:rows;
+    currentSession=created?.id||null;
+    sessionStartedAt=Date.parse(created?.started_at||started);
+    classroomLive=!!currentSession;
+    return classroomLive;
+  }catch(e){console.error("Teacher session start failed",e);alert("شروع جلسه کلاس انجام نشد.");return false}
+}
+
+async function waitForTeacherSession(){
+  if(!isStudentRole())return true;
+  waitingForTeacher=true; showTeacherWait(true);
+  while(waitingForTeacher){
+    try{
+      const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&order=id.desc&limit=1");
+      const rows=await r.json(),latest=rows[0];
+      if(latest && !latest.ended_at && latest.started_at){
+        currentSession=latest.id;
+        sessionStartedAt=Date.parse(latest.started_at);
+        classroomLive=true;
+        waitingForTeacher=false;
+        showTeacherWait(false);
+        return true;
+      }
+      if($("teacherWaitStatus"))$("teacherWaitStatus").textContent="هنوز دبیر وارد کلاس نشده است...";
+    }catch(e){
+      if($("teacherWaitStatus"))$("teacherWaitStatus").textContent="در حال اتصال به وضعیت کلاس...";
+    }
+    await new Promise(r=>setTimeout(r,2000));
+  }
+  return false;
+}
+
+function applyClassroomRoleView(){
+  if(isTeacherRole()||isStudentRole()){
+    const side=$(".side"); if(side)side.style.display="none";
+    const layout=$(".layout"); if(layout)layout.style.gridTemplateColumns="1fr";
+    const perm=$("teacherToolPermission"); if(perm)perm.style.display=isTeacherRole()?"inline-block":"none";
+  }
+  if(isStudentRole()){
+    setStudentToolsPermission(false);
+  }
+}
+
+$("teacherToolPermission").onclick=async()=>{
+  if(!isTeacherRole())return;
+  toolsAllowed=!toolsAllowed;
+  $("teacherToolPermission").textContent=toolsAllowed?"بستن دسترسی ابزار دانش‌آموزان":"اجازه استفاده از ابزار برای دانش‌آموزان";
+  $("teacherToolPermission").classList.toggle("active",toolsAllowed);
+  await send("tools_permission",{allowed:toolsAllowed});
+  setStatus(toolsAllowed?"ابزارهای دانش‌آموزان فعال شد.":"ابزارهای دانش‌آموزان بسته شد.");
+};
+
+async function startClass(){
+applyClassroomRoleView();
+if(isTeacherRole()){
+  if(!(await ensureTeacherSession()))return;
+}else if(isStudentRole()){
+  if(!(await waitForTeacherSession()))return;
+}
+const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=true;const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await ensureMedia();await refreshSessionTimer();if(!classroomLive){if(isStudentRole()){if(!(await waitForTeacherSession()))return}else{return}}if(await enforceStudentBlock())return;await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
 </script>
 </body>
 </html>
