@@ -152,8 +152,20 @@ async function ensureMedia(){
  let videoError=null,audioError=null;
  const hasVideo=acquired.getVideoTracks().some(t=>t.readyState==="live");
  const hasAudio=acquired.getAudioTracks().some(t=>t.readyState==="live");
- if(!hasVideo){try{const v=await navigator.mediaDevices.getUserMedia({video:true,audio:false});v.getVideoTracks().forEach(t=>{t.enabled=true;acquired.addTrack(t)})}catch(e){videoError=e;console.warn("CAMERA_PERMISSION_ERROR",e)}}
- if(!hasAudio){try{const a=await navigator.mediaDevices.getUserMedia({video:false,audio:true});a.getAudioTracks().forEach(t=>{t.enabled=true;acquired.addTrack(t)})}catch(e){audioError=e;console.warn("MIC_PERMISSION_ERROR",e)}}
+ // Known-good APK path: request camera+microphone together first. On some Android WebViews
+ // this produces a single, consistent WebRTC permission flow and avoids the two-request race.
+ if(!hasVideo||!hasAudio){
+  try{
+   const media=await navigator.mediaDevices.getUserMedia({video:!hasVideo,audio:!hasAudio});
+   media.getTracks().forEach(t=>{t.enabled=true;acquired.addTrack(t)});
+  }catch(e){
+   console.warn("COMBINED_MEDIA_PERMISSION_ERROR",e);
+   // Keep a fallback for devices/WebViews that reject a combined request after one
+   // permission has already been granted.
+   if(!hasVideo){try{const v=await navigator.mediaDevices.getUserMedia({video:true,audio:false});v.getVideoTracks().forEach(t=>{t.enabled=true;acquired.addTrack(t)})}catch(err){videoError=err;console.warn("CAMERA_PERMISSION_ERROR",err)}}
+   if(!hasAudio){try{const a=await navigator.mediaDevices.getUserMedia({video:false,audio:true});a.getAudioTracks().forEach(t=>{t.enabled=true;acquired.addTrack(t)})}catch(err){audioError=err;console.warn("MIC_PERMISSION_ERROR",err)}}
+  }
+ }
  if(!acquired.getTracks().some(t=>t.readyState==="live")){setStatus("دسترسی دوربین/میکروفون فعال نشد: "+((videoError||audioError)?.name||"خطا"));alert("مجوز دوربین و میکروفون برنامه را در تنظیمات Android بررسی کنید.");return false}
  localStream=acquired;addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
  for(const [,pc] of peers)for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already)pc.addTrack(track,localStream)}
