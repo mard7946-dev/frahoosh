@@ -93,7 +93,7 @@ const faDateFormatter=new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn",{year
 function formatSchoolDate(value){if(!value)return "—";const d=value instanceof Date?value:new Date(value);return Number.isNaN(d.getTime())?String(value):faDateFormatter.format(d)}
 function formatSchoolDateTime(value){if(!value)return "—";const d=value instanceof Date?value:new Date(value);if(Number.isNaN(d.getTime()))return String(value);return formatSchoolDate(d)+" "+new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn",{hour:"2-digit",minute:"2-digit",hour12:false}).format(d)}
 
-let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=false,cam=false;
+let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=true,cam=true;
 let tool="pen",color="#0b1f3a",size=4,drawing=false,start=null,points=[],pageNo=1;
 let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null,answeredQuizIds=new Set();
 $("className").textContent=C.classId;$("teacherDisplayName").textContent=(C.name||"").trim()?"دبیر / کاربر: "+C.name:"";
@@ -125,8 +125,8 @@ async function ensureMedia(){
  let videoError=null,audioError=null;
  const hasVideo=acquired.getVideoTracks().some(t=>t.readyState==="live");
  const hasAudio=acquired.getAudioTracks().some(t=>t.readyState==="live");
- if(!hasVideo){try{const v=await navigator.mediaDevices.getUserMedia({video:true,audio:false});v.getVideoTracks().forEach(t=>{t.enabled=cam;acquired.addTrack(t)})}catch(e){videoError=e;console.warn("CAMERA_PERMISSION_ERROR",e)}}
- if(!hasAudio){try{const a=await navigator.mediaDevices.getUserMedia({video:false,audio:true});a.getAudioTracks().forEach(t=>{t.enabled=mic;acquired.addTrack(t)})}catch(e){audioError=e;console.warn("MIC_PERMISSION_ERROR",e)}}
+ if(!hasVideo){try{const v=await navigator.mediaDevices.getUserMedia({video:true,audio:false});v.getVideoTracks().forEach(t=>{t.enabled=true;acquired.addTrack(t)})}catch(e){videoError=e;console.warn("CAMERA_PERMISSION_ERROR",e)}}
+ if(!hasAudio){try{const a=await navigator.mediaDevices.getUserMedia({video:false,audio:true});a.getAudioTracks().forEach(t=>{t.enabled=true;acquired.addTrack(t)})}catch(e){audioError=e;console.warn("MIC_PERMISSION_ERROR",e)}}
  if(!acquired.getTracks().some(t=>t.readyState==="live")){setStatus("دسترسی دوربین/میکروفون فعال نشد: "+((videoError||audioError)?.name||"خطا"));alert("مجوز دوربین و میکروفون برنامه را در تنظیمات Android بررسی کنید.");return false}
  localStream=acquired;addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
  for(const [,pc] of peers)for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already)pc.addTrack(track,localStream)}
