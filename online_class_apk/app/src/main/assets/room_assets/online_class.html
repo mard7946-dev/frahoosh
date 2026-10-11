@@ -138,9 +138,71 @@ async function uploadFile(file){if(!file||C.role==="student")return;try{if(file.
 async function downloadFile(path,title){try{let r=await fetch(C.url+"/storage/v1/object/authenticated/online-class-files/"+path,{headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token}});if(!r.ok)throw new Error("دسترسی به فایل ممکن نیست");let blob=await r.blob(),url=URL.createObjectURL(blob);if(blob.type.startsWith("video/")){$("previewVideo").style.display="block";$("previewVideo").src=url;$("previewVideo").play().catch(()=>{})}else{let a=document.createElement("a");a.href=url;a.download=title||"file";a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}}catch(e){alert("دریافت فایل انجام نشد.")}}
 $("file").onchange=e=>uploadFile(e.target.files[0]);
 
-async function loadQuizzes(){try{let r=await api("smart_board_quizzes?class_id=eq."+C.classId+"&order=id.desc&limit=100");let rows=await r.json();let box=$("quizzes");box.innerHTML="";for(const q of rows){let d=document.createElement("div");d.className="quizq";d.innerHTML="<b>"+esc(q.title||"کوئیز")+"</b><br>"+esc(q.question)+"<div class='row'>"+["a","b","c","d"].map(k=>'<button data-q="'+q.id+'" data-a="'+k+'">'+esc(q["option_"+k]||"")+"</button>").join("")+"</div>";box.appendChild(d);d.querySelectorAll("button").forEach(b=>b.onclick=()=>answerQuiz(q,b.dataset.a))}}catch(e){}}
-async function answerQuiz(q,a){if(!["student","دانش‌آموز"].includes(C.role))return;try{await api("online_class_activity",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,session_id:currentSession,student_id:C.studentId,event_type:"quiz_answer",event_time:new Date().toISOString(),metadata:JSON.stringify({quiz_id:q.id,answer:a,title:q.title||""})})});alert("پاسخ کوئیز ثبت شد.")}catch(e){alert("ثبت پاسخ کوئیز انجام نشد.")}}
-function buildQuizCreate(){if(!["teacher","دبیر","manager","مدیر","executive","معاون اجرایی"].includes(C.role))return;$("quizCreate").innerHTML='<div class="row"><input id="qt" placeholder="عنوان کوئیز"><input id="qq" placeholder="سؤال"><input id="qa" placeholder="گزینه A"><input id="qb" placeholder="گزینه B"><input id="qc" placeholder="گزینه C"><input id="qd" placeholder="گزینه D"><select id="qcorr"><option value="a">A صحیح</option><option value="b">B صحیح</option><option value="c">C صحیح</option><option value="d">D صحیح</option></select><button id="qsave">ثبت سؤال کوئیز</button></div>';$("qsave").onclick=async()=>{let p={title:$("qt").value.trim(),question:$("qq").value.trim(),option_a:$("qa").value.trim(),option_b:$("qb").value.trim(),option_c:$("qc").value.trim(),option_d:$("qd").value.trim(),correct_option:$("qcorr").value,class_id:C.classId,teacher_id:C.teacherId||null,quiz_date_shamsi:new Date().toISOString().slice(0,10)};if(!p.title||!p.question)return alert("عنوان و سؤال الزامی است");try{await api("smart_board_quizzes",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify(p)});["qt","qq","qa","qb","qc","qd"].forEach(id=>$(id).value="");loadQuizzes()}catch(e){alert("ساخت کوئیز انجام نشد.")}}}
+async function loadQuizzes(){
+ const box=$("quizzes");
+ try{
+  const r=await api("smart_board_quizzes?class_id=eq."+encodeURIComponent(C.classId)+"&is_published=eq.true&order=id.desc&limit=100");
+  if(!r.ok)throw new Error(await r.text());
+  const rows=await r.json();
+  box.innerHTML="";
+  if(!rows.length){box.innerHTML='<p class="status">هنوز آزمونی برای این کلاس منتشر نشده است.</p>';return}
+  for(const q of rows){
+   const d=document.createElement("div");d.className="quizq";
+   const title=document.createElement("b");title.textContent=q.title||"آزمونک";
+   const question=document.createElement("p");question.textContent=q.question||"";
+   d.append(title,question);
+   if(["student","دانش‌آموز"].includes(C.role)){
+    const choices=document.createElement("div");choices.className="row";
+    ["a","b","c","d"].forEach(k=>{
+     if(q["option_"+k]){
+      const b=document.createElement("button");b.textContent=q["option_"+k];
+      b.onclick=()=>answerQuiz(q,b.dataset.answer||k);choices.appendChild(b);
+     }
+    });
+    d.appendChild(choices);
+   }else{
+    const state=document.createElement("div");state.className="status";state.textContent="منتشرشده برای اعضای همین کلاس";d.appendChild(state);
+   }
+   box.appendChild(d);
+  }
+ }catch(e){
+  console.error("Could not load classroom quizzes",e);
+  box.innerHTML='<p class="status">بارگذاری آزمون‌ها ناموفق بود: '+esc(e.message||"خطای سرور")+'</p>';
+ }
+}
+async function answerQuiz(q,a){
+ if(!["student","دانش‌آموز"].includes(C.role))return;
+ try{
+  const r=await api("online_class_activity",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:Number(C.classId),session_id:currentSession?Number(currentSession):null,student_id:Number(C.studentId),event_type:"quiz_answer",event_time:new Date().toISOString(),metadata:JSON.stringify({quiz_id:q.id,answer:a,title:q.title||""})})});
+  if(!r.ok)throw new Error(await r.text());
+  alert("پاسخ آزمون ثبت شد.");
+  await loadQuizResults();
+ }catch(e){console.error("Could not save classroom quiz answer",e);alert("ثبت پاسخ انجام نشد: "+(e.message||"خطای سرور"))}
+}
+function buildQuizCreate(){
+ if(!["teacher","دبیر","manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی"].includes(C.role))return;
+ $("quizCreate").innerHTML='<div class="row"><input id="qt" placeholder="عنوان آزمون"><input id="qq" placeholder="متن سؤال"></div><div class="row"><input id="qa" placeholder="گزینه A"><input id="qb" placeholder="گزینه B"></div><div class="row"><input id="qc" placeholder="گزینه C (اختیاری)"><input id="qd" placeholder="گزینه D (اختیاری)"><select id="qcorr"><option value="a">گزینه A صحیح</option><option value="b">گزینه B صحیح</option><option value="c">گزینه C صحیح</option><option value="d">گزینه D صحیح</option></select></div><div class="row"><button id="qsave" type="button">ثبت و انتشار سؤال برای همین کلاس</button></div><p id="qstatus" class="status" role="status" aria-live="polite"></p>';
+ $("qsave").onclick=async()=>{
+  const title=$("qt").value.trim(),question=$("qq").value.trim(),status=$("qstatus");
+  const a=$("qa").value.trim(),b=$("qb").value.trim(),c=$("qc").value.trim(),d=$("qd").value.trim();
+  if(!title||!question){status.textContent="عنوان آزمون و متن سؤال الزامی است.";return}
+  if(!a||!b){status.textContent="برای آزمون چندگزینه‌ای دست‌کم دو گزینه وارد کنید.";return}
+  if($("qsave").disabled)return;
+  $("qsave").disabled=true;status.textContent="در حال ثبت و انتشار آزمون برای کلاس...";
+  const now=new Date().toISOString();
+  const p={title,question,option_a:a,option_b:b,option_c:c,option_d:d,correct_option:$("qcorr").value,class_id:Number(C.classId),teacher_id:C.teacherId?Number(C.teacherId):null,quiz_date_shamsi:now.slice(0,10),is_published:true,published_at:now};
+  try{
+   const r=await api("smart_board_quizzes",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify(p)});
+   if(!r.ok)throw new Error(await r.text());
+   ["qt","qq","qa","qb","qc","qd"].forEach(id=>$(id).value="");
+   status.textContent="آزمون با موفقیت ثبت و برای دانش‌آموزان همین کلاس منتشر شد.";
+   await loadQuizzes();
+  }catch(e){
+   console.error("Could not publish classroom quiz",e);
+   status.textContent="ثبت/انتشار ناموفق بود: "+(e.message||"خطای سرور");
+  }finally{$("qsave").disabled=false}
+ };
+}
 async function loadQuizResults(){if(!["teacher","دبیر","manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی"].includes(C.role))return;try{let r=await api("online_class_activity?class_id=eq."+C.classId+"&event_type=eq.quiz_answer&order=id.desc&limit=200");let rows=await r.json();let box=document.getElementById("quizResults");if(!box){box=document.createElement("div");box.id="quizResults";$("quizPanel").appendChild(box)}box.innerHTML="<b>پاسخ‌های ثبت‌شده: "+rows.length+"</b>"+rows.slice(0,20).map(x=>"<div class='quizq'>دانش‌آموز #"+esc(x.student_id)+" — "+esc(x.metadata||"")+"</div>").join("")}catch(e){}}
 
 let endingSession=false,evidenceEnded=false;async function cleanupClassFiles(){try{const q=await api("smart_board_files?class_id=eq."+encodeURIComponent(C.classId)+"&select=id,file_path");if(!q.ok)return;const rows=await q.json();for(const f of rows){if(!f.file_path)continue;try{await fetch(C.url+"/storage/v1/object/online-class-files/"+f.file_path,{method:"DELETE",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token}})}catch(e){}}await api("smart_board_files?class_id=eq."+encodeURIComponent(C.classId),{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});$("files").innerHTML="";}catch(e){console.warn("Class file cleanup failed",e)}}async function closeClassSessionUI(){if(sessionClosedLocally)return;sessionClosedLocally=true;classroomLive=false;waitingForTeacher=false;const o=$("teacherWaitOverlay");if(o){o.style.display="grid";const h=o.querySelector("h2"),p=o.querySelector("p");if(h)h.textContent="کلاس به پایان رسید";if(p)p.textContent="مدت تعیین‌شده برای کلاس به پایان رسید. ورود به کلاس بسته شد.";if($("teacherWaitStatus"))$("teacherWaitStatus").textContent="جلسه کلاس پایان یافته است.";};try{document.querySelectorAll("button,input,select,textarea").forEach(el=>{if(el.id!=="leave")el.disabled=true});document.querySelectorAll("video").forEach(v=>{try{v.pause();if(v.srcObject)v.srcObject.getTracks().forEach(t=>t.stop())}catch(_){}});await cleanupClassFiles()}catch(e){console.warn("Class close UI failed",e)}setStatus("زمان کلاس پایان یافت؛ کلاس بسته شد.")}
