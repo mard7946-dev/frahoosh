@@ -4,9 +4,6 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.res.AssetManager;
-import android.media.AudioManager;
-import android.media.AudioAttributes;
-import android.media.AudioFocusRequest;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
@@ -37,8 +34,6 @@ public final class MainActivity extends Activity {
     private WebView webView;
     private PermissionRequest pendingWebPermission;
     private ValueCallback<Uri[]> fileCallback;
-    private AudioManager audioManager;
-    private AudioFocusRequest audioFocusRequest;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -54,49 +49,7 @@ public final class MainActivity extends Activity {
         );
 
         buildWebView();
-        configureClassroomAudio();
         requestMediaPermissions();
-    }
-
-    private void configureClassroomAudio() {
-        audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-        if (audioManager == null) return;
-
-        // WebRTC in Android WebView uses the communication audio path. Explicitly
-        // select that path and the device speaker so remote classroom audio is not
-        // left routed to an unavailable/incorrect output after microphone capture.
-        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-        if (Build.VERSION.SDK_INT >= 21) {
-            audioManager.setSpeakerphoneOn(true);
-            AudioAttributes attributes = new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build();
-            if (Build.VERSION.SDK_INT >= 26) {
-                audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                        .setAudioAttributes(attributes)
-                        .setAcceptsDelayedFocusGain(false)
-                        .setOnAudioFocusChangeListener(focus -> {
-                            if (audioManager != null && focus >= 0) {
-                                audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-                                audioManager.setSpeakerphoneOn(true);
-                            }
-                        })
-                        .build();
-                audioManager.requestAudioFocus(audioFocusRequest);
-            } else {
-                audioManager.requestAudioFocus(
-                        focus -> {
-                            if (audioManager != null && focus >= 0) {
-                                audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-                                audioManager.setSpeakerphoneOn(true);
-                            }
-                        },
-                        AudioManager.STREAM_VOICE_CALL,
-                        AudioManager.AUDIOFOCUS_GAIN
-                );
-            }
-        }
     }
 
     private void buildWebView() {
@@ -113,6 +66,7 @@ public final class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
+        // Keep the same WebView media policy as the uploaded APK.
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
@@ -310,15 +264,6 @@ public final class MainActivity extends Activity {
         if (fileCallback != null) {
             fileCallback.onReceiveValue(null);
             fileCallback = null;
-        }
-        if (audioManager != null) {
-            if (Build.VERSION.SDK_INT >= 26 && audioFocusRequest != null) {
-                audioManager.abandonAudioFocusRequest(audioFocusRequest);
-            }
-            audioManager.setMode(AudioManager.MODE_NORMAL);
-            audioManager.setSpeakerphoneOn(false);
-            audioManager = null;
-            audioFocusRequest = null;
         }
         if (webView != null) {
             webView.stopLoading();
