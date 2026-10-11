@@ -13,7 +13,7 @@ else{
   const p=__BUNDLED_PATCH_JS__;
   if(!h.includes("const C=__CONFIG__;"))throw Error("قالب محیط کلاس ناسازگار است");
   h=h.replace("const C=__CONFIG__;","const C="+JSON.stringify(c)+";");
-  h=h.replace("</body>","<script>"+p.replace(/<\\/script/gi,"<\\\\/script")+"<"+"/script></body>");
+  h=h.replace("</body>","<script>"+p.replace(/<\/script/gi,"<\\/script")+"<"+"/script></body>");
   document.open();document.write(h);document.close();
  }catch(e){const x=document.getElementById("x");x.style.cssText="color:#fff;background:#7f1d1d;padding:24px;text-align:center;font:16px/2 Tahoma";x.textContent="کلاس بارگذاری نشد: "+(e.message||e);}
 }
