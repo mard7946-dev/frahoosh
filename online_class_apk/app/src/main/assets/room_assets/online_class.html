@@ -174,7 +174,17 @@ $("mic").onclick=async()=>{
     if(!tracks.length)throw new Error("NO_AUDIO_TRACK");
     if(!localStream)localStream=new MediaStream();
     tracks.forEach(t=>{t.enabled=next;localStream.addTrack(t)});
-    for(const [,pc] of peers)for(const track of tracks){const sender=pc.getSenders().find(s=>s.track?.kind==="audio");if(sender)await sender.replaceTrack(track);else pc.addTrack(track,localStream)}
+    for(const [peerId,pc] of peers){
+     const sender=pc.getSenders().find(s=>s.track?.kind==="audio");
+     if(sender)await sender.replaceTrack(tracks[0]);
+     else pc.addTrack(tracks[0],localStream);
+     // Adding audio after the initial video offer requires a fresh SDP exchange;
+     // otherwise the remote peer may keep video while never negotiating audio.
+     if(pc.signalingState==="stable"&&pc.connectionState!=="closed"){
+      try{const offer=await pc.createOffer();await pc.setLocalDescription(offer);if(pc.signalingState==="have-local-offer")await send("offer",{sdp:pc.localDescription,name:C.name},peerId)}
+      catch(renegotiationError){console.warn("AUDIO_RENEGOTIATION_FAILED",peerId,renegotiationError)}
+     }
+    }
     addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
    }else tracks.forEach(t=>t.enabled=next);
    mic=next;
