@@ -127,14 +127,17 @@ async function send(type,payload={},to=null){try{const response=await api("onlin
 function addVideo(id,name,stream){
  let tile=document.getElementById("v-"+id);
  if(!tile){tile=document.createElement("div");tile.className="tile";tile.id="v-"+id;tile.innerHTML='<video autoplay playsinline webkit-playsinline></video><span>'+esc(name)+'</span>';$("videos").appendChild(tile)}
- const video=tile.querySelector("video");video.autoplay=true;video.playsInline=true;video.setAttribute("playsinline","");video.setAttribute("webkit-playsinline","");video.muted=true;video.defaultMuted=true;video.volume=0;video.srcObject=stream;
- const playback=video.play();if(playback&&playback.catch)playback.catch(e=>console.warn("VIDEO_PLAY_BLOCKED",e&&e.name));
- if(String(id)!==String(C.userId)){
-  let audio=document.getElementById("audio-"+id);
-  if(!audio){audio=document.createElement("audio");audio.id="audio-"+id;audio.autoplay=true;audio.playsInline=true;audio.setAttribute("playsinline","");audio.style.display="none";document.body.appendChild(audio)}
-  audio.autoplay=true;audio.volume=1;audio.muted=!audioUnlocked;audio.srcObject=stream;
-  if(audioUnlocked){const ap=audio.play();if(ap&&ap.catch)ap.catch(e=>{console.warn("REMOTE_AUDIO_PLAY_BLOCKED",e&&e.name);setStatus("صدای دریافتی مسدود است؛ دکمه «فعال‌سازی صدای کلاس» را لمس کنید.")})}
- }
+ const video=tile.querySelector("video");
+ video.autoplay=true;video.playsInline=true;video.setAttribute("playsinline","");video.setAttribute("webkit-playsinline","");
+ // Use the same playback path as the known-good APK: the remote MediaStream is
+ // attached directly to an unmuted video element. Keeping remote audio in a
+ // separate muted <audio> element caused Android WebView autoplay blocking.
+ const isLocal=String(id)===String(C.userId);
+ video.muted=isLocal;video.defaultMuted=isLocal;video.volume=isLocal?0:1;video.srcObject=stream;
+ const playback=video.play();if(playback&&playback.catch)playback.catch(e=>{
+   console.warn("VIDEO_PLAY_BLOCKED",id,e&&e.name);
+   if(!isLocal)setStatus("پخش صدا/تصویر طرف مقابل توسط WebView مسدود شد؛ یک‌بار داخل کلاس لمس کنید.")
+ });
 }
 async function unlockClassAudio(){
  audioUnlocked=true;let failed=0,remoteAudioTracks=0;
@@ -423,7 +426,12 @@ async function autoMarkEntry(){
 }
 
 async function startClass(){initOrientationControl();const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),$("orientationToggle"),$("quizToggle"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel"),$("videos"),document.querySelector(".side")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=false;const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await refreshSessionTimer();if(await enforceStudentBlock())return;await ensureMedia();await autoMarkEntry();
- async function connectSignalingWithRetry(){while(true){try{await initializeSignaling();await send("join",{name:C.name,role:C.role});await send("presence",{name:C.name,role:C.role});setInterval(()=>send("presence",{name:C.name,role:C.role}),5000);poll();setInterval(poll,900);return}catch(e){console.error("SIGNALING_INITIALIZATION_FAILED",e);setStatus("در حال برقراری ارتباط امن کلاس؛ تلاش مجدد خودکار…");await new Promise(resolve=>setTimeout(resolve,2000))}}}
+ async function connectSignalingWithRetry(){while(true){try{await initializeSignaling();await send("join",{name:C.name,role:C.role});await send("presence",{name:C.name,role:C.role});
+ // Re-discover after our own join. The first baseline intentionally skips old
+ // signals, but two devices can join during that baseline; this second discovery
+ // closes that race without replaying historical offers/answers.
+ await initializeSignaling();
+ setInterval(()=>send("presence",{name:C.name,role:C.role}),5000);poll();setInterval(poll,900);return}catch(e){console.error("SIGNALING_INITIALIZATION_FAILED",e);setStatus("در حال برقراری ارتباط امن کلاس؛ تلاش مجدد خودکار…");await new Promise(resolve=>setTimeout(resolve,2000))}}}
  await connectSignalingWithRetry();setStatus("کلاس آماده است؛ منتظر صدای اعضا…");setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass().catch(e=>{console.error("CLASS_START_FAILED",e);setStatus("آماده‌سازی کلاس ناموفق بود؛ صفحه را دوباره باز کنید.")});
 </script>
 </body>
