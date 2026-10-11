@@ -129,14 +129,20 @@ public final class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request == null ? null : request.getUrl();
-                if (uri != null && "frahoosh.ir".equalsIgnoreCase(uri.getHost())
-                        && uri.getPath() != null
-                        && (uri.getPath().equals("/online-class/room.html")
-                            || uri.getPath().equals("/online-class/room"))) {
-                    // Load the bundled room shell: remote navigation currently fails with
-                    // ERR_CONNECTION_CLOSED on some mobile networks.
-                    loadBundledRoom(view);
-                    return true;
+                if (uri != null) {
+                    String path = uri.getPath();
+                    boolean roomPath = path != null
+                            && (path.endsWith("/room.html") || path.endsWith("/room"));
+                    boolean localAsset = "file".equalsIgnoreCase(uri.getScheme())
+                            && uri.toString().startsWith("file:///android_asset/");
+                    boolean classroomSite = "frahoosh.ir".equalsIgnoreCase(uri.getHost());
+                    if (roomPath && (localAsset || classroomSite)) {
+                        // The entry page itself is bundled under file:///android_asset/.
+                        // Intercept that local navigation too, otherwise the unresolved
+                        // bootstrap placeholders remain visible forever.
+                        loadBundledRoom(view);
+                        return true;
+                    }
                 }
                 return false;
             }
