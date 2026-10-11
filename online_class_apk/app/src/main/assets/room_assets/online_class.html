@@ -134,7 +134,7 @@ function addVideo(id,name,stream){
  // separate muted <audio> element caused Android WebView autoplay blocking.
  const isLocal=String(id)===String(C.userId);
  video.muted=isLocal;video.defaultMuted=isLocal;video.volume=isLocal?0:1;video.srcObject=stream;
- const playback=video.play();if(playback&&playback.catch)pPlayback=playback.catch(e=>{
+ const playback=video.play();if(playback&&playback.catch)playback.catch(e=>{
    console.warn("VIDEO_PLAY_BLOCKED",id,e&&e.name);
    if(!isLocal)setStatus("پخش صدا/تصویر طرف مقابل توسط WebView مسدود شد؛ یک‌بار داخل کلاس لمس کنید.")
  });
