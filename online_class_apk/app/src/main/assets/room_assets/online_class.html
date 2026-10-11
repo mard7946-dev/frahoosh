@@ -140,82 +140,38 @@ function addVideo(id,name,stream){
  });
 }
 async function unlockClassAudio(){
- audioUnlocked=true;let failed=0,remoteAudioTracks=0;
- for(const [id,pc] of peers){if(String(id)===String(C.userId))continue;const liveTracks=pc.getReceivers().map(r=>r.track).filter(t=>t&&t.kind==="audio"&&t.readyState==="live");remoteAudioTracks+=liveTracks.length;let stream=remoteStreams.get(id);if(!stream)stream=new MediaStream();for(const track of liveTracks)if(!stream.getTracks().includes(track))stream.addTrack(track);remoteStreams.set(id,stream);let el=document.getElementById("audio-"+id);if(!el){el=document.createElement("audio");el.id="audio-"+id;el.autoplay=true;el.playsInline=true;el.setAttribute("playsinline","");el.style.display="none";document.body.appendChild(el)}if(el.srcObject!==stream)el.srcObject=stream;el.autoplay=true;el.muted=false;el.volume=1;try{await el.play()}catch(e){failed++;console.warn("AUDIO_OUTPUT_UNLOCK_FAILED",id,e)}}
- if(failed)setStatus("پخش صدای کلاس مسدود است؛ صدای رسانه گوشی و مجوزها را بررسی کنید.");
- else if(remoteAudioTracks===0)setStatus("خروجی صدا فعال شد؛ هنوز ترک صوتی از اعضای دیگر دریافت نشده است. میکروفون طرف مقابل یا مذاکره اتصال بررسی شود.");
- else setStatus("صدای کلاس فعال است؛ مسیرهای صوتی دریافتی: "+remoteAudioTracks);
- const b=$("audioOutput");if(b)b.textContent=failed?"تلاش دوباره برای صدای کلاس":"صدای کلاس فعال است";
-}
-function removeVideo(id){let t=document.getElementById("v-"+id);if(t)t.remove();let a=document.getElementById("audio-"+id);if(a){a.pause();a.srcObject=null;a.remove()}}
-function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="person">'+esc(n)+(id===C.userId?" (شما)":"")+"</div>";$("participants").innerHTML=h}
-async function ensureMedia(){
- if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStatus("این محیط دسترسی رسانه را پشتیبانی نمی‌کند.");return false}
- const acquired=localStream&&localStream.getTracks().some(t=>t.readyState==="live")?localStream:new MediaStream();
- let videoError=null,audioError=null;
- const hasVideo=acquired.getVideoTracks().some(t=>t.readyState==="live");
- const hasAudio=acquired.getAudioTracks().some(t=>t.readyState==="live");
- // Known-good APK path: request camera+microphone together first. On some Android WebViews
- // this produces a single, consistent WebRTC permission flow and avoids the two-request race.
- if(!hasVideo||!hasAudio){
-  try{
-   const media=await navigator.mediaDevices.getUserMedia({video:!hasVideo,audio:!hasAudio});
-   media.getTracks().forEach(t=>{t.enabled=true;acquired.addTrack(t)});
-  }catch(e){
-   console.warn("COMBINED_MEDIA_PERMISSION_ERROR",e);
-   // Keep a fallback for devices/WebViews that reject a combined request after one
-   // permission has already been granted.
-   if(!hasVideo){try{const v=await navigator.mediaDevices.getUserMedia({video:true,audio:false});v.getVideoTracks().forEach(t=>{t.enabled=true;acquired.addTrack(t)})}catch(err){videoError=err;console.warn("CAMERA_PERMISSION_ERROR",err)}}
-   if(!hasAudio){try{const a=await navigator.mediaDevices.getUserMedia({video:false,audio:true});a.getAudioTracks().forEach(t=>{t.enabled=true;acquired.addTrack(t)})}catch(err){audioError=err;console.warn("MIC_PERMISSION_ERROR",err)}}
+ audioUnlocked=true;let failed=0,remoteAudioTracks=0,playable=0;
+ // Explicitly unlock both playback paths used by Android WebView: the remote
+ // video element and a dedicated audio element for every live receiver track.
+ for(const [id,pc] of peers){
+  if(String(id)===String(C.userId))continue;
+  const liveTracks=pc.getReceivers().map(r=>r.track).filter(t=>t&&t.kind==="audio"&&t.readyState==="live");
+  remoteAudioTracks+=liveTracks.length;
+  let stream=remoteStreams.get(id);
+  if(!stream)stream=new MediaStream();
+  for(const track of liveTracks)if(!stream.getTracks().includes(track))stream.addTrack(track);
+  if(liveTracks.length)remoteStreams.set(id,stream);
+  let el=document.getElementById("audio-"+id);
+  if(liveTracks.length){
+   if(!el){el=document.createElement("audio");el.id="audio-"+id;el.autoplay=true;el.playsInline=true;el.setAttribute("playsinline","");el.style.display="none";document.body.appendChild(el)}
+   if(el.srcObject!==stream)el.srcObject=stream;
+   el.autoplay=true;el.muted=false;el.volume=1;
+   try{await el.play();playable++}catch(e){failed++;console.warn("AUDIO_OUTPUT_UNLOCK_FAILED",id,e)}
   }
  }
- if(!acquired.getTracks().some(t=>t.readyState==="live")){setStatus("دسترسی دوربین/میکروفون فعال نشد: "+((videoError||audioError)?.name||"خطا"));alert("مجوز دوربین و میکروفون برنامه را در تنظیمات Android بررسی کنید.");return false}
- localStream=acquired;addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
- for(const [,pc] of peers)for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already)pc.addTrack(track,localStream)}
- $("mic").classList.toggle("active",mic&&localStream.getAudioTracks().length>0);$("cam").classList.toggle("active",cam&&localStream.getVideoTracks().length>0);
- if(videoError)setStatus("دوربین فعال نشد ("+(videoError.name||"خطا")+"). مجوز دوربین برنامه را بررسی کنید.");
- else if(audioError)setStatus("میکروفون فعال نشد ("+(audioError.name||"خطا")+"). مجوز میکروفون برنامه را بررسی کنید.");
- return !videoError||localStream.getAudioTracks().length>0;
-}
-async function makePeer(id,name){if(peers.has(id))return peers.get(id);const configuredIce=Array.isArray(C.iceServers)?C.iceServers.filter(s=>s&&s.urls):[];const iceServers=[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"},...configuredIce];let pc=new RTCPeerConnection({iceServers});peers.set(id,pc);names.set(id,name||"کاربر");console.info("WEBRTC_PEER_CREATED",{peerId:id,iceServerCount:iceServers.length,configuredTurn:configuredIce.some(s=>String(s.urls).includes("turn:")||String(s.urls).includes("turns:"))});renderPeople();if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.onicecandidate=e=>{if(e.candidate)send("candidate",{candidate:e.candidate},id);else console.info("WEBRTC_ICE_GATHERING_COMPLETE",{peerId:id})};pc.oniceconnectionstatechange=()=>console.info("WEBRTC_ICE_STATE",{peerId:id,state:pc.iceConnectionState});pc.onsignalingstatechange=()=>console.info("WEBRTC_SIGNALING_STATE",{peerId:id,state:pc.signalingState});pc.ontrack=e=>{console.info("WEBRTC_REMOTE_TRACK",{peerId:id,kind:e.track.kind,readyState:e.track.readyState,streamCount:e.streams?.length||0});let stream=e.streams&&e.streams[0];if(!stream){stream=remoteStreams.get(id);if(!stream){stream=new MediaStream();remoteStreams.set(id,stream)}if(!stream.getTracks().includes(e.track))stream.addTrack(e.track)}else remoteStreams.set(id,stream);addVideo(id,names.get(id)||"کاربر",stream);if(e.track.kind==="audio"){e.track.onunmute=()=>{console.info("WEBRTC_REMOTE_AUDIO_UNMUTED",{peerId:id,enabled:e.track.enabled,muted:e.track.muted});const a=document.getElementById("audio-"+id);if(a&&audioUnlocked){a.srcObject=remoteStreams.get(id)||stream;a.muted=false;a.volume=1;const p=a.play();if(p&&p.catch)p.catch(err=>{console.warn("REMOTE_AUDIO_UNMUTE_PLAY_FAILED",id,err);setStatus("ترک صدای طرف مقابل دریافت شد اما پخش نشد؛ دکمه فعال‌سازی صدا را لمس کنید.")})}}}};pc.onconnectionstatechange=()=>{console.info("WEBRTC_CONNECTION_STATE",{peerId:id,state:pc.connectionState});setStatus("وضعیت صدا و تصویر: "+pc.connectionState);if(["failed","closed","disconnected"].includes(pc.connectionState)){removeVideo(id);remoteStreams.delete(id);}};return pc}
-async function offerTo(id,name){let pc=await makePeer(id,name);if(pc.signalingState!=="stable"||pc.connectionState==="closed")return;let o=await pc.createOffer();if(pc.signalingState!=="stable")return;await pc.setLocalDescription(o);if(pc.signalingState==="have-local-offer")await send("offer",{sdp:pc.localDescription},id)}
-async function initializeSignaling(){
- const latestResponse=await api("online_class_signals?class_id=eq."+encodeURIComponent(C.classId)+"&select=id&order=id.desc&limit=1");
- if(!latestResponse.ok)throw new Error("خواندن آخرین شناسه سیگنال ناموفق بود (HTTP "+latestResponse.status+")");
- const latestRows=await latestResponse.json();lastId=Number(latestRows?.[0]?.id)||0;
- // Do not replay historical offers/answers/candidates: doing so repeatedly answers stale
- // offers and leaves both peers in incompatible WebRTC signaling states.
- const cutoff=encodeURIComponent(new Date(Date.now()-30000).toISOString());
- const activeResponse=await api("online_class_signals?class_id=eq."+encodeURIComponent(C.classId)+"&select=sender_user_id,signal_type,payload,created_at&signal_type=in.(join,presence)&created_at=gte."+cutoff+"&order=id.desc&limit=200");
- if(!activeResponse.ok)throw new Error("خواندن اعضای آنلاین ناموفق بود (HTTP "+activeResponse.status+")");
- const activeRows=await activeResponse.json();const activePeers=new Map();
- for(const row of activeRows){const id=String(row.sender_user_id||"");if(!id||id===String(C.userId)||activePeers.has(id))continue;activePeers.set(id,row.payload?.name||"کاربر")}
- for(const [id,name] of activePeers){names.set(id,name)}
- renderPeople();
- for(const [id,name] of activePeers){if(String(C.userId)<String(id))await offerTo(id,name)}
- console.info("WEBRTC_SIGNALING_INITIALIZED",{lastId,activePeerCount:activePeers.size});
-}
-let pollingSignals=false;async function poll(){if(pollingSignals)return;pollingSignals=true;try{let r=await api("online_class_signals?class_id=eq."+C.classId+"&id=gt."+lastId+"&order=id.asc&limit=200");let rows;try{rows=await r.json()}catch(parseError){throw new Error("پاسخ سرور پیام‌های کلاس قابل‌خواندن نیست (HTTP "+r.status+")")}if(!r.ok)throw new Error("دریافت پیام‌های کلاس ناموفق است (HTTP "+r.status+"): "+(typeof rows==="object"?JSON.stringify(rows):String(rows)));if(!Array.isArray(rows)){console.error("SIGNAL_ROWS_NOT_ARRAY",rows);throw new Error("ساختار پاسخ پیام‌های کلاس آرایه نیست؛ اتصال سرور را بررسی کنید.")}for(const x of rows){lastId=Math.max(lastId,Number(x.id));if(x.sender_user_id===C.userId)continue;if(x.receiver_user_id&&x.receiver_user_id!==C.userId)continue;let p=x.payload||{};if(x.signal_type==="join"){names.set(x.sender_user_id,p.name||"کاربر");renderPeople();if(C.userId<x.sender_user_id)await offerTo(x.sender_user_id,p.name)}else if(x.signal_type==="leave"){peers.get(x.sender_user_id)?.close();peers.delete(x.sender_user_id);names.delete(x.sender_user_id);removeVideo(x.sender_user_id);renderPeople()}else if(x.signal_type==="offer"){names.set(x.sender_user_id,p.name||"کاربر");let pc=await makePeer(x.sender_user_id,p.name);if(pc.connectionState==="closed"||pc.signalingState==="have-remote-offer"||pc.signalingState==="closed")continue;if(pc.signalingState==="have-local-offer"){if(String(C.userId)<String(x.sender_user_id))continue;try{await pc.setLocalDescription({type:"rollback"})}catch(rollbackError){console.warn("WEBRTC_GLARE_ROLLBACK",rollbackError);continue}}if(pc.signalingState!=="stable")continue;await pc.setRemoteDescription(p.sdp);if(pc.signalingState!=="have-remote-offer")continue;const queued=pendingCandidates.get(x.sender_user_id)||[];for(const candidate of queued){try{await pc.addIceCandidate(candidate)}catch(e){console.warn("QUEUED_ICE_ERROR",e)}}pendingCandidates.delete(x.sender_user_id);let a=await pc.createAnswer();if(pc.signalingState!=="have-remote-offer")continue;await pc.setLocalDescription(a);if(pc.signalingState==="stable")await send("answer",{sdp:pc.localDescription},x.sender_user_id)}else if(x.signal_type==="answer"){let pc=peers.get(x.sender_user_id);if(pc){await pc.setRemoteDescription(p.sdp);const queued=pendingCandidates.get(x.sender_user_id)||[];for(const candidate of queued){try{await pc.addIceCandidate(candidate)}catch(e){console.warn("QUEUED_ICE_ERROR",e)}}pendingCandidates.delete(x.sender_user_id)}}else if(x.signal_type==="candidate"){let pc=peers.get(x.sender_user_id);if(pc&&p.candidate){if(pc.remoteDescription&&pc.remoteDescription.type){try{await pc.addIceCandidate(p.candidate)}catch(e){console.warn("ICE_ADD_ERROR",e)}}else{const queue=pendingCandidates.get(x.sender_user_id)||[];queue.push(p.candidate);pendingCandidates.set(x.sender_user_id,queue)}}}else if(x.signal_type==="chat"){appendMsg(p.name||"کاربر",p.text||"")}else if(x.signal_type==="board"){applyBoard(p,false)}else if(x.signal_type==="quiz_answer"&&C.role!=="student"){loadQuizResults()}}if($("classStatus")&&$("classStatus").textContent.startsWith("ارتباط با سرور کلاس برقرار نشد"))setStatus("");}catch(e){console.error("CLASS_SIGNAL_POLL_ERROR",{message:e&&e.message,error:e,url:C.url,classId:C.classId});const message=String(e&&e.message||"");if(message==="Failed to fetch"||message==="Load failed"||message==="NetworkError when attempting to fetch resource.")setStatus("ارتباط با سرور کلاس برقرار نشد؛ اتصال اینترنت گوشی و دسترسی به سرور را بررسی کنید. تلاش مجدد خودکار ادامه دارد.");else setStatus("دریافت پیام‌های کلاس ناموفق بود: "+(message||"خطای شبکه"));}finally{pollingSignals=false}}
-async function unlockClassAudio(){
- audioUnlocked=true;
- let playable=0,blocked=0;
  const videos=Array.from(document.querySelectorAll("#videos video"));
  for(const video of videos){
   const tile=video.closest(".tile");
   const isLocal=!!(tile&&String(tile.id)==="v-"+String(C.userId));
-  if(isLocal){video.muted=true;video.volume=0;continue}
-  const stream=video.srcObject;
-  if(!stream)continue;
-  const audioTracks=typeof stream.getAudioTracks==="function"?stream.getAudioTracks():[];
-  if(!audioTracks.some(track=>track.readyState==="live"))continue;
+  if(isLocal){video.muted=true;video.defaultMuted=true;video.volume=0;continue}
   video.muted=false;video.defaultMuted=false;video.volume=1;
-  try{await video.play();playable++}catch(error){blocked++;console.warn("CLASS_AUDIO_PLAY_BLOCKED",error&&error.name)}
+  try{const p=video.play();if(p&&p.catch)await p;playable++}catch(e){failed++;console.warn("CLASS_AUDIO_VIDEO_PLAY_BLOCKED",e&&e.name)}
  }
  const button=$("audioOutput");
- if(button){button.textContent="صدای کلاس فعال است";button.classList.add("active")}
- if(playable)setStatus("صدای کلاس فعال شد.");
- else if(blocked)setStatus("مرورگر پخش صدا را مسدود کرد؛ دوباره روی «فعال‌سازی صدای کلاس» بزنید.");
- else setStatus("صدای کلاس آماده است؛ پس از اتصال اعضا، صدای آن‌ها پخش می‌شود.");
+ if(button){button.textContent=failed?"تلاش دوباره برای صدای کلاس":"صدای کلاس فعال است";button.classList.toggle("active",!failed)}
+ if(failed)setStatus("پخش صدای کلاس توسط WebView مسدود شد؛ دوباره فعال‌سازی صدا را بزنید.");
+ else if(remoteAudioTracks===0)setStatus("خروجی صدا فعال شد؛ هنوز ترک صوتی از اعضای دیگر دریافت نشده است.");
+ else setStatus("صدای کلاس فعال است؛ ترک‌های صوتی دریافتی: "+remoteAudioTracks);
  return true;
 }
 const audioUnlockButton=$("audioOutput");if(audioUnlockButton)audioUnlockButton.onclick=unlockClassAudio;document.addEventListener("pointerdown",()=>{unlockClassAudio().catch(e=>console.warn("AUDIO_UNLOCK_ERROR",e))},{once:true});document.addEventListener("touchend",()=>{unlockClassAudio().catch(e=>console.warn("AUDIO_UNLOCK_ERROR",e))},{once:true});
