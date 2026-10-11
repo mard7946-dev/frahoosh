@@ -275,9 +275,24 @@ public final class MainActivity extends Activity {
     }
 
     private boolean isTrustedClassroomOrigin(Uri origin) {
-        if (origin == null || !"https".equalsIgnoreCase(origin.getScheme())) return false;
+        if (origin == null) return false;
+        String scheme = origin.getScheme();
         String host = origin.getHost();
-        return "frahoosh.ir".equalsIgnoreCase(host) || "www.frahoosh.ir".equalsIgnoreCase(host);
+
+        // The classroom entry and room are bundled in the APK. Depending on the
+        // Android System WebView version, getUserMedia permission requests for
+        // document.write()-loaded bundled HTML can report the app-asset file
+        // origin instead of the HTTPS base URL supplied to loadDataWithBaseURL.
+        // Trust only the packaged asset path in that case; never trust arbitrary
+        // file:// URLs or unrelated web origins.
+        if ("file".equalsIgnoreCase(scheme)) {
+            String path = origin.getPath();
+            return path != null && path.startsWith("/android_asset/");
+        }
+
+        if (!"https".equalsIgnoreCase(scheme)) return false;
+        return "frahoosh.ir".equalsIgnoreCase(host)
+                || "www.frahoosh.ir".equalsIgnoreCase(host);
     }
 
     private boolean hasRequestedMediaPermissions(PermissionRequest request) {
