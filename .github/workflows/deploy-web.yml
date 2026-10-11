@@ -36,6 +36,12 @@ jobs:
           cp mobile/assets/online_class.html dist/mobile/assets/online_class.html
           cp online_class_apk/classroom_patch.js dist/online_class_apk/classroom_patch.js
           printf '%s\n' 'frahoosh.ir' > dist/CNAME
+      - name: Verify online class pages
+        run: |
+          test -s dist/online-class/index.html
+          test -s dist/online-class/room.html
+          test -s dist/index.html
+          echo "Verified online-class entry, room page, and main site entry."
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
