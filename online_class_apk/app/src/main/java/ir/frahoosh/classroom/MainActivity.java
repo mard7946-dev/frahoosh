@@ -90,7 +90,12 @@ public final class MainActivity extends Activity {
                         html = html.replace("__BUNDLED_CLASS_HTML__", safeClassroom)
                                    .replace("__BUNDLED_PATCH_JS__", safePatch)
                                    .replace("__INITIAL_CONFIG_JSON__", safeConfig);
-                        target.loadDataWithBaseURL("file:///android_asset/",
+                        // Keep the bundled room on the same secure HTTPS origin as
+                        // the entry page. Using file:///android_asset/ here makes some
+                        // Android WebView builds treat getUserMedia as an insecure/local
+                        // origin and reject camera/microphone with NotAllowedError even
+                        // after Android runtime permissions have been granted.
+                        target.loadDataWithBaseURL("https://frahoosh.ir/online-class/",
                                 html, "text/html", "UTF-8", null);
                     } catch (Exception e) {
                         Log.e("FrahooshClassroom", "Could not load bundled classroom", e);
