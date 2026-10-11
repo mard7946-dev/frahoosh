@@ -85,6 +85,8 @@ body{height:100dvh;min-height:100dvh;overflow:hidden}header{height:58px;min-heig
 </div>
 <script>
 const C=__CONFIG__;
+// Expose the session to the bundled extension script (it reads window.C for presence/control signals).
+window.C=C;
 // The Android bootstrap document may survive on some WebView versions after document.write.
 // Remove its loading placeholder as soon as the real classroom script begins.
 try{document.getElementById("x")?.remove()}catch(_){}
