@@ -85,8 +85,6 @@ body{height:100dvh;min-height:100dvh;overflow:hidden}header{height:58px;min-heig
 </div>
 <script>
 const C=__CONFIG__;
-// Expose the session to the bundled extension script (it reads window.C for presence/control signals).
-window.C=C;
 // The Android bootstrap document may survive on some WebView versions after document.write.
 // Remove its loading placeholder as soon as the real classroom script begins.
 try{document.getElementById("x")?.remove()}catch(_){}
@@ -413,7 +411,7 @@ async function autoMarkEntry(){
 }
 
 async function startClass(){initOrientationControl();const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),$("orientationToggle"),$("quizToggle"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel"),$("videos"),document.querySelector(".side")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=false;const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await refreshSessionTimer();if(await enforceStudentBlock())return;await ensureMedia();await autoMarkEntry();
- async function connectSignalingWithRetry(){while(true){try{await initializeSignaling();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);return}catch(e){console.error("SIGNALING_INITIALIZATION_FAILED",e);setStatus("در حال برقراری ارتباط امن کلاس؛ تلاش مجدد خودکار…");await new Promise(resolve=>setTimeout(resolve,2000))}}}
+ async function connectSignalingWithRetry(){while(true){try{await initializeSignaling();await send("join",{name:C.name,role:C.role});await send("presence",{name:C.name,role:C.role});setInterval(()=>send("presence",{name:C.name,role:C.role}),5000);poll();setInterval(poll,900);return}catch(e){console.error("SIGNALING_INITIALIZATION_FAILED",e);setStatus("در حال برقراری ارتباط امن کلاس؛ تلاش مجدد خودکار…");await new Promise(resolve=>setTimeout(resolve,2000))}}}
  await connectSignalingWithRetry();setStatus("کلاس آماده است؛ منتظر صدای اعضا…");setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass().catch(e=>{console.error("CLASS_START_FAILED",e);setStatus("آماده‌سازی کلاس ناموفق بود؛ صفحه را دوباره باز کنید.")});
 </script>
 </body>
