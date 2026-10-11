@@ -201,7 +201,7 @@ async function autoMarkEntry(){
  }catch(e){console.error("Automatic attendance failed",e);alert("ثبت حضور خودکار انجام نشد؛ ورود به کلاس متوقف شد.");location.replace("/online-class/")}
 }
 
-function isTeacherRole(){return ["teacher","دبیر","manager","مدیر","executive","معاون اجرایی"].includes(C.role)}
+function isTeacherRole(){return ["teacher","دبیر"].includes(C.role)}
 function isStudentRole(){return ["student","دانش‌آموز"].includes(C.role)}
 
 function showTeacherWait(show,msg){
