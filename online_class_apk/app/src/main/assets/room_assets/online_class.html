@@ -140,41 +140,96 @@ function addVideo(id,name,stream){
  });
 }
 async function unlockClassAudio(){
- audioUnlocked=true;let failed=0,remoteAudioTracks=0,playable=0;
- // Explicitly unlock both playback paths used by Android WebView: the remote
- // video element and a dedicated audio element for every live receiver track.
+ audioUnlocked=true;let failed=0,remoteAudioTracks=0;
+ // The APK plays audio and video through the same remote MediaStream on <video>.
  for(const [id,pc] of peers){
   if(String(id)===String(C.userId))continue;
-  const liveTracks=pc.getReceivers().map(r=>r.track).filter(t=>t&&t.kind==="audio"&&t.readyState==="live");
-  remoteAudioTracks+=liveTracks.length;
-  let stream=remoteStreams.get(id);
-  if(!stream)stream=new MediaStream();
-  for(const track of liveTracks)if(!stream.getTracks().includes(track))stream.addTrack(track);
-  if(liveTracks.length)remoteStreams.set(id,stream);
-  let el=document.getElementById("audio-"+id);
-  if(liveTracks.length){
-   if(!el){el=document.createElement("audio");el.id="audio-"+id;el.autoplay=true;el.playsInline=true;el.setAttribute("playsinline","");el.style.display="none";document.body.appendChild(el)}
-   if(el.srcObject!==stream)el.srcObject=stream;
-   el.autoplay=true;el.muted=false;el.volume=1;
-   try{await el.play();playable++}catch(e){failed++;console.warn("AUDIO_OUTPUT_UNLOCK_FAILED",id,e)}
-  }
+  remoteAudioTracks+=pc.getReceivers().filter(r=>r.track&&r.track.kind==="audio"&&r.track.readyState==="live").length;
  }
- const videos=Array.from(document.querySelectorAll("#videos video"));
- for(const video of videos){
-  const tile=video.closest(".tile");
-  const isLocal=!!(tile&&String(tile.id)==="v-"+String(C.userId));
+ for(const video of document.querySelectorAll("#videos video")){
+  const tile=video.closest(".tile"),isLocal=!!(tile&&String(tile.id)==="v-"+String(C.userId));
   if(isLocal){video.muted=true;video.defaultMuted=true;video.volume=0;continue}
   video.muted=false;video.defaultMuted=false;video.volume=1;
-  try{const p=video.play();if(p&&p.catch)await p;playable++}catch(e){failed++;console.warn("CLASS_AUDIO_VIDEO_PLAY_BLOCKED",e&&e.name)}
+  try{const playback=video.play();if(playback&&playback.catch)await playback}
+  catch(error){failed++;console.warn("CLASS_AUDIO_VIDEO_PLAY_BLOCKED",error&&error.name)}
  }
  const button=$("audioOutput");
  if(button){button.textContent=failed?"تلاش دوباره برای صدای کلاس":"صدای کلاس فعال است";button.classList.toggle("active",!failed)}
- if(failed)setStatus("پخش صدای کلاس توسط WebView مسدود شد؛ دوباره فعال‌سازی صدا را بزنید.");
- else if(remoteAudioTracks===0)setStatus("خروجی صدا فعال شد؛ هنوز ترک صوتی از اعضای دیگر دریافت نشده است.");
+ if(failed)setStatus("پخش صدا/تصویر توسط WebView مسدود شد؛ دوباره فعال‌سازی صدا را بزنید.");
+ else if(remoteAudioTracks===0)setStatus("خروجی صدا فعال است؛ هنوز ترک صوتی از اعضای دیگر دریافت نشده است.");
  else setStatus("صدای کلاس فعال است؛ ترک‌های صوتی دریافتی: "+remoteAudioTracks);
  return true;
 }
-const audioUnlockButton=$("audioOutput");if(audioUnlockButton)audioUnlockButton.onclick=unlockClassAudio;document.addEventListener("pointerdown",()=>{unlockClassAudio().catch(e=>console.warn("AUDIO_UNLOCK_ERROR",e))},{once:true});document.addEventListener("touchend",()=>{unlockClassAudio().catch(e=>console.warn("AUDIO_UNLOCK_ERROR",e))},{once:true});
+const audioUnlockButton=$("audioOutput");if(audioUnlockButton)audioUnlockButton.onclick=()=>unlockClassAudio().catch(e=>console.warn("AUDIO_UNLOCK_ERROR",e));
+document.addEventListener("pointerdown",()=>{unlockClassAudio().catch(e=>console.warn("AUDIO_UNLOCK_ERROR",e))},{once:true});
+document.addEventListener("touchend",()=>{unlockClassAudio().catch(e=>console.warn("AUDIO_UNLOCK_ERROR",e))},{once:true});
+
+function removeVideo(id){const tile=document.getElementById("v-"+id);if(tile)tile.remove()}
+function renderPeople(){let html="";for(const [id,name] of names)html+='<div class="person">'+esc(name)+(String(id)===String(C.userId)?" (شما)":"")+"</div>";$("participants").innerHTML=html}
+async function ensureMedia(){
+ if(localStream)return true;
+ try{
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("MEDIA_API_UNAVAILABLE");
+  localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+  addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
+  for(const [,pc] of peers)for(const track of localStream.getTracks()){
+   if(!pc.getSenders().some(sender=>sender.track===track))pc.addTrack(track,localStream);
+  }
+  return true;
+ }catch(e){console.warn("MEDIA_PERMISSION_ERROR",e);setStatus("دسترسی میکروفون یا دوربین برقرار نشد؛ مجوزهای Android را بررسی کنید.");return false}
+}
+async function makePeer(id,name){
+ if(peers.has(id))return peers.get(id);
+ const pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
+ peers.set(id,pc);names.set(id,name||"کاربر");renderPeople();
+ if(localStream)localStream.getTracks().forEach(track=>pc.addTrack(track,localStream));
+ pc.onicecandidate=e=>{if(e.candidate)send("candidate",{candidate:e.candidate},id)};
+ // Match the APK's media path: one remote MediaStream feeds one unmuted video.
+ pc.ontrack=e=>{
+  let stream=e.streams&&e.streams[0];
+  if(!stream){
+   stream=remoteStreams.get(id)||new MediaStream();
+   if(e.track&&!stream.getTracks().some(track=>track.id===e.track.id))stream.addTrack(e.track);
+   remoteStreams.set(id,stream);
+  }else remoteStreams.set(id,stream);
+  addVideo(id,names.get(id)||"کاربر",stream);
+  if(audioUnlocked)unlockClassAudio().catch(error=>console.warn("AUDIO_UNLOCK_ERROR",error));
+ };
+ pc.onconnectionstatechange=()=>{if(["failed","closed","disconnected"].includes(pc.connectionState)){removeVideo(id)}};
+ return pc;
+}
+async function offerTo(id,name){const pc=await makePeer(id,name);const offer=await pc.createOffer();await pc.setLocalDescription(offer);await send("offer",{sdp:pc.localDescription,name:C.name},id)}
+async function poll(){
+ try{
+  const response=await api("online_class_signals?class_id=eq."+C.classId+"&id=gt."+lastId+"&order=id.asc&limit=200");
+  if(!response.ok)throw new Error("SIGNAL_POLL_HTTP_"+response.status);
+  const rows=await response.json();
+  for(const signal of rows){
+   lastId=Math.max(lastId,Number(signal.id)||0);
+   if(String(signal.sender_user_id)===String(C.userId))continue;
+   if(signal.receiver_user_id&&String(signal.receiver_user_id)!==String(C.userId))continue;
+   const p=signal.payload||{},id=signal.sender_user_id;
+   if(signal.signal_type==="join"){
+    names.set(id,p.name||"کاربر");renderPeople();
+    if(String(C.userId)<String(id))await offerTo(id,p.name);
+   }else if(signal.signal_type==="leave"){
+    peers.get(id)?.close();peers.delete(id);names.delete(id);remoteStreams.delete(id);removeVideo(id);renderPeople();
+   }else if(signal.signal_type==="offer"){
+    names.set(id,p.name||"کاربر");
+    const pc=await makePeer(id,p.name);await pc.setRemoteDescription(p.sdp);
+    const answer=await pc.createAnswer();await pc.setLocalDescription(answer);
+    await send("answer",{sdp:pc.localDescription,name:C.name},id);
+   }else if(signal.signal_type==="answer"){
+    const pc=peers.get(id);if(pc)await pc.setRemoteDescription(p.sdp);
+   }else if(signal.signal_type==="candidate"){
+    const pc=peers.get(id);if(pc&&p.candidate)try{await pc.addIceCandidate(p.candidate)}catch(error){console.warn("ICE_CANDIDATE_FAILED",id,error)}
+   }else if(signal.signal_type==="chat"){appendMsg(p.name||"کاربر",p.text||"")}
+   else if(signal.signal_type==="board"){applyBoard(p,false)}
+   else if(signal.signal_type==="quiz_answer"&&C.role!=="student"){loadQuizResults()}
+  }
+ }catch(error){console.warn("CLASS_SIGNAL_POLL_FAILED",error)}
+}
+
 function appendMsg(n,t){let d=document.createElement("div");d.className="msg";d.innerHTML="<b>"+esc(n)+"</b><br>"+esc(t);$("msgs").appendChild(d);$("msgs").scrollTop=$("msgs").scrollHeight}
 $("send").onclick=async()=>{let t=$("chatInput").value.trim();if(!t)return;appendMsg(C.name,t);$("chatInput").value="";await send("chat",{name:C.name,text:t})};
 $("mic").onclick=async()=>{
@@ -404,12 +459,15 @@ async function autoMarkEntry(){
 }
 
 async function startClass(){initOrientationControl();const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),$("orientationToggle"),$("quizToggle"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel"),$("videos"),document.querySelector(".side")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=false;const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open;mt.setAttribute("aria-expanded",String(drawer.open));};if(drawer)drawer.addEventListener("toggle",()=>{if(mt)mt.setAttribute("aria-expanded",String(drawer.open))});const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await refreshSessionTimer();if(await enforceStudentBlock())return;await ensureMedia();await autoMarkEntry();
- async function connectSignalingWithRetry(){while(true){try{await initializeSignaling();await send("join",{name:C.name,role:C.role});await send("presence",{name:C.name,role:C.role});
- // Re-discover after our own join. The first baseline intentionally skips old
- // signals, but two devices can join during that baseline; this second discovery
- // closes that race without replaying historical offers/answers.
- await initializeSignaling();
- setInterval(()=>send("presence",{name:C.name,role:C.role}),5000);poll();setInterval(poll,900);return}catch(e){console.error("SIGNALING_INITIALIZATION_FAILED",e);setStatus("در حال برقراری ارتباط امن کلاس؛ تلاش مجدد خودکار…");await new Promise(resolve=>setTimeout(resolve,2000))}}}
+ async function connectSignalingWithRetry(){while(true){try{
+  // Start from the beginning, as the APK does, so already-present participants
+  // are discovered from their join signals as well as newly joining participants.
+  lastId=0;
+  await send("join",{name:C.name,role:C.role});
+  await send("presence",{name:C.name,role:C.role});
+  setInterval(()=>send("presence",{name:C.name,role:C.role}),5000);
+  poll();setInterval(poll,900);return;
+ }catch(error){console.error("SIGNALING_INITIALIZATION_FAILED",error);setStatus("در حال برقراری ارتباط امن کلاس؛ تلاش مجدد خودکار…");await new Promise(resolve=>setTimeout(resolve,2000))}}}
  await connectSignalingWithRetry();setStatus("کلاس آماده است؛ منتظر صدای اعضا…");setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass().catch(e=>{console.error("CLASS_START_FAILED",e);setStatus("آماده‌سازی کلاس ناموفق بود؛ صفحه را دوباره باز کنید.")});
 </script>
 </body>
