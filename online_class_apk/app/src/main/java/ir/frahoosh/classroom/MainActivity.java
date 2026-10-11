@@ -80,9 +80,16 @@ public final class MainActivity extends Activity {
                         String html = readAsset("room.html");
                         String classroom = readAsset("room_assets/online_class.html");
                         String patch = readAsset("room_assets/classroom_patch.js");
-                        html = html.replace("__BUNDLED_CLASS_HTML__", org.json.JSONObject.quote(classroom))
-                                   .replace("__BUNDLED_PATCH_JS__", org.json.JSONObject.quote(patch))
-                                   .replace("__INITIAL_CONFIG_JSON__", saved);
+                        // JSON strings are embedded inside an HTML <script> block.
+                        // JSONObject.quote alone does not escape </script>, so the HTML
+                        // parser prematurely terminates the bootstrap script and leaves the
+                        // screen stuck on "در حال باز کردن کلاس...". Escape '<' as unicode.
+                        String safeClassroom = org.json.JSONObject.quote(classroom).replace("<", "\\u003c");
+                        String safePatch = org.json.JSONObject.quote(patch).replace("<", "\\u003c");
+                        String safeConfig = saved.replace("<", "\\u003c");
+                        html = html.replace("__BUNDLED_CLASS_HTML__", safeClassroom)
+                                   .replace("__BUNDLED_PATCH_JS__", safePatch)
+                                   .replace("__INITIAL_CONFIG_JSON__", safeConfig);
                         target.loadDataWithBaseURL("file:///android_asset/",
                                 html, "text/html", "UTF-8", null);
                     } catch (Exception e) {
