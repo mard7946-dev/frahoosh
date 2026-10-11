@@ -387,7 +387,13 @@ public final class MainActivity extends Activity {
         super.onRequestPermissionsResult(requestCode, permissions, results);
         if (requestCode == MEDIA_PERMISSION_REQUEST) {
             mediaPermissionRequestInFlight = false;
-            // Grant each requested capability independently after Android's permission dialog.
+            // WebView can issue separate camera and microphone requests almost simultaneously.
+            // Re-check both runtime permissions while requests are still queued; otherwise the
+            // second request can be denied merely because the first dialog was already in flight.
+            if (!pendingWebPermissions.isEmpty()) {
+                requestMediaPermissions();
+                if (mediaPermissionRequestInFlight) return;
+            }
             grantPendingWebPermissions();
         }
     }
