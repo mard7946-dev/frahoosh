@@ -230,7 +230,12 @@ async function ensureTeacherSession(){
     let rows=await r.json();
     let latest=rows[0];
     if(latest && !latest.ended_at && latest.started_at){
-      currentSession=latest.id; sessionStartedAt=Date.parse(latest.started_at); sessionDurationMinutes=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50)); classroomLive=true; updateClassTimer(); return true;
+      const startedMs=Date.parse(latest.started_at);
+      const durationMs=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50))*60*1000;
+      if(Number.isFinite(startedMs) && Date.now()-startedMs < durationMs){
+        currentSession=latest.id; sessionStartedAt=startedMs; sessionDurationMinutes=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50)); classroomLive=true; updateClassTimer(); return true;
+      }
+      await api("online_class_sessions?id=eq."+encodeURIComponent(latest.id),{method:"PATCH",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({ended_at:new Date().toISOString()})});
     }
     const started=new Date().toISOString();
     let durationMinutes=50;
@@ -265,14 +270,18 @@ async function waitForTeacherSession(){
       const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&order=id.desc&limit=1");
       const rows=await r.json(),latest=rows[0];
       if(latest && !latest.ended_at && latest.started_at){
-        currentSession=latest.id;
-        sessionStartedAt=Date.parse(latest.started_at);
-        sessionDurationMinutes=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50));
-        classroomLive=true;
-        updateClassTimer();
-        waitingForTeacher=false;
-        showTeacherWait(false);
-        return true;
+        const startedMs=Date.parse(latest.started_at);
+        const durationMs=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50))*60*1000;
+        if(Number.isFinite(startedMs) && Date.now()-startedMs < durationMs){
+          currentSession=latest.id;
+          sessionStartedAt=startedMs;
+          sessionDurationMinutes=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50));
+          classroomLive=true;
+          updateClassTimer();
+          waitingForTeacher=false;
+          showTeacherWait(false);
+          return true;
+        }
       }
       if($("teacherWaitStatus"))$("teacherWaitStatus").textContent="هنوز دبیر وارد کلاس نشده است...";
     }catch(e){
