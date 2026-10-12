@@ -5,41 +5,46 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0e1726">
 <title>کلاس آنلاین فراهوش</title>
+<style>
+html,body{margin:0;width:100%;height:100%;background:#0e1726;color:#fff;font-family:Tahoma,Arial,sans-serif}
+#x{padding:24px;text-align:center;line-height:2}
+#room{display:none;border:0;width:100%;height:100%;height:100dvh;background:#0e1726}
+a{color:#f3c65b}
+</style>
 </head>
-<body style="margin:0;background:#0e1726">
-<div id="x" style="color:#fff;text-align:center;padding:40px;font-family:Tahoma,Arial,sans-serif">در حال آماده‌سازی کلاس...</div>
+<body>
+<div id="x">در حال آماده‌سازی کلاس…</div>
+<iframe id="room" title="محیط کلاس آنلاین فراهوش" allow="camera; microphone; display-capture; autoplay; fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
 <script>
 (()=>{"use strict";
-const box=document.getElementById("x");
-const show=(m)=>{if(box)box.innerHTML=m+"<br><a style=\"display:inline-block;margin-top:18px;padding:12px 18px;background:#155eef;color:#fff;border-radius:10px;text-decoration:none\" href=\"index.html\">بازگشت به ورود کلاس</a>";};
-const timeout=8000;
+const box=document.getElementById("x"),frame=document.getElementById("room");
+const show=m=>{box.style.display="block";box.innerHTML=m+'<br><a href="index.html">بازگشت به ورود کلاس</a>';frame.style.display="none";};
 async function getText(path,label){
- const c=new AbortController(); const t=setTimeout(()=>c.abort(),timeout);
- try{
-  const u=new URL(path,location.href); u.searchParams.set("_v",Date.now());
-  const r=await fetch(u.href,{cache:"no-store",signal:c.signal});
-  if(!r.ok) throw new Error(label+" ("+r.status+")");
-  return await r.text();
- }catch(e){
-  if(e&&e.name==="AbortError") throw new Error(label+" — زمان پاسخ تمام شد.");
-  throw e;
- }finally{clearTimeout(t);}
+ const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
+ try{const u=new URL(path,location.href);u.searchParams.set("_v",Date.now());const r=await fetch(u.href,{cache:"no-store",signal:c.signal});if(!r.ok)throw Error(label+" ("+r.status+")");return await r.text();}
+ catch(e){if(e&&e.name==="AbortError")throw Error(label+"؛ زمان پاسخ تمام شد.");throw e;}
+ finally{clearTimeout(t);}
 }
 async function start(){
  let config=null;
- try{config=JSON.parse(sessionStorage.getItem("frahoosh_online_class_config")||"null")}catch(_){}
- if(!config){try{config=JSON.parse(localStorage.getItem("frahoosh_online_class_config")||"null")}catch(_){}}
+ for(const store of [sessionStorage,localStorage]){try{config=JSON.parse(store.getItem("frahoosh_online_class_config")||"null")}catch(_){}if(config)break;}
  if(!config){show("نشست کلاس آماده نیست؛ ابتدا از صفحه ورود کلاس وارد شوید.");return;}
- if(box)box.textContent="در حال بارگذاری محیط کلاس…";
+ if(!config.url||!config.anon||!config.token||!config.classId||!config.userId){show("اطلاعات نشست کلاس ناقص است؛ از صفحه ورود کلاس دوباره وارد شوید.");return;}
+ box.textContent="در حال بارگذاری محیط کلاس…";
  try{
-  const [html,patch]=await Promise.all([
+  let [html,patch]=await Promise.all([
    getText("../../mobile/assets/online_class.html","بارگذاری محیط کلاس ناموفق بود"),
    getText("../../online_class_apk/classroom_patch.js","بارگذاری کنترل‌های کلاس ناموفق بود")
   ]);
-  if(!html.includes("const C=__CONFIG__;")) throw new Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
-  const finalHtml=html.replace("const C=__CONFIG__;","const C="+JSON.stringify(config)+";")
-    .replace("</body>","<script>"+patch+"</scr"+"ipt></body>");
-  document.open();document.write(finalHtml);document.close();
+  if(!html.includes("const C=__CONFIG__;"))throw Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
+  html=html.replace("const C=__CONFIG__;","window.C="+JSON.stringify(config)+";const C=window.C;");
+  const closeScript="</scr"+"ipt>";
+  html=html.replace("</body>","<script>"+patch+closeScript+"</body>");
+  const base=document.createElement("base");base.href=new URL("../../mobile/assets/online_class.html",location.href).href;
+  html=html.replace(/<head([^>]*)>/i,"<head$1>"+base.outerHTML);
+  frame.onload=()=>{box.style.display="none";frame.style.display="block";};
+  frame.srcdoc=html;
+  setTimeout(()=>{try{if(frame.contentDocument&&frame.contentDocument.readyState==="complete"){box.style.display="none";frame.style.display="block";}}catch(_){}},1000);
  }catch(e){show("باز کردن کلاس انجام نشد: "+(e&&e.message?e.message:"خطای ناشناخته"));}
 }
 start();
