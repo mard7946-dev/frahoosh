@@ -38,6 +38,8 @@ header{background:linear-gradient(110deg,#06101f,#0c2036 65%,#112e48);border-bot
 @media(max-width:800px){#teacherWaitOverlay section{padding:22px}}
 
 /* Recommit checkpoint: classroom access controls */
+/* On phones/tablets, keep the teacher whiteboard full-width; place roster/chat below it instead of squeezing the board beside the sidebar. */
+@media(max-width:1000px){body.teacher-room-layout .layout{grid-template-columns:minmax(0,1fr)!important}.teacher-room-layout .main{width:100%;min-width:0}.teacher-room-layout .boardwrap{width:100%;height:calc(100dvh - 150px);min-height:420px}.teacher-room-layout .board{width:100%;min-width:0}.teacher-room-layout .side{width:100%;min-width:0;min-height:300px}.teacher-room-layout .videos{width:100%}}
 </style>
 </head>
 <body>
@@ -432,6 +434,7 @@ async function waitForTeacherSession(){
 
 function applyClassroomRoleView(){
   const side=document.querySelector(".side"),layout=document.querySelector(".layout");
+  document.body.classList.toggle("teacher-room-layout",isTeacherRole());
   if(isTeacherRole()||isManagerRole()){
     if(side)side.style.display="flex";
     if(layout)layout.style.gridTemplateColumns="minmax(0,1fr) 265px";
