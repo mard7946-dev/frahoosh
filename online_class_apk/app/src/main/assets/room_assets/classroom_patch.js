@@ -47,8 +47,8 @@ function restrictStudentUI(){
  const chat=document.querySelector(".chat");if(chat)chat.style.display="none";
  const side=document.querySelector(".side");if(side)side.style.display="none";
  const layout=document.querySelector(".layout");if(layout)layout.style.gridTemplateColumns="1fr";
- const quiz=$("quizPanel");if(quiz)quiz.style.display="none";
- const quizToggle=$("quizToggle");if(quizToggle)quizToggle.style.display="none";
+ const quiz=$("quizPanel");if(quiz){quiz.style.display="block";const create=$("quizCreate");if(create)create.style.display="none";const results=$("quizResults");if(results)results.style.display="none"}
+ const quizToggle=$("quizToggle");if(quizToggle){quizToggle.style.display="inline-block";quizToggle.disabled=false;quizToggle.textContent="آزمونک‌های منتشرشده"}
  for(const id of ["mic","cam","screen","prev","next","clear","clearAll","color","size","teacherToolPermission"]){const el=$(id);if(el)el.style.display="none"}
  document.querySelectorAll("[data-tool]").forEach(el=>{const ok=["pen","eraser"].includes(el.dataset.tool);el.style.display=ok?"inline-block":"none"});
  const fileManager=$("fileManager");if(fileManager)fileManager.style.display="block";
