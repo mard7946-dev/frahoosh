@@ -11,7 +11,7 @@
 <body><main class="card"><h1>۴۰۴ — صفحه یافت نشد</h1><p>صفحهٔ موردنظر پیدا نشد. برای ورود مستقل به کلاس آنلاین، از پیوند مستقیم زیر استفاده کنید.</p><div class="links"><a href="/online-class/index.html">ورود مستقیم به کلاس آنلاین فراهوش</a><a class="secondary" href="/">بازگشت به داشبورد فراهوش</a></div></main><script>
 /* Recover the legacy invite route when a static host serves its custom 404 page. */
 (function () {
-  var path = window.location.pathname.replace(/\\/+$/, "") || "/";
+  var path = window.location.pathname.replace(/\/+$/, "") || "/";
   if (path === "/online-class") {
     window.location.replace("/online-class/index.html" + window.location.search + window.location.hash);
   }
