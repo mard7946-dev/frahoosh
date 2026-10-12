@@ -384,11 +384,25 @@ async function ensureTeacherSession(){
 
 async function waitForTeacherSession(){
   if(!isStudentRole())return true;
+  // Guest join RPC already validated the invitation and returned the exact active session.
+  // Do not query the sessions table again: guest RLS may hide rows and leave the guest waiting forever.
+  if(String(C.role||"").toLowerCase()==="guest" && C.sessionId){
+    const startedMs=Date.parse(C.sessionStartedAt||"");
+    currentSession=Number(C.sessionId);
+    sessionStartedAt=Number.isFinite(startedMs)?startedMs:Date.now();
+    sessionDurationMinutes=Math.max(1,Math.min(240,Number(C.durationMinutes)||50));
+    timerSessionId=currentSession;
+    timerRemainingSeconds=Math.max(0,Math.ceil((sessionStartedAt+sessionDurationMinutes*60000-Date.now())/1000));
+    classroomLive=true;
+    waitingForTeacher=false;
+    updateClassTimer();
+    showTeacherWait(false);
+    return true;
+  }
   waitingForTeacher=true; showTeacherWait(true);
   while(waitingForTeacher){
     try{
-      const sessionPath=(String(C.role||"").toLowerCase()==="guest" && C.sessionId)?"online_class_sessions?id=eq."+encodeURIComponent(C.sessionId)+"&class_id=eq."+encodeURIComponent(C.classId)+"&limit=1":"online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&teacher_user_id=not.is.null&order=id.desc&limit=1";
-      const r=await api(sessionPath);
+      const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&teacher_user_id=not.is.null&order=id.desc&limit=1");
       const rows=await r.json(),latest=rows[0];
       if(latest && !latest.ended_at && latest.started_at){
         const startedMs=Date.parse(latest.started_at);
