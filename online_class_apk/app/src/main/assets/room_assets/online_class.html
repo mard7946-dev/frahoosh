@@ -88,6 +88,13 @@ async function createGuestInvite(){
   const button=document.getElementById("guestInvite");
   if(button)button.disabled=true;
   try{
+    // Claim/start the server-side session before requesting an invite. Merely loading the room
+    // does not guarantee that the authenticated teacher's active session was persisted.
+    const startResponse=await fetch(C.url+"/rest/v1/rpc/start_online_class_session",{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"},body:JSON.stringify({p_class_id:Number(C.classId)})});
+    if(!startResponse.ok){
+      const startRaw=await startResponse.text();let startError;try{startError=JSON.parse(startRaw)}catch(_){startError=startRaw}
+      throw Error(typeof startError==="string"?startError:(startError.message||startError.details||"شروع جلسه دبیر در سرور تأیید نشد"));
+    }
     const response=await fetch(C.url+"/rest/v1/rpc/get_online_class_guest_invite",{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"},body:JSON.stringify({p_class_id:Number(C.classId)})});
     const raw=await response.text();let code;try{code=JSON.parse(raw)}catch(_){code=raw}
     if(!response.ok)throw Error(typeof code==="string"?code:(code.message||code.details||"ساخت لینک دعوت ناموفق بود"));
