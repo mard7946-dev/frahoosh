@@ -1,0 +1,56 @@
+<!doctype html>
+<!-- guest-session-entry-fix: 736145982852e2781979d6615fb13cd178329c46 -->
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0e1726">
+<title>کلاس آنلاین فراهوش</title>
+<style>
+html,body{margin:0;width:100%;height:100%;background:#0e1726;color:#fff;font-family:Tahoma,Arial,sans-serif}
+#x{padding:24px;text-align:center;line-height:2}
+#room{display:none;border:0;width:100%;height:100%;height:100dvh;background:#0e1726}
+a{color:#f3c65b}
+</style>
+</head>
+<body>
+<div id="x">در حال آماده‌سازی کلاس…</div>
+<iframe id="room" title="محیط کلاس آنلاین فراهوش" allow="camera; microphone; display-capture; autoplay; fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
+<script>
+(()=>{"use strict";
+const box=document.getElementById("x"),frame=document.getElementById("room");
+const show=m=>{box.style.display="block";box.innerHTML=m+'<br><a href="index.html">بازگشت به ورود کلاس</a>';frame.style.display="none";};
+async function getText(path,label){
+ const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
+ try{const u=new URL(path,location.href);u.searchParams.set("_v",Date.now());const r=await fetch(u.href,{cache:"no-store",signal:c.signal});if(!r.ok)throw Error(label+" ("+r.status+")");return await r.text();}
+ catch(e){if(e&&e.name==="AbortError")throw Error(label+"؛ زمان پاسخ تمام شد.");throw e;}
+ finally{clearTimeout(t);}
+}
+async function start(){
+ let config=null;
+ for(const store of [sessionStorage,localStorage]){try{config=JSON.parse(store.getItem("frahoosh_online_class_config")||"null")}catch(_){}if(config)break;}
+ if(!config){show("نشست کلاس آماده نیست؛ ابتدا از صفحه ورود کلاس وارد شوید.");return;}
+ if(!config.url||!config.anon||!config.token||!config.classId||!config.userId){show("اطلاعات نشست کلاس ناقص است؛ از صفحه ورود کلاس دوباره وارد شوید.");return;}
+ box.textContent="در حال بارگذاری محیط کلاس…";
+ try{
+  let [html,patch]=await Promise.all([
+   getText("../../online_class_apk/app/src/main/assets/room_assets/online_class.html","بارگذاری محیط کلاس مستقل APK ناموفق بود"),
+   getText("../../online_class_apk/app/src/main/assets/room_assets/classroom_patch.js","بارگذاری ابزارهای مستقل APK ناموفق بود")
+  ]);
+  if(!html.includes("const C=__CONFIG__;"))throw Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
+  config.guestInviteBase="https://raw.githack.com/mard7946-dev/frahoosh/main/web/online-class/index.html";
+  html=html.replace("const C=__CONFIG__;","window.C="+JSON.stringify(config)+";const C=window.C;");
+  const closeScript="</scr"+"ipt>";
+  html=html.replace("</body>","<script>"+patch+closeScript+"</body>");
+  const base=document.createElement("base");base.href=new URL("../../online_class_apk/app/src/main/assets/room_assets/online_class.html",location.href).href;
+  html=html.replace(/<head([^>]*)>/i,"<head$1>"+base.outerHTML);
+  frame.onload=()=>{box.style.display="none";frame.style.display="block";};
+  frame.srcdoc=html;
+  setTimeout(()=>{try{if(frame.contentDocument&&frame.contentDocument.readyState==="complete"){box.style.display="none";frame.style.display="block";}}catch(_){}},1000);
+ }catch(e){show("باز کردن کلاس انجام نشد: "+(e&&e.message?e.message:"خطای ناشناخته"));}
+}
+start();
+})();
+</script>
+</body>
+</html>
