@@ -383,8 +383,7 @@ async function ensureTeacherSession(){
 
 async function waitForTeacherSession(){
   if(!isStudentRole())return true;
-  // Guest join RPC already validated the invitation and returned the exact active session.
-  // Do not query the sessions table again: guest RLS may hide rows and leave the guest waiting forever.
+  // Guest join RPC already validates the teacher's real room-entry signal and returns its exact active session.
   if(String(C.role||"").toLowerCase()==="guest" && C.sessionId){
     const startedMs=Date.parse(C.sessionStartedAt||"");
     currentSession=Number(C.sessionId);
@@ -403,25 +402,28 @@ async function waitForTeacherSession(){
     try{
       const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&teacher_user_id=not.is.null&order=id.desc&limit=1");
       const rows=await r.json(),latest=rows[0];
-      if(latest && !latest.ended_at && latest.started_at){
+      if(latest && !latest.ended_at && latest.started_at && latest.teacher_user_id){
         const startedMs=Date.parse(latest.started_at);
         const durationMs=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50))*60*1000;
         if(Number.isFinite(startedMs) && Date.now()-startedMs < durationMs){
-          currentSession=latest.id;
-          sessionStartedAt=startedMs;
-          sessionDurationMinutes=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50));
-          classroomLive=true;
-          updateClassTimer();
-          waitingForTeacher=false;
-          showTeacherWait(false);
-          return true;
+          const signalsResponse=await api("online_class_signals?class_id=eq."+encodeURIComponent(C.classId)+"&sender_user_id=eq."+encodeURIComponent(latest.teacher_user_id)+"&signal_type=eq.join&created_at=gte."+encodeURIComponent(latest.started_at)+"&order=id.desc&limit=20");
+          const signals=await signalsResponse.json();
+          const teacherReallyJoined=Array.isArray(signals)&&signals.some(sig=>["teacher","دبیر"].includes(String(sig.payload?.role||"").toLowerCase()));
+          if(teacherReallyJoined){
+            currentSession=latest.id;
+            sessionStartedAt=startedMs;
+            sessionDurationMinutes=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50));
+            classroomLive=true;
+            updateClassTimer();
+            waitingForTeacher=false;
+            showTeacherWait(false);
+            return true;
+          }
         }
       }
-      if($("teacherWaitStatus"))$("teacherWaitStatus").textContent="هنوز دبیر وارد کلاس نشده است...";
-    }catch(e){
-      if($("teacherWaitStatus"))$("teacherWaitStatus").textContent="در حال اتصال به وضعیت کلاس...";
-    }
-    await new Promise(r=>setTimeout(r,2000));
+      if($("teacherWaitStatus"))$("teacherWaitStatus").textContent="تا ورود واقعی دبیر به اتاق، ورود دانش‌آموز غیرفعال است؛ لطفاً منتظر بمانید.";
+    }catch(e){console.warn("Waiting for teacher room-entry signal",e)}
+    await new Promise(r=>setTimeout(r,2500));
   }
   return false;
 }
