@@ -264,15 +264,15 @@ async function refreshSessionTimer(){
    return;
   }
   if(!Number.isFinite(started))return;
-  if(currentSession!==latest.id || timerSessionId!==latest.id){
-   currentSession=latest.id;
-   timerSessionId=latest.id;
-   sessionStartedAt=started;
-   sessionDurationMinutes=duration;
-   timerRemainingSeconds=Math.max(0,Math.ceil((started+duration*60000-Date.now())/1000));
-   classroomLive=true;
-   updateClassTimer();
-  }
+  currentSession=latest.id;
+  timerSessionId=latest.id;
+  sessionStartedAt=started;
+  sessionDurationMinutes=duration;
+  // Derive the countdown from the server's start time on every refresh, so sleeping/reopening
+  // a device cannot extend the class beyond its configured duration (default 50 minutes).
+  timerRemainingSeconds=Math.max(0,Math.ceil((started+duration*60000-Date.now())/1000));
+  classroomLive=true;
+  updateClassTimer();
   if(timerRemainingSeconds<=0){
    if(isTeacherRole())await endClassSession();else await closeClassSessionUI();
   }
