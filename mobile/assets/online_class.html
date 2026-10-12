@@ -41,7 +41,7 @@ header{background:linear-gradient(110deg,#06101f,#0c2036 65%,#112e48);border-bot
 <div class="layout">
 <main class="main">
 <div id="videos" class="videos"></div>
-<div class="boardwrap">
+<div class="boardwrap" id="boardwrap">
 <div class="boardbar">
 <div class="tools">
 <button data-tool="pen" class="active">قلم</button><button data-tool="eraser">پاک‌کن</button>
@@ -77,7 +77,7 @@ const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":
 const $=id=>document.getElementById(id);
 let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=true,cam=true;
 let tool="pen",color="#0b1f3a",size=4,drawing=false,start=null,points=[],pageNo=1;
-let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null;const teacherRoles=["teacher","دبیر"],studentRoles=["student","دانش‌آموز"];const isTeacher=()=>teacherRoles.includes(String(C.role||"").toLowerCase())||C.role==="teacher";const isStudent=()=>studentRoles.includes(String(C.role||""));
+let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null;const normalizeRole=v=>String(v||"").trim().toLowerCase();const staffRoles=["teacher","دبیر","manager","مدیر","principal","معاون آموزشی","معاون اجرایی","معاون پرورشی","مشاوره","educational","executive","counselor"];const studentRoles=["student","دانش‌آموز","دانش آموز"];const isTeacher=()=>staffRoles.includes(normalizeRole(C.role));const isStudent=()=>studentRoles.includes(String(C.role||"").trim())||normalizeRole(C.role)==="student";
 $("className").textContent=C.classId;
 function api(path,opts={}){return fetch(C.url+"/rest/v1/"+path,Object.assign({headers},opts))}
 function jsonHeaders(extra={}){return Object.assign({},headers,extra)}
