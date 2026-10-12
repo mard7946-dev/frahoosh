@@ -122,7 +122,7 @@ async function openRoom(id){try{const role=String(profile.role||"student").toLow
   if(sessionError) throw Error("بررسی شروع کلاس ممکن نشد؛ لطفاً دوباره تلاش کنید.");
   if(!activeSessions||activeSessions.length===0) throw Error("هنوز دبیر وارد کلاس نشده است. پس از ورود میزبان دوباره تلاش کنید.");
   const roomConfig={url:U,anon:K,token:authData.session.access_token,userId:authData.session.user.id,classId:Number(row.class_id),sessionId:activeSessions[0].id,sessionStartedAt:activeSessions[0].started_at||null,name,role:"guest",guestCode:code,maxBoardPages:15};sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig));try{localStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig))}catch(_){}
-  location.href="/online-class/room.html";
+  location.href="room.html";
  } catch(e) { $("guestMsg").textContent="ورود میهمان انجام نشد: "+(e.message||"خطای نامشخص"); }
  finally { $("guestJoin").disabled=false; }
 }
