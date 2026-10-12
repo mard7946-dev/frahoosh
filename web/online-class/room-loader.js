@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 function showError(message){
  const box=$("x");
- if(box) box.innerHTML=message+"<br><a style=\"display:inline-block;margin-top:18px;padding:12px 18px;background:#155eef;color:white;border-radius:10px;text-decoration:none\" href=\"/online-class/index.html\">بازگشت به ورود کلاس</a>";
+ if(box) box.innerHTML=message+"<br><a style=\"display:inline-block;margin-top:18px;padding:12px 18px;background:#155eef;color:white;border-radius:10px;text-decoration:none\" href=\"index.html\">بازگشت به ورود کلاس</a>";
 }
 async function getText(path,label){
  const response=await fetch(path,{cache:"no-store"});
@@ -16,8 +16,8 @@ async function start(){
  if(!config){showError("نشست کلاس آماده نیست؛ ابتدا از صفحه ورود، میزبان یا میهمان وارد شوید.");return;}
  try{
   let [html,patch]=await Promise.all([
-   getText("/mobile/assets/online_class.html","بارگذاری محیط کلاس ناموفق بود"),
-   getText("/online_class_apk/classroom_patch.js","بارگذاری کنترل‌های کلاس ناموفق بود")
+   getText("../../mobile/assets/online_class.html","بارگذاری محیط کلاس ناموفق بود"),
+   getText("../../online_class_apk/classroom_patch.js","بارگذاری کنترل‌های کلاس ناموفق بود")
   ]);
   if(!html.includes("const C=__CONFIG__;")) throw new Error("جایگاه تنظیمات محیط کلاس در فایل پیدا نشد.");
   html=html.replace("const C=__CONFIG__;","const C="+JSON.stringify(config)+";");
