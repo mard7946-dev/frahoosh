@@ -425,7 +425,7 @@ async function waitForTeacherSession(){
 }
 
 function applyClassroomRoleView(){
-  const side=$(".side"),layout=$(".layout");
+  const side=document.querySelector(".side"),layout=document.querySelector(".layout");
   if(isTeacherRole()){
     if(side)side.style.display="flex";
     if(layout)layout.style.gridTemplateColumns="minmax(0,1fr) 265px";
