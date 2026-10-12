@@ -63,7 +63,9 @@ const U=FRAHOOH_CONFIG.supabase_url,K=FRAHOOH_CONFIG.supabase_anon_key;let token
   if(!id||!pw)throw Error("نام کاربری و رمز عبور را کامل وارد کنید.");
   let email=id;
   if(!id.includes("@")){
-   const lookup=await fetch(U+"/rest/v1/rpc/lookup_auth_emails_by_national_code",{
+   // Production Supabase exposes the singular RPC and it returns a scalar email string.
+   // Do not call the plural RPC: it is not installed on the live database.
+   const lookup=await fetch(U+"/rest/v1/rpc/lookup_auth_email_by_national_code",{
     method:"POST",
     headers:{"apikey":K,"Content-Type":"application/json"},
     body:JSON.stringify({p_national_code:id})
@@ -72,9 +74,8 @@ const U=FRAHOOH_CONFIG.supabase_url,K=FRAHOOH_CONFIG.supabase_anon_key;let token
    let result;
    try{result=raw?JSON.parse(raw):null}catch(_){throw Error("پاسخ سرویس تشخیص نام کاربری معتبر نیست.")}
    if(!lookup.ok)throw Error("بررسی نام کاربری ناموفق بود ("+lookup.status+"): "+(result?.message||result?.hint||result?.details||"لطفاً دوباره تلاش کنید."));
-   const rows=Array.isArray(result)?result:[];
-   email=rows.find(x=>x&&typeof x.email==="string"&&x.email.includes("@"))?.email||"";
-   if(!email)throw Error("برای این نام کاربری/کد ملی حسابی پیدا نشد. کد ملی یا ایمیل ثبت‌شده را وارد کنید.");
+   email=typeof result==="string"?result:(Array.isArray(result)?(result[0]?.email||""):(result?.email||""));
+   if(!email||!email.includes("@"))throw Error("برای این نام کاربری/کد ملی حسابی پیدا نشد. نام کاربری یا کد ملی ثبت‌شده را بررسی کنید.");
   }
   const auth=await fetch(U+"/auth/v1/token?grant_type=password",{
    method:"POST",
