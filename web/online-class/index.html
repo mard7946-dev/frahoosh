@@ -166,17 +166,10 @@ async function openRoom(id){try{const role=String(profile.role||"student").toLow
   if(error) throw error;
   const row=Array.isArray(data)?data[0]:data;
   if(!row||!row.class_id) throw Error("کلاس معتبری برای این لینک پیدا نشد.");
-  // Guests must wait until the host has started an active session.
-  const {data:activeSessions,error:sessionError}=await client
-    .from("online_class_sessions")
-    .select("id,started_at")
-    .eq("class_id",Number(row.class_id))
-    .is("ended_at",null)
-    .order("id",{ascending:false})
-    .limit(1);
-  if(sessionError) throw Error("بررسی شروع کلاس ممکن نشد؛ لطفاً دوباره تلاش کنید.");
-  if(!activeSessions||activeSessions.length===0) throw Error("هنوز دبیر وارد کلاس نشده است. پس از ورود میزبان دوباره تلاش کنید.");
-  const roomConfig={url:U,anon:K,token:authData.session.access_token,userId:authData.session.user.id,classId:Number(row.class_id),sessionId:activeSessions[0].id,sessionStartedAt:activeSessions[0].started_at||null,name,role:"guest",guestCode:code,maxBoardPages:15};sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig));try{localStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig))}catch(_){}
+  // The secure join RPC validates that the teacher's session is active and returns its exact ID.
+  // Avoid a second direct table read here: RLS may correctly hide session rows from a guest.
+  if(!row.session_id) throw Error("جلسه فعال دبیر تأیید نشد؛ پس از ورود دبیر دوباره تلاش کنید.");
+  const roomConfig={url:U,anon:K,token:authData.session.access_token,userId:authData.session.user.id,classId:Number(row.class_id),sessionId:row.session_id,sessionStartedAt:row.started_at||null,name,role:"guest",guestCode:code,maxBoardPages:15};sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig));try{localStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig))}catch(_){}
   location.href="room.html";
  } catch(e) { $("guestMsg").textContent="ورود میهمان انجام نشد: "+(e.message||"خطای نامشخص"); }
  finally { $("guestJoin").disabled=false; }
