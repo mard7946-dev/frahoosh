@@ -38,7 +38,7 @@ async function start(){
    getText("../../online_class_apk/app/src/main/assets/room_assets/classroom_patch.js","بارگذاری ابزارهای مستقل APK ناموفق بود")
   ]);
   if(!html.includes("const C=__CONFIG__;"))throw Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
-  config.guestInviteBase=new URL("index.html",location.href).href;
+  config.guestInviteBase="https://raw.githack.com/mard7946-dev/frahoosh/main/web/online-class/index.html";
   html=html.replace("const C=__CONFIG__;","window.C="+JSON.stringify(config)+";const C=window.C;");
   const closeScript="</scr"+"ipt>";
   html=html.replace("</body>","<script>"+patch+closeScript+"</body>");
