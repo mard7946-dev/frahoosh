@@ -151,7 +151,7 @@ canvas.addEventListener("pointermove",e=>{if(isStudentRole()&&!toolsAllowed)retu
 canvas.addEventListener("pointerup",async e=>{if(isStudentRole()&&!toolsAllowed){drawing=false;return}if(!drawing)return;drawing=false;let end=pos(e),p;if(tool==="pen"||tool==="eraser")p={tool,points};else p={tool,x1:start[0],y1:start[1],x2:end[0],y2:end[1]};await saveBoard(p);points=[]});
 
 async function loadFiles(){try{let r=await api("smart_board_files?class_id=eq."+C.classId+"&order=id.desc&limit=100");let rows=await r.json();$("files").innerHTML=rows.map(x=>'<div class="fileitem"><b>'+esc(x.title||x.file_type||"فایل")+'</b><br>'+esc(x.file_type||"")+"<br><button onclick='downloadFile("+JSON.stringify(x.file_path)+","+JSON.stringify(x.title||"فایل")+" )'>مشاهده / دریافت</button></div>").join("")}catch(e){}}
-async function uploadFile(file){if(!file||["student","دانش‌آموز","guest","میهمان"].includes(String(C.role||"").toLowerCase()))return;try{if(file.size>50*1024*1024)throw new Error("حجم فایل بیشتر از ۵۰ مگابایت است");let safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");let path=C.classId+"/"+C.userId+"/"+Date.now()+"_"+safe;let u=C.url+"/storage/v1/object/online-class-files/"+path;let rr=await fetch(u,{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":file.type||"application/octet-stream","x-upsert":"false"},body:file});if(!rr.ok)throw new Error(await rr.text());await api("smart_board_files",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({title:file.name,file_path:path,file_type:file.type||"application/octet-stream",class_id:C.classId,description:"فایل اشتراکی کلاس هوشمند"})});await loadFiles()}catch(e){alert("ارسال فایل انجام نشد: "+e.message)}}
+async function uploadFile(file){if(!file)return;if(isStudentRole()&&!toolsAllowed){setStatus("اشتراک فایل تا اجازه دبیر غیرفعال است.");return}try{}if(file.size>50*1024*1024)throw new Error("حجم فایل بیشتر از ۵۰ مگابایت است");let safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");let path=C.classId+"/"+C.userId+"/"+Date.now()+"_"+safe;let u=C.url+"/storage/v1/object/online-class-files/"+path;let rr=await fetch(u,{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":file.type||"application/octet-stream","x-upsert":"false"},body:file});if(!rr.ok)throw new Error(await rr.text());await api("smart_board_files",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({title:file.name,file_path:path,file_type:file.type||"application/octet-stream",class_id:C.classId,description:"فایل اشتراکی کلاس هوشمند"})});await loadFiles()}catch(e){alert("ارسال فایل انجام نشد: "+e.message)}}
 async function downloadFile(path,title){try{let r=await fetch(C.url+"/storage/v1/object/authenticated/online-class-files/"+path,{headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token}});if(!r.ok)throw new Error("دسترسی به فایل ممکن نیست");let blob=await r.blob(),url=URL.createObjectURL(blob);if(blob.type.startsWith("video/")){$("previewVideo").style.display="block";$("previewVideo").src=url;$("previewVideo").play().catch(()=>{})}else{let a=document.createElement("a");a.href=url;a.download=title||"file";a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}}catch(e){alert("دریافت فایل انجام نشد.")}}
 $("file").onchange=e=>uploadFile(e.target.files[0]);
 
@@ -335,12 +335,19 @@ function showTeacherWait(show,msg){
 function setStudentToolsPermission(allowed){
   toolsAllowed=!!allowed;
   if(!isStudentRole())return;
-  document.querySelectorAll("[data-tool],#color,#size,#clear,#clearAll,#file,#qsave,#screen,#mic,#cam").forEach(el=>{
-    if(el)el.classList.toggle("studentLocked",!toolsAllowed);
-    if(el && "disabled" in el)el.disabled=!toolsAllowed;
+  const allowedTools=new Set(["pen","eraser"]);
+  document.querySelectorAll("[data-tool]").forEach(el=>{
+    const permitted=toolsAllowed&&allowedTools.has(el.dataset.tool);
+    el.style.display=allowedTools.has(el.dataset.tool)?"inline-block":"none";
+    el.disabled=!permitted;el.classList.toggle("studentLocked",!permitted);
   });
-  const st=$("page");
-  if(st)st.textContent=toolsAllowed?"ابزارهای کلاس برای شما فعال شد.":"تا اجازه دبیر داده نشود، ابزارهای کلاس غیرفعال است.";
+  for(const id of ["color","size","prev","next","clear","clearAll","teacherToolPermission","mic","cam","screen","quizToggle","qsave"]){
+    const el=$(id);if(!el)continue;el.style.display="none";if("disabled" in el)el.disabled=true;
+  }
+  const file=$("file");if(file){file.style.display="block";file.disabled=!toolsAllowed;file.classList.toggle("studentLocked",!toolsAllowed)}
+  const fm=$("fileManager");if(fm)fm.style.display="block";
+  const quiz=$("quizPanel");if(quiz)quiz.style.display="none";
+  const st=$("page");if(st)st.textContent=toolsAllowed?"فقط قلم، پاک‌کن و اشتراک فایل/ویدیو فعال است.":"قلم، پاک‌کن و اشتراک فایل/ویدیو تا اجازه دبیر غیرفعال است.";
 }
 
 async function ensureTeacherSession(){
@@ -384,58 +391,47 @@ async function ensureTeacherSession(){
 
 async function waitForTeacherSession(){
   if(!isStudentRole())return true;
-  // Guest join RPC already validates the teacher's real room-entry signal and returns its exact active session.
-  if(String(C.role||"").toLowerCase()==="guest" && C.sessionId){
-    const startedMs=Date.parse(C.sessionStartedAt||"");
-    currentSession=Number(C.sessionId);
-    sessionStartedAt=Number.isFinite(startedMs)?startedMs:Date.now();
-    sessionDurationMinutes=Math.max(1,Math.min(240,Number(C.durationMinutes)||50));
-    timerSessionId=currentSession;
-    timerRemainingSeconds=Math.max(0,Math.ceil((sessionStartedAt+sessionDurationMinutes*60000-Date.now())/1000));
-    classroomLive=true;
-    waitingForTeacher=false;
-    updateClassTimer();
-    showTeacherWait(false);
-    return true;
-  }
-  waitingForTeacher=true; showTeacherWait(true);
+  waitingForTeacher=true;showTeacherWait(true);
   while(waitingForTeacher){
     try{
-      const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&teacher_user_id=not.is.null&order=id.desc&limit=1");
-      const rows=await r.json(),latest=rows[0];
-      if(latest && !latest.ended_at && latest.started_at && latest.teacher_user_id){
+      const isGuest=String(C.role||"").toLowerCase()==="guest"&&Number(C.sessionId)>0;
+      const sessionQuery=isGuest
+        ?"online_class_sessions?id=eq."+encodeURIComponent(C.sessionId)+"&class_id=eq."+encodeURIComponent(C.classId)+"&limit=1"
+        :"online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&teacher_user_id=not.is.null&order=id.desc&limit=1";
+      const r=await api(sessionQuery);const rows=await r.json(),latest=rows[0];
+      if(latest&&latest.ended_at){
+        if($("teacherWaitStatus"))$("teacherWaitStatus").textContent="این جلسه پایان یافته است؛ از دبیر لینک جلسه فعال را دریافت کنید.";
+      }else if(latest&&latest.started_at&&latest.teacher_user_id){
         const startedMs=Date.parse(latest.started_at);
-        const durationMs=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50))*60*1000;
-        if(Number.isFinite(startedMs) && Date.now()-startedMs < durationMs){
-          const signalsResponse=await api("online_class_signals?class_id=eq."+encodeURIComponent(C.classId)+"&sender_user_id=eq."+encodeURIComponent(latest.teacher_user_id)+"&signal_type=eq.join&created_at=gte."+encodeURIComponent(latest.started_at)+"&order=id.desc&limit=20");
+        const durationMinutes=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50));
+        if(Number.isFinite(startedMs)&&Date.now()-startedMs<durationMinutes*60000){
+          const signalsResponse=await api("online_class_signals?class_id=eq."+encodeURIComponent(C.classId)+"&sender_user_id=eq."+encodeURIComponent(latest.teacher_user_id)+"&signal_type=eq.join&created_at=gte."+encodeURIComponent(latest.started_at)+"&order=id.desc&limit=50");
           const signals=await signalsResponse.json();
           const teacherReallyJoined=Array.isArray(signals)&&signals.some(sig=>["teacher","دبیر"].includes(String(sig.payload?.role||"").toLowerCase()));
           if(teacherReallyJoined){
-            currentSession=latest.id;
-            sessionStartedAt=startedMs;
-            sessionDurationMinutes=Math.max(1,Math.min(240,Number(latest.duration_minutes)||50));
-            classroomLive=true;
-            updateClassTimer();
-            waitingForTeacher=false;
-            showTeacherWait(false);
-            return true;
+            currentSession=Number(latest.id);sessionStartedAt=startedMs;sessionDurationMinutes=durationMinutes;timerSessionId=currentSession;
+            timerRemainingSeconds=Math.max(0,Math.ceil((startedMs+durationMinutes*60000-Date.now())/1000));
+            classroomLive=timerRemainingSeconds>0;waitingForTeacher=false;updateClassTimer();showTeacherWait(false);
+            return classroomLive;
           }
         }
       }
-      if($("teacherWaitStatus"))$("teacherWaitStatus").textContent="تا ورود واقعی دبیر به اتاق، ورود دانش‌آموز غیرفعال است؛ لطفاً منتظر بمانید.";
+      if($("teacherWaitStatus")&&(!latest||!latest.ended_at))$("teacherWaitStatus").textContent="تا ورود واقعی دبیر به اتاق، ورود دانش‌آموز غیرفعال است؛ لطفاً منتظر بمانید.";
     }catch(e){console.warn("Waiting for teacher room-entry signal",e)}
-    await new Promise(r=>setTimeout(r,2500));
+    await new Promise(resolve=>setTimeout(resolve,2500));
   }
   return false;
 }
 
 function applyClassroomRoleView(){
-  if(isTeacherRole()||isStudentRole()){
-    const side=$(".side"); if(side)side.style.display="none";
-    const layout=$(".layout"); if(layout)layout.style.gridTemplateColumns="1fr";
-    const perm=$("teacherToolPermission"); if(perm)perm.style.display=isTeacherRole()?"inline-block":"none";
-  }
-  if(isStudentRole()){
+  const side=$(".side"),layout=$(".layout");
+  if(isTeacherRole()){
+    if(side)side.style.display="flex";
+    if(layout)layout.style.gridTemplateColumns="minmax(0,1fr) 265px";
+    const perm=$("teacherToolPermission");if(perm)perm.style.display="inline-block";
+  }else if(isStudentRole()){
+    if(side)side.style.display="none";
+    if(layout)layout.style.gridTemplateColumns="1fr";
     setStudentToolsPermission(false);
   }
 }
