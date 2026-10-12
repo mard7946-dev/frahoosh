@@ -88,20 +88,26 @@ async function createGuestInvite(){
   const button=document.getElementById("guestInvite");
   if(button)button.disabled=true;
   try{
-    // Claim/start the server-side session before requesting an invite. Merely loading the room
-    // does not guarantee that the authenticated teacher's active session was persisted.
-    const startResponse=await fetch(C.url+"/rest/v1/rpc/start_online_class_session",{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"},body:JSON.stringify({p_class_id:Number(C.classId)})});
-    if(!startResponse.ok){
-      const startRaw=await startResponse.text();let startError;try{startError=JSON.parse(startRaw)}catch(_){startError=startRaw}
-      throw Error(typeof startError==="string"?startError:(startError.message||startError.details||"شروع جلسه دبیر در سرور تأیید نشد"));
-    }
-    const response=await fetch(C.url+"/rest/v1/rpc/get_online_class_guest_invite",{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"},body:JSON.stringify({p_class_id:Number(C.classId)})});
-    const raw=await response.text();let code;try{code=JSON.parse(raw)}catch(_){code=raw}
-    if(!response.ok)throw Error(typeof code==="string"?code:(code.message||code.details||"ساخت لینک دعوت ناموفق بود"));
+    if(!C.classId||!C.token||!C.url||!C.anon)throw Error("اطلاعات کلاس یا نشست ورود ناقص است؛ از پنل کلاس دوباره وارد شوید.");
+    const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"};
+    const startResponse=await fetch(C.url+"/rest/v1/rpc/start_online_class_session",{method:"POST",headers,body:JSON.stringify({p_class_id:Number(C.classId)})});
+    const startRaw=await startResponse.text();let startData;try{startData=JSON.parse(startRaw)}catch(_){startData=startRaw}
+    if(!startResponse.ok)throw Error(typeof startData==="string"?startData:(startData.message||startData.details||startData.hint||"شروع جلسه دبیر در سرور تأیید نشد"));
+    const response=await fetch(C.url+"/rest/v1/rpc/get_online_class_guest_invite",{method:"POST",headers,body:JSON.stringify({p_class_id:Number(C.classId)})});
+    const raw=await response.text();let data;try{data=JSON.parse(raw)}catch(_){data=raw}
+    if(!response.ok)throw Error(typeof data==="string"?data:(data.message||data.details||data.hint||"ساخت لینک دعوت ناموفق بود"));
+    let code=data;
+    if(Array.isArray(code))code=code[0];
+    if(code&&typeof code==="object")code=code.code||code.invite_code||code.room_code||code.get_online_class_guest_invite||code.token||"";
+    code=String(code??"").trim().replace(/^"|"$/g,"");
+    if(!code||code==="null"||code==="undefined"||code==="[object Object]")throw Error("سرور لینک را ساخت اما کد دعوت معتبر برنگرداند. پاسخ: "+String(raw).slice(0,180));
     const inviteBase=(C.guestInviteBase&&String(C.guestInviteBase).trim())||"https://raw.githack.com/mard7946-dev/frahoosh/main/web/online-class/index.html";
-    const inviteUrl=new URL(inviteBase,window.location.href);inviteUrl.search="";inviteUrl.hash="";inviteUrl.searchParams.set("code",String(code).replace(/^"|"$/g,""));
-    if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(inviteUrl.href);alert("لینک ورود دانش‌آموز کپی شد. آن را برای دانش‌آموزان همین کلاس بفرستید:\n"+inviteUrl)}
-    else prompt("این لینک را برای دانش‌آموزان همین کلاس بفرستید:",inviteUrl);
+    const inviteUrl=new URL(inviteBase,window.location.href);inviteUrl.search="";inviteUrl.hash="";inviteUrl.searchParams.set("code",code);
+    let copied=false;
+    try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(inviteUrl.href);copied=true}}catch(_){}
+    if(copied)alert("لینک ورود میهمان ساخته و کپی شد. برای دانش‌آموزان همین کلاس بفرستید:\n"+inviteUrl.href);
+    else prompt("لینک ورود میهمان ساخته شد؛ آن را کپی و برای دانش‌آموزان همین کلاس ارسال کنید:",inviteUrl.href);
+    const status=document.getElementById("page");if(status)status.textContent="لینک ورود میهمان آماده شد.";
   }catch(e){alert("لینک دعوت ساخته نشد: "+(e.message||"خطای نامشخص"))}
   finally{if(button)button.disabled=false}
 }
