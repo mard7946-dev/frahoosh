@@ -37,11 +37,11 @@ async function refreshRoster(){
 function buildTeacherControls(){
  if($("teacherControls"))return;
  const p=document.createElement("div");p.className="panel";p.id="teacherControls";
- p.innerHTML='<b>دسترسی ابزار دانش‌آموز</b><div class="row" style="margin-top:6px"><select id="chatTarget"><option value="">انتخاب دانش‌آموز متصل</option></select><button id="allowStudentTools">اجازه قلم، پاک‌کن و اشتراک فایل/ویدیو</button><button id="denyStudentTools" class="danger">بستن دسترسی ابزارها</button></div><div class="status" id="studentToolStatus">ابتدا دانش‌آموز متصل را انتخاب کنید.</div>';
+ p.innerHTML='<b>مجوزهای دانش‌آموز انتخاب‌شده</b><div class="row" style="margin-top:6px"><select id="chatTarget"><option value="">انتخاب دانش‌آموز متصل</option></select></div><div class="row" style="margin-top:8px"><label><input type="checkbox" id="permMic"> میکروفون</label><label><input type="checkbox" id="permCam"> دوربین</label><label><input type="checkbox" id="permPen"> قلم</label><label><input type="checkbox" id="permEraser"> پاک‌کن</label><label><input type="checkbox" id="permFile"> اشتراک فایل</label></div><div class="row"><button id="saveStudentPermissions">ثبت مجوزها</button><button id="denyStudentTools" class="danger">لغو همه مجوزها</button></div><div class="status" id="studentToolStatus">ابتدا دانش‌آموز متصل را انتخاب کنید. سایر ابزارهای دانش‌آموز غیرفعال می‌مانند.</div>';
  document.querySelector(".boardwrap")?.prepend(p);
  $("chatTarget").addEventListener("change",e=>{target=e.target.value});
- $("allowStudentTools").onclick=async()=>{if(!target){alert("ابتدا دانش‌آموز متصل را انتخاب کنید.");return}await sig("tools_permission",{allowed:true},target);$("studentToolStatus").textContent="اجازه قلم، پاک‌کن و اشتراک فایل/ویدیو ارسال شد."};
- $("denyStudentTools").onclick=async()=>{if(!target){alert("ابتدا دانش‌آموز متصل را انتخاب کنید.");return}await sig("tools_permission",{allowed:false},target);$("studentToolStatus").textContent="دسترسی ابزارهای دانش‌آموز بسته شد."};
+ $("saveStudentPermissions").onclick=async()=>{if(!target){alert("ابتدا دانش‌آموز متصل را انتخاب کنید.");return}const permissions={mic:$("permMic").checked,cam:$("permCam").checked,pen:$("permPen").checked,eraser:$("permEraser").checked,file:$("permFile").checked};await sig("tools_permission",{permissions,allowed:Object.values(permissions).some(Boolean)},target);$("studentToolStatus").textContent="مجوزهای انتخاب‌شده برای این دانش‌آموز ثبت شد."};
+ $("denyStudentTools").onclick=async()=>{if(!target){alert("ابتدا دانش‌آموز متصل را انتخاب کنید.");return}const permissions={mic:false,cam:false,pen:false,eraser:false,file:false};["permMic","permCam","permPen","permEraser","permFile"].forEach(id=>$(id).checked=false);await sig("tools_permission",{permissions,allowed:false},target);$("studentToolStatus").textContent="همه مجوزهای اختیاری این دانش‌آموز لغو شد."};
 }
 function restrictStudentUI(){
  const chat=document.querySelector(".chat");if(chat)chat.style.display="none";
@@ -49,10 +49,12 @@ function restrictStudentUI(){
  const layout=document.querySelector(".layout");if(layout)layout.style.gridTemplateColumns="1fr";
  const quiz=$("quizPanel");if(quiz){quiz.style.display="block";const create=$("quizCreate");if(create)create.style.display="none";const results=$("quizResults");if(results)results.style.display="none"}
  const quizToggle=$("quizToggle");if(quizToggle){quizToggle.style.display="inline-block";quizToggle.disabled=false;quizToggle.textContent="آزمونک‌های منتشرشده"}
- for(const id of ["mic","cam","screen","prev","next","clear","clearAll","color","size","teacherToolPermission"]){const el=$(id);if(el)el.style.display="none"}
+ for(const id of ["screen","prev","next","clear","clearAll","color","size","teacherToolPermission","quizToggle"]){const el=$(id);if(el)el.style.display="none"}
  document.querySelectorAll("[data-tool]").forEach(el=>{const ok=["pen","eraser"].includes(el.dataset.tool);el.style.display=ok?"inline-block":"none"});
  const fileManager=$("fileManager");if(fileManager)fileManager.style.display="block";
  const file=$("file");if(file){file.disabled=true;file.style.display="block"}
+ const quiz=$("quizPanel");if(quiz)quiz.style.display="none";
+ for(const id of ["mic","cam"]){const el=$(id);if(el){el.style.display="inline-block";el.disabled=true;el.title="برای فعال‌سازی باید دبیر مجوز بدهد";}}
  if(!$("studentPermissions")){
   const p=document.createElement("div");p.className="panel";p.id="studentPermissions";
   p.innerHTML="<b>دسترسی ابزارها</b><div id=permStatus>تا اجازه دبیر داده نشود، قلم، پاک‌کن و اشتراک فایل/ویدیو غیرفعال است.</div>";
@@ -63,10 +65,10 @@ async function pollPermissions(){
  if(!student)return;
  try{
   const rows=await api("online_class_signals?class_id=eq."+encodeURIComponent(C.classId)+"&receiver_user_id=eq."+encodeURIComponent(C.userId)+"&signal_type=eq.tools_permission&order=id.desc&limit=1");
-  if(rows&&rows[0]&&typeof rows[0].payload?.allowed==="boolean"){
-   const allowed=!!rows[0].payload.allowed;
-   if(typeof setStudentToolsPermission==="function")setStudentToolsPermission(allowed);
-   const status=$("permStatus");if(status)status.textContent=allowed?"قلم، پاک‌کن و اشتراک فایل/ویدیو توسط دبیر مجاز شده است.":"دسترسی ابزارها توسط دبیر بسته است.";
+  if(rows&&rows[0]&&(typeof rows[0].payload?.allowed==="boolean"||rows[0].payload?.permissions)){
+   const payload=rows[0].payload,permissions=payload.permissions||{mic:false,cam:false,pen:!!payload.allowed,eraser:!!payload.allowed,file:!!payload.allowed};
+   if(typeof setStudentToolsPermission==="function")setStudentToolsPermission(permissions);
+   const status=$("permStatus");if(status)status.textContent="مجوزهای صدا، تصویر، قلم، پاک‌کن و فایل مطابق تنظیم دبیر اعمال شده‌اند؛ سایر ابزارها غیرفعال‌اند.";
   }
  }catch(e){console.warn("Could not check student tool permissions",e)}
 }
