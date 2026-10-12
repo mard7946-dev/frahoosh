@@ -324,7 +324,7 @@ async function autoMarkEntry(){
 }
 
 function isTeacherRole(){return ["teacher","دبیر"].includes(C.role)}
-function isStudentRole(){return ["student","دانش‌آموز"].includes(C.role)}
+function isStudentRole(){return ["student","دانش‌آموز","guest","میهمان"].includes(String(C.role||"").toLowerCase())}
 
 function showTeacherWait(show,msg){
   const o=$("teacherWaitOverlay"); if(!o)return;
@@ -387,7 +387,8 @@ async function waitForTeacherSession(){
   waitingForTeacher=true; showTeacherWait(true);
   while(waitingForTeacher){
     try{
-      const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&teacher_user_id=not.is.null&order=id.desc&limit=1");
+      const sessionPath=(String(C.role||"").toLowerCase()==="guest" && C.sessionId)?"online_class_sessions?id=eq."+encodeURIComponent(C.sessionId)+"&class_id=eq."+encodeURIComponent(C.classId)+"&limit=1":"online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&teacher_user_id=not.is.null&order=id.desc&limit=1";
+      const r=await api(sessionPath);
       const rows=await r.json(),latest=rows[0];
       if(latest && !latest.ended_at && latest.started_at){
         const startedMs=Date.parse(latest.started_at);
