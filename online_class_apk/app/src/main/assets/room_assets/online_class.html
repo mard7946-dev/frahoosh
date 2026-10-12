@@ -234,6 +234,8 @@ function updateClassTimer(){
  if(left===0){e.style.color="#ff7373";if(!endingSession){if(isTeacherRole())endClassSession();else closeClassSessionUI()}}
 }
 async function refreshSessionTimer(){
+ // Management inspection is not a teaching session and must not inherit a teacher session countdown.
+ if(isManagerRole())return;
  try{
   // Guests must stay bound to the exact session returned by guest_join_online_class.
   // Looking up only the latest session by class_id can silently move a guest into a restarted session.
@@ -458,7 +460,8 @@ applyClassroomRoleView();
 if(isManagerRole()){
   // Management may inspect any class without impersonating the teacher or opening a live session.
   classroomLive=true;
-  timerRemainingSeconds=0;
+  sessionDurationMinutes=240;
+  timerRemainingSeconds=240*60;
   updateClassTimer();
 }else if(isTeacherRole()){
   if(!(await ensureTeacherSession()))return;
