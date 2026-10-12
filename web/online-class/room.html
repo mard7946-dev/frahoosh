@@ -11,12 +11,12 @@
 <script>
 (()=>{"use strict";
 const box=document.getElementById("x");
-const show=(m)=>{if(box)box.innerHTML=m+"<br><a style="display:inline-block;margin-top:18px;padding:12px 18px;background:#155eef;color:#fff;border-radius:10px;text-decoration:none" href="/online-class/">بازگشت به ورود کلاس</a>";};
+const show=(m)=>{if(box)box.innerHTML=m+"<br><a style=\"display:inline-block;margin-top:18px;padding:12px 18px;background:#155eef;color:#fff;border-radius:10px;text-decoration:none\" href=\"index.html\">بازگشت به ورود کلاس</a>";};
 const timeout=8000;
 async function getText(path,label){
  const c=new AbortController(); const t=setTimeout(()=>c.abort(),timeout);
  try{
-  const u=new URL(path,location.origin); u.searchParams.set("_v",Date.now());
+  const u=new URL(path,location.href); u.searchParams.set("_v",Date.now());
   const r=await fetch(u.href,{cache:"no-store",signal:c.signal});
   if(!r.ok) throw new Error(label+" ("+r.status+")");
   return await r.text();
@@ -33,12 +33,12 @@ async function start(){
  if(box)box.textContent="در حال بارگذاری محیط کلاس…";
  try{
   const [html,patch]=await Promise.all([
-   getText("/mobile/assets/online_class.html","بارگذاری محیط کلاس ناموفق بود"),
-   getText("/online_class_apk/classroom_patch.js","بارگذاری کنترل‌های کلاس ناموفق بود")
+   getText("../../mobile/assets/online_class.html","بارگذاری محیط کلاس ناموفق بود"),
+   getText("../../online_class_apk/classroom_patch.js","بارگذاری کنترل‌های کلاس ناموفق بود")
   ]);
   if(!html.includes("const C=__CONFIG__;")) throw new Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
   const finalHtml=html.replace("const C=__CONFIG__;","const C="+JSON.stringify(config)+";")
-    .replace("</body>","<script>"+patch.replace(/<\\/script/gi,"<\\/script")+"</scr"+"ipt></body>");
+    .replace("</body>","<script>"+patch+"</scr"+"ipt></body>");
   document.open();document.write(finalHtml);document.close();
  }catch(e){show("باز کردن کلاس انجام نشد: "+(e&&e.message?e.message:"خطای ناشناخته"));}
 }
