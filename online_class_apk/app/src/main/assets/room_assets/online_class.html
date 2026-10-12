@@ -40,6 +40,20 @@ header{background:linear-gradient(110deg,#06101f,#0c2036 65%,#112e48);border-bot
 /* Recommit checkpoint: classroom access controls */
 /* On phones/tablets, keep the teacher whiteboard full-width; place roster/chat below it instead of squeezing the board beside the sidebar. */
 @media(max-width:1000px){body.teacher-room-layout .layout{grid-template-columns:minmax(0,1fr)!important}.teacher-room-layout .main{width:100%;min-width:0}.teacher-room-layout .boardwrap{width:100%;height:calc(100dvh - 150px);min-height:420px}.teacher-room-layout .board{width:100%;min-width:0}.teacher-room-layout .side{width:100%;min-width:0;min-height:300px}.teacher-room-layout .videos{width:100%}}
+
+/* Maximize the classroom canvas and keep student permissions teacher-controlled. */
+html,body{width:100%;height:100%;min-height:100%;overflow:auto}
+body{min-height:100dvh}
+.layout{min-height:calc(100dvh - 58px);height:auto;grid-template-columns:minmax(0,1fr) 265px}
+.main{min-height:calc(100dvh - 58px)}
+.boardwrap{height:calc(100dvh - 150px);min-height:460px;flex:1 0 auto}
+.board{height:100%;min-height:360px;flex:1}
+body:not(.teacher-room-layout) .layout{grid-template-columns:minmax(0,1fr)}
+body:not(.teacher-room-layout) .boardwrap{height:calc(100dvh - 118px);min-height:520px}
+#teacherControls label{display:inline-flex;align-items:center;gap:5px;color:#eaf0f8;margin:4px;padding:7px;border:1px solid #344c65;border-radius:8px}
+#teacherControls input[type=checkbox]{min-width:auto;accent-color:#e5b94d}
+.studentLocked{opacity:.45!important;cursor:not-allowed!important}
+@media(max-width:800px){.layout{grid-template-columns:minmax(0,1fr)!important}.main{min-height:calc(100dvh - 52px)}.boardwrap,body:not(.teacher-room-layout) .boardwrap{height:calc(100dvh - 126px);min-height:420px}.board{min-height:0;height:100%}}
 </style>
 </head>
 <body>
@@ -108,7 +122,7 @@ const $=id=>document.getElementById(id);
 let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=true,cam=true;
 let tool="pen",color="#0b1f3a",size=4,drawing=false,start=null,points=[],pageNo=1;
 let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null,sessionDurationMinutes=50,sessionClosedLocally=false,timerRemainingSeconds=3000,timerSessionId=null;
-let toolsAllowed=false, classroomLive=false, waitingForTeacher=false;
+let toolsAllowed=false, studentPermissions={mic:false,cam:false,pen:false,eraser:false,file:false}, classroomLive=false, waitingForTeacher=false;
 $("className").textContent=C.classId;
 function api(path,opts={}){return fetch(C.url+"/rest/v1/"+path,Object.assign({headers},opts))}
 function jsonHeaders(extra={}){return Object.assign({},headers,extra)}
@@ -123,12 +137,12 @@ async function enableStudentCamera(){try{const stream=await navigator.mediaDevic
 async function ensureMedia(){if(localStream)return true;try{localStream=await navigator.mediaDevices.getUserMedia({video:!isStudentRole(),audio:true});if(isStudentRole())cam=false;addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();for(const [,pc] of peers){for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already)pc.addTrack(track,localStream)}}return true}catch(e){console.warn("MEDIA_PERMISSION_ERROR",e);alert("دسترسی میکروفون/رسانه داده نشد؛ کلاس بدون صدا/تصویر ادامه می‌یابد.");return false}}
 async function makePeer(id,name){if(peers.has(id))return peers.get(id);let pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});peers.set(id,pc);names.set(id,name||"کاربر");renderPeople();if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.onicecandidate=e=>{if(e.candidate)send("candidate",{candidate:e.candidate},id)};pc.ontrack=e=>addVideo(id,names.get(id)||"کاربر",e.streams[0]);pc.onconnectionstatechange=()=>{if(["failed","closed","disconnected"].includes(pc.connectionState)){removeVideo(id);}};return pc}
 async function offerTo(id,name){let pc=await makePeer(id,name);let o=await pc.createOffer();await pc.setLocalDescription(o);await send("offer",{sdp:pc.localDescription},id)}
-async function poll(){try{let r=await api("online_class_signals?class_id=eq."+C.classId+"&id=gt."+lastId+"&order=id.asc&limit=200");let rows=await r.json();for(const x of rows){lastId=Math.max(lastId,Number(x.id));if(x.sender_user_id===C.userId)continue;if(x.receiver_user_id&&x.receiver_user_id!==C.userId)continue;let p=x.payload||{};if(x.signal_type==="join"){names.set(x.sender_user_id,p.name||"کاربر");renderPeople();if(C.userId<x.sender_user_id)await offerTo(x.sender_user_id,p.name)}else if(x.signal_type==="leave"){peers.get(x.sender_user_id)?.close();peers.delete(x.sender_user_id);names.delete(x.sender_user_id);removeVideo(x.sender_user_id);renderPeople()}else if(x.signal_type==="offer"){names.set(x.sender_user_id,p.name||"کاربر");let pc=await makePeer(x.sender_user_id,p.name);await pc.setRemoteDescription(p.sdp);let a=await pc.createAnswer();await pc.setLocalDescription(a);await send("answer",{sdp:pc.localDescription},x.sender_user_id)}else if(x.signal_type==="answer"){let pc=peers.get(x.sender_user_id);if(pc)await pc.setRemoteDescription(p.sdp)}else if(x.signal_type==="candidate"){let pc=peers.get(x.sender_user_id);if(pc&&p.candidate)try{await pc.addIceCandidate(p.candidate)}catch(e){}}else if(x.signal_type==="chat"){appendMsg(p.name||"کاربر",p.text||"")}else if(x.signal_type==="board"){applyBoard(p,false)}else if(x.signal_type==="quiz_answer"&&C.role!=="student"){loadQuizResults()}else if(x.signal_type==="tools_permission"){setStudentToolsPermission(!!p.allowed)}else if(x.signal_type==="camera_request"&&isStudentRole()){if(confirm("دبیر درخواست کرده تصویر شما در کلاس فعال شود. آیا موافقید؟"))await enableStudentCamera()}}}catch(e){}}
+async function poll(){try{let r=await api("online_class_signals?class_id=eq."+C.classId+"&id=gt."+lastId+"&order=id.asc&limit=200");let rows=await r.json();for(const x of rows){lastId=Math.max(lastId,Number(x.id));if(x.sender_user_id===C.userId)continue;if(x.receiver_user_id&&x.receiver_user_id!==C.userId)continue;let p=x.payload||{};if(x.signal_type==="join"){names.set(x.sender_user_id,p.name||"کاربر");renderPeople();if(C.userId<x.sender_user_id)await offerTo(x.sender_user_id,p.name)}else if(x.signal_type==="leave"){peers.get(x.sender_user_id)?.close();peers.delete(x.sender_user_id);names.delete(x.sender_user_id);removeVideo(x.sender_user_id);renderPeople()}else if(x.signal_type==="offer"){names.set(x.sender_user_id,p.name||"کاربر");let pc=await makePeer(x.sender_user_id,p.name);await pc.setRemoteDescription(p.sdp);let a=await pc.createAnswer();await pc.setLocalDescription(a);await send("answer",{sdp:pc.localDescription},x.sender_user_id)}else if(x.signal_type==="answer"){let pc=peers.get(x.sender_user_id);if(pc)await pc.setRemoteDescription(p.sdp)}else if(x.signal_type==="candidate"){let pc=peers.get(x.sender_user_id);if(pc&&p.candidate)try{await pc.addIceCandidate(p.candidate)}catch(e){}}else if(x.signal_type==="chat"){appendMsg(p.name||"کاربر",p.text||"")}else if(x.signal_type==="board"){applyBoard(p,false)}else if(x.signal_type==="quiz_answer"&&C.role!=="student"){loadQuizResults()}else if(x.signal_type==="tools_permission"&&isStudentRole()){setStudentToolsPermission(p.permissions||!!p.allowed)}else if(x.signal_type==="camera_request"&&isStudentRole()){if(studentPermissions.cam&&confirm("دبیر درخواست کرده تصویر شما در کلاس فعال شود. آیا موافقید؟"))await enableStudentCamera()}}}catch(e){}}
 function appendMsg(n,t){let d=document.createElement("div");d.className="msg";d.innerHTML="<b>"+esc(n)+"</b><br>"+esc(t);$("msgs").appendChild(d);$("msgs").scrollTop=$("msgs").scrollHeight}
 $("send").onclick=async()=>{let t=$("chatInput").value.trim();if(!t)return;appendMsg(C.name,t);$("chatInput").value="";await send("chat",{name:C.name,text:t})};
-$("mic").onclick=async()=>{await ensureMedia();mic=!mic;(localStream?.getAudioTracks()||[]).forEach(t=>t.enabled=mic);$("mic").classList.toggle("active",mic)};
-$("cam").onclick=async()=>{await ensureMedia();cam=!cam;(localStream?.getVideoTracks()||[]).forEach(t=>t.enabled=cam);$("cam").classList.toggle("active",cam)};
-$("screen").onclick=async()=>{try{await ensureMedia();if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;return}screenStream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});let s=screenStream.getVideoTracks()[0];for(const [,pc] of peers){let sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender)sender.replaceTrack(s)}s?.addEventListener("ended",()=>{screenStream=null;let camTrack=localStream?.getVideoTracks?.()[0];for(const [,pc] of peers){let sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender&&camTrack)sender.replaceTrack(camTrack)}})}catch(e){alert("اشتراک صدا/تصویر صفحه در این دستگاه در دسترس نیست.")}};
+$("mic").onclick=async()=>{if(isStudentRole()&&!studentPermissions.mic){alert("فعال‌سازی میکروفون فقط با مجوز دبیر امکان‌پذیر است.");return}await ensureMedia();mic=!mic;(localStream?.getAudioTracks()||[]).forEach(t=>t.enabled=mic);$("mic").classList.toggle("active",mic)};
+$("cam").onclick=async()=>{if(isStudentRole()&&!studentPermissions.cam){alert("فعال‌سازی دوربین فقط با مجوز دبیر امکان‌پذیر است.");return}await ensureMedia();cam=!cam;(localStream?.getVideoTracks()||[]).forEach(t=>t.enabled=cam);$("cam").classList.toggle("active",cam)};
+$("screen").onclick=async()=>{if(isStudentRole()){alert("اشتراک‌گذاری صفحه فقط برای دبیر فعال است.");return}try{await ensureMedia();if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;return}screenStream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});let s=screenStream.getVideoTracks()[0];for(const [,pc] of peers){let sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender)sender.replaceTrack(s)}s?.addEventListener("ended",()=>{screenStream=null;let camTrack=localStream?.getVideoTracks?.()[0];for(const [,pc] of peers){let sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender&&camTrack)sender.replaceTrack(camTrack)}})}catch(e){alert("اشتراک صدا/تصویر صفحه در این دستگاه در دسترس نیست.")}};
 $("leave").onclick=async()=>{send("leave",{name:C.name});if(["teacher","دبیر","executive","معاون اجرایی"].includes(C.role))await endClassSession();localStream?.getTracks().forEach(x=>x.stop());screenStream?.getTracks().forEach(x=>x.stop());peers.forEach(p=>p.close());location.href="about:blank"};
 
 function resize(){let r=canvas.getBoundingClientRect(),d=window.devicePixelRatio||1;canvas.width=Math.max(1,r.width*d);canvas.height=Math.max(1,r.height*d);ctx.setTransform(d,0,0,d,0,0);loadBoard()}
@@ -341,23 +355,17 @@ function showTeacherWait(show,msg){
   if(msg&&$("teacherWaitStatus"))$("teacherWaitStatus").textContent=msg;
 }
 
-function setStudentToolsPermission(allowed){
-  toolsAllowed=!!allowed;
+function setStudentToolsPermission(value){
+  studentPermissions=typeof value==="boolean"?{mic:false,cam:false,pen:value,eraser:value,file:value}:{mic:false,cam:false,pen:false,eraser:false,file:false,...(value||{})};
+  toolsAllowed=!!(studentPermissions.pen||studentPermissions.eraser||studentPermissions.file||studentPermissions.mic||studentPermissions.cam);
   if(!isStudentRole())return;
-  const allowedTools=new Set(["pen","eraser"]);
-  document.querySelectorAll("[data-tool]").forEach(el=>{
-    const permitted=toolsAllowed&&allowedTools.has(el.dataset.tool);
-    el.style.display=allowedTools.has(el.dataset.tool)?"inline-block":"none";
-    el.disabled=!permitted;el.classList.toggle("studentLocked",!permitted);
-  });
-  for(const id of ["color","size","prev","next","clear","clearAll","teacherToolPermission","mic","cam","screen","qsave"]){
-    const el=$(id);if(!el)continue;el.style.display="none";if("disabled" in el)el.disabled=true;
-  }
-  const quizToggle=$("quizToggle");if(quizToggle){quizToggle.style.display="inline-flex";quizToggle.disabled=false;quizToggle.textContent="آزمونک‌ها";quizToggle.setAttribute("aria-label","مشاهده آزمونک‌های منتشرشده");}
-  const file=$("file");if(file){file.style.display="block";file.disabled=!toolsAllowed;file.classList.toggle("studentLocked",!toolsAllowed)}
+  document.querySelectorAll("[data-tool]").forEach(el=>{const permitted=!!studentPermissions[el.dataset.tool]&&["pen","eraser"].includes(el.dataset.tool);el.style.display=["pen","eraser"].includes(el.dataset.tool)?"inline-block":"none";el.disabled=!permitted;el.classList.toggle("studentLocked",!permitted)});
+  for(const id of ["screen","prev","next","clear","clearAll","color","size","teacherToolPermission","qsave","quizToggle"]){const el=$(id);if(el){el.style.display="none";if("disabled" in el)el.disabled=true}}
+  for(const [id,key] of [["mic","mic"],["cam","cam"]]){const el=$(id);if(el){el.style.display="inline-block";el.disabled=!studentPermissions[key];el.classList.toggle("studentLocked",!studentPermissions[key])}}
+  const file=$("file");if(file){file.style.display="block";file.disabled=!studentPermissions.file;file.classList.toggle("studentLocked",!studentPermissions.file)}
   const fm=$("fileManager");if(fm)fm.style.display="block";
-  const quiz=$("quizPanel");if(quiz){quiz.style.display="block";const create=$("quizCreate");if(create)create.style.display="none";const results=$("quizResults");if(results)results.style.display="none";}
-  const st=$("page");if(st)st.textContent=toolsAllowed?"فقط قلم، پاک‌کن و اشتراک فایل/ویدیو فعال است؛ آزمونک‌های منتشرشده نیز قابل مشاهده‌اند.":"ابزارها تا اجازه دبیر غیرفعال است؛ آزمونک‌های منتشرشده قابل مشاهده‌اند.";
+  const quiz=$("quizPanel");if(quiz)quiz.style.display="none";
+  const st=$("page");if(st)st.textContent="مجوزهای فعال: "+[studentPermissions.mic&&"میکروفون",studentPermissions.cam&&"دوربین",studentPermissions.pen&&"قلم",studentPermissions.eraser&&"پاک‌کن",studentPermissions.file&&"اشتراک فایل"].filter(Boolean).join("، ");
 }
 
 async function ensureTeacherSession(){
