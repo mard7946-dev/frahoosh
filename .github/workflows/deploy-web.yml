@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - "web/**"
+      - "online_class_apk/app/src/main/assets/room_assets/online_class.html"
+      - "online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"
+      - "mobile/assets/online_class.html"
       - "shared/module_catalog.json"
       - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
@@ -30,18 +33,23 @@ jobs:
       - name: Build site
         run: |
           rm -rf dist
-          mkdir -p dist/shared dist/mobile/assets dist/online_class_apk
+          mkdir -p dist/shared dist/mobile/assets dist/online_class_apk/app/src/main/assets/room_assets
           cp -R web/. dist/
           cp shared/module_catalog.json dist/shared/module_catalog.json
           cp mobile/assets/online_class.html dist/mobile/assets/online_class.html
           cp online_class_apk/classroom_patch.js dist/online_class_apk/classroom_patch.js
+          cp online_class_apk/app/src/main/assets/room_assets/online_class.html dist/online_class_apk/app/src/main/assets/room_assets/online_class.html
+          cp online_class_apk/app/src/main/assets/room_assets/classroom_patch.js dist/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js
           printf '%s\n' 'frahoosh.ir' > dist/CNAME
       - name: Verify online class pages
         run: |
           test -s dist/online-class/index.html
           test -s dist/online-class/room.html
+          test -s dist/online_class_apk/app/src/main/assets/room_assets/online_class.html
+          test -s dist/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js
+          grep -q "online_class_apk/app/src/main/assets/room_assets/online_class.html" dist/online-class/room.html
           test -s dist/index.html
-          echo "Verified online-class entry, room page, and main site entry."
+          echo "Verified online-class entry, room page, classroom runtime assets, and main site entry."
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
