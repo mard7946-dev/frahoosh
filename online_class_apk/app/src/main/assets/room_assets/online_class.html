@@ -91,9 +91,9 @@ async function createGuestInvite(){
     const response=await fetch(C.url+"/rest/v1/rpc/get_online_class_guest_invite",{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"},body:JSON.stringify({p_class_id:Number(C.classId)})});
     const raw=await response.text();let code;try{code=JSON.parse(raw)}catch(_){code=raw}
     if(!response.ok)throw Error(typeof code==="string"?code:(code.message||code.details||"ساخت لینک دعوت ناموفق بود"));
-    const inviteBase=(C.guestInviteBase&&String(C.guestInviteBase).trim())||"https://frahoosh.ir/online-class/index.html";
+    const inviteBase=(C.guestInviteBase&&String(C.guestInviteBase).trim())||"https://raw.githack.com/mard7946-dev/frahoosh/main/web/online-class/index.html";
     const inviteUrl=new URL(inviteBase,window.location.href);inviteUrl.search="";inviteUrl.hash="";inviteUrl.searchParams.set("code",String(code).replace(/^"|"$/g,""));
-    if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(inviteUrl);alert("لینک ورود دانش‌آموز کپی شد. آن را برای دانش‌آموزان همین کلاس بفرستید:\n"+inviteUrl)}
+    if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(inviteUrl.href);alert("لینک ورود دانش‌آموز کپی شد. آن را برای دانش‌آموزان همین کلاس بفرستید:\n"+inviteUrl)}
     else prompt("این لینک را برای دانش‌آموزان همین کلاس بفرستید:",inviteUrl);
   }catch(e){alert("لینک دعوت ساخته نشد: "+(e.message||"خطای نامشخص"))}
   finally{if(button)button.disabled=false}
