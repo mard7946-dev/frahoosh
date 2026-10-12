@@ -232,7 +232,12 @@ function updateClassTimer(){
 }
 async function refreshSessionTimer(){
  try{
-  const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&teacher_user_id=not.is.null&order=id.desc&limit=1");
+  // Guests must stay bound to the exact session returned by guest_join_online_class.
+  // Looking up only the latest session by class_id can silently move a guest into a restarted session.
+  const sessionQuery=(String(C.role||"").toLowerCase()==="guest" && C.sessionId)
+   ? "online_class_sessions?id=eq."+encodeURIComponent(C.sessionId)+"&class_id=eq."+encodeURIComponent(C.classId)+"&limit=1"
+   : "online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&teacher_user_id=not.is.null&order=id.desc&limit=1";
+  const r=await api(sessionQuery);
   const rows=await r.json(),latest=rows[0];
   if(!latest){
    if(!classroomLive){currentSession=null;sessionStartedAt=null;timerSessionId=null;timerRemainingSeconds=3000;updateClassTimer()}
