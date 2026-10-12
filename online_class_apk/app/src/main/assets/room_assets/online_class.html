@@ -42,7 +42,7 @@ header{background:linear-gradient(110deg,#06101f,#0c2036 65%,#112e48);border-bot
 </head>
 <body>
 <header>
-<button id="menuToggle" aria-label="ابزارهای کلاس" title="ابزارهای کلاس" style="font-size:22px;padding:5px 12px;background:#172b42">☰</button><button id="quizToggle" type="button">آزمونک آنلاین</button><h2>کلاس هوشمند فراهوش — <span id="className"></span></h2><strong id="classTimer" dir="ltr" style="color:#f3c65b;font-variant-numeric:tabular-nums">50:00</strong>
+<button id="menuToggle" aria-label="ابزارهای کلاس" title="ابزارهای کلاس" style="font-size:22px;padding:5px 12px;background:#172b42">☰</button><button id="quizToggle" type="button">آزمونک آنلاین</button><button id="guestInvite" type="button" style="background:#d9b45b;color:#09182a">لینک ورود دانش‌آموز</button><h2>کلاس هوشمند فراهوش — <span id="className"></span></h2><strong id="classTimer" dir="ltr" style="color:#f3c65b;font-variant-numeric:tabular-nums">50:00</strong>
 <div class="toolbar">
 <button id="mic">میکروفون</button><button id="cam">دوربین</button><button id="screen">اشتراک صدا/تصویر صفحه</button><button id="leave" class="danger">خروج</button>
 </div>
@@ -82,6 +82,22 @@ header{background:linear-gradient(110deg,#06101f,#0c2036 65%,#112e48);border-bot
 <div id="teacherWaitOverlay"><section dir="rtl"><h2>در انتظار ورود دبیر</h2><p>تا زمانی که دبیر کلاس وارد نشود، ورود دانش‌آموز به کلاس امکان‌پذیر نیست.</p><div><span class="waitdot"></span><span class="waitdot"></span><span class="waitdot"></span></div><p id="teacherWaitStatus">در حال بررسی وضعیت کلاس...</p></section></div>
 <script>
 const C=__CONFIG__;
+async function createGuestInvite(){
+  const role=String(C.role||"").toLowerCase();
+  if(!["teacher","دبیر","manager","مدیر","educational","معاون آموزشی"].includes(role)){alert("ساخت لینک دعوت فقط برای دبیر یا مدیریت مجاز است.");return}
+  const button=document.getElementById("guestInvite");
+  if(button)button.disabled=true;
+  try{
+    const response=await fetch(C.url+"/rest/v1/rpc/get_online_class_guest_invite",{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"},body:JSON.stringify({p_class_id:Number(C.classId)})});
+    const raw=await response.text();let code;try{code=JSON.parse(raw)}catch(_){code=raw}
+    if(!response.ok)throw Error(typeof code==="string"?code:(code.message||code.details||"ساخت لینک دعوت ناموفق بود"));
+    const inviteUrl="https://frahoosh.ir/online-class/?code="+encodeURIComponent(String(code).replace(/^"|"$/g,""));
+    if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(inviteUrl);alert("لینک ورود دانش‌آموز کپی شد. آن را برای دانش‌آموزان همین کلاس بفرستید:\n"+inviteUrl)}
+    else prompt("این لینک را برای دانش‌آموزان همین کلاس بفرستید:",inviteUrl);
+  }catch(e){alert("لینک دعوت ساخته نشد: "+(e.message||"خطای نامشخص"))}
+  finally{if(button)button.disabled=false}
+}
+window.addEventListener("DOMContentLoaded",()=>{const b=document.getElementById("guestInvite");if(b){const role=String(C.role||"").toLowerCase();b.style.display=["teacher","دبیر","manager","مدیر","educational","معاون آموزشی"].includes(role)?"inline-block":"none";b.addEventListener("click",createGuestInvite)}});
 window.addEventListener("error",e=>{try{const p=document.getElementById("page");if(p)p.textContent="خطای کلاس: "+(e.message||"خطای نامشخص");}catch(_){}console.error("Frahoosh classroom error",e.message,e.filename,e.lineno);});
 window.addEventListener("unhandledrejection",e=>{try{const p=document.getElementById("page");if(p)p.textContent="خطای اجرای کلاس: "+String(e.reason||"خطای نامشخص");}catch(_){}console.error("Frahoosh classroom rejection",e.reason);});
 const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"};
