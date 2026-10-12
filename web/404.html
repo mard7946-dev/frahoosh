@@ -8,5 +8,14 @@
 <style>
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;font-family:Tahoma,Arial,sans-serif;background:linear-gradient(140deg,#06101f,#123653);color:#fff}.card{max-width:560px;width:100%;padding:32px;border:1px solid #d9b45c88;border-radius:22px;background:#0b1b2e;text-align:center;box-shadow:0 20px 60px #0005}h1{color:#f4c95f;font-size:25px}p{line-height:2;color:#d4e0ee}.links{display:grid;gap:12px;margin-top:24px}a{display:block;padding:13px 16px;border-radius:12px;text-decoration:none;font-weight:bold;background:#f4c95f;color:#071a30}a.secondary{background:#193650;border:1px solid #d9b45c88;color:#fff}</style>
 </head>
-<body><main class="card"><h1>۴۰۴ — صفحه یافت نشد</h1><p>صفحهٔ موردنظر پیدا نشد. برای ورود مستقل به کلاس آنلاین، از پیوند مستقیم زیر استفاده کنید.</p><div class="links"><a href="/online-class/index.html">ورود مستقیم به کلاس آنلاین فراهوش</a><a class="secondary" href="/">بازگشت به داشبورد فراهوش</a></div></main></body>
+<body><main class="card"><h1>۴۰۴ — صفحه یافت نشد</h1><p>صفحهٔ موردنظر پیدا نشد. برای ورود مستقل به کلاس آنلاین، از پیوند مستقیم زیر استفاده کنید.</p><div class="links"><a href="/online-class/index.html">ورود مستقیم به کلاس آنلاین فراهوش</a><a class="secondary" href="/">بازگشت به داشبورد فراهوش</a></div></main><script>
+/* Recover the legacy invite route when a static host serves its custom 404 page. */
+(function () {
+  var path = window.location.pathname.replace(/\\/+$/, "") || "/";
+  if (path === "/online-class") {
+    window.location.replace("/online-class/index.html" + window.location.search + window.location.hash);
+  }
+})();
+</script>
+</body>
 </html>
