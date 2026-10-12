@@ -446,6 +446,9 @@ $("teacherToolPermission").onclick=async()=>{
   setStatus(toolsAllowed?"ابزارهای دانش‌آموزان فعال شد.":"ابزارهای دانش‌آموزان بسته شد.");
 };
 
+const drawer=$("toolDrawer"),body=$("toolDrawerBody"),mt=$("menuToggle"),qt=$("quizToggle");
+if(mt&&drawer)mt.onclick=()=>{drawer.open=!drawer.open};
+if(qt&&drawer)qt.onclick=()=>{drawer.open=true;$("quizPanel")?.scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};
 async function startClass(){
 applyClassroomRoleView();
 if(isTeacherRole()){
@@ -453,7 +456,7 @@ if(isTeacherRole()){
 }else if(isStudentRole()){
   if(!(await waitForTeacherSession()))return;
 }
-const drawer=$("toolDrawer"),body=$("toolDrawerBody");for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=true;const mt=$("menuToggle");if(mt)mt.onclick=()=>{drawer.open=!drawer.open};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(()=>{if(!sessionClosedLocally&&classroomLive&&timerRemainingSeconds>0){timerRemainingSeconds--;updateClassTimer()}else updateClassTimer()},1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await ensureMedia();await refreshSessionTimer();if(!classroomLive){if(isStudentRole()){if(!(await waitForTeacherSession()))return}else{return}}if(await enforceStudentBlock())return;await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
+for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);if(drawer)drawer.open=true;setInterval(()=>{if(!sessionClosedLocally&&classroomLive&&timerRemainingSeconds>0){timerRemainingSeconds--;updateClassTimer()}else updateClassTimer()},1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await ensureMedia();await refreshSessionTimer();if(!classroomLive){if(isStudentRole()){if(!(await waitForTeacherSession()))return}else{return}}if(await enforceStudentBlock())return;await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
 </script>
 </body>
 </html>
