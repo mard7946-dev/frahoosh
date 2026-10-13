@@ -79,7 +79,7 @@ body{padding:clamp(14px,4vw,32px);background:radial-gradient(ellipse at 50% 0%,#
 <input id=ctitle placeholder="عنوان کلاس">
 <input id=csubject placeholder="درس">
 <input id=cname placeholder="نام کلاس / پایه"><select id=cteacher aria-label="انتخاب دبیر"><option value="">انتخاب دبیر برای این کلاس</option></select>
-<input id=cdate type=date>
+<input id=cdate type=text inputmode=numeric placeholder="تاریخ شمسی (مثلاً ۱۴۰۵/۰۷/۲۱)" aria-label="تاریخ شمسی کلاس">
 <input id=ctime type=time>
 <div id=durationControl style="display:none"><label for=cduration>مدت کلاس به دقیقه (فقط مدیر)</label><input id=cduration type=number min=5 max=240 step=5 value=50 placeholder="مدت (دقیقه)"></div>
 </div>
@@ -326,4 +326,33 @@ async function joinScheduledStudent(classId,sessionId){
  }catch(e){msg.textContent="ورود به کلاس انجام نشد: "+(e.message||"خطای نامشخص");}
 }
 $("guestJoin").onclick=guestJoin;loadStudentClassOptions();
-$("guestLast").onkeydown=e=>{if(e.key==="Enter")guestJoin()};</script>
+$("guestLast").onkeydown=e=>{if(e.key==="Enter")guestJoin()};
+(function(){
+ const dateEl=document.getElementById("jalaliDate"),clockEl=document.getElementById("digitalClock");
+ const faDigits=n=>String(n).replace(/[0-9]/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+ function updateClock(){
+  const now=new Date();
+  try{
+   const fmt=new Intl.DateTimeFormat("fa-IR-u-ca-persian",{timeZone:"Asia/Tehran",weekday:"long",day:"numeric",month:"long",year:"numeric"});
+   const value=fmt.format(now);
+   if(dateEl)dateEl.textContent=value||"تاریخ شمسی در دسترس نیست";
+  }catch(e){
+   if(dateEl)dateEl.textContent=faDigits(new Intl.DateTimeFormat("fa-IR",{timeZone:"Asia/Tehran",dateStyle:"full"}).format(now));
+  }
+  try{if(clockEl)clockEl.textContent=new Intl.DateTimeFormat("fa-IR",{timeZone:"Asia/Tehran",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).format(now)}
+  catch(e){if(clockEl)clockEl.textContent=faDigits(now.toLocaleTimeString())}
+ }
+ updateClock();setInterval(updateClock,1000);
+ const dateInput=document.getElementById("cdate");
+ if(dateInput){
+  dateInput.addEventListener("input",()=>{dateInput.setCustomValidity("");});
+  dateInput.addEventListener("blur",()=>{
+   const v=dateInput.value.trim().replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/-/g,"/");
+   if(!v){dateInput.setCustomValidity("");return}
+   if(!/^1[34]\d{2}\/(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])$/.test(v)){
+    dateInput.setCustomValidity("تاریخ را شمسی و به شکل ۱۴۰۵/۰۷/۲۱ وارد کنید.");dateInput.reportValidity();return;
+   }
+   dateInput.value=v.split("/").map((n)=>faDigits(n.padStart(2,"0"))).join("/");
+  });
+ }
+})();</script>
