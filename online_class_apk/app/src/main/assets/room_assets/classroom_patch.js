@@ -49,11 +49,11 @@ function restrictStudentUI(){
  const layout=document.querySelector(".layout");if(layout)layout.style.gridTemplateColumns="1fr";
  const quiz=$("quizPanel");if(quiz){quiz.style.display="block";const create=$("quizCreate");if(create)create.style.display="none";const results=$("quizResults");if(results)results.style.display="none"}
  const quizToggle=$("quizToggle");if(quizToggle){quizToggle.style.display="inline-block";quizToggle.disabled=false;quizToggle.textContent="آزمونک‌های منتشرشده"}
- for(const id of ["screen","prev","next","clear","clearAll","color","size","teacherToolPermission","quizToggle"]){const el=$(id);if(el)el.style.display="none"}
+ for(const id of ["screen","prev","next","clear","clearAll","color","size","teacherToolPermission"]){const el=$(id);if(el)el.style.display="none"}
  document.querySelectorAll("[data-tool]").forEach(el=>{const ok=["pen","eraser"].includes(el.dataset.tool);el.style.display=ok?"inline-block":"none"});
  const fileManager=$("fileManager");if(fileManager)fileManager.style.display="block";
  const file=$("file");if(file){file.disabled=true;file.style.display="block"}
- const quizPanel=$("quizPanel");if(quizPanel)quizPanel.style.display="none";
+ 
  for(const id of ["mic","cam"]){const el=$(id);if(el){el.style.display="inline-block";el.disabled=true;el.title="برای فعال‌سازی باید دبیر مجوز بدهد";}}
  if(!$("studentPermissions")){
   const p=document.createElement("div");p.className="panel";p.id="studentPermissions";
