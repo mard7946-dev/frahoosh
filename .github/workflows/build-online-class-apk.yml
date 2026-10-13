@@ -1,0 +1,81 @@
+name: Frahoosh Standalone Classroom APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - fix/standalone-classroom-apk-ci
+    paths:
+      - "online_class_apk/**"
+      - "web/online-class/**"
+      - ".github/workflows/build-online-class-apk.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "online_class_apk/**"
+      - "web/online-class/**"
+      - ".github/workflows/build-online-class-apk.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: classroom-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and verify standalone classroom APK
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build standalone classroom app
+        run: gradle -p online_class_apk --no-daemon clean assembleDebug
+
+      - name: Verify APK identity and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="online_class_apk/app/build/outputs/apk/debug/app-debug.apk"
+          AAPT="${ANDROID_HOME}/build-tools/35.0.0/aapt"
+          test -s "$APK"
+          test -x "$AAPT"
+          BADGING="$("$AAPT" dump badging "$APK")"
+          echo "$BADGING" | grep -Fq "package: name='ir.frahoosh.classroom'"
+          echo "$BADGING" | grep -Fq "versionName='2.0.2'"
+          sha256sum "$APK" | tee classroom-apk.sha256
+          stat -c 'APK_SIZE_BYTES=%s' "$APK" | tee classroom-apk.size
+          {
+            echo "commit_sha=${GITHUB_SHA}"
+            echo "application_id=ir.frahoosh.classroom"
+            echo "version_name=2.0.2"
+            echo "apk_file=app-debug.apk"
+          } | tee classroom-apk-provenance.txt
+
+      - name: Upload standalone classroom APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Frahoosh-Standalone-Classroom-APK
+          path: |
+            online_class_apk/app/build/outputs/apk/debug/app-debug.apk
+            classroom-apk.sha256
+            classroom-apk.size
+            classroom-apk-provenance.txt
+          if-no-files-found: error
+          retention-days: 14
