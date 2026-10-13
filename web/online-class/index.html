@@ -126,6 +126,7 @@ const U=FRAHOOH_CONFIG.supabase_url,K=FRAHOOH_CONFIG.supabase_anon_key;let token
   const role=String(profile.role).toLowerCase();
   if(role==="teacher"||role==="دبیر"){
    profile.display_name=profile.display_name||profile.username||email;
+  }
   $("rolePicker").style.display="none";$("entryGrid").classList.remove("active");$("guest").classList.remove("active");$("login").classList.remove("active");$("guest").style.display="none";$("login").style.display="none";await load();
  }catch(e){
   $("rolePicker").style.display="none";$("entryGrid").classList.add("active");$("login").classList.add("active");$("guest").classList.remove("active");$("login").style.display="block";
