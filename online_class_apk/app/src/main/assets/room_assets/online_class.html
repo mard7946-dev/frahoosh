@@ -346,7 +346,8 @@ async function autoMarkEntry(){
 }
 
 function isTeacherRole(){return ["teacher","دبیر"].includes(String(C.role||"").toLowerCase())}
-function isManagerRole(){return ["manager","مدیر","مدیریت","principal","administrator","admin"].includes(String(C.role||"").trim().toLowerCase())}
+function normalizedRole(){return String(C.role||"").trim().toLowerCase().replace(/ي/g,"ی").replace(/ك/g,"ک").replace(/\s+/g," ")}
+function isManagerRole(){const role=normalizedRole();return ["manager","مدیر","مدیریت","مدیر مدرسه","مدیر دبیرستان","مدیر آموزشگاه","school manager","school_manager","school_admin","super_admin","principal","administrator","admin"].includes(role)}
 function isStudentRole(){return ["student","دانش‌آموز","guest","میهمان"].includes(String(C.role||"").toLowerCase())}
 
 function showTeacherWait(show,msg){
