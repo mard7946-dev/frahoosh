@@ -269,9 +269,6 @@ async function joinScheduledStudent(classId,sessionId){
   const client=window.supabase.createClient(U,K);
   const {data:authData,error:authError}=await client.auth.signInAnonymously();
   if(authError)throw Error(authError.message==="Anonymous sign-ins are disabled"?"ورود دانش‌آموز در تنظیمات Supabase فعال نیست.":authError.message);
-  const {data:sessionRows,error:sessionError}=await client.from("online_class_sessions").select("id,class_id,started_at").eq("id",Number(sessionId)).eq("class_id",Number(classId)).is("ended_at",null).limit(1);
-  if(sessionError)throw Error("وضعیت زنگ قابل بررسی نیست؛ دوباره تلاش کنید.");
-  if(!sessionRows||!sessionRows.length)throw Error("این زنگ دیگر فعال نیست. برنامه را تازه‌سازی کنید.");
   const name=first+" "+last;
   const {data:registered,error:registerError}=await client.rpc("register_online_class_student_guest",{p_class_id:Number(classId),p_session_id:Number(sessionId),p_display_name:name,p_class_name:className});
   if(registerError)throw Error("ثبت حضور دانش‌آموز در کلاس انجام نشد: "+registerError.message);
