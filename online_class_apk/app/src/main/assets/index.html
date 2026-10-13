@@ -243,14 +243,7 @@ async function guestJoin(){
   const scheduleResponse=await fetch(U+"/rest/v1/rpc/get_student_class_schedule",{method:"POST",headers:{"apikey":K,"Authorization":"Bearer "+studentAccessToken,"Content-Type":"application/json"},body:JSON.stringify({p_weekday:day})});const entries=await readResponse(scheduleResponse);
   const own=entries.filter(r=>normalize(r.class_name)===normalize(className));
   if(!own.length)throw Error("برای کلاس «"+className+"» در برنامه امروز ("+day+") زنگی ثبت نشده است.");
-  const ids=own.filter(r=>r.online_class_id&&r.activated_at).map(r=>Number(r.online_class_id)).filter(Number.isFinite);
-  let active=[];
-  if(ids.length){
-   const unique=[...new Set(ids)];
-   const sessions=await api("/rest/v1/online_class_sessions?class_id=in.("+unique.join(",")+")&ended_at=is.null&select=id,class_id,started_at&order=id.desc&limit=100");
-   active=sessions||[];
-  }
-  scheduleBox.innerHTML='<h3 style="margin:14px 0 8px">برنامه امروز · '+esc(day)+' · کلاس '+esc(className)+'</h3>'+
+    scheduleBox.innerHTML='<h3 style="margin:14px 0 8px">برنامه امروز · '+esc(day)+' · کلاس '+esc(className)+'</h3>'+
    own.map(r=>{
     const session=r.active_session_id?{id:r.active_session_id,class_id:r.online_class_id}:null;
     const ready=!!(r.online_class_id&&r.activated_at&&session);
