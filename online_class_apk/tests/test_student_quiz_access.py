@@ -13,7 +13,7 @@ class StudentPublishedQuizAccessTests(unittest.TestCase):
         start = source.index("function setStudentToolsPermission(value)")
         end = source.index("function applyClassroomRoleView()", start)
         gate = source[start:end]
-        match = re.search(r'for\\s*\\(const id of \\[(.*?)\\]\\)', gate, re.S)
+        match = re.search(r'for\s*\(const id of \[(.*?)\]\)', gate, re.S)
         self.assertIsNotNone(match, "student permission-gate control list must exist")
         self.assertNotIn('"quizToggle"', match.group(1),
                          "media/board permissions must not hide the quiz entry point")
@@ -23,7 +23,7 @@ class StudentPublishedQuizAccessTests(unittest.TestCase):
         start = source.index("function restrictStudentUI()")
         end = source.index("async function pollPermissions()", start)
         gate = source[start:end]
-        match = re.search(r'for\\s*\\(const id of \\[(.*?)\\]\\)', gate, re.S)
+        match = re.search(r'for\s*\(const id of \[(.*?)\]\)', gate, re.S)
         self.assertIsNotNone(match, "student UI restriction control list must exist")
         self.assertNotIn('"quizToggle"', match.group(1),
                          "student restrictions must preserve the published-quiz button")
