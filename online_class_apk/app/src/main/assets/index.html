@@ -238,9 +238,7 @@ async function guestJoin(){
   if(!U||!K)throw Error("اتصال سرور کلاس آنلاین در دسترس نیست.");
   button.disabled=true;button.innerText="در حال دریافت برنامه امروز…";msg.textContent="";scheduleBox.innerHTML="";
   const normalize=v=>String(v||"").trim().replace(/ي/g,"ی").replace(/ك/g,"ک").replace(/\s+/g,"").replace(/[ـ‌]/g,"");
-  const tehranParts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Tehran",weekday:"long"}).format(new Date());
-  const dayMap={Saturday:"شنبه",Sunday:"یکشنبه",Monday:"دوشنبه",Tuesday:"سه‌شنبه",Wednesday:"چهارشنبه",Thursday:"پنجشنبه",Friday:"جمعه"};
-  const day=dayMap[tehranParts];
+  const day=$("guestDay").value;
   if(!day)throw Error("تشخیص روز مدرسه ممکن نشد؛ دوباره تلاش کنید.");
   const entries=await api("/rest/v1/weekly_schedule_entries?weekday=eq."+encodeURIComponent(day)+"&select=id,class_name,weekday,period,subject,teacher_name,online_class_id,activated_at&order=period.asc&limit=500");
   const own=entries.filter(r=>normalize(r.class_name)===normalize(className));
