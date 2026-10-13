@@ -67,6 +67,27 @@ body{padding:clamp(14px,4vw,32px);background:radial-gradient(ellipse at 50% 0%,#
 }
 @media(min-width:620px){.school-year{color:#f3cb68;text-align:center;font-weight:bold;margin-top:10px}}
 
+/* Typography and alignment refinement from the user-provided reference */
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
+body,.box,button,input,select{font-family:"Vazirmatn",Tahoma,sans-serif}
+@media(max-width:619px){
+ .hero{text-align:center}
+ .brand,.brand-copy{text-align:center}
+ .brand h1{width:100%;text-align:center;font-weight:800;letter-spacing:0}
+ .brand small{text-align:center;font-weight:500}
+ .school-time{align-items:center;text-align:center}
+ .school-year{text-align:center;letter-spacing:.1px}
+ .content{text-align:center}
+ .role-picker{text-align:center}
+ .eyebrow,.section-title,.sub{text-align:center}
+ .role-option{display:grid;grid-template-columns:64px minmax(0,1fr) 26px;align-items:center;text-align:right}
+ .role-copy{text-align:right;align-items:flex-start}
+ .role-copy strong{font-weight:700;line-height:1.8}
+ .role-copy small{font-weight:400}
+ .role-arrow{margin:0;text-align:center}
+ .role-foot{justify-content:center;text-align:center}
+}
+
 </style>
 </head>
 <body><div class="box">
