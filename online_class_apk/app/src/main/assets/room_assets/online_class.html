@@ -346,7 +346,7 @@ async function autoMarkEntry(){
 }
 
 function isTeacherRole(){return ["teacher","دبیر"].includes(String(C.role||"").toLowerCase())}
-function isManagerRole(){return ["manager","مدیر","مدیریت","principal","administrator","admin"].includes(String(C.role||"").trim().toLowerCase())}
+function isManagerRole(){return ["manager","مدیر","مدیریت","مدیر مدرسه","principal","administrator","admin","executive","معاون اجرایی","educational","معاون آموزشی","counselor","مشاوره","معاون پرورشی"].includes(String(C.role||"").trim().toLowerCase())}
 function isStudentRole(){return ["student","دانش‌آموز","guest","میهمان"].includes(String(C.role||"").toLowerCase())}
 
 function showTeacherWait(show,msg){
@@ -360,7 +360,7 @@ function setStudentToolsPermission(value){
   toolsAllowed=!!(studentPermissions.pen||studentPermissions.eraser||studentPermissions.file||studentPermissions.mic||studentPermissions.cam);
   if(!isStudentRole())return;
   document.querySelectorAll("[data-tool]").forEach(el=>{const permitted=!!studentPermissions[el.dataset.tool]&&["pen","eraser"].includes(el.dataset.tool);el.style.display=["pen","eraser"].includes(el.dataset.tool)?"inline-block":"none";el.disabled=!permitted;el.classList.toggle("studentLocked",!permitted)});
-  for(const id of ["screen","prev","next","clear","clearAll","color","size","teacherToolPermission","qsave","quizToggle"]){const el=$(id);if(el){el.style.display="none";if("disabled" in el)el.disabled=true}}
+  for(const id of ["screen","prev","next","clear","clearAll","color","size","teacherToolPermission","qsave"]){const el=$(id);if(el){el.style.display="none";if("disabled" in el)el.disabled=true}}
   for(const [id,key] of [["mic","mic"],["cam","cam"]]){const el=$(id);if(el){el.style.display="inline-block";el.disabled=!studentPermissions[key];el.classList.toggle("studentLocked",!studentPermissions[key])}}
   const file=$("file");if(file){file.style.display="block";file.disabled=!studentPermissions.file;file.classList.toggle("studentLocked",!studentPermissions.file)}
   const fm=$("fileManager");if(fm)fm.style.display="block";

@@ -3,6 +3,7 @@ package ir.frahoosh.classroom;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.ActivityNotFoundException;
 import android.content.res.AssetManager;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -88,7 +89,27 @@ public final class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return false;
+                Uri uri = request.getUrl();
+                String scheme = uri.getScheme();
+                String host = uri.getHost();
+
+                // Keep classroom pages in the trusted Frahoosh origin. External HTTPS
+                // links are opened outside the classroom WebView; unsafe schemes are blocked.
+                if ("https".equalsIgnoreCase(scheme)
+                        && host != null
+                        && ("frahoosh.ir".equalsIgnoreCase(host)
+                            || host.toLowerCase(java.util.Locale.ROOT).endsWith(".frahoosh.ir"))) {
+                    return false;
+                }
+
+                if ("https".equalsIgnoreCase(scheme)) {
+                    try {
+                        startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                    } catch (ActivityNotFoundException ignored) {
+                        // No browser available; keep the user inside the classroom.
+                    }
+                }
+                return true;
             }
 
             @Override
@@ -98,13 +119,19 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) {
-                    view.postDelayed(() -> {
-                        if (webView != null) {
-                            webView.loadUrl(CLASSROOM_URL + "index.html");
-                        }
-                    }, 800);
-                }
+                if (!request.isForMainFrame()) return;
+
+                // Do not blindly reload the same failing URL: that creates an endless
+                // retry loop when the server or network is unavailable.
+                String message = "اتصال به کلاس برقرار نشد.";
+                String html = "<!doctype html><html lang='fa' dir='rtl'><meta charset='utf-8'>"
+                        + "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+                        + "<body style='font-family:sans-serif;background:#0e1726;color:#fff;"
+                        + "display:grid;place-items:center;min-height:90vh;text-align:center'>"
+                        + "<main><h2>فراهوش کلاس آنلاین</h2><p>" + message + "</p>"
+                        + "<a style='color:#f3c65b' href='" + CLASSROOM_URL
+                        + "index.html'>تلاش مجدد</a></main></body></html>";
+                view.loadDataWithBaseURL(CLASSROOM_URL, html, "text/html", "UTF-8", null);
             }
         });
 
