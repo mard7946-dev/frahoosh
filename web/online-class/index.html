@@ -96,6 +96,8 @@ body,.box,button,input,select{font-family:"Vazirmatn",Tahoma,sans-serif}
 .brand small{text-align:right!important;font-size:clamp(13px,3.1vw,16px)!important;white-space:normal!important;overflow:visible!important}
 @media(max-width:619px){.hero{text-align:right!important}.school-year{text-align:center}.school-time{text-align:center;align-items:center}.role-picker{text-align:right}.eyebrow,.section-title,.sub{text-align:right}.role-options{margin-left:0;margin-right:0}.role-foot{text-align:right;justify-content:flex-start}}
 
+.manager-action{min-height:74px;padding:14px;border:1px solid #d9b45c88;border-radius:14px;background:linear-gradient(135deg,#173657,#0b1a2b);color:#f4ca62;font-weight:700}.manager-action:focus,.manager-action:hover{border-color:#f4ca62;filter:brightness(1.12)}.manager-panel{margin-top:16px;padding:16px;border:1px solid #354d67;border-radius:14px;background:#0a1728}.manager-panel[hidden]{display:none!important}.manager-panel h3{color:#f4ca62}.manager-panel label{display:block;color:#dbe5f2}.manager-panel input,.manager-panel select{display:block;width:100%;margin-top:6px;box-sizing:border-box}
+
 </style>
 </head>
 <body><div class="box">
@@ -120,28 +122,48 @@ body,.box,button,input,select{font-family:"Vazirmatn",Tahoma,sans-serif}
 </div></div>
 <section id=classes style="display:none">
 <div id=who></div>
-<div id=adminCreate style="display:none;margin:14px 0;padding:14px;border:1px solid #d7e1ec;border-radius:14px;background:#f7fbff">
-<h3 style="margin-top:0">ساخت کلاس آنلاین</h3>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
-<input id=ctitle placeholder="عنوان کلاس">
-<input id=csubject placeholder="درس">
-<input id=cname placeholder="نام کلاس / پایه"><select id=cteacher aria-label="انتخاب دبیر"><option value="">انتخاب دبیر برای این کلاس</option></select>
-<input id=cdate type=date>
-<input id=ctime type=time>
-<div id=durationControl style="display:none"><label for=cduration>مدت کلاس به دقیقه (فقط مدیر)</label><input id=cduration type=number min=5 max=240 step=5 value=50 placeholder="مدت (دقیقه)"></div>
+<div id="adminCreate" style="display:none;margin:14px 0;padding:14px;border:1px solid #354d67;border-radius:18px;background:#0d1c2e;color:#fff">
+<h3 style="margin-top:0;color:#f4ca62">پنل مدیریت کلاس آنلاین</h3>
+<p style="color:#b7c5d7;font-size:13px;line-height:1.9">بخش موردنظر را انتخاب کنید تا فقط همان فرم باز شود.</p>
+<div class="manager-menu" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:16px 0">
+<button type="button" class="manager-action" data-panel="managerExcel">ورود اطلاعات از اکسل</button>
+<button type="button" class="manager-action" data-panel="managerCreate">ساخت کلاس آنلاین</button>
+<button type="button" class="manager-action" data-panel="managerSchedule">برنامه هفتگی</button>
+<button type="button" class="manager-action" data-panel="managerClasses">مدیریت کلاس‌ها</button>
 </div>
-<button id=createClass style="margin-top:10px">ساخت کلاس</button><span id=createMsg style="margin-right:10px"></span>
-<div class="excel-imports" style="margin-top:20px;padding-top:18px;border-top:1px solid #344a63">
-<h3 style="color:#f4ca62;margin:0 0 8px">ورود اطلاعات از فایل Excel</h3>
-<p style="color:#b7c5d7;font-size:13px;line-height:1.9">فایل‌های .xlsx، .xls یا .csv را انتخاب کنید. ستون‌های لازم: نام، نام خانوادگی، کد ملی؛ برای دانش‌آموزان ستون کلاس هم قابل استفاده است.</p>
+<section id="managerExcel" class="manager-panel" hidden>
+<h3>ورود اطلاعات از Excel</h3>
+<p style="color:#b7c5d7;font-size:13px;line-height:1.9">فایل‌های .xlsx، .xls یا .csv را انتخاب کنید. ستون‌های لازم: نام، نام خانوادگی و کد ملی ۱۰ رقمی؛ برای دانش‌آموزان ستون کلاس نیز وارد کنید.</p>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
-<div><label for="studentsExcel">ورود دانش‌آموزان</label><input id="studentsExcel" type="file" accept=".xlsx,.xls,.csv"></div>
-<div><label for="teachersExcel">ورود دبیران</label><input id="teachersExcel" type="file" accept=".xlsx,.xls,.csv"></div>
+<div><label for="studentsExcel">فایل دانش‌آموزان</label><input id="studentsExcel" type="file" accept=".xlsx,.xls,.csv"></div>
+<div><label for="teachersExcel">فایل دبیران</label><input id="teachersExcel" type="file" accept=".xlsx,.xls,.csv"></div>
 </div>
-<button type="button" id="importStudents" style="margin-top:12px;background:#1763e9;color:#fff">وارد کردن دانش‌آموزان</button>
-<button type="button" id="importTeachers" style="margin-top:12px;background:#1763e9;color:#fff">وارد کردن دبیران</button>
+<button type="button" id="importStudents" style="margin-top:12px">ثبت دانش‌آموزان</button>
+<button type="button" id="importTeachers" style="margin-top:12px">ثبت دبیران</button>
 <p id="excelImportStatus" role="status" style="font-size:13px;line-height:1.9;color:#d7e2ee;overflow-wrap:anywhere"></p>
+</section>
+<section id="managerCreate" class="manager-panel" hidden>
+<h3>ساخت کلاس آنلاین</h3>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+<label>عنوان کلاس<input id="ctitle" placeholder="عنوان کلاس"></label>
+<label>درس<input id="csubject" placeholder="درس"></label>
+<label>پایه / کلاس<input id="cname" placeholder="مثلاً ۷/۱"></label>
+<label>دبیر<select id="cteacher" aria-label="انتخاب دبیر"><option value="">انتخاب دبیر برای این کلاس</option></select></label>
+<label>تاریخ<input id="cdate" type="date"></label>
+<label>ساعت<input id="ctime" type="time"></label>
+<div id="durationControl" style="display:none"><label for="cduration">مدت کلاس به دقیقه</label><input id="cduration" type="number" min="5" max="240" step="5" value="50"></div>
 </div>
+<button id="createClass" style="margin-top:10px">ساخت کلاس</button><span id="createMsg" style="margin-right:10px"></span>
+</section>
+<section id="managerSchedule" class="manager-panel" hidden>
+<h3>برنامه هفتگی</h3>
+<p style="color:#b7c5d7;line-height:1.9">برای جلوگیری از ثبت برنامه در جدول اشتباه، این بخش باید به جدول برنامه هفتگی موجود در پایگاه داده متصل شود. در این نسخه فرم ثبت برنامه هفتگی جدیدی را بدون تأیید ساختار جدول فعال نمی‌کنم.</p>
+</section>
+<section id="managerClasses" class="manager-panel" hidden>
+<h3>مدیریت کلاس‌ها</h3>
+<p style="color:#b7c5d7;line-height:1.9">فهرست کلاس‌های ثبت‌شده در پایین پنل نمایش داده می‌شود.</p>
+<div id="managerClassesList"></div>
+</section>
 </div>
 <div id=list></div></section></div><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../runtime-config.js"></script><script>
 const U=FRAHOOH_CONFIG.supabase_url,K=FRAHOOH_CONFIG.supabase_anon_key;let token="",profile={},editingClassId=null,studentAccessToken="",selectedRole="";const $=x=>document.getElementById(x);async function api(p,o={}){let r;try{r=await fetch(U+p,{...o,headers:{"apikey":K,"Authorization":"Bearer "+(token||K),"Content-Type":"application/json"}})}catch(e){throw Error("ارتباط با سرور کلاس برقرار نشد ("+p+"): "+(e&&e.message||"Failed to fetch"))}if(!r.ok){const detail=await r.text().catch(()=>r.statusText);throw Error("درخواست سرور کلاس ناموفق بود ("+r.status+"، "+p+"): "+detail)}const type=r.headers.get("content-type")||"";if(!type.includes("application/json"))throw Error("پاسخ سرور کلاس JSON نیست ("+p+")");return r.json()}function isValidClassCode(value){return /^[۰-۹0-9]+\/[۰-۹0-9]+$/.test(String(value||""));}
@@ -201,6 +223,6 @@ async function unassignTeacher(id){if(!confirm("تخصیص دبیر از کلا�
 async function startClassFromManager(id){try{await api("/rest/v1/rpc/start_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});$("createMsg").textContent="کلاس فعال شد؛ زمان‌سنج از همین لحظه شروع شد. ورود دانش‌آموز پس از ورود دبیر فعال می‌شود.";await load()}catch(e){alert("شروع کلاس انجام نشد: "+e.message)}}
 async function endClassFromManager(id){if(!confirm("کلاس شماره "+id+" پایان یابد؟"))return;try{await api("/rest/v1/rpc/end_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});$("createMsg").textContent="کلاس پایان یافت.";await load()}catch(e){alert("پایان کلاس انجام نشد: "+e.message)}}
 async function loadTeachers(){try{const rows=await api("/rest/v1/teachers?select=id,first_name,last_name,national_code&order=last_name.asc&limit=500");$("cteacher").innerHTML='<option value="">انتخاب دبیر برای این کلاس</option>'+rows.map(t=>'<option value="'+t.id+'">'+[t.first_name,t.last_name].filter(Boolean).join(" ")+(t.national_code?" — "+t.national_code:"")+'</option>').join("");}catch(e){$("createMsg").textContent="فهرست دبیران بارگذاری نشد: "+e.message}}
-async function openRoom(id){try{const role=normalizeRole(profile.role);if(!Number.isInteger(Number(id))||Number(id)<=0)throw Error("شناسه کلاس معتبر نیست.");if(role==="teacher"||role==="دبیر"){const started=await api("/rest/v1/rpc/start_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});if(started===false)throw Error("شروع جلسه توسط سرور تأیید نشد.");}const managerRoles=["manager","مدیر","مدیریت","مدیر مدرسه","principal","administrator","admin","educational","معاون آموزشی","executive","معاون اجرایی","معاون پرورشی","counselor","مشاوره"];const isManager=managerRoles.includes(role);const s=isManager?[]:await api("/rest/v1/online_class_sessions?select=id,class_id,started_at,ended_at&class_id=eq."+encodeURIComponent(Number(id))+"&teacher_user_id=not.is.null&ended_at=is.null&order=id.desc&limit=1");if(!isManager&&!s[0])throw Error("هنوز دبیر کلاس را شروع نکرده است. پس از ورود دبیر دوباره تلاش کنید.");const userResponse=await fetch(U+"/auth/v1/user",{headers:{"apikey":K,"Authorization":"Bearer "+token}});if(!userResponse.ok)throw Error("اعتبار نشست ورود تأیید نشد ("+userResponse.status+"). دوباره وارد شوید.");const u=await userResponse.json();if(!u||!u.id)throw Error("شناسه کاربر از سرور احراز هویت دریافت نشد.");let sid=null,tid=null;if(role==="student"||role==="دانش‌آموز"){const a=await api("/rest/v1/students?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");sid=a[0]?.id}if(role==="teacher"||role==="دبیر"){const a=await api("/rest/v1/teachers?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");tid=a[0]?.id}const classRows=await api("/rest/v1/online_classes?select=id,duration&id=eq."+Number(id)+"&limit=1");const durationMinutes=Math.min(240,Math.max(5,Number(classRows[0]?.duration)||50));const roomConfig={url:U,anon:K,token,userId:u.id,classId:+id,name:profile.display_name||profile.username||"کاربر",role,studentId:sid,teacherId:tid,durationMinutes,sessionStartedAt:s[0]?.started_at||null,maxBoardPages:15};sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig));try{localStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig))}catch(_){}location.href="room.html"}catch(e){$("login").style.display="block";$("guest").style.display="none";$("classes").style.display="none";$("err").textContent=e.message}}$("importStudents").onclick=()=>importPeople("students");$("importTeachers").onclick=()=>importPeople("teachers");$("go").onclick=login;$("pw").onkeydown=e=>{if(e.key==="Enter")login()};$("go").onclick=login;$("pw").onkeydown=e=>{if(e.key==="Enter")login()};$("id").onkeydown=e=>{if(e.key==="Enter")$("pw").focus()};
+async function openRoom(id){try{const role=normalizeRole(profile.role);if(!Number.isInteger(Number(id))||Number(id)<=0)throw Error("شناسه کلاس معتبر نیست.");if(role==="teacher"||role==="دبیر"){const started=await api("/rest/v1/rpc/start_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});if(started===false)throw Error("شروع جلسه توسط سرور تأیید نشد.");}const managerRoles=["manager","مدیر","مدیریت","مدیر مدرسه","principal","administrator","admin","educational","معاون آموزشی","executive","معاون اجرایی","معاون پرورشی","counselor","مشاوره"];const isManager=managerRoles.includes(role);const s=isManager?[]:await api("/rest/v1/online_class_sessions?select=id,class_id,started_at,ended_at&class_id=eq."+encodeURIComponent(Number(id))+"&teacher_user_id=not.is.null&ended_at=is.null&order=id.desc&limit=1");if(!isManager&&!s[0])throw Error("هنوز دبیر کلاس را شروع نکرده است. پس از ورود دبیر دوباره تلاش کنید.");const userResponse=await fetch(U+"/auth/v1/user",{headers:{"apikey":K,"Authorization":"Bearer "+token}});if(!userResponse.ok)throw Error("اعتبار نشست ورود تأیید نشد ("+userResponse.status+"). دوباره وارد شوید.");const u=await userResponse.json();if(!u||!u.id)throw Error("شناسه کاربر از سرور احراز هویت دریافت نشد.");let sid=null,tid=null;if(role==="student"||role==="دانش‌آموز"){const a=await api("/rest/v1/students?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");sid=a[0]?.id}if(role==="teacher"||role==="دبیر"){const a=await api("/rest/v1/teachers?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");tid=a[0]?.id}const classRows=await api("/rest/v1/online_classes?select=id,duration&id=eq."+Number(id)+"&limit=1");const durationMinutes=Math.min(240,Math.max(5,Number(classRows[0]?.duration)||50));const roomConfig={url:U,anon:K,token,userId:u.id,classId:+id,name:profile.display_name||profile.username||"کاربر",role,studentId:sid,teacherId:tid,durationMinutes,sessionStartedAt:s[0]?.started_at||null,maxBoardPages:15};sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig));try{localStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig))}catch(_){}location.href="room.html"}catch(e){$("login").style.display="block";$("guest").style.display="none";$("classes").style.display="none";$("err").textContent=e.message}}$("importStudents").onclick=()=>importPeople("students");$("importTeachers").onclick=()=>importPeople("teachers");document.querySelectorAll(".manager-action").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".manager-panel").forEach(panel=>panel.hidden=panel.id!==btn.dataset.panel);if(btn.dataset.panel==="managerCreate")loadTeachers();if(btn.dataset.panel==="managerClasses")$("managerClassesList").innerHTML=$("list").innerHTML;$("adminCreate").scrollIntoView({behavior:"smooth",block:"start"})}));$("go").onclick=login;$("pw").onkeydown=e=>{if(e.key==="Enter")login()};$("go").onclick=login;$("pw").onkeydown=e=>{if(e.key==="Enter")login()};$("id").onkeydown=e=>{if(e.key==="Enter")$("pw").focus()};
 (function(){const dateNode=document.getElementById("jalaliDate"),timeNode=document.getElementById("digitalClock");function updateSchoolClock(){const now=new Date();try{dateNode.textContent=new Intl.DateTimeFormat("fa-IR-u-ca-persian",{weekday:"long",year:"numeric",month:"long",day:"numeric"}).format(now)}catch(_){dateNode.textContent=now.toLocaleDateString("fa-IR")}timeNode.textContent=new Intl.DateTimeFormat("fa-IR",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(now)}updateSchoolClock();setInterval(updateSchoolClock,1000)})();
 </script>
