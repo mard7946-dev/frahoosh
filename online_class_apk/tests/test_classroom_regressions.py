@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ROOM = ROOT / "online_class_apk/app/src/main/assets/room_assets/online_class.html"
 ACTIVITY = ROOT / "online_class_apk/app/src/main/java/ir/frahoosh/classroom/MainActivity.java"
 PATCH = ROOT / "online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"
+WEB_ENTRY = ROOT / "web/online-class/index.html"
 MANIFEST = ROOT / "online_class_apk/app/src/main/AndroidManifest.xml"
 
 
@@ -14,6 +15,7 @@ class ClassroomRegressionTests(unittest.TestCase):
         cls.room = ROOM.read_text(encoding="utf-8")
         cls.activity = ACTIVITY.read_text(encoding="utf-8")
         cls.patch = PATCH.read_text(encoding="utf-8")
+        cls.web_entry = WEB_ENTRY.read_text(encoding="utf-8")
         cls.manifest = MANIFEST.read_text(encoding="utf-8")
 
     def test_student_tool_permissions_do_not_hide_published_quiz_entry(self):
@@ -31,6 +33,12 @@ class ClassroomRegressionTests(unittest.TestCase):
         gate = self.patch[start:end]
         self.assertIn('const quizToggle=$("quizToggle")', gate)
         self.assertIn('for(const id of ["screen","prev","next","clear","clearAll","color","size","teacherToolPermission"]){', gate)
+
+    def test_management_can_open_class_before_teacher_starts(self):
+        self.assertIn("const isManager=managerRoles.includes(role)", self.web_entry)
+        self.assertIn("const s=isManager?[]:await api(", self.web_entry)
+        self.assertIn("if(!isManager&&!s[0])throw Error", self.web_entry)
+        self.assertIn('function isManagerRole(){return ["manager","مدیر","مدیریت","مدیر مدرسه"', self.room)
 
     def test_webview_blocks_unsafe_navigation_and_limits_classroom_origin(self):
         self.assertIn('"https".equalsIgnoreCase(scheme)', self.activity)
