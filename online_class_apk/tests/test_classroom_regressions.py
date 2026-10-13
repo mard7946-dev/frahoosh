@@ -21,7 +21,7 @@ class ClassroomRegressionTests(unittest.TestCase):
         end = self.room.index("async function ensureTeacherSession()", start)
         gate = self.room[start:end]
         self.assertIn('for(const id of ["screen"', gate)
-        self.assertNotIn('"quizToggle"', gate)
+        self.assertIn('for(const id of ["screen","prev","next","clear","clearAll","color","size","teacherToolPermission","qsave"]){', gate)
         self.assertIn('const toggle=$("quizToggle")', self.room)
         self.assertIn('is_published=eq.true', self.room)
 
@@ -30,7 +30,7 @@ class ClassroomRegressionTests(unittest.TestCase):
         end = self.patch.index("async function pollPermissions()", start)
         gate = self.patch[start:end]
         self.assertIn('const quizToggle=$("quizToggle")', gate)
-        self.assertNotIn('"quizToggle"', gate)
+        self.assertIn('for(const id of ["screen","prev","next","clear","clearAll","color","size","teacherToolPermission"]){', gate)
 
     def test_webview_blocks_unsafe_navigation_and_limits_classroom_origin(self):
         self.assertIn('"https".equalsIgnoreCase(scheme)', self.activity)
