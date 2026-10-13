@@ -37,21 +37,22 @@ Deno.serve(async (req: Request) => {
 
   const body = await req.json().catch(() => ({}));
   const firstName = text(body.first_name), lastName = text(body.last_name);
-  const nationalCode = text(body.national_code), email = text(body.email).toLowerCase();
+  const username = text(body.username), nationalCode = text(body.national_code || body.username), email = (text(body.email) || (username ? `${username.toLowerCase()}@users.frahoosh.ir` : "")).toLowerCase();
   const password = text(body.password), phone = text(body.phone), subject = text(body.subject);
   const displayName = [firstName, lastName].filter(Boolean).join(" ");
-  if (!firstName || !lastName || !nationalCode || !email || !password) {
-    return respond({ error: "نام، نام خانوادگی، کد ملی، ایمیل و رمز عبور الزامی است." }, 400);
+  if (!firstName || !lastName || !username || !password) {
+    return respond({ error: "نام، نام خانوادگی، نام کاربری و رمز عبور الزامی است." }, 400);
   }
+  if (!/^[a-zA-Z0-9._-]{3,40}$/.test(username)) return respond({ error: "نام کاربری باید ۳ تا ۴۰ نویسه و شامل حروف انگلیسی، عدد، نقطه، خط تیره یا زیرخط باشد." }, 400);
   if (!/^\S+@\S+\.\S+$/.test(email)) return respond({ error: "ایمیل واردشده معتبر نیست." }, 400);
-  if (nationalCode.length < 8 || nationalCode.length > 12) return respond({ error: "کد ملی یا شناسه واردشده معتبر نیست." }, 400);
+  
   if (password.length < 8) return respond({ error: "رمز عبور باید دست‌کم ۸ نویسه داشته باشد." }, 400);
 
   const { data: existing, error: existingError } = await admin
     .from("account_settings").select("username,role,auth_user_id")
-    .eq("national_code", nationalCode).maybeSingle();
+    .eq("username", username).maybeSingle();
   if (existingError) return respond({ error: "بررسی حساب قبلی ناموفق بود." }, 500);
-  if (existing?.auth_user_id) return respond({ error: "برای این کد ملی قبلاً حساب ورود ساخته شده است." }, 409);
+  if (existing?.auth_user_id) return respond({ error: "برای این نام کاربری قبلاً حساب ورود ساخته شده است." }, 409);
   if (existing && normRole(existing.role) !== "teacher" && normRole(existing.role) !== "دبیر") {
     return respond({ error: "این کد ملی به نقش دیگری متصل است؛ ابتدا اطلاعات آن حساب باید توسط مدیر بررسی شود." }, 409);
   }
@@ -64,7 +65,7 @@ Deno.serve(async (req: Request) => {
     return respond({ error: createError?.message ?? "ساخت حساب احراز هویت ناموفق بود." }, 400);
   }
 
-  const username = existing?.username || nationalCode;
+  const finalUsername = existing?.username || username;
   try {
     const { data: oldTeacher, error: teacherLookupError } = await admin
       .from("teachers").select("id").eq("national_code", nationalCode).maybeSingle();
@@ -80,13 +81,13 @@ Deno.serve(async (req: Request) => {
     if (teacherWrite.error) throw teacherWrite.error;
 
     const { error: accountError } = await admin.from("account_settings").upsert({
-      username, display_name: displayName, email, national_code: nationalCode,
+      username: finalUsername, display_name: displayName, email, national_code: nationalCode,
       role: "teacher", auth_user_id: created.user.id, phone: phone || "",
       preferences: "{}"
     }, { onConflict: "username" });
     if (accountError) throw accountError;
 
-    return respond({ success: true, username, email, role: "teacher", message: "حساب دبیر ایجاد شد." }, 201);
+    return respond({ success: true, username: finalUsername, role: "teacher", message: "حساب دبیر ایجاد شد." }, 201);
   } catch (e) {
     await admin.auth.admin.deleteUser(created.user.id);
     return respond({ error: "ذخیره پروفایل دبیر ناموفق بود؛ حساب موقت حذف شد. " + text((e as Error)?.message) }, 500);
