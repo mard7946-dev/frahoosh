@@ -1,4 +1,3 @@
-import re
 import unittest
 from pathlib import Path
 
@@ -21,9 +20,8 @@ class ClassroomRegressionTests(unittest.TestCase):
         start = self.room.index("function setStudentToolsPermission(value)")
         end = self.room.index("async function ensureTeacherSession()", start)
         gate = self.room[start:end]
-        match = re.search(r'for\\s*\\(const id of \\[(.*?)\\]\\)', gate, re.S)
-        self.assertIsNotNone(match, "student permission gate control list must exist")
-        self.assertNotIn('"quizToggle"', match.group(1))
+        self.assertIn('for(const id of ["screen"', gate)
+        self.assertNotIn('"quizToggle"', gate)
         self.assertIn('const toggle=$("quizToggle")', self.room)
         self.assertIn('is_published=eq.true', self.room)
 
