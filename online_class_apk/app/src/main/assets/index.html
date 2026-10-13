@@ -276,6 +276,9 @@ async function joinScheduledStudent(classId,sessionId){
   if(sessionError)throw Error("وضعیت زنگ قابل بررسی نیست؛ دوباره تلاش کنید.");
   if(!sessionRows||!sessionRows.length)throw Error("این زنگ دیگر فعال نیست. برنامه را تازه‌سازی کنید.");
   const name=first+" "+last;
+  const {data:registered,error:registerError}=await client.rpc("register_online_class_student_guest",{p_class_id:Number(classId),p_session_id:Number(sessionId),p_display_name:name,p_class_name:className});
+  if(registerError)throw Error("ثبت حضور دانش‌آموز در کلاس انجام نشد: "+registerError.message);
+  if(registered!==true)throw Error("سرور عضویت دانش‌آموز در کلاس را تأیید نکرد.");
   const roomConfig={url:U,anon:K,token:authData.session.access_token,userId:authData.session.user.id,classId:Number(classId),sessionId:Number(sessionId),name,role:"guest",studentDisplayName:name,studentClass:className,maxBoardPages:15};
   sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig));
   try{localStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig))}catch(_){}
