@@ -72,17 +72,24 @@ header{background:linear-gradient(110deg,#06101f,#0c2036 65%,#112e48);border-bot
 <script>
 const C=__CONFIG__;
 async function createGuestInvite(){
-  const role=String(C.role||"").toLowerCase();
-  if(!["teacher","دبیر","manager","مدیر","educational","معاون آموزشی"].includes(role)){alert("ساخت لینک دعوت فقط برای دبیر یا مدیریت مجاز است.");return}
+  const normalizeRole=v=>String(v||"").trim().toLowerCase().replace(/ي/g,"ی").replace(/ك/g,"ک").replace(/\s+/g," ");
+  const role=normalizeRole(C.role);
+  const allowed=["teacher","دبیر","manager","مدیر","مدیریت","مدیر مدرسه","مدیر دبیرستان","مدیر آموزشگاه","principal","administrator","admin","school manager","school_manager","school_admin","super_admin","educational","معاون آموزشی","معاونت آموزشی"];
+  if(!allowed.includes(role)){alert("ساخت لینک دعوت فقط برای دبیر یا مدیریت مجاز است.");return}
+  if(!Number.isInteger(Number(C.classId))||Number(C.classId)<=0){alert("شناسه کلاس معتبر نیست؛ لینک به کلاس متصل نشد.");return}
   const button=document.getElementById("guestInvite");
   if(button)button.disabled=true;
   try{
     const response=await fetch(C.url+"/rest/v1/rpc/get_online_class_guest_invite",{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"},body:JSON.stringify({p_class_id:Number(C.classId)})});
-    const raw=await response.text();let code;try{code=JSON.parse(raw)}catch(_){code=raw}
-    if(!response.ok)throw Error(typeof code==="string"?code:(code.message||code.details||"ساخت لینک دعوت ناموفق بود"));
-    const inviteUrl="https://frahoosh.ir/online-class/index.html?code="+encodeURIComponent(String(code).replace(/^"|"$/g,""));
-    if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(inviteUrl);alert("لینک ورود دانش‌آموز کپی شد. آن را برای دانش‌آموزان همین کلاس بفرستید:\n"+inviteUrl)}
-    else prompt("این لینک را برای دانش‌آموزان همین کلاس بفرستید:",inviteUrl);
+    const raw=await response.text();let result;try{result=JSON.parse(raw)}catch(_){result=raw}
+    if(!response.ok)throw Error(typeof result==="string"?result:(result.message||result.details||result.hint||"ساخت لینک دعوت ناموفق بود"));
+    let code=Array.isArray(result)?result[0]:result;
+    if(code&&typeof code==="object")code=code.get_online_class_guest_invite||code.room_code||code.code;
+    code=String(code??"").trim().replace(/^"+|"+$/g,"").toUpperCase();
+    if(!code||code==="NULL"||code==="UNDEFINED")throw Error("سرور کد دعوتی برنگرداند؛ مهاجرت دعوت میهمان در Supabase را بررسی کنید.");
+    const inviteUrl="https://frahoosh.ir/online-class/?code="+encodeURIComponent(code);
+    const message="لینک ورود میهمان به کلاس "+C.classId+" ساخته شد و به همین کلاس متصل است. برای ارسال به میهمان کپی کنید:\n"+inviteUrl;
+    if(navigator.clipboard&&navigator.clipboard.writeText){try{await navigator.clipboard.writeText(inviteUrl);alert(message)}catch(_){prompt("لینک ورود میهمان به کلاس "+C.classId+" را کپی کنید:",inviteUrl)}}else prompt("لینک ورود میهمان به کلاس "+C.classId+" را کپی کنید:",inviteUrl);
   }catch(e){alert("لینک دعوت ساخته نشد: "+(e.message||"خطای نامشخص"))}
   finally{if(button)button.disabled=false}
 }
