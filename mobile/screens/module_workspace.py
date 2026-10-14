@@ -2106,8 +2106,9 @@ class ModuleWorkspaceScreen(Screen):
                 path=self._excel_path(); template=path.with_name(path.stem+"_template.xlsx")
                 wb.save(str(template))
                 published=self._publish_excel_android(template)
-                msg="قالب Excel در پوشه Download/Frahoosh ذخیره شد." if published else "قالب Excel آماده شد: "+str(template)
-                Clock.schedule_once(lambda *_: self._excel_done(msg),0)
+                msg=("قالب Excel ذخیره شد؛ در حال باز کردن فایل…" if published
+                     else "قالب Excel ساخته شد، اما انتقال آن به پوشه دانلود انجام نشد: "+str(template))
+                Clock.schedule_once(lambda *_: self._excel_template_done(msg, published, template),0)
             except Exception as exc:
                 Clock.schedule_once(lambda *_: self.write_error("ساخت قالب Excel انجام نشد: "+str(exc)),0)
         Thread(target=work,daemon=True).start()
@@ -2301,6 +2302,38 @@ class ModuleWorkspaceScreen(Screen):
         self.status.color=SUCCESS
         self.load_table()
 
+    def _excel_template_done(self, message, content_uri=None, local_path=None):
+        """Give visible feedback and open the generated template on Android."""
+        self.status.text = fa_display(message)
+        self.status.color = SUCCESS
+        opened = False
+        if content_uri:
+            try:
+                from kivy.utils import platform
+                if platform == "android":
+                    from jnius import autoclass
+                    PythonActivity = autoclass("org.kivy.android.PythonActivity")
+                    Intent = autoclass("android.content.Intent")
+                    Uri = autoclass("android.net.Uri")
+                    intent = Intent(Intent.ACTION_VIEW)
+                    intent.setDataAndType(
+                        Uri.parse(str(content_uri)),
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    PythonActivity.mActivity.startActivity(intent)
+                    opened = True
+            except Exception as exc:
+                print("EXCEL TEMPLATE OPEN ERROR:", repr(exc))
+        if not opened:
+            details = message
+            if local_path:
+                details += "\n\nمسیر فایل: " + str(local_path)
+            if content_uri:
+                details += "\n\nفایل در پوشه Download/Frahoosh ذخیره شده است؛ آن را با Excel یا برنامه سازگار باز کنید."
+            self.message("قالب Excel", details)
+        self.load_table()
+
     def _edit_selected_row(self):
         row=getattr(self,"selected_row",None)
         if row is None:
@@ -2411,7 +2444,9 @@ class ModuleWorkspaceScreen(Screen):
                 return
 
             col_w = dp(230)
-            totalw = max(dp(720), col_w * max(1, len(keys)))
+            roster_actions = self.table in {"students", "teachers"} and self.can_write(self.table)
+            action_w = dp(210) if roster_actions else 0
+            totalw = max(dp(720), col_w * max(1, len(keys)) + action_w)
 
             scroll = ScrollView(do_scroll_x=True, do_scroll_y=True)
             content = BoxLayout(
@@ -2441,6 +2476,11 @@ class ModuleWorkspaceScreen(Screen):
                 cell.size_hint_x = None
                 cell.width = col_w
                 header.add_widget(cell)
+            if roster_actions:
+                action_header = self.label("عملیات", "18sp", WHITE, True, "center")
+                action_header.size_hint_x = None
+                action_header.width = action_w
+                header.add_widget(action_header)
             self._header(header)
             content.add_widget(header)
 
@@ -2506,6 +2546,8 @@ class ModuleWorkspaceScreen(Screen):
         bg.size = header.size
 
     def row(self,r,index,keys,totalw):
+        roster_actions = self.table in {"students", "teachers"} and self.can_write(self.table)
+        action_w = dp(210) if roster_actions else 0
         b=SelectableRow(owner=self,record=r,size_hint=(None,None),width=totalw,height=dp(100),spacing=dp(3),padding=[dp(5),dp(5)])
         for k in keys:
             raw = r.get(k, "")
@@ -2518,6 +2560,11 @@ class ModuleWorkspaceScreen(Screen):
             cell.size_hint_x=None
             cell.width=dp(230)
             b.add_widget(cell)
+        if roster_actions:
+            actions = BoxLayout(orientation="vertical", size_hint=(None, 1), width=action_w, spacing=dp(4), padding=[dp(3), dp(2)])
+            actions.add_widget(self.btn("ویرایش این رکورد", lambda *_args, item=dict(r): self.editor(self.table, item), PRIMARY, dp(40)))
+            actions.add_widget(self.btn("حذف این رکورد", lambda *_args, item=dict(r): self.confirm_delete(self.table, item), (0.72,.16,.18,1), dp(40)))
+            b.add_widget(actions)
         if index%2==0:
             with b.canvas.before: Color(.94,.97,.985,1); bg=RoundedRectangle(radius=[dp(6)])
             b.bind(pos=lambda o,v:setattr(bg,'pos',v),size=lambda o,v:setattr(bg,'size',v))
