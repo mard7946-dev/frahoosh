@@ -229,6 +229,17 @@ button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 .digital-time-shell #ctime{direction:ltr!important;unicode-bidi:isolate;text-align:center;cursor:pointer}
 .time-open-btn{flex:0 0 auto;min-height:42px;padding:8px 12px;border:1px solid #f4ca6280;border-radius:10px;background:#f4ca621a;color:#ffdc83;font-weight:700}
 .time-picker{margin-top:10px;padding:14px;border:1px solid #d9b45c88;border-radius:16px;background:linear-gradient(145deg,#071423,#10263b)}.time-picker[hidden]{display:none!important}.time-picker-title{color:#f4ca62;font-weight:700;margin-bottom:10px}.time-picker-groups{display:grid;grid-template-columns:1fr 1fr;gap:12px}.time-picker-group strong{display:block;color:#c8d5e5;font-size:12px;margin-bottom:7px}.time-picker-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;max-height:156px;overflow:auto}.time-picker-options button{padding:8px 2px;border:1px solid #344a63;border-radius:8px;background:#0a1a2c;color:#f5f7fb;font:700 14px ui-monospace,monospace}.time-picker-options button.selected{background:#f4ca62;color:#08182b;border-color:#f4ca62}.time-picker-actions{display:flex;justify-content:space-between;gap:8px;margin-top:12px}.time-picker-actions button{padding:10px 14px;border-radius:9px;border:1px solid #d9b45c88;background:#f4ca62;color:#08182b;font-weight:700}.time-picker-actions button.secondary{background:#10253a;color:#f5d276}@media(max-width:520px){.time-picker{padding:10px}.time-picker-options{grid-template-columns:repeat(3,minmax(0,1fr));max-height:132px}.time-open-btn{padding:8px 9px}}
+/* Polished digital time field for the in-page 24-hour picker. */
+.class-time-field{display:block}
+.digital-time-shell{display:flex;align-items:center;gap:12px;margin-top:9px;padding:8px 14px;border:1px solid #d9b45c88;border-radius:16px;background:linear-gradient(145deg,#061321,#10263b);box-shadow:inset 0 1px #ffffff0b,0 10px 24px #0002}
+.digital-time-icon{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#f4ca621a;border:1px solid #f4ca624d;color:#f4ca62;font-size:29px;line-height:1}
+#ctime{flex:1;width:100%;min-width:0;min-height:62px;padding:8px 10px!important;border:0!important;border-radius:10px!important;background:transparent!important;color:#ffdc83!important;font-family:ui-monospace,"SFMono-Regular",Consolas,monospace!important;font-size:clamp(28px,7vw,38px)!important;font-weight:800!important;letter-spacing:2px;font-variant-numeric:tabular-nums;text-align:center;direction:ltr;box-shadow:none!important;accent-color:#f4ca62}
+#ctime:focus{outline:2px solid #f4ca6280;outline-offset:1px}
+#ctime::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.9;filter:invert(83%) sepia(44%) saturate(520%) hue-rotate(350deg)}
+.time-hint{display:block;margin-top:8px;color:#aebed0;font-size:11px;line-height:1.8;font-weight:400}
+@media(max-width:520px){.digital-time-shell{padding:7px 10px}.digital-time-icon{width:38px;height:38px;flex-basis:38px}#ctime{min-height:58px;font-size:32px!important}}
+
+
 </style>
 </head>
 <body><div class="box">
@@ -397,16 +408,6 @@ document.querySelectorAll("[data-login-role]").forEach(function(card){
 });
 
 
-
-/* Polished digital time field; keep native mobile time picker for reliable OS interaction. */
-.class-time-field{display:block}
-.digital-time-shell{display:flex;align-items:center;gap:12px;margin-top:9px;padding:8px 14px;border:1px solid #d9b45c88;border-radius:16px;background:linear-gradient(145deg,#061321,#10263b);box-shadow:inset 0 1px #ffffff0b,0 10px 24px #0002}
-.digital-time-icon{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#f4ca621a;border:1px solid #f4ca624d;color:#f4ca62;font-size:29px;line-height:1}
-#ctime{flex:1;width:100%;min-width:0;min-height:62px;padding:8px 10px!important;border:0!important;border-radius:10px!important;background:transparent!important;color:#ffdc83!important;font-family:ui-monospace,"SFMono-Regular",Consolas,monospace!important;font-size:clamp(28px,7vw,38px)!important;font-weight:800!important;letter-spacing:2px;font-variant-numeric:tabular-nums;text-align:center;direction:ltr;box-shadow:none!important;accent-color:#f4ca62}
-#ctime:focus{outline:2px solid #f4ca6280;outline-offset:1px}
-#ctime::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.9;filter:invert(83%) sepia(44%) saturate(520%) hue-rotate(350deg)}
-.time-hint{display:block;margin-top:8px;color:#aebed0;font-size:11px;line-height:1.8;font-weight:400}
-@media(max-width:520px){.digital-time-shell{padding:7px 10px}.digital-time-icon{width:38px;height:38px;flex-basis:38px}#ctime{min-height:58px;font-size:32px!important}}
 
 /* In-page digital time picker: independent of the phone's native time widget. */
 (function initDigitalTimePicker(){
