@@ -31,10 +31,12 @@ class OnlineClassContractTests(unittest.TestCase):
         student_return = self.entry.index("return}", student_branch)
         self.assertLess(student_return, teacher_insert)
 
-    def test_weekly_schedule_is_local_and_role_entry_uses_same_page(self):
-        self.assertIn('localStorage.setItem("frahoosh_weekly_schedule"', self.entry)
+    def test_weekly_schedule_uses_existing_supabase_contract(self):
+        self.assertIn("weekly_schedule_entries", self.entry)
+        self.assertIn("get_student_class_schedule", self.entry)
         self.assertIn('id="scheduleDay"', self.entry)
         self.assertIn('id="studentSchedule"', self.entry)
+        self.assertIn('register_online_class_student_guest', self.entry)
         self.assertIn('location.href="room.html"', self.entry)
 
     def test_room_requires_a_complete_authenticated_session(self):
