@@ -66,8 +66,8 @@ class OnlineClassContractTests(unittest.TestCase):
 
     def test_class_creation_persists_valid_jalali_date_and_24_hour_time(self):
         self.assertIn('classWizardStep===4?$("cdateDisplay")', self.entry)
-        self.assertIn('if(!/^\\\\d{4}-\\\\d{2}-\\\\d{2}$/.test(selectedDate))', self.entry)
-        self.assertIn('if(!/^(?:[01]\\\\d|2[0-3]):[0-5]\\\\d$/.test(selectedTime))', self.entry)
+        self.assertIn('if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(selectedDate))', self.entry)
+        self.assertIn('if(!/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(selectedTime))', self.entry)
         for field in ("start_time_shamsi", "end_time_shamsi", "start_at", "end_at"):
             self.assertIn(field, self.entry)
         self.assertIn('unicode-bidi:isolate-override!important', self.entry)
