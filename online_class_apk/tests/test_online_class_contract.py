@@ -42,6 +42,36 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('["نام *","نام خانوادگی *","کلاس *"]', self.entry)
         self.assertIn('"ایمیل (اختیاری)"', self.entry)
 
+    def test_local_teacher_and_student_rosters_support_edit_and_confirmed_delete(self):
+        for token in (
+            'data-edit-local-student=',
+            'data-remove-local-student=',
+            'data-edit-local-teacher=',
+            'data-remove-local-teacher=',
+            'editingLocalStudentIndex!==null',
+            'editingLocalTeacherIndex!==null',
+            'cancelStudentEdit',
+            'cancelTeacherEdit',
+            'if(!confirm("این دانش‌آموز از فهرست محلی همین دستگاه حذف شود؟"))',
+            'if(!confirm("این دبیر از فهرست محلی همین دستگاه حذف شود؟"))',
+        ):
+            self.assertIn(token, self.entry)
+        self.assertIn('writeLocalRows("frahoosh_local_students"', self.entry)
+        self.assertIn('writeLocalRows("frahoosh_local_teachers"', self.entry)
+
+    def test_excel_templates_work_in_android_webview_and_report_results(self):
+        self.assertIn('src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"', self.entry)
+        self.assertIn('window.FrahooshNative.saveExcelTemplate(fileName,XLSX.write(wb,{bookType:"xlsx",type:"base64"}))', self.entry)
+        self.assertIn('window.frahooshTemplateSaved=function(success)', self.entry)
+        self.assertIn('XLSX.writeFile(wb,fileName)', self.entry)
+        activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
+                    "ir" / "frahoosh" / "classroom" / "MainActivity.java").read_text(encoding="utf-8")
+        self.assertIn('addJavascriptInterface(new TemplateDownloadBridge(), "FrahooshNative")', activity)
+        self.assertIn('MediaStore.Downloads.EXTERNAL_CONTENT_URI', activity)
+        self.assertIn('onJsAlert(', activity)
+        self.assertIn('onJsConfirm(', activity)
+        self.assertIn('@JavascriptInterface', activity)
+
     def test_weekly_schedule_uses_existing_supabase_contract(self):
         self.assertIn("weekly_schedule_entries", self.entry)
         self.assertIn("get_student_class_schedule", self.entry)
