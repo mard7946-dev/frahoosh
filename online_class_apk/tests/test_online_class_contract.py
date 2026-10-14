@@ -83,7 +83,8 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("grantWebMediaPermission(request);", activity)
         self.assertIn("denying camera must not mute the microphone", activity)
         # A combined camera+microphone permission check must not gate a microphone-only request.
-        self.assertNotIn("if (hasMediaPermissions()) {\\n                grantWebMediaPermission(request);\\n            } else {\\n                request.deny();", activity)
+        permission_handler = activity.split("public void onPermissionRequest", 1)[1].split("public boolean onShowFileChooser", 1)[0]
+        self.assertNotIn("hasMediaPermissions()", permission_handler)
 
     def test_shared_room_loader_uses_paths_supported_by_web_and_android(self):
         self.assertIn('getText("/mobile/assets/online_class.html"', self.room)
