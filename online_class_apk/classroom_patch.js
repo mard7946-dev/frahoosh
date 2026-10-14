@@ -2,7 +2,7 @@
 const C=window.C||{},$=id=>document.getElementById(id);
 const role=String(C.role||"student").toLowerCase();
 const student=["student","دانش‌آموز","guest","میهمان"].includes(role);
-const teacher=["teacher","دبیر"].includes(role);
+const teacher=["teacher","دبیر","manager","مدیر","مدیریت","principal","admin","administrator","executive","معاون اجرایی","educational","معاون آموزشی","counselor","مشاوره"].includes(role);
 const controller=["teacher","دبیر","manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی","counselor","مشاوره","principal","admin"].includes(role);
 let target="",presence=new Map(),latestNames=new Map();
 const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"};
