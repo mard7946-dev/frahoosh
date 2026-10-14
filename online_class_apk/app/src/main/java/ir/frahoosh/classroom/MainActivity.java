@@ -49,6 +49,7 @@ public final class MainActivity extends Activity {
         );
 
         buildWebView();
+        requestMediaPermissions();
     }
 
     private void buildWebView() {
@@ -111,12 +112,11 @@ public final class MainActivity extends Activity {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> {
-                    ArrayList<String> missing = missingPermissionsFor(request);
-                    if (missing.isEmpty()) {
+                    if (hasMediaPermissions()) {
                         grantWebMediaPermission(request);
                     } else {
                         pendingWebPermission = request;
-                        requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
+                        requestMediaPermissions();
                     }
                 });
             }
@@ -168,23 +168,28 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private ArrayList<String> missingPermissionsFor(PermissionRequest request) {
-        ArrayList<String> missing = new ArrayList<>();
-        if (request == null) return missing;
+    private boolean hasMediaPermissions() {
+        if (Build.VERSION.SDK_INT < 23) return true;
+        return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    }
 
-        boolean needsCamera = false;
-        boolean needsAudio = false;
-        for (String resource : request.getResources()) {
-            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) needsCamera = true;
-            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) needsAudio = true;
-        }
-        if (needsCamera && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+    private void requestMediaPermissions() {
+        if (Build.VERSION.SDK_INT < 23) return;
+        ArrayList<String> missing = new ArrayList<>();
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             missing.add(Manifest.permission.CAMERA);
         }
-        if (needsAudio && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             missing.add(Manifest.permission.RECORD_AUDIO);
         }
-        return missing;
+        if (!missing.isEmpty()) {
+            requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
+        } else if (pendingWebPermission != null) {
+            PermissionRequest request = pendingWebPermission;
+            pendingWebPermission = null;
+            grantWebMediaPermission(request);
+        }
     }
 
     private void grantWebMediaPermission(PermissionRequest request) {
@@ -201,7 +206,6 @@ public final class MainActivity extends Activity {
             }
         }
 
-        // Grant each media capability independently: denying camera must not mute the microphone.
         if (!allowed.isEmpty()) {
             request.grant(allowed.toArray(new String[0]));
         } else {
@@ -215,9 +219,11 @@ public final class MainActivity extends Activity {
         if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermission != null) {
             PermissionRequest request = pendingWebPermission;
             pendingWebPermission = null;
-            // Android may grant microphone while camera remains denied (or vice versa).
-            // The WebView request must receive whichever requested media capabilities are allowed.
-            grantWebMediaPermission(request);
+            if (hasMediaPermissions()) {
+                grantWebMediaPermission(request);
+            } else {
+                request.deny();
+            }
         }
     }
 
