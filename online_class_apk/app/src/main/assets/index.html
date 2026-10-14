@@ -107,6 +107,120 @@ body,.box,button,input,select{font-family:"Vazirmatn",Tahoma,sans-serif}
 #classWizardProgress{padding:8px 0;border-bottom:1px solid #344a63}
 @media(max-width:520px){.manager-menu{grid-template-columns:1fr!important}.class-step-field input,.class-step-field select{min-height:54px}}
 
+
+/* Premium two-column Frahoosh portal refresh — preserves existing authentication and class logic */
+:root{--premium-gold:#f2c968;--premium-ink:#08182b;--premium-card:#0d2036;--premium-line:#d8b45b70}
+body{min-height:100vh;padding:clamp(16px,3vw,38px);background:radial-gradient(ellipse at 50% 0%,#244f78 0,transparent 48%),linear-gradient(135deg,#030916 0%,#071a2e 55%,#102d49 100%);color:#f7f9fc}
+.box{width:min(1180px,100%);display:grid;grid-template-columns:1fr;grid-template-areas:"hero" "content";overflow:hidden;border:1px solid #e6c56b80;border-radius:30px;background:linear-gradient(145deg,#0b192a,#0a1727);box-shadow:0 30px 100px #0008}
+.hero{grid-area:hero;text-align:center;padding:30px 28px 24px;background:linear-gradient(115deg,#071321,#102c49 55%,#0a1a2d);border-bottom:1px solid #d9b45b55}
+.brand{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.brand .mark{display:grid!important;width:76px;height:76px;place-items:center;border-radius:25px;background:linear-gradient(145deg,#fff0b8,#dca83c);color:#0a1a2c;border:1px solid #ffedb8;box-shadow:0 0 0 8px #e8b84a10,0 12px 34px #0004}
+.brand .mark svg{width:56px;height:56px}
+.brand-copy{width:100%;text-align:center!important}
+.brand h1{margin:0 0 8px;text-align:center!important;font-size:clamp(25px,3vw,36px)!important;line-height:1.7!important;color:#f5cf6b;letter-spacing:0!important}
+.brand small{display:block;text-align:center!important;white-space:normal!important;overflow:visible!important;margin:5px auto 0;font-size:clamp(12px,1.4vw,15px)!important;line-height:1.9;color:#d9e4f0}
+.brand .school-name{color:#f7f9fc}.brand .school-motto{color:#f4cf70;font-weight:700}.brand .school-manager{color:#bdcddd}
+.hero>p{max-width:700px;margin:12px auto 0;text-align:center;font-size:13px;color:#b9c9dc}
+.school-year{margin-top:12px;text-align:center;color:#f3ce70;font-weight:700;font-size:13px}
+.school-time{justify-content:center;gap:14px;margin:12px auto 0;color:#c6d4e4;font-size:12px}
+.school-time time{display:inline-block;padding:7px 14px;border:1px solid #d9b45b77;border-radius:12px;color:#f5d071;font-size:15px;letter-spacing:1px}
+.content{grid-area:content;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);grid-template-areas:"info role";gap:clamp(20px,4vw,48px);align-items:stretch;padding:clamp(22px,4vw,48px)}
+#brandInfo{grid-area:info;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:17px;min-width:0;padding:clamp(22px,3vw,38px);text-align:center;border:1px solid #d8b45b70;border-radius:26px;background:radial-gradient(ellipse at 50% 0%,#1b3d5d 0,transparent 60%),linear-gradient(155deg,#10243a,#0a1728);box-shadow:inset 0 1px #ffffff0b,0 20px 45px #0002}
+.info-emblem{width:64px;height:64px;display:grid;place-items:center;border-radius:21px;border:1px solid #d9b45b7a;background:#182f49;color:#f3cc6b}
+.info-emblem svg{width:36px;height:36px}
+#brandInfo h2{margin:0;color:#f4ce70;font-size:clamp(19px,2.2vw,26px);line-height:1.9}
+#brandInfo .info-school{margin:0;color:#fff;font-size:16px;font-weight:700;line-height:2}
+#brandInfo .info-motto{margin:0;color:#c7d7e8;font-size:14px;line-height:2.1}
+#brandInfo .info-manager{margin:0;color:#dbe5ef;font-size:13px;line-height:2}
+.info-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-top:5px}
+.info-chip{padding:13px 10px;border:1px solid #d8b45b50;border-radius:15px;background:#09182a;color:#c5d3e2;font-size:11px;line-height:1.9;text-align:center}
+.info-chip strong{display:block;color:#f4cf70;font-size:13px}
+#rolePicker{grid-area:role;align-self:center;width:100%;padding:clamp(18px,2.5vw,30px);border:1px solid #d8b45b70;border-radius:26px;background:linear-gradient(155deg,#102138,#0a1728);box-shadow:inset 0 1px #ffffff0b,0 20px 45px #0002;text-align:center}
+.welcome-mark{margin:0 auto 18px}.eyebrow{color:#d6b965;font-size:12px}.section-title{color:#f4ce70;font-size:clamp(20px,2.4vw,27px);line-height:1.8;text-align:center}.sub{color:#b8c8da;text-align:center;margin-bottom:22px}
+.role-options{grid-template-columns:1fr;gap:12px;max-width:none}
+.role-option{display:grid;grid-template-columns:54px minmax(0,1fr) 22px;align-items:center;gap:13px;min-height:88px;padding:15px 17px;border:1px solid #d8b45b65;border-radius:18px;background:linear-gradient(120deg,#142c45,#0b1a2c);text-align:center;box-shadow:0 10px 24px #0002}
+.role-option:hover{border-color:#f4d47f;background:linear-gradient(120deg,#1a3857,#10243a)}
+.role-symbol{width:52px;height:52px;flex-basis:52px;border-radius:16px;background:#1d3c59;color:#f4ce70;font-size:24px}
+.student-role .role-symbol{background:#40351e;color:#f7d77f}
+.role-copy{align-items:center;text-align:center;gap:4px}.role-copy strong{font-size:16px;color:#fff}.role-copy small{font-size:11px;color:#b8c8da;line-height:1.8}.role-arrow{font-size:20px;color:#f3ce70}
+.role-foot{justify-content:center;text-align:center;color:#9fb2c8;margin-top:19px}
+#entryGrid{grid-area:role;width:100%;max-width:none;align-self:center;min-width:0}
+#entryGrid.active{display:grid}
+.entry-card{background:linear-gradient(155deg,#102138,#0a1728);border:1px solid #d8b45b70;border-radius:24px;text-align:center;padding:clamp(18px,3vw,30px)}
+.card-head{justify-content:center;text-align:center}.card-head>div:last-child{text-align:center}.card-head h2{color:#f4ce70}.card-head p{color:#b8c8da}
+.entry-card label{text-align:center;color:#dce6f2}
+.entry-card input,.entry-card select{background:#071423;border-color:#344a63;color:#fff;text-align:center}
+.entry-card .primary{background:linear-gradient(110deg,#f5d579,#dba638);color:#09182a}
+.entry-card .back-role{display:block;margin:0 auto 16px}
+.secure{justify-content:center}
+#classes{grid-column:1/-1}
+.footer{color:#92a7bd}
+@media(min-width:850px){.box{grid-template-columns:1fr;grid-template-areas:"hero" "content"}.hero{padding-top:28px;padding-bottom:22px}.content{min-height:470px}}
+@media(max-width:849px){.content{grid-template-columns:1fr;grid-template-areas:"role" "info";gap:18px;padding:20px}.hero{padding:25px 18px}.brand .mark{width:64px;height:64px;border-radius:21px}.brand .mark svg{width:46px;height:46px}#rolePicker{padding:22px 17px}.role-options{max-width:560px;margin:0 auto}.role-option{min-height:80px}.info-meta{max-width:560px}}
+@media(max-width:420px){body{padding:9px}.box{border-radius:22px}.hero{padding:23px 14px 18px}.content{padding:13px;gap:13px}.brand h1{font-size:23px!important}.brand small{font-size:12px!important}#rolePicker{border-radius:20px}.role-option{grid-template-columns:44px minmax(0,1fr) 18px;gap:9px;padding:12px 10px}.role-symbol{width:42px;height:42px;border-radius:13px}.role-copy strong{font-size:15px}.role-copy small{font-size:10px}.info-meta{grid-template-columns:1fr 1fr}}
+
+
+/* Responsive layout hardening: prevent horizontal overflow and keep the identity panel beside login cards */
+.box{display:block;min-width:0;max-width:100%;overflow:hidden}
+.content{display:grid;min-width:0;grid-template-columns:minmax(0,1fr);grid-template-areas:"role" "info";gap:18px}
+#rolePicker,#entryGrid,#brandInfo,.entry-card,.role-options,.role-option{min-width:0;max-width:100%}
+.role-option{overflow-wrap:anywhere;white-space:normal}
+.role-copy{min-width:0;overflow-wrap:anywhere}
+.role-copy strong,.role-copy small{white-space:normal;overflow-wrap:anywhere}
+input,select,button{max-width:100%;min-width:0}
+@media(min-width:760px){
+ .box{display:block;width:min(1180px,100%);margin:auto}
+ .content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"info role";align-items:stretch;gap:clamp(20px,3vw,38px);padding:clamp(20px,3vw,38px)}
+ #brandInfo{grid-area:info;width:100%;min-width:0}
+ #rolePicker,#entryGrid{grid-area:role;width:100%;min-width:0}
+ #rolePicker .role-option{grid-template-columns:46px minmax(0,1fr) 18px;padding:16px 12px}
+}
+@media(max-width:759px){
+ .content{display:flex;flex-direction:column;align-items:stretch}
+ #rolePicker,#entryGrid,#brandInfo{width:100%;margin:0}
+ .role-option{grid-template-columns:44px minmax(0,1fr) 18px;padding:13px 11px;gap:10px}
+}
+
+/* Final layout: centered brain mark above, school identity left, role cards right */
+@media(min-width:760px){
+ .box{width:min(1240px,100%);grid-template-columns:1fr;grid-template-areas:"hero" "content"}
+ .hero{position:relative;text-align:center;padding:28px 30px 24px}
+ .brand{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+ .brand .mark{display:grid!important;width:78px;height:78px;border-radius:25px;margin:0 auto 4px}
+ .brand .mark svg{width:55px;height:55px}
+ .brand-copy,.brand h1,.brand small,.hero>p,.school-year,.school-time{text-align:center!important}
+ .brand-copy{width:100%}
+ .content{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"info role";direction:ltr;align-items:stretch;gap:clamp(24px,4vw,52px)}
+ #brandInfo,#rolePicker{direction:rtl;text-align:center}
+ #brandInfo{grid-area:info;min-height:100%;justify-content:center;padding:clamp(24px,3vw,42px)}
+ #rolePicker{grid-area:role;display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;padding:clamp(18px,2vw,30px);border:1px solid #d8b45b70;border-radius:26px;background:linear-gradient(155deg,#10243a,#0a1728);box-shadow:inset 0 1px #ffffff0b,0 20px 45px #0002}
+ #rolePicker .role-options{width:100%;max-width:460px;grid-template-columns:1fr;gap:13px}
+ #rolePicker .role-option{display:grid;grid-template-columns:54px minmax(0,1fr) 24px;align-items:center;min-height:105px;flex-direction:row;text-align:center;padding:18px 20px;border-radius:20px}
+ #rolePicker .role-copy{align-items:center;text-align:center}
+ #rolePicker .role-copy strong,#rolePicker .role-copy small{text-align:center}
+ #rolePicker .role-arrow{align-self:center;margin:0}
+ #rolePicker .section-title,#rolePicker .sub,#rolePicker .eyebrow{text-align:center!important}
+ #entryGrid{grid-area:role;direction:rtl;width:100%;max-width:none;align-self:center}
+ #entryGrid.active{display:grid}
+ #entryGrid .entry-card{width:100%;max-width:560px;margin:0 auto;text-align:center}
+ #entryGrid label,#entryGrid input,#entryGrid select,#entryGrid .card-head{text-align:center}
+}
+@media(max-width:759px){
+ .content{display:flex;flex-direction:column;gap:20px}
+ #brandInfo{order:2;width:100%}
+ #rolePicker{order:1;width:100%}
+ #entryGrid{order:1;width:100%}
+ .brand,.brand-copy,.brand h1,.brand small,.hero>p,.school-year,.school-time{text-align:center!important}
+ .brand{align-items:center}
+ .brand .mark{display:grid!important;margin:0 auto}
+ #rolePicker .section-title,#rolePicker .sub,#rolePicker .eyebrow{text-align:center!important}
+}
+#brandInfo,#brandInfo *{text-align:center}
+#brandInfo .info-meta{justify-content:center}
+.role-option,.role-option *{text-align:center}
+.role-option{cursor:pointer;pointer-events:auto;position:relative;z-index:2}
+button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
+
 </style>
 </head>
 <body><div class="box">
@@ -118,9 +232,9 @@ body,.box,button,input,select{font-family:"Vazirmatn",Tahoma,sans-serif}
 <h2 class="section-title">برای ادامه، نقش خود را انتخاب کنید</h2>
 <p class="sub">ورود ساده و سریع به کلاس آنلاین</p>
 <div class="role-options">
-<button type="button" class="role-option" onclick="chooseRole('manager')"><span class="role-symbol" aria-hidden="true">♙</span><span class="role-copy"><strong>ورود مدیر</strong><small>مدیریت کلاس‌ها و کاربران مدرسه</small></span><span class="role-arrow" aria-hidden="true">←</span></button>
-<button type="button" class="role-option" onclick="chooseRole('teacher')"><span class="role-symbol" aria-hidden="true">▤</span><span class="role-copy"><strong>ورود دبیر</strong><small>کلاس‌ها و برنامه‌های من</small></span><span class="role-arrow" aria-hidden="true">←</span></button>
-<button type="button" class="role-option student-role" onclick="chooseRole('student')"><span class="role-symbol" aria-hidden="true">⚑</span><span class="role-copy"><strong>ورود دانش‌آموز</strong><small>نام، نام خانوادگی، کلاس و برنامه روزانه</small></span><span class="role-arrow" aria-hidden="true">←</span></button>
+<button type="button" class="role-option" data-login-role="manager" onclick="chooseRole('manager')"><span class="role-symbol" aria-hidden="true">♙</span><span class="role-copy"><strong>ورود مدیر</strong><small>مدیریت کلاس‌ها و کاربران مدرسه</small></span><span class="role-arrow" aria-hidden="true">←</span></button>
+<button type="button" class="role-option" data-login-role="teacher" onclick="chooseRole('teacher')"><span class="role-symbol" aria-hidden="true">▤</span><span class="role-copy"><strong>ورود دبیر</strong><small>کلاس‌ها و برنامه‌های من</small></span><span class="role-arrow" aria-hidden="true">←</span></button>
+<button type="button" class="role-option student-role" data-login-role="student" onclick="chooseRole('student')"><span class="role-symbol" aria-hidden="true">⚑</span><span class="role-copy"><strong>ورود دانش‌آموز</strong><small>نام، نام خانوادگی، کلاس و برنامه روزانه</small></span><span class="role-arrow" aria-hidden="true">←</span></button>
 </div>
 <div class="role-foot"><span class="status-dot"></span> کلاس‌های فعال، امن و متصل به برنامه مدرسه</div>
 </div>
@@ -153,7 +267,7 @@ body,.box,button,input,select{font-family:"Vazirmatn",Tahoma,sans-serif}
 <button type="button" id="importTeachers" style="margin-top:12px">ثبت دبیران</button>
 <p id="excelImportStatus" role="status" style="font-size:13px;line-height:1.9;color:#d7e2ee;overflow-wrap:anywhere"></p><div id="localStudentRoster"></div>
 </section>
-<section id="managerAddTeacher" class="manager-panel" hidden><h3>افزودن دبیر</h3><p style="color:#b7c5d7;font-size:13px;line-height:1.9">اطلاعات دبیر در فهرست دبیران مدرسه ثبت می‌شود؛ ساخت حساب ورود و تعیین رمز باید از مسیر امن مدیریت حساب‌ها انجام شود.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px"><label>نام<input id="newTeacherFirst" autocomplete="off" placeholder="نام دبیر"></label><label>نام خانوادگی<input id="newTeacherLast" autocomplete="off" placeholder="نام خانوادگی دبیر"></label><label>کد ملی<input id="newTeacherCode" inputmode="numeric" autocomplete="off" placeholder="کد ملی ۱۰ رقمی"></label></div><button type="button" id="saveTeacher" class="primary">ثبت دبیر</button><p id="teacherCreateStatus" role="status" style="font-size:13px;line-height:1.9"></p></section>
+<section id="managerAddTeacher" class="manager-panel" hidden><h3>فهرست محلی دبیران</h3><p style="color:#b7c5d7;font-size:13px;line-height:1.9">مشخصات دبیر فقط روی همین دستگاه ذخیره می‌شود و به Supabase ارسال نمی‌شود. رمز عبور ذخیره نخواهد شد؛ این فهرست به‌تنهایی حساب ورود ایجاد نمی‌کند.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px"><label>نام<input id="newTeacherFirst" autocomplete="given-name" placeholder="نام دبیر"></label><label>نام خانوادگی<input id="newTeacherLast" autocomplete="family-name" placeholder="نام خانوادگی دبیر"></label><label>کد ملی<input id="newTeacherCode" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="کد ملی ۱۰ رقمی"></label><label>ایمیل ورود<input id="newTeacherEmail" type="email" autocomplete="email" placeholder="teacher@example.com"></label><label>رمز عبور اولیه<input id="newTeacherPassword" type="password" autocomplete="new-password" minlength="8" placeholder="حداقل ۸ نویسه"></label><label>شماره همراه<input id="newTeacherPhone" inputmode="tel" autocomplete="tel" placeholder="شماره تماس"></label><label>درس تخصصی<input id="newTeacherSubject" autocomplete="off" placeholder="مثلاً ریاضی"></label></div><button type="button" id="saveTeacher" class="primary">ذخیره مشخصات فقط روی همین دستگاه</button><p id="teacherCreateStatus" role="status" style="font-size:13px;line-height:1.9"></p></section>
 <section id="managerCreate" class="manager-panel" hidden>
 <h3>ساخت کلاس آنلاین</h3>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
@@ -177,7 +291,21 @@ body,.box,button,input,select{font-family:"Vazirmatn",Tahoma,sans-serif}
 <div id="managerClassesList"></div>
 </section>
 </div>
-<div id=list></div></section></div><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../runtime-config.js"></script><script>
+<div id=list></div></section></div><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+/* Add the school identity panel without changing authentication, permissions, or classroom flows. */
+(function(){
+ const host=document.querySelector(".content"),roles=document.getElementById("rolePicker");
+ if(!host||!roles||document.getElementById("brandInfo"))return;
+ const info=document.createElement("aside");info.id="brandInfo";info.setAttribute("aria-label","مشخصات سامانه و مدرسه");
+ info.innerHTML='<div class="info-emblem" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M31 12c-6-8-17-3-17 6-8 3-8 14-2 18-4 8 2 16 10 15 2 7 9 8 10 1V12Z"/><path d="M33 12c6-8 17-3 17 6 8 3 8 14 2 18 4 8-2 16-10 15-2 7-9 8-10 1V12Z"/><path d="M32 10v43M20 21l8 6m-11 8 10 3m-3 10 6-5m14-22-8 6m11 8-10 3m3 10-6-5"/></svg></div><h2>سامانه کلاس آنلاین فراهوش</h2><p class="info-school">دبیرستان سردار شهید حاجی‌زاده ۲</p><p class="info-motto">سامانه هوشمند، مدرسه یکپارچه، دانش‌آموز خلاق</p><p class="info-manager">مدیریت: حسن مردانه جهان تیغ</p><div class="info-meta"><div class="info-chip">سال تحصیلی<strong>۱۴۰۵ - ۱۴۰۶</strong></div><div class="info-chip">تاریخ و ساعت<strong id="infoLiveClock">در حال بروزرسانی</strong></div></div>';
+ host.insertBefore(info,roles);
+ const dateNode=document.getElementById("jalaliDate"),timeNode=document.getElementById("digitalClock"),infoClock=document.getElementById("infoLiveClock");
+ function syncInfoClock(){if(infoClock)infoClock.textContent=(dateNode?dateNode.textContent:"")+" · "+(timeNode?timeNode.textContent:"")}
+ syncInfoClock();setInterval(syncInfoClock,1000);
+})();
+
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../runtime-config.js"></script><script>
 const U=FRAHOOH_CONFIG.supabase_url,K=FRAHOOH_CONFIG.supabase_anon_key;let token="",profile={},editingClassId=null,studentAccessToken="",selectedRole="";const $=x=>document.getElementById(x);async function api(p,o={}){let r;try{r=await fetch(U+p,{...o,headers:{"apikey":K,"Authorization":"Bearer "+(token||K),"Content-Type":"application/json"}})}catch(e){throw Error("ارتباط با سرور کلاس برقرار نشد ("+p+"): "+(e&&e.message||"Failed to fetch"))}if(!r.ok){const detail=await r.text().catch(()=>r.statusText);throw Error("درخواست سرور کلاس ناموفق بود ("+r.status+"، "+p+"): "+detail)}const type=r.headers.get("content-type")||"";if(!type.includes("application/json"))throw Error("پاسخ سرور کلاس JSON نیست ("+p+")");return r.json()}function isValidClassCode(value){return /^[۰-۹0-9]+\/[۰-۹0-9]+$/.test(String(value||""));}
 function normalizeDigits(value){return String(value||"").replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).trim()}
 function normalizeRole(value){const v=String(value||"").trim().toLowerCase().replace(/ي/g,"ی").replace(/ك/g,"ک").replace(/[ـ‌]/g,"").replace(/\s+/g," ");const aliases={"admin":"manager","administrator":"manager","principal":"manager","management":"manager","مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager","school manager":"manager","school_manager":"manager","school_admin":"manager","super_admin":"manager","teacher":"teacher","دبیر":"teacher","دانش آموز":"student","دانش‌آموز":"student","student":"student","parent":"parent","ولی":"parent","اولیا":"parent","executive":"executive","معاون اجرایی":"executive","educational":"educational","معاون آموزشی":"educational","cultural":"cultural","معاون پرورشی":"cultural","advisor":"advisor","counselor":"advisor","counselling":"advisor","مشاور":"advisor","مشاوره":"advisor","accounting":"accountant","finance":"accountant","حسابدار":"accountant"};return aliases[v]||v}
@@ -247,7 +375,7 @@ async function startClassFromManager(id){try{await api("/rest/v1/rpc/start_onlin
 async function endClassFromManager(id){if(!confirm("کلاس شماره "+id+" پایان یابد؟"))return;try{await api("/rest/v1/rpc/end_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});$("createMsg").textContent="کلاس پایان یافت.";await load()}catch(e){alert("پایان کلاس انجام نشد: "+e.message)}}
 async function loadTeachers(){try{const rows=await api("/rest/v1/teachers?select=id,first_name,last_name,national_code&order=last_name.asc&limit=500");$("cteacher").innerHTML='<option value="">انتخاب دبیر برای این کلاس</option>'+rows.map(t=>'<option value="'+t.id+'">'+[t.first_name,t.last_name].filter(Boolean).join(" ")+(t.national_code?" — "+t.national_code:"")+'</option>').join("");}catch(e){$("createMsg").textContent="فهرست دبیران بارگذاری نشد: "+e.message}}
 async function openRoom(id){try{const role=normalizeRole(profile.role);if(!Number.isInteger(Number(id))||Number(id)<=0)throw Error("شناسه کلاس معتبر نیست.");if(role==="teacher"||role==="دبیر"){const started=await api("/rest/v1/rpc/start_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});if(started===false)throw Error("شروع جلسه توسط سرور تأیید نشد.");}const managerRoles=["manager","مدیر","مدیریت","مدیر مدرسه","principal","administrator","admin","educational","معاون آموزشی","executive","معاون اجرایی","معاون پرورشی","counselor","مشاوره"];const isManager=managerRoles.includes(role);const s=isManager?[]:await api("/rest/v1/online_class_sessions?select=id,class_id,started_at,ended_at&class_id=eq."+encodeURIComponent(Number(id))+"&teacher_user_id=not.is.null&ended_at=is.null&order=id.desc&limit=1");if(!isManager&&!s[0])throw Error("هنوز دبیر کلاس را شروع نکرده است. پس از ورود دبیر دوباره تلاش کنید.");const userResponse=await fetch(U+"/auth/v1/user",{headers:{"apikey":K,"Authorization":"Bearer "+token}});if(!userResponse.ok)throw Error("اعتبار نشست ورود تأیید نشد ("+userResponse.status+"). دوباره وارد شوید.");const u=await userResponse.json();if(!u||!u.id)throw Error("شناسه کاربر از سرور احراز هویت دریافت نشد.");let sid=null,tid=null;if(role==="student"||role==="دانش‌آموز"){const a=await api("/rest/v1/students?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");sid=a[0]?.id}if(role==="teacher"||role==="دبیر"){const a=await api("/rest/v1/teachers?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");tid=a[0]?.id}const classRows=await api("/rest/v1/online_classes?select=id,duration&id=eq."+Number(id)+"&limit=1");const durationMinutes=Math.min(240,Math.max(5,Number(classRows[0]?.duration)||50));const roomConfig={url:U,anon:K,token,userId:u.id,classId:+id,name:profile.display_name||profile.username||"کاربر",role,studentId:sid,teacherId:tid,durationMinutes,sessionStartedAt:s[0]?.started_at||null,maxBoardPages:15};sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig));try{localStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig))}catch(_){}location.href="room.html"}catch(e){$("login").style.display="block";$("guest").style.display="none";$("classes").style.display="none";$("err").textContent=e.message}}$("importStudents").onclick=()=>importPeople("students");$("importTeachers").onclick=()=>importPeople("teachers");document.querySelectorAll(".manager-action").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".manager-panel").forEach(panel=>panel.hidden=panel.id!==btn.dataset.panel);if(btn.dataset.panel==="managerCreate")loadTeachers();if(btn.dataset.panel==="managerExcel")renderLocalStudentRoster();if(btn.dataset.panel==="managerClasses")$("managerClassesList").innerHTML=$("list").innerHTML;if(btn.dataset.panel==="managerSchedule")renderLocalSchedule();$("adminCreate").scrollIntoView({behavior:"smooth",block:"start"})}));
-$("saveTeacher").onclick=async()=>{const status=$("teacherCreateStatus");status.textContent="";try{if(!["manager","مدیر","مدیریت"].includes(normalizeRole(profile.role)))throw Error("فقط مدیر مجاز است.");const first=$("newTeacherFirst").value.trim(),last=$("newTeacherLast").value.trim(),nc=normalizeDigits($("newTeacherCode").value);if(!first||!last||!/^[0-9]{10}$/.test(nc))throw Error("نام، نام خانوادگی و کد ملی ۱۰ رقمی را کامل کنید.");await api("/rest/v1/teachers",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({first_name:first,last_name:last,national_code:nc})});status.textContent="اطلاعات دبیر در فهرست مدرسه ثبت شد."; $("newTeacherFirst").value="";$("newTeacherLast").value="";$("newTeacherCode").value="";await loadTeachers()}catch(e){status.textContent="ثبت دبیر انجام نشد: "+(e.message||e)}};
+$("saveTeacher").onclick=async()=>{const status=$("teacherCreateStatus"),button=$("saveTeacher");status.textContent="";button.disabled=true;try{if(!["manager","مدیر","مدیریت"].includes(normalizeRole(profile.role)))throw Error("فقط مدیر مجاز است.");const first=$("newTeacherFirst").value.trim(),last=$("newTeacherLast").value.trim(),nc=normalizeDigits($("newTeacherCode").value),email=$("newTeacherEmail").value.trim().toLowerCase(),phone=normalizeDigits($("newTeacherPhone").value),subject=$("newTeacherSubject").value.trim();if(!first||!last||!/^[0-9]{10}$/.test(nc))throw Error("نام، نام خانوادگی و کد ملی ۱۰ رقمی را کامل کنید.");if(email&&!/^\\S+@\\S+\\.\\S+$/.test(email))throw Error("ایمیل معتبر وارد کنید.");const rows=JSON.parse(localStorage.getItem("frahoosh_local_teachers")||"[]");const item={first_name:first,last_name:last,national_code:nc,email,phone,subject,updated_at:new Date().toISOString()};const at=rows.findIndex(x=>x.national_code===nc);if(at>=0)rows[at]=item;else rows.push(item);localStorage.setItem("frahoosh_local_teachers",JSON.stringify(rows));status.textContent="مشخصات دبیر فقط در حافظه همین دستگاه ذخیره شد. حساب ورود ساخته نشده و هیچ اطلاعاتی به Supabase ارسال نشد.";["newTeacherFirst","newTeacherLast","newTeacherCode","newTeacherEmail","newTeacherPassword","newTeacherPhone","newTeacherSubject"].forEach(id=>$(id).value="")}catch(e){status.textContent="ذخیره محلی انجام نشد: "+(e.message||e)}finally{button.disabled=false}};
 async function loadScheduleClassOptions(){const select=$("scheduleOnlineClass"),teacherSelect=$("scheduleTeacher");if(!select)return;try{const rows=await api("/rest/v1/online_classes?select=id,class_name,title,status&order=id.desc&limit=200");select.innerHTML='<option value="">انتخاب کلاس آنلاین</option>'+rows.map(r=>'<option value="'+r.id+'" data-class="'+String(r.class_name||"").replace(/"/g,"&quot;")+'">'+String(r.class_name||"بدون کد کلاس")+' — '+String(r.title||"کلاس "+r.id)+'</option>').join("");const teachers=await api("/rest/v1/teachers?select=id,first_name,last_name,national_code&order=last_name.asc&limit=500");teacherSelect.innerHTML='<option value="">انتخاب دبیر</option>'+teachers.map(t=>'<option value="'+t.id+'" data-name="'+[t.first_name,t.last_name].filter(Boolean).join(" ").replace(/"/g,"&quot;")+'">'+[t.first_name,t.last_name].filter(Boolean).join(" ")+'</option>').join("")}catch(e){$("scheduleStatus").textContent="فهرست کلاس‌ها یا دبیران بارگذاری نشد: "+e.message}}
 async function renderLocalSchedule(){const host=$("scheduleEntries");if(!host)return;try{await loadScheduleClassOptions();const data=await api("/rest/v1/weekly_schedule_entries?select=id,class_name,weekday,period,subject,teacher_id,teacher_name,online_class_id,activated_at&order=class_name,weekday,period&limit=500");const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));host.innerHTML=data.length?data.map(x=>"<div class='class'><span><b>"+safe(x.class_name)+" • "+safe(x.weekday)+" • زنگ "+x.period+"</b><br>"+safe(x.subject)+(x.teacher_name?" • "+safe(x.teacher_name):"")+(x.activated_at?" • فعال":" • غیرفعال")+"</span>"+(x.online_class_id?"":("<button type='button' data-link-schedule='"+x.id+"'>اتصال به کلاس انتخاب‌شده</button>"))+"<button type='button' data-remove-schedule='"+x.id+"'>حذف</button></div>").join(""):"<p style='color:#b7c5d7'>هنوز برنامه‌ای ثبت نشده است.</p>";host.querySelectorAll("[data-remove-schedule]").forEach(b=>b.onclick=async()=>{if(!confirm("این زنگ از برنامه حذف شود؟"))return;try{await api("/rest/v1/weekly_schedule_entries?id=eq."+encodeURIComponent(b.dataset.removeSchedule),{method:"DELETE",headers:{"Prefer":"return=minimal"}});await renderLocalSchedule()}catch(e){$("scheduleStatus").textContent="حذف زنگ انجام نشد: "+e.message}});host.querySelectorAll("[data-link-schedule]").forEach(b=>b.onclick=async()=>{const status=$("scheduleStatus"),id=Number(b.dataset.linkSchedule),row=data.find(x=>Number(x.id)===id),opt=$("scheduleOnlineClass").selectedOptions[0],online_class_id=Number($("scheduleOnlineClass").value),teacherOpt=$("scheduleTeacher").selectedOptions[0],teacher_id=Number($("scheduleTeacher").value)||null,teacher_name=teacherOpt?.dataset.name||row?.teacher_name||"";if(!row||!online_class_id||!opt?.dataset.class){status.textContent="ابتدا کلاس آنلاین را انتخاب کنید.";return}if(normalizeDigits(row.class_name)!==normalizeDigits(opt.dataset.class)){status.textContent="کد کلاس برنامه با کلاس آنلاین انتخاب‌شده یکسان نیست؛ کلاس درست را انتخاب کنید.";return}try{await api("/rest/v1/weekly_schedule_entries?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({online_class_id,teacher_id,teacher_name:teacher_name||null,activated_at:new Date().toISOString(),activated_by:profile.display_name||profile.username||profile.email||"مدیریت"})});status.textContent="برنامه به کلاس آنلاین متصل شد.";await renderLocalSchedule()}catch(e){status.textContent="اتصال برنامه به کلاس انجام نشد: "+e.message}})}catch(e){host.textContent="دریافت برنامه انجام نشد: "+e.message}}
 $("scheduleOnlineClass").onchange=()=>{const opt=$("scheduleOnlineClass").selectedOptions[0];if(opt?.dataset.class)$("scheduleClass").value=opt.dataset.class};
@@ -258,4 +386,13 @@ $("forgotPassword").onclick=async()=>{const id=normalizeDigits($("id").value.tri
 $("myClasses").onclick=()=>login();
 $("staffLoginForm").addEventListener("submit",e=>{e.preventDefault();login()});$("id").onkeydown=e=>{if(e.key==="Enter")$("pw").focus()};
 (function(){const dateNode=document.getElementById("jalaliDate"),timeNode=document.getElementById("digitalClock");function updateSchoolClock(){const now=new Date();try{dateNode.textContent=new Intl.DateTimeFormat("fa-IR-u-ca-persian",{weekday:"long",year:"numeric",month:"long",day:"numeric"}).format(now)}catch(_){dateNode.textContent=now.toLocaleDateString("fa-IR")}timeNode.textContent=new Intl.DateTimeFormat("fa-IR",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(now)}updateSchoolClock();setInterval(updateSchoolClock,1000)})();
+/* Explicitly bind role cards after all portal functions are defined. */
+document.querySelectorAll("[data-login-role]").forEach(function(card){
+ card.addEventListener("click",function(){
+  const role=card.getAttribute("data-login-role");
+  if(typeof chooseRole==="function") chooseRole(role);
+  else { const error=document.getElementById("err"); if(error) error.textContent="بخش ورود هنوز بارگذاری نشده است؛ صفحه را یک‌بار تازه‌سازی کنید."; }
+ });
+});
+
 </script>
