@@ -392,28 +392,62 @@ document.querySelectorAll("[data-login-role]").forEach(function(card){
 });
 
 
-/* Reliable Jalali calendar for the class-date field; no change to class/login APIs. */
+/* Deterministic Solar Hijri (Jalali) date picker. Does not rely on browser Intl calendar support. */
 (function initJalaliClassDatePicker(){
  const input=document.getElementById("cdateDisplay"),stored=document.getElementById("cdate"),panel=document.getElementById("jalaliPicker");
  if(!input||!stored||!panel)return;
- const numeric=new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn",{year:"numeric",month:"numeric",day:"numeric"});
- const monthFmt=new Intl.DateTimeFormat("fa-IR-u-ca-persian",{month:"long",year:"numeric"});
- const faDigits=v=>String(v).replace(/\d/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
- function parts(date){const p={};numeric.formatToParts(date).forEach(x=>{if(x.type==="year"||x.type==="month"||x.type==="day")p[x.type]=Number(x.value)});return p}
- function startOfPersianMonth(date){let d=new Date(date.getFullYear(),date.getMonth(),date.getDate());for(let i=0;i<35;i++){if(parts(d).day===1)return d;d.setDate(d.getDate()-1)}return d}
- let monthStart=startOfPersianMonth(new Date());
- const weekdays=["ش","ی","د","س","چ","پ","ج"];
- function iso(date){return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0")}
- function show(){const p=parts(monthStart),title=monthFmt.format(monthStart);let html='<div class="jalali-picker-head"><button type="button" data-jalali-nav="-1" aria-label="ماه قبل">‹ ماه قبل</button><strong>'+title+'</strong><button type="button" data-jalali-nav="1" aria-label="ماه بعد">ماه بعد ›</button></div><div class="jalali-days">'+weekdays.map(d=>"<span>"+d+"</span>").join("");
- const offset=(monthStart.getDay()+1)%7;for(let i=0;i<offset;i++)html+="<span></span>";
- const cursor=new Date(monthStart);for(let i=0;i<31&&parts(cursor).month===p.month&&parts(cursor).year===p.year;i++){const day=parts(cursor).day,selected=iso(cursor)===stored.value;html+='<button type="button" data-jalali-date="'+iso(cursor)+'" class="'+(selected?"selected":"")+'">'+faDigits(day)+'</button>';cursor.setDate(cursor.getDate()+1)}
- html+='</div><div class="jalali-picker-foot"><button type="button" data-jalali-today>امروز</button><button type="button" data-jalali-close>بستن تقویم</button></div>';panel.innerHTML=html;panel.hidden=false;
- panel.querySelectorAll("[data-jalali-nav]").forEach(b=>b.addEventListener("click",()=>{const shift=Number(b.dataset.jalaliNav);const anchor=new Date(monthStart);anchor.setDate(anchor.getDate()+(shift>0?35:-1));monthStart=startOfPersianMonth(anchor);show()}));
- panel.querySelectorAll("[data-jalali-date]").forEach(b=>b.addEventListener("click",()=>{const value=b.dataset.jalaliDate,d=new Date(value+"T12:00:00"),p=parts(d);stored.value=value;input.value=faDigits(p.year+"/"+String(p.month).padStart(2,"0")+"/"+String(p.day).padStart(2,"0"));panel.hidden=true;input.dispatchEvent(new Event("change",{bubbles:true}))}));
- panel.querySelector("[data-jalali-today]").addEventListener("click",()=>{monthStart=startOfPersianMonth(new Date());show()});
- panel.querySelector("[data-jalali-close]").addEventListener("click",()=>{panel.hidden=true});
+ const breaks=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
+ const div=(a,b)=>Math.floor(a/b),mod=(a,b)=>a-Math.floor(a/b)*b;
+ function jalCal(jy){
+  const gy=jy+621;let leapJ=-14,jp=breaks[0],jm=0,jump=0;
+  if(jy<jp||jy>=breaks[breaks.length-1])throw new Error("Jalali year out of range");
+  for(let i=1;i<breaks.length;i++){jm=breaks[i];jump=jm-jp;if(jy<jm)break;leapJ+=div(jump,33)*8+div(mod(jump,33),4);jp=jm}
+  let n=jy-jp;leapJ+=div(n,33)*8+div(mod(n,33)+3,4);
+  if(mod(jump,33)===4&&jump-n===4)leapJ++;
+  const leapG=div(gy,4)-div((div(gy,100)+1)*3,4)-150;
+  const march=20+leapJ-leapG;
+  if(jump-n<6)n=n-jump+div(jump+4,33)*33;
+  let leap=mod(mod(n+1,33)-1,4);if(leap===-1)leap=4;
+  return {leap,gy,march};
  }
- input.addEventListener("click",()=>{if(panel.hidden){monthStart=stored.value?startOfPersianMonth(new Date(stored.value+"T12:00:00")):startOfPersianMonth(new Date());show()}else panel.hidden=true});
+ function g2d(gy,gm,gd){
+  let d=div((gy+div(gm-8,6)+100100)*1461,4)+div(153*mod(gm+9,12)+2,5)+gd-34840408;
+  return d-div(div(gy+100100+div(gm-8,6),100)*3,4)+752;
+ }
+ function d2g(jdn){
+  let j=4*jdn+139361631;
+  j+=div(div(4*jdn+183187720,146097)*3,4)*4-3908;
+  const i=div(mod(j,1461),4)*5+308,gd=div(mod(i,153),5)+1,gm=mod(div(i,153),12)+1;
+  const gy=div(j,1461)-100100+div(8-gm,6);
+  return {year:gy,month:gm,day:gd};
+ }
+ function j2d(jy,jm,jd){const r=jalCal(jy);return g2d(r.gy,3,r.march)+(jm-1)*31-div(jm,7)*(jm-7)+jd-1}
+ function d2j(jdn){
+  let gy=d2g(jdn).year,jy=gy-621,r=jalCal(jy),k=jdn-g2d(gy,3,r.march),jm,jd;
+  if(k>=0){if(k<=185){jm=1+div(k,31);jd=mod(k,31)+1;return {year:jy,month:jm,day:jd}}k-=186}
+  else {jy--;k+=179;if(r.leap===1)k++}
+  jm=7+div(k,30);jd=mod(k,30)+1;return {year:jy,month:jm,day:jd};
+ }
+ const monthNames=["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور","مهر","آبان","آذر","دی","بهمن","اسفند"];
+ const weekdays=["ش","ی","د","س","چ","پ","ج"],faDigits=v=>String(v).replace(/\d/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+ function isoFromJalali(y,m,d){const g=d2g(j2d(y,m,d));return g.year+"-"+String(g.month).padStart(2,"0")+"-"+String(g.day).padStart(2,"0")}
+ function jalaliFromISO(value){const a=value.split("-").map(Number);return d2j(g2d(a[0],a[1],a[2]))}
+ function todayJalali(){const n=new Date();return d2j(g2d(n.getFullYear(),n.getMonth()+1,n.getDate()))}
+ let current=todayJalali(),viewYear=current.year,viewMonth=current.month;
+ function monthLength(y,m){if(m<=6)return 31;if(m<=11)return 30;return jalCal(y).leap===0?30:29}
+ function show(){
+  let html='<div class="jalali-picker-head"><button type="button" data-jalali-nav="-1" aria-label="ماه قبل">‹ ماه قبل</button><strong>'+monthNames[viewMonth-1]+' '+faDigits(viewYear)+'</strong><button type="button" data-jalali-nav="1" aria-label="ماه بعد">ماه بعد ›</button></div><div class="jalali-days">'+weekdays.map(d=>"<span>"+d+"</span>").join("");
+  const first=d2g(j2d(viewYear,viewMonth,1)),offset=(new Date(first.year,first.month-1,first.day).getDay()+1)%7;
+  for(let i=0;i<offset;i++)html+="<span></span>";
+  const count=monthLength(viewYear,viewMonth);
+  for(let day=1;day<=count;day++){const value=isoFromJalali(viewYear,viewMonth,day),selected=value===stored.value;html+='<button type="button" data-jalali-date="'+value+'" class="'+(selected?"selected":"")+'">'+faDigits(day)+'</button>'}
+  html+='</div><div class="jalali-picker-foot"><button type="button" data-jalali-today>امروز</button><button type="button" data-jalali-close>بستن تقویم</button></div>';panel.innerHTML=html;panel.hidden=false;
+  panel.querySelectorAll("[data-jalali-nav]").forEach(b=>b.addEventListener("click",()=>{viewMonth+=Number(b.dataset.jalaliNav);if(viewMonth<1){viewMonth=12;viewYear--}if(viewMonth>12){viewMonth=1;viewYear++}show()}));
+  panel.querySelectorAll("[data-jalali-date]").forEach(b=>b.addEventListener("click",()=>{const value=b.dataset.jalaliDate,p=jalaliFromISO(value);stored.value=value;input.value=faDigits(p.year+"/"+String(p.month).padStart(2,"0")+"/"+String(p.day).padStart(2,"0"));panel.hidden=true;input.dispatchEvent(new Event("change",{bubbles:true}))}));
+  panel.querySelector("[data-jalali-today]").addEventListener("click",()=>{current=todayJalali();viewYear=current.year;viewMonth=current.month;show()});
+  panel.querySelector("[data-jalali-close]").addEventListener("click",()=>{panel.hidden=true});
+ }
+ input.addEventListener("click",()=>{if(panel.hidden){current=stored.value?jalaliFromISO(stored.value):todayJalali();viewYear=current.year;viewMonth=current.month;show()}else panel.hidden=true});
  input.addEventListener("keydown",e=>{if(e.key==="Escape")panel.hidden=true;if(e.key==="Enter"||e.key===" "){e.preventDefault();input.click()}});
  document.addEventListener("click",e=>{if(!panel.contains(e.target)&&e.target!==input)panel.hidden=true});
 })();
