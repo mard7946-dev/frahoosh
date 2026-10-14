@@ -72,10 +72,11 @@ begin
 
   update public.weekly_schedule_entries w
   set activated_at = case
-    when v_now >= ((v_today + w.start_time) at time zone 'Asia/Tehran')
+    when w.weekday = v_weekday
+     and v_now >= ((v_today + w.start_time) at time zone 'Asia/Tehran')
      and v_now < ((v_today + w.end_time) at time zone 'Asia/Tehran')
     then coalesce(w.activated_at, v_now) else null end
-  where w.weekday = v_weekday and w.start_time is not null and w.end_time is not null;
+  where w.start_time is not null and w.end_time is not null;
 
   update public.online_classes c
   set start_at = null, end_at = null,
