@@ -119,6 +119,7 @@ class OnlineClassContractTests(unittest.TestCase):
     def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
         self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
         self.assertIn('getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
+        self.assertIn("base.href=new URL(htmlResult.path,location.href).href", self.room)
         self.assertNotIn("../../online_class_apk/app/src/main/assets", self.room)
 
     def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
