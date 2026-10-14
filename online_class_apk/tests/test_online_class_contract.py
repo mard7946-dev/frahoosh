@@ -112,7 +112,7 @@ class OnlineClassContractTests(unittest.TestCase):
     def test_classroom_keeps_the_existing_startup_media_permission_flow(self):
         activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
                     "ir" / "frahoosh" / "classroom" / "MainActivity.java").read_text(encoding="utf-8")
-        self.assertIn("buildWebView();\\n        requestMediaPermissions();", activity)
+        self.assertIn("buildWebView();\n        requestMediaPermissions();", activity)
         self.assertIn("hasMediaPermissions()", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
 
