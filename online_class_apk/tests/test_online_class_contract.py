@@ -51,5 +51,18 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('pollPermissions', self.patch)
 
 
+    def test_apk_bundles_exact_same_entry_and_classroom_sources(self):
+        apk_entry = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "index.html"
+        apk_room = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room.html"
+        apk_classroom = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room_assets" / "online_class.html"
+        apk_patch = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room_assets" / "classroom_patch.js"
+        web_classroom = ROOT / "mobile" / "assets" / "online_class.html"
+        source_patch = ROOT / "online_class_apk" / "classroom_patch.js"
+        self.assertEqual(self.entry, apk_entry.read_text(encoding="utf-8"))
+        self.assertEqual(self.room, apk_room.read_text(encoding="utf-8"))
+        self.assertEqual(web_classroom.read_text(encoding="utf-8"), apk_classroom.read_text(encoding="utf-8"))
+        self.assertEqual(source_patch.read_text(encoding="utf-8"), apk_patch.read_text(encoding="utf-8"))
+
+
 if __name__ == "__main__":
     unittest.main()
