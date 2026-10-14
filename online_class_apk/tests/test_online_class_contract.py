@@ -143,7 +143,7 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('online_class_sessions?class_id=eq."+C.classId+"&ended_at=is.null&order=id.desc&limit=1', self.classroom)
 
     def test_hidden_student_tool_menu_cannot_toggle_class_layout(self):
-        self.assertIn('if(!teacher){mt.style.display="none"}else mt.onclick=e=>{e.preventDefault();e.stopPropagation();drawer.open=!drawer.open;layout.classList.toggle("drawer-open",drawer.open)};', self.classroom)
+        self.assertIn('const mt=$("menuToggle");if(mt){if(!teacher){mt.style.display="none"}else mt.onclick=e=>{e.preventDefault();e.stopPropagation();drawer.open=!drawer.open;layout.classList.toggle("drawer-open",drawer.open)}};', self.classroom)
 
     def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
         self.assertIn(".layout{flex:1 1 0;height:auto;min-height:0", self.classroom)
