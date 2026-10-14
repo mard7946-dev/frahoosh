@@ -367,7 +367,9 @@ async function createClass(){
    const tehranParts=(date,calendar)=>Object.fromEntries(new Intl.DateTimeFormat("en-US-u-ca-"+calendar+"-nu-latn",{timeZone:"Asia/Tehran",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(date).filter(x=>x.type!=="literal").map(x=>[x.type,x.value]));
    const endParts=tehranParts(endDateTime,"gregory"),endJalali=tehranParts(endDateTime,"persian");
    const startJalaliText=normalizeDigits($("cdateDisplay").value).replace(/-/g,"/")+" "+selectedTime;
-   const endJalaliText=[endJalali.year,endJalali.month,endJalali.day].join("/")+" "+endParts.hour+":"+endParts.minute;
+   const endJalaliText=[endJalali.year,endJalali.month,endJalali.day].join("/")+" "+String(endParts.hour).padStart(2,"0")+":"+String(endParts.minute).padStart(2,"0");
+   if(!/^(13|14|15)\d{2}\/(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])$/.test(startJalaliText.split(" ")[0]))throw Error("تاریخ انتخاب‌شده در تقویم شمسی معتبر نیست؛ دوباره تاریخ را انتخاب کنید.");
+   if(!Number.isFinite(endDateTime.getTime())||endDateTime<=startDateTime)throw Error("محاسبه ساعت پایان کلاس نامعتبر است.");
    const p={title:$("ctitle").value.trim()||"کلاس آنلاین",subject:$("csubject").value.trim(),class_name:$("cname").value.trim(),duration,start_time:selectedTime,end_time:endParts.hour+":"+endParts.minute,start_time_shamsi:startJalaliText,end_time_shamsi:endJalaliText,start_at:startAt,end_at:endDateTime.toISOString()};
   if(!p.class_name)throw Error("نام کلاس الزامی است.");
   if(!isValidClassCode(p.class_name))throw Error("فرمت کلاس باید دقیقاً مانند ۷/۱ یا 7/1 باشد؛ فاصله و قالب‌هایی مثل ۷۰۱ پذیرفته نیست.");
@@ -393,7 +395,7 @@ async function createClass(){
 async function editClass(id){
  try{const rows=await api("/rest/v1/online_classes?select=id,title,subject,class_name,duration,start_time,end_time,start_time_shamsi,end_time_shamsi,start_at,end_at&id=eq."+id+"&limit=1"),r=rows[0];if(!r)throw Error("کلاس پیدا نشد.");
  const maps=await api("/rest/v1/online_class_teachers?select=teacher_id&class_id=eq."+id+"&limit=1");
- $("ctitle").value=r.title||"";$("csubject").value=r.subject||"";$("cname").value=r.class_name||"";$("cduration").value=Number(r.duration)||50;$("cteacher").value=maps[0]?.teacher_id||"";const savedShamsi=String(r.start_time_shamsi||"").split(" ")[0];$("cdate").value=String(r.start_at||"").slice(0,10);$("cdateDisplay").value=savedShamsi?savedShamsi.replace(/\d/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]):(r.start_at?new Intl.DateTimeFormat("fa-IR-u-ca-persian",{timeZone:"Asia/Tehran",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(r.start_at)).replace(/-/g,"/"):"");$("ctime").value=r.start_time||String(r.start_at||"").slice(11,16);
+ $("ctitle").value=r.title||"";$("csubject").value=r.subject||"";$("cname").value=r.class_name||"";$("cduration").value=Number(r.duration)||50;$("cteacher").value=maps[0]?.teacher_id||"";const storedStart=String(r.start_at||"");$("cdate").value=/^\d{4}-\d{2}-\d{2}/.test(storedStart)?storedStart.slice(0,10):"";$("cdateDisplay").value=$("cdate").value?formatJalaliDateFromISO($("cdate").value):"";$("ctime").value=/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(r.start_time||""))?r.start_time:(/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d/.test(storedStart)?storedStart.slice(11,16):"");
  editingClassId=Number(id);classWizardStep=0;renderClassWizard();$("createClass").textContent="ذخیره تغییرات";$("createMsg").textContent="کلاس شماره "+id+" در حالت ویرایش است.";$("adminCreate").scrollIntoView({behavior:"smooth",block:"start"});
  }catch(e){alert("ویرایش بارگذاری نشد: "+e.message)}
 }
@@ -491,8 +493,9 @@ document.querySelectorAll("[data-login-role]").forEach(function(card){
  const monthNames=["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور","مهر","آبان","آذر","دی","بهمن","اسفند"];
  const weekdays=["ش","ی","د","س","چ","پ","ج"],faDigits=v=>String(v).replace(/\d/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
  function isoFromJalali(y,m,d){const g=d2g(j2d(y,m,d));return g.year+"-"+String(g.month).padStart(2,"0")+"-"+String(g.day).padStart(2,"0")}
- function jalaliFromISO(value){const a=value.split("-").map(Number);return d2j(g2d(a[0],a[1],a[2]))}
- function todayJalali(){const p=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Tehran",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date()).filter(x=>x.type!=="literal").map(x=>[x.type,x.value]));return d2j(g2d(Number(p.year),Number(p.month),Number(p.day)))}
+ function jalaliFromISO(value){const parts=Object.fromEntries(new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn",{timeZone:"UTC",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(value+"T12:00:00Z")).filter(x=>x.type!=="literal").map(x=>[x.type,x.value]));return {year:Number(parts.year),month:Number(parts.month),day:Number(parts.day)}}
+ function formatJalaliDateFromISO(value){const p=jalaliFromISO(value);if(!p.year||p.month<1||p.month>12||p.day<1||p.day>31)throw Error("تاریخ ذخیره‌شده معتبر نیست.");return faDigits(p.year)+"/"+faDigits(String(p.month).padStart(2,"0"))+"/"+faDigits(String(p.day).padStart(2,"0"))}
+ function todayJalali(){const p=Object.fromEntries(new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn",{timeZone:"Asia/Tehran",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date()).filter(x=>x.type!=="literal").map(x=>[x.type,x.value]));return {year:Number(p.year),month:Number(p.month),day:Number(p.day)}}
  let current=todayJalali(),viewYear=current.year,viewMonth=current.month;
  function monthLength(y,m){if(m<=6)return 31;if(m<=11)return 30;return jalCal(y).leap===0?30:29}
  function show(){
@@ -503,7 +506,7 @@ document.querySelectorAll("[data-login-role]").forEach(function(card){
   for(let day=1;day<=count;day++){const value=isoFromJalali(viewYear,viewMonth,day),selected=value===stored.value;html+='<button type="button" data-jalali-date="'+value+'" class="'+(selected?"selected":"")+'">'+faDigits(day)+'</button>'}
   html+='</div><div class="jalali-picker-foot"><button type="button" data-jalali-today>امروز</button><button type="button" data-jalali-close>بستن تقویم</button></div>';panel.innerHTML=html;panel.hidden=false;
   panel.querySelectorAll("[data-jalali-nav]").forEach(b=>b.addEventListener("click",()=>{viewMonth+=Number(b.dataset.jalaliNav);if(viewMonth<1){viewMonth=12;viewYear--}if(viewMonth>12){viewMonth=1;viewYear++}show()}));
-  panel.querySelectorAll("[data-jalali-date]").forEach(b=>b.addEventListener("click",()=>{const value=b.dataset.jalaliDate,p=jalaliFromISO(value);stored.value=value;input.value=faDigits(p.year)+"/"+faDigits(String(p.month).padStart(2,"0"))+"/"+faDigits(String(p.day).padStart(2,"0"));input.style.direction="ltr";input.style.unicodeBidi="isolate";input.style.textAlign="center";panel.hidden=true;input.dispatchEvent(new Event("change",{bubbles:true}))}));
+  panel.querySelectorAll("[data-jalali-date]").forEach(b=>b.addEventListener("click",()=>{const value=b.dataset.jalaliDate,day=Number(b.textContent.replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))));stored.value=value;input.value=faDigits(viewYear)+"/"+faDigits(String(viewMonth).padStart(2,"0"))+"/"+faDigits(String(day).padStart(2,"0"));input.style.direction="ltr";input.style.unicodeBidi="isolate";input.style.textAlign="center";panel.hidden=true;input.dispatchEvent(new Event("change",{bubbles:true}))}));
   panel.querySelector("[data-jalali-today]").addEventListener("click",()=>{current=todayJalali();viewYear=current.year;viewMonth=current.month;show()});
   panel.querySelector("[data-jalali-close]").addEventListener("click",()=>{panel.hidden=true});
  }
