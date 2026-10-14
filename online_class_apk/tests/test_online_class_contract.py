@@ -23,7 +23,7 @@ class OnlineClassContractTests(unittest.TestCase):
     def test_student_roster_is_local_not_posted_to_supabase(self):
         self.assertIn('localStorage.setItem("frahoosh_local_students"', self.entry)
         self.assertIn('if(kind==="students")', self.entry)
-        self.assertIn("هیچ رکوردی به Supabase ارسال نشد", self.entry)
+        self.assertIn("هیچ اطلاعات دانش‌آموزی به پایگاه داده مرکزی ارسال نشد", self.entry)
         self.assertIn('api("/rest/v1/teachers"', self.entry)
         # Student import must return before the teacher-table insert loop.
         student_branch = self.entry.index('if(kind==="students"){')
