@@ -16,7 +16,7 @@ a{color:#f3c65b}
 <script>
 (()=>{"use strict";
 const box=document.getElementById("x");
-const show=m=>{box.style.display="block";box.innerHTML=m+'<br><a href="/online-class/">بازگشت به ورود کلاس</a>';};
+const entryUrl=()=>new URL("index.html",location.href).href; const show=m=>{box.style.display="block";box.innerHTML=m+'<br><a href="'+entryUrl()+'">بازگشت به ورود کلاس</a>';};
 async function getText(path,label){
  const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
  try{const u=new URL(path,location.href);u.searchParams.set("_v",Date.now());const r=await fetch(u.href,{cache:"no-store",signal:c.signal});if(!r.ok)throw Error(label+" ("+r.status+")");return await r.text();}
@@ -39,8 +39,8 @@ async function start(){
  box.textContent="در حال بارگذاری محیط کلاس…";
  try{
   const [html,patch]=await Promise.all([
-   getTextFallback(["/online-class/online_class.html","/mobile/assets/online_class.html"],"بارگذاری محیط کلاس ناموفق بود"),
-   getTextFallback(["/online-class/classroom_patch.js","/online_class_apk/classroom_patch.js"],"بارگذاری ابزارهای کلاس ناموفق بود")
+   getTextFallback(["../../mobile/assets/online_class.html","/online-class/online_class.html","/mobile/assets/online_class.html"],"بارگذاری محیط کلاس ناموفق بود"),
+   getTextFallback(["../../online_class_apk/classroom_patch.js","/online-class/classroom_patch.js","/online_class_apk/classroom_patch.js"],"بارگذاری ابزارهای کلاس ناموفق بود")
   ]);
   if(!html.includes("const C=__CONFIG__;"))throw Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
   config.guestInviteBase=new URL("index.html",location.href).href;
