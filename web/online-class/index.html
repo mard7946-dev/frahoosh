@@ -297,6 +297,16 @@ button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 <button type="button" id="importTeachers" style="margin-top:12px">ثبت دبیران از اکسل</button>
 <p id="excelImportStatus" role="status" style="font-size:13px;line-height:1.9;color:#d7e2ee;overflow-wrap:anywhere"></p>
 <hr style="border:0;border-top:1px solid #354d67;margin:20px 0">
+<h3>اتصال دبیر به کلاس از طریق اکسل</h3>
+<p style="color:#b7c5d7;font-size:13px;line-height:1.9">این فایل فقط اتصال را ثبت می‌کند؛ فهرست دبیران/دانش‌آموزان به‌عنوان فهرست محلی باقی می‌ماند. ستون «کد ملی دبیر» باید با حساب دبیر موجود در سامانه مطابقت داشته باشد. برای کلاس می‌توانید شناسه کلاس یا نام دقیق کلاس را وارد کنید.</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0">
+<button type="button" id="downloadClassAssignmentsTemplate">دانلود قالب اکسل اتصال دبیر به کلاس</button>
+</div>
+<label for="classAssignmentsExcel">فایل اکسل اتصال دبیران به کلاس‌ها</label>
+<input id="classAssignmentsExcel" type="file" accept=".xlsx,.xls,.csv">
+<button type="button" id="importClassAssignments" style="margin-top:12px">برقراری اتصال‌ها از اکسل</button>
+<p id="classAssignmentsStatus" role="status" style="font-size:13px;line-height:1.9;color:#d7e2ee;overflow-wrap:anywhere"></p>
+<hr style="border:0;border-top:1px solid #354d67;margin:20px 0">
 <h3>ثبت دستی دانش‌آموز</h3>
 <p style="color:#b7c5d7;font-size:12px;line-height:1.9">این فرم همان سه ستون فایل اکسل دانش‌آموزان را دارد: نام، نام خانوادگی و کلاس.</p>
 <div id="manualStudentForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
@@ -510,7 +520,63 @@ async function unassignTeacher(id){if(!confirm("تخصیص دبیر از کلا�
 async function startClassFromManager(id){try{await api("/rest/v1/rpc/start_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});$("createMsg").textContent="کلاس فعال شد؛ زمان‌سنج از همین لحظه شروع شد. ورود دانش‌آموز پس از ورود دبیر فعال می‌شود.";await load()}catch(e){alert("شروع کلاس انجام نشد: "+e.message)}}
 async function endClassFromManager(id){if(!confirm("کلاس شماره "+id+" پایان یابد؟"))return;try{await api("/rest/v1/rpc/end_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});$("createMsg").textContent="کلاس پایان یافت.";await load()}catch(e){alert("پایان کلاس انجام نشد: "+e.message)}}
 async function loadTeachers(){try{const rows=await api("/rest/v1/teachers?select=id,first_name,last_name,national_code&order=last_name.asc&limit=500"),localRows=readLocalRows("frahoosh_local_teachers"),digits=v=>normalizeDigits(v).replace(/\D/g,""),byCode=new Map(rows.filter(t=>digits(t.national_code)).map(t=>[digits(t.national_code),t])),localByCode=new Map(localRows.filter(t=>digits(t.national_code)).map(t=>[digits(t.national_code),t]));const options=['<option value="">انتخاب دبیر برای این کلاس</option>'];for(const t of rows){const code=digits(t.national_code),local=localByCode.get(code),name=local?[local.first_name,local.last_name].filter(Boolean).join(" "):[t.first_name,t.last_name].filter(Boolean).join(" ");options.push('<option value="'+String(t.id).replace(/[^0-9]/g,"")+'">'+escapeRoster(name)+(local?" • فهرست محلی":"")+(code?" — "+escapeRoster(code):"")+'</option>')}const unmatched=localRows.filter(t=>!byCode.has(digits(t.national_code)));if(unmatched.length){options.push('<option value="" disabled>— دبیران محلی بدون حساب متصل —</option>');for(const t of unmatched)options.push('<option value="" disabled>'+escapeRoster([t.first_name,t.last_name].filter(Boolean).join(" "))+" — حساب قابل تخصیص پیدا نشد</option>")} $("cteacher").innerHTML=options.join("");if(unmatched.length)$("createMsg").textContent=unmatched.length+" دبیر محلی در فهرست هستند، اما حساب متناظر برای تخصیص کلاس ندارند؛ کد ملی ثبت‌شده باید با حساب دبیر در سامانه یکی باشد.";}catch(e){$("createMsg").textContent="فهرست دبیران بارگذاری نشد: "+e.message}}
-async function openRoom(id){try{const role=normalizeRole(profile.role);if(!Number.isInteger(Number(id))||Number(id)<=0)throw Error("شناسه کلاس معتبر نیست.");if(role==="teacher"||role==="دبیر"){const started=await api("/rest/v1/rpc/start_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});if(started===false)throw Error("شروع جلسه توسط سرور تأیید نشد.");}const managerRoles=["manager","مدیر","مدیریت","مدیر مدرسه","principal","administrator","admin","educational","معاون آموزشی","executive","معاون اجرایی","معاون پرورشی","counselor","مشاوره"];const isManager=managerRoles.includes(role);let s;if(isManager){/* Manager may inspect any class without implicitly starting the teacher session. */s=await api("/rest/v1/online_class_sessions?select=id,class_id,started_at,ended_at&class_id=eq."+encodeURIComponent(Number(id))+"&ended_at=is.null&order=id.desc&limit=1");}else{s=await api("/rest/v1/online_class_sessions?select=id,class_id,started_at,ended_at&class_id=eq."+encodeURIComponent(Number(id))+"&teacher_user_id=not.is.null&ended_at=is.null&order=id.desc&limit=1");if(!s[0])throw Error("هنوز دبیر کلاس را شروع نکرده است. پس از ورود دبیر دوباره تلاش کنید.");}const userResponse=await fetch(U+"/auth/v1/user",{headers:{"apikey":K,"Authorization":"Bearer "+token}});if(!userResponse.ok)throw Error("اعتبار نشست ورود تأیید نشد ("+userResponse.status+"). دوباره وارد شوید.");const u=await userResponse.json();if(!u||!u.id)throw Error("شناسه کاربر از سرور احراز هویت دریافت نشد.");let sid=null,tid=null;if(role==="student"||role==="دانش‌آموز"){const a=await api("/rest/v1/students?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");sid=a[0]?.id}if(role==="teacher"||role==="دبیر"){const a=await api("/rest/v1/teachers?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");tid=a[0]?.id}const classRows=await api("/rest/v1/online_classes?select=id,duration&id=eq."+Number(id)+"&limit=1");const durationMinutes=Math.min(240,Math.max(5,Number(classRows[0]?.duration)||50));const roomConfig={url:U,anon:K,token,userId:u.id,classId:+id,name:profile.display_name||profile.username||"کاربر",role,studentId:sid,teacherId:tid,durationMinutes,sessionId:s[0]?.id||null,sessionStartedAt:s[0]?.started_at||null,maxBoardPages:15};sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig));try{localStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig))}catch(_){}location.href="room.html"}catch(e){$("login").style.display="block";$("guest").style.display="none";$("classes").style.display="none";$("err").textContent=e.message}}$("importStudents").onclick=()=>importPeople("students");$("importTeachers").onclick=()=>importPeople("teachers");document.querySelectorAll(".manager-action").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".manager-panel").forEach(panel=>panel.hidden=panel.id!==btn.dataset.panel);if(btn.dataset.panel==="managerCreate")loadTeachers();if(btn.dataset.panel==="managerExcel")renderLocalStudentRoster();if(btn.dataset.panel==="managerAddTeacher")renderLocalTeacherRoster();if(btn.dataset.panel==="managerClasses")$("managerClassesList").innerHTML=$("list").innerHTML;if(btn.dataset.panel==="managerSchedule")renderLocalSchedule();$("adminCreate").scrollIntoView({behavior:"smooth",block:"start"})}));
+async function openRoom(id){try{const role=normalizeRole(profile.role);if(!Number.isInteger(Number(id))||Number(id)<=0)throw Error("شناسه کلاس معتبر نیست.");if(role==="teacher"||role==="دبیر"){const started=await api("/rest/v1/rpc/start_online_class_session",{method:"POST",body:JSON.stringify({p_class_id:Number(id)})});if(started===false)throw Error("شروع جلسه توسط سرور تأیید نشد.");}const managerRoles=["manager","مدیر","مدیریت","مدیر مدرسه","principal","administrator","admin","educational","معاون آموزشی","executive","معاون اجرایی","معاون پرورشی","counselor","مشاوره"];const isManager=managerRoles.includes(role);let s;if(isManager){/* Manager may inspect any class without implicitly starting the teacher session. */s=await api("/rest/v1/online_class_sessions?select=id,class_id,started_at,ended_at&class_id=eq."+encodeURIComponent(Number(id))+"&ended_at=is.null&order=id.desc&limit=1");}else{s=await api("/rest/v1/online_class_sessions?select=id,class_id,started_at,ended_at&class_id=eq."+encodeURIComponent(Number(id))+"&teacher_user_id=not.is.null&ended_at=is.null&order=id.desc&limit=1");if(!s[0])throw Error("هنوز دبیر کلاس را شروع نکرده است. پس از ورود دبیر دوباره تلاش کنید.");}const userResponse=await fetch(U+"/auth/v1/user",{headers:{"apikey":K,"Authorization":"Bearer "+token}});if(!userResponse.ok)throw Error("اعتبار نشست ورود تأیید نشد ("+userResponse.status+"). دوباره وارد شوید.");const u=await userResponse.json();if(!u||!u.id)throw Error("شناسه کاربر از سرور احراز هویت دریافت نشد.");let sid=null,tid=null;if(role==="student"||role==="دانش‌آموز"){const a=await api("/rest/v1/students?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");sid=a[0]?.id}if(role==="teacher"||role==="دبیر"){const a=await api("/rest/v1/teachers?national_code=eq."+encodeURIComponent(profile.national_code)+"&limit=1");tid=a[0]?.id}const classRows=await api("/rest/v1/online_classes?select=id,duration&id=eq."+Number(id)+"&limit=1");const durationMinutes=Math.min(240,Math.max(5,Number(classRows[0]?.duration)||50));const roomConfig={url:U,anon:K,token,userId:u.id,classId:+id,name:profile.display_name||profile.username||"کاربر",role,studentId:sid,teacherId:tid,durationMinutes,sessionId:s[0]?.id||null,sessionStartedAt:s[0]?.started_at||null,maxBoardPages:15};sessionStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig));try{localStorage.setItem("frahoosh_online_class_config",JSON.stringify(roomConfig))}catch(_){}location.href="room.html"}catch(e){$("login").style.display="block";$("guest").style.display="none";$("classes").style.display="none";$("err").textContent=e.message}}function downloadClassAssignmentsTemplate(){
+ const status=$("classAssignmentsStatus");
+ try{
+  if(typeof XLSX==="undefined")throw Error("کتابخانه اکسل بارگیری نشده است.");
+  const headers=["شناسه کلاس (اختیاری)","نام کلاس *","کد ملی دبیر *"];
+  const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([headers]);
+  ws["!cols"]=[{wch:24},{wch:28},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws,"اتصال دبیر به کلاس");
+  XLSX.writeFile(wb,"قالب_اتصال_دبیر_به_کلاس_فراهوش.xlsx");
+  status.textContent="قالب دانلود شد. برای هر ردیف، شناسه کلاس یا نام دقیق کلاس و کد ملی دبیر را وارد کنید.";
+ }catch(e){status.textContent="ساخت قالب انجام نشد: "+(e.message||e)}
+}
+async function importClassAssignments(){
+ const button=$("importClassAssignments"),status=$("classAssignmentsStatus");
+ button.disabled=true;status.textContent="";
+ try{
+  if(!["manager","مدیر","مدیریت","principal","administrator","admin"].includes(normalizeRole(profile.role)))throw Error("اتصال گروهی کلاس‌ها فقط برای حساب مدیریت مجاز است.");
+  if(typeof XLSX==="undefined")throw Error("کتابخانه اکسل بارگیری نشده است.");
+  const raw=await readImportFile($("classAssignmentsExcel").files[0]),rows=raw.filter(r=>Object.values(r||{}).some(v=>String(v??"").trim()!==""));
+  if(!rows.length)throw Error("فایل هیچ ردیف اتصالی ندارد.");
+  if(rows.length>1000)throw Error("در هر بار حداکثر ۱۰۰۰ اتصال وارد کنید.");
+  const get=(row,aliases)=>{const wanted=aliases.map(normalizeImportHeader);for(const [key,value] of Object.entries(row||{})){if(wanted.includes(normalizeImportHeader(key))&&String(value??"").trim()!=="")return String(value).trim()}return ""};
+  const classes=await api("/rest/v1/online_classes?select=id,title,class_name,subject&order=id.desc&limit=1000");
+  const teachers=await api("/rest/v1/teachers?select=id,first_name,last_name,national_code&limit=1000");
+  const digits=v=>normalizeDigits(v).replace(/\D/g,"");
+  const teacherByCode=new Map(teachers.filter(t=>digits(t.national_code)).map(t=>[digits(t.national_code),t]));
+  const resolved=[],errors=[];
+  rows.forEach((row,index)=>{
+   const line=index+2,rawId=get(row,["شناسه کلاس","شناسهکلاس","کد کلاس","class id","class_id","classid","id"]),className=get(row,["نام کلاس","عنوان کلاس","کلاس","class name","class_name","title"]),code=digits(get(row,["کد ملی دبیر","کدملی دبیر","کدملی","national code","national_code","nationalcode"]));
+   let matched=null;
+   if(rawId&&/^\d+$/.test(digits(rawId)))matched=classes.find(c=>String(c.id)===digits(rawId))||null;
+   if(!matched&&className){const exact=classes.filter(c=>[c.class_name,c.title].some(v=>String(v||"").trim().toLocaleLowerCase("fa")===className.trim().toLocaleLowerCase("fa")));if(exact.length===1)matched=exact[0];else if(exact.length>1){errors.push("ردیف "+line+": نام کلاس تکراری است؛ شناسه کلاس را وارد کنید.");return}}
+   if(!matched){errors.push("ردیف "+line+": کلاس با شناسه/نام واردشده پیدا نشد.");return}
+   if(!/^\d{10}$/.test(code)){errors.push("ردیف "+line+": کد ملی دبیر باید ۱۰ رقم باشد.");return}
+   const teacher=teacherByCode.get(code);
+   if(!teacher){errors.push("ردیف "+line+": حساب دبیر با این کد ملی در فهرست حساب‌های قابل تخصیص سامانه پیدا نشد.");return}
+   resolved.push({class_id:Number(matched.id),teacher_id:Number(teacher.id),teacher_name:[teacher.first_name,teacher.last_name].filter(Boolean).join(" ")});
+  });
+  if(errors.length)throw Error("هیچ اتصالی ثبت نشد؛ خطاهای فایل:\n"+errors.slice(0,15).join("\n")+(errors.length>15?"\nو "+(errors.length-15)+" خطای دیگر.":""));
+  const unique=new Map();for(const item of resolved)unique.set(item.class_id+"|"+item.teacher_id,item);
+  const existing=await api("/rest/v1/online_class_teachers?select=class_id,teacher_id&limit=5000");
+  const present=new Set(existing.map(x=>Number(x.class_id)+"|"+Number(x.teacher_id)));
+  let added=0,skipped=0;
+  for(const item of unique.values()){
+   const key=item.class_id+"|"+item.teacher_id;
+   if(present.has(key)){skipped++;continue}
+   await api("/rest/v1/online_class_teachers",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(item)});
+   present.add(key);added++;
+  }
+  status.textContent="اتصال اکسل انجام شد: "+added+" اتصال جدید ثبت شد؛ "+skipped+" اتصال از قبل وجود داشت. فهرست محلی دبیران/دانش‌آموزان به‌روزرسانی یا به Supabase ارسال نشد.";
+  await load();
+ }catch(e){status.textContent="اتصال از اکسل انجام نشد: "+(e.message||e)}
+ finally{button.disabled=false}
+}
+$("downloadClassAssignmentsTemplate").onclick=downloadClassAssignmentsTemplate;
+$("importClassAssignments").onclick=importClassAssignments;
+$("importStudents").onclick=()=>importPeople("students");$("importTeachers").onclick=()=>importPeople("teachers");document.querySelectorAll(".manager-action").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".manager-panel").forEach(panel=>panel.hidden=panel.id!==btn.dataset.panel);if(btn.dataset.panel==="managerCreate")loadTeachers();if(btn.dataset.panel==="managerExcel")renderLocalStudentRoster();if(btn.dataset.panel==="managerAddTeacher")renderLocalTeacherRoster();if(btn.dataset.panel==="managerClasses")$("managerClassesList").innerHTML=$("list").innerHTML;if(btn.dataset.panel==="managerSchedule")renderLocalSchedule();$("adminCreate").scrollIntoView({behavior:"smooth",block:"start"})}));
 $("saveTeacher").onclick=async()=>{
  const status=$("teacherCreateStatus"),button=$("saveTeacher");status.textContent="";button.disabled=true;
  try{
