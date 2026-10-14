@@ -1,5 +1,4 @@
 <!doctype html>
-<!-- guest-session-entry-fix: 736145982852e2781979d6615fb13cd178329c46 -->
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
@@ -9,17 +8,15 @@
 <style>
 html,body{margin:0;width:100%;height:100%;background:#0e1726;color:#fff;font-family:Tahoma,Arial,sans-serif}
 #x{padding:24px;text-align:center;line-height:2}
-#room{display:none;border:0;width:100%;height:100%;height:100dvh;background:#0e1726}
 a{color:#f3c65b}
 </style>
 </head>
 <body>
 <div id="x">در حال آماده‌سازی کلاس…</div>
-<iframe id="room" title="محیط کلاس آنلاین فراهوش" allow="camera; microphone; display-capture; autoplay; fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
 <script>
 (()=>{"use strict";
-const box=document.getElementById("x"),frame=document.getElementById("room");
-const show=m=>{box.style.display="block";box.innerHTML=m+'<br><a href="index.html">بازگشت به ورود کلاس</a>';frame.style.display="none";};
+const box=document.getElementById("x");
+const show=m=>{box.style.display="block";box.innerHTML=m+'<br><a href="/online-class/">بازگشت به ورود کلاس</a>';};
 async function getText(path,label){
  const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
  try{const u=new URL(path,location.href);u.searchParams.set("_v",Date.now());const r=await fetch(u.href,{cache:"no-store",signal:c.signal});if(!r.ok)throw Error(label+" ("+r.status+")");return await r.text();}
@@ -29,7 +26,7 @@ async function getText(path,label){
 async function getTextFallback(paths,label){
  let lastError=null;
  for(const path of paths){
-  try{return {text:await getText(path,label),path};}
+  try{return await getText(path,label);}
   catch(error){lastError=error;if(!/\(404\)/.test(String(error&&error.message||error)))throw error;}
  }
  throw lastError||Error(label);
@@ -41,22 +38,20 @@ async function start(){
  if(!config.url||!config.anon||!config.token||!config.classId||!config.userId){show("اطلاعات نشست کلاس ناقص است؛ از صفحه ورود کلاس دوباره وارد شوید.");return;}
  box.textContent="در حال بارگذاری محیط کلاس…";
  try{
-  let [htmlResult,patchResult]=await Promise.all([
-   getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"],"بارگذاری محیط کلاس ناموفق بود"),
-   getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"],"بارگذاری ابزارهای کلاس ناموفق بود")
+  const [html,patch]=await Promise.all([
+   getTextFallback(["/online-class/online_class.html","/mobile/assets/online_class.html"],"بارگذاری محیط کلاس ناموفق بود"),
+   getTextFallback(["/online-class/classroom_patch.js","/online_class_apk/classroom_patch.js"],"بارگذاری ابزارهای کلاس ناموفق بود")
   ]);
-  let html=htmlResult.text,patch=patchResult.text;
   if(!html.includes("const C=__CONFIG__;"))throw Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
   config.guestInviteBase=new URL("index.html",location.href).href;
-  html=html.replace("const C=__CONFIG__;","window.C="+JSON.stringify(config)+";const C=window.C;");
+  let page=html.replace("const C=__CONFIG__;","window.C="+JSON.stringify(config)+";const C=window.C;");
+  if(!page.includes("const C=window.C;"))throw Error("تنظیمات ورود کلاس جایگزین نشد.");
   const closeScript="</scr"+"ipt>";
-  html=html.replace("</body>","<script>"+patch+closeScript+"</body>");
-  const base=document.createElement("base");base.href=new URL(htmlResult.path,location.href).href;
-  html=html.replace(/<head([^>]*)>/i,"<head$1>"+base.outerHTML);
-  frame.onload=()=>{box.style.display="none";frame.style.display="block";};
-  frame.srcdoc=html;
-  setTimeout(()=>{try{if(frame.contentDocument&&frame.contentDocument.readyState==="complete"){box.style.display="none";frame.style.display="block";}}catch(_){}},1000);
- }catch(e){show("باز کردن کلاس انجام نشد: "+(e&&e.message?e.message:"خطای ناشناخته"));}
+  page=page.replace("</body>","<script>"+patch+closeScript+"</body>");
+  // Keep the classroom in the top-level WebView document: camera/microphone permissions,
+  // WebRTC audio playback, timer updates, and navigation then share one document context.
+  document.open();document.write(page);document.close();
+ }catch(e){console.error("Frahoosh room bootstrap failed",e);show("باز کردن کلاس انجام نشد: "+(e&&e.message?e.message:"خطای ناشناخته"));}
 }
 start();
 })();
