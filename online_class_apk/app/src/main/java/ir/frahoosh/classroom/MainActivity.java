@@ -146,7 +146,9 @@ public final class MainActivity extends Activity {
     private WebResourceResponse localAssetResponse(String path) {
         if (path == null) return null;
         String asset = null;
-        if (path.endsWith("/runtime-config.js")) {\n            asset = "runtime-config.js";\n        } else if (path.endsWith("/online-class/") || path.endsWith("/online-class/index.html")) {
+        if (path.endsWith("/runtime-config.js")) {
+            asset = "runtime-config.js";
+        } else if (path.endsWith("/online-class/") || path.endsWith("/online-class/index.html")) {
             asset = "index.html";
         } else if (path.endsWith("/online-class/room.html")) {
             asset = "room.html";
