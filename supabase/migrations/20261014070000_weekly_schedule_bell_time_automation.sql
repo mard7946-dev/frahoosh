@@ -175,3 +175,7 @@ begin
   return v_session_id;
 end;
 $function$;
+
+update public.weekly_schedule_entries set activated_at = null where start_time is null or end_time is null;
+revoke execute on function public.validate_weekly_schedule_bell_times() from public, anon, authenticated;
+revoke execute on function public.refresh_online_class_statuses() from public, anon, authenticated;
