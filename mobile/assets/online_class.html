@@ -149,7 +149,8 @@ function esc(s){return String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt
 function setStatus(t){let e=$("page");e.textContent=t||e.textContent}
 function parseSessionTimestamp(value){if(!value)return null;let s=String(value).trim();if(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d/.test(s)){s=s.replace(" ","T").replace(/(\.\d{3})\d+/,"$1").replace(/([+-]\d\d)$/,"$1:00")}const n=Date.parse(s);return Number.isFinite(n)?n:null}
 async function send(type,payload={},to=null){try{await api("online_class_signals",{method:"POST",body:JSON.stringify({class_id:C.classId,sender_user_id:C.userId,receiver_user_id:to,signal_type:type,payload})})}catch(e){}}
-function addVideo(id,name,stream){if(!stream)return;let tile=document.getElementById("v-"+id);if(!tile){tile=document.createElement("div");tile.className="tile";tile.id="v-"+id;tile.innerHTML='<video autoplay playsinline muted></video><audio autoplay playsinline></audio><span>'+esc(name)+'</span>';$("videos").appendChild(tile)}const video=tile.querySelector("video"),audio=tile.querySelector("audio");video.autoplay=true;video.playsInline=true;video.muted=true;video.srcObject=stream;audio.autoplay=true;audio.playsInline=true;audio.muted=String(id)===String(C.userId);audio.volume=1;audio.srcObject=stream;const videoPlayback=video.play();if(videoPlayback&&videoPlayback.catch)videoPlayback.catch(e=>console.warn("VIDEO_PLAY_BLOCKED",e&&e.name));if(!audio.muted){const audioPlayback=audio.play();if(audioPlayback&&audioPlayback.catch)audioPlayback.catch(e=>console.warn("REMOTE_AUDIO_PLAY_BLOCKED",e&&e.name))}}
+function resumeRemoteAudio(){document.querySelectorAll(".tile audio").forEach(a=>{if(!a.muted){const p=a.play();if(p&&p.catch)p.catch(e=>console.warn("REMOTE_AUDIO_RESUME_BLOCKED",e&&e.name))}})}
+function addVideo(id,name,stream){if(!stream)return;let tile=document.getElementById("v-"+id);if(!tile){tile=document.createElement("div");tile.className="tile";tile.id="v-"+id;tile.innerHTML='<video autoplay playsinline muted></video><audio autoplay playsinline></audio><span>'+esc(name)+'</span>';$("videos").appendChild(tile)}const video=tile.querySelector("video"),audio=tile.querySelector("audio");video.autoplay=true;video.playsInline=true;video.muted=true;video.srcObject=stream;audio.autoplay=true;audio.playsInline=true;audio.muted=String(id)===String(C.userId);audio.volume=1;audio.srcObject=stream;const videoPlayback=video.play();if(videoPlayback&&videoPlayback.catch)videoPlayback.catch(e=>console.warn("VIDEO_PLAY_BLOCKED",e&&e.name));if(!audio.muted){const audioPlayback=audio.play();if(audioPlayback&&audioPlayback.catch)audioPlayback.catch(e=>{console.warn("REMOTE_AUDIO_PLAY_BLOCKED",e&&e.name);setStatus("برای فعال‌شدن صدای دریافتی، یک‌بار صفحه کلاس را لمس کنید.");document.addEventListener("pointerdown",resumeRemoteAudio,{once:true});document.addEventListener("touchstart",resumeRemoteAudio,{once:true})})}}
 function removeVideo(id){let t=document.getElementById("v-"+id);if(t)t.remove()}
 function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="person">'+esc(n)+(id===C.userId?" (شما)":"")+"</div>";$("participants").innerHTML=h}
 async function ensureMedia(){
@@ -317,7 +318,7 @@ async function closeClassAfterServerEnd(){
  const page=$("page");if(page)page.textContent="زمان این زنگ به پایان رسیده است؛ در حال خروج از کلاس…";
  const board=$("board");if(board)board.style.pointerEvents="none";
  const micButton=$("mic"),camButton=$("cam");if(micButton)micButton.disabled=true;if(camButton)camButton.disabled=true;
- setTimeout(()=>{try{location.replace("/online-class/")}catch(e){}},1800);
+ setTimeout(()=>{try{location.replace(C.guestInviteBase||new URL("index.html",location.href).href)}catch(e){}},1800);
 }
 async function refreshSessionTimer(){
  try{
@@ -375,22 +376,22 @@ async function verificationFailed(checkNo,shade){
  try{if(C.studentId&&currentSession){const response=await api("rpc/record_online_class_checkpoint_failure",{method:"POST",body:JSON.stringify({p_class_id:Number(C.classId),p_session_id:Number(currentSession),p_student_id:Number(C.studentId),p_checkpoint_no:Number(checkNo)})});if(!response.ok)throw Error("failed to record missed checkpoint")}}catch(e){console.error(e)}
  shade?.remove();alert("صحت‌سنجی تأیید نشد؛ دسترسی شما به این نشست بسته می‌شود.");
  try{await send("leave",{name:C.name,reason:"attendance_verification_failed",checkpoint:checkNo});localStream?.getTracks().forEach(t=>t.stop());peers.forEach(p=>p.close())}catch(e){}
- location.replace("/online-class/");
+ location.replace(C.guestInviteBase||new URL("index.html",location.href).href);
 }
-async function waitForTeacherSession(){const status=$("page");if(status)status.textContent="در انتظار ورود دبیر و شروع کلاس…";while(!currentSession){if(!navigator.onLine){if(status)status.textContent="اتصال اینترنت برقرار نیست؛ در انتظار اتصال…";await new Promise(r=>setTimeout(r,2500));continue}await refreshSessionTimer();if(currentSession)break;await new Promise(r=>setTimeout(r,2500));}if(!currentSession){alert("کلاس هنوز توسط دبیر شروع نشده است.");location.replace("/online-class/");return false}if(status)status.textContent="دبیر وارد شده است؛ در حال اتصال به کلاس…";return true;}
+async function waitForTeacherSession(){const status=$("page");if(status)status.textContent="در انتظار ورود دبیر و شروع کلاس…";while(!currentSession){if(!navigator.onLine){if(status)status.textContent="اتصال اینترنت برقرار نیست؛ در انتظار اتصال…";await new Promise(r=>setTimeout(r,2500));continue}await refreshSessionTimer();if(currentSession)break;await new Promise(r=>setTimeout(r,2500));}if(!currentSession){alert("کلاس هنوز توسط دبیر شروع نشده است.");location.replace(C.guestInviteBase||new URL("index.html",location.href).href);return false}if(status)status.textContent="دبیر وارد شده است؛ در حال اتصال به کلاس…";return true;}
 async function enforceStudentBlock(){
  if(!["student","دانش‌آموز"].includes(C.role)||!C.studentId||!currentSession)return false;
  try{
   const r=await api("rpc/is_online_class_student_blocked",{method:"POST",body:JSON.stringify({p_class_id:Number(C.classId),p_session_id:Number(currentSession),p_student_id:Number(C.studentId)})});
   if(!r.ok)return false;
   const blocked=await r.json();
-  if(blocked===true){alert("به دلیل تأیید نشدن صحت حضور، دسترسی شما به این جلسه بسته شده است.");location.replace("/online-class/");return true}
+  if(blocked===true){alert("به دلیل تأیید نشدن صحت حضور، دسترسی شما به این جلسه بسته شده است.");location.replace(C.guestInviteBase||new URL("index.html",location.href).href);return true}
  }catch(e){console.error("Student access check failed",e)}
  return false;
 }
 async function autoMarkEntry(){
  if(!["student","دانش‌آموز"].includes(C.role))return;
- if(!C.studentId||!currentSession){alert("شناسه دانش‌آموز یا جلسه دریافت نشد؛ حضور ثبت نشد.");location.replace("/online-class/");return}
+ if(!C.studentId||!currentSession){alert("شناسه دانش‌آموز یا جلسه دریافت نشد؛ حضور ثبت نشد.");location.replace(C.guestInviteBase||new URL("index.html",location.href).href);return}
  try{
   await recordAutomaticAttendance("present",0);
   const k="frahoosh_checks_"+C.classId+"_"+currentSession+"_"+C.studentId;
@@ -404,7 +405,7 @@ async function autoMarkEntry(){
    const checkKey="frahoosh_attendance_"+C.classId+"_"+currentSession+"_"+C.studentId+"_"+(i+1);
    if(!sessionStorage.getItem(checkKey))setTimeout(()=>verificationPrompt(i+1),Math.max(0,Number(at)-Date.now()));
   });
- }catch(e){console.error("Automatic attendance failed",e);alert("ثبت حضور خودکار انجام نشد؛ ورود به کلاس متوقف شد.");location.replace("/online-class/")}
+ }catch(e){console.error("Automatic attendance failed",e);alert("ثبت حضور خودکار انجام نشد؛ ورود به کلاس متوقف شد.");location.replace(C.guestInviteBase||new URL("index.html",location.href).href)}
 }
 
 async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody"),layout=document.querySelector(".layout");const teacher=isTeacher();if(!teacher){const b=$("board");if(b){b.style.touchAction="pan-y";b.style.pointerEvents="none";b.setAttribute("aria-label","تخته فقط برای مشاهده؛ منتظر مجوز دبیر باشید")}}document.querySelectorAll("[data-tool],#color,#size,#prev,#next,#clear,#clearAll,#fileManager,#quizPanel,#quizToggle,#screen").forEach(el=>{if(el)el.style.display=teacher?"":"none"});if(!teacher){drawer.style.display="none";document.querySelector(".boardbar").style.display="none";$("mic").style.display="";$("cam").style.display="";}for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);const mt=$("menuToggle");if(mt){if(!teacher){mt.style.display="none"}else mt.onclick=e=>{e.preventDefault();e.stopPropagation();drawer.open=!drawer.open;layout.classList.toggle("drawer-open",drawer.open)}};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await refreshSessionTimer();if(isStudent()){const ready=await waitForTeacherSession();if(!ready)return;}if(await enforceStudentBlock())return;await ensureMedia();await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
