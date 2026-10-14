@@ -74,6 +74,17 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('timeZone:"Asia/Tehran"', self.entry)
         self.assertIn('function todayJalali(){const p=Object.fromEntries', self.entry)
 
+    def test_android_grants_microphone_independently_of_camera(self):
+        activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
+                    "ir" / "frahoosh" / "classroom" / "MainActivity.java").read_text(encoding="utf-8")
+        self.assertIn("missingPermissionsFor(PermissionRequest request)", activity)
+        self.assertIn("needsAudio && checkSelfPermission(Manifest.permission.RECORD_AUDIO)", activity)
+        self.assertIn("needsCamera && checkSelfPermission(Manifest.permission.CAMERA)", activity)
+        self.assertIn("grantWebMediaPermission(request);", activity)
+        self.assertIn("denying camera must not mute the microphone", activity)
+        # A combined camera+microphone permission check must not gate a microphone-only request.
+        self.assertNotIn("if (hasMediaPermissions()) {\\n                grantWebMediaPermission(request);\\n            } else {\\n                request.deny();", activity)
+
     def test_shared_room_loader_uses_paths_supported_by_web_and_android(self):
         self.assertIn('getText("/mobile/assets/online_class.html"', self.room)
         self.assertIn('getText("/online_class_apk/classroom_patch.js"', self.room)
