@@ -393,7 +393,7 @@ async function createClass(){
 async function editClass(id){
  try{const rows=await api("/rest/v1/online_classes?select=id,title,subject,class_name,duration,start_time,end_time,start_time_shamsi,end_time_shamsi,start_at,end_at&id=eq."+id+"&limit=1"),r=rows[0];if(!r)throw Error("کلاس پیدا نشد.");
  const maps=await api("/rest/v1/online_class_teachers?select=teacher_id&class_id=eq."+id+"&limit=1");
- $("ctitle").value=r.title||"";$("csubject").value=r.subject||"";$("cname").value=r.class_name||"";$("cduration").value=Number(r.duration)||50;$("cteacher").value=maps[0]?.teacher_id||"";
+ $("ctitle").value=r.title||"";$("csubject").value=r.subject||"";$("cname").value=r.class_name||"";$("cduration").value=Number(r.duration)||50;$("cteacher").value=maps[0]?.teacher_id||"";const savedShamsi=String(r.start_time_shamsi||"").split(" ")[0];$("cdate").value=String(r.start_at||"").slice(0,10);$("cdateDisplay").value=savedShamsi.replace(/\d/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);$("ctime").value=r.start_time||String(r.start_at||"").slice(11,16);
  editingClassId=Number(id);classWizardStep=0;renderClassWizard();$("createClass").textContent="ذخیره تغییرات";$("createMsg").textContent="کلاس شماره "+id+" در حالت ویرایش است.";$("adminCreate").scrollIntoView({behavior:"smooth",block:"start"});
  }catch(e){alert("ویرایش بارگذاری نشد: "+e.message)}
 }
