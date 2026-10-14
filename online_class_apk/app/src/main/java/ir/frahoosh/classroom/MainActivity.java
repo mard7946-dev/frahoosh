@@ -49,7 +49,6 @@ public final class MainActivity extends Activity {
         );
 
         buildWebView();
-        requestMediaPermissions();
     }
 
     private void buildWebView() {
@@ -166,30 +165,6 @@ public final class MainActivity extends Activity {
             return new WebResourceResponse(mime, "UTF-8", in);
         } catch (Exception ignored) {
             return null;
-        }
-    }
-
-    private boolean hasMediaPermissions() {
-        if (Build.VERSION.SDK_INT < 23) return true;
-        return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
-    }
-
-    private void requestMediaPermissions() {
-        if (Build.VERSION.SDK_INT < 23) return;
-        ArrayList<String> missing = new ArrayList<>();
-        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            missing.add(Manifest.permission.CAMERA);
-        }
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            missing.add(Manifest.permission.RECORD_AUDIO);
-        }
-        if (!missing.isEmpty()) {
-            requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
-        } else if (pendingWebPermission != null) {
-            PermissionRequest request = pendingWebPermission;
-            pendingWebPermission = null;
-            grantWebMediaPermission(request);
         }
     }
 
