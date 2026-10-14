@@ -5,6 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 ENTRY = ROOT / "web" / "online-class" / "index.html"
 ROOM = ROOT / "web" / "online-class" / "room.html"
+CLASSROOM = ROOT / "mobile" / "assets" / "online_class.html"
 PATCH = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room_assets" / "classroom_patch.js"
 
 
@@ -13,6 +14,7 @@ class OnlineClassContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.entry = ENTRY.read_text(encoding="utf-8")
         cls.room = ROOM.read_text(encoding="utf-8")
+        cls.classroom = CLASSROOM.read_text(encoding="utf-8")
         cls.patch = PATCH.read_text(encoding="utf-8")
 
     def test_entry_offers_three_distinct_roles(self):
@@ -88,6 +90,24 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('unicode-bidi:isolate-override!important', self.entry)
         self.assertIn('timeZone:"Asia/Tehran"', self.entry)
         self.assertIn('function todayJalali(){const p=Object.fromEntries', self.entry)
+
+
+    def test_student_schedule_auto_refreshes_and_uses_server_bell_times(self):
+        self.assertIn("function getTehranBellState(row)", self.entry)
+        self.assertIn("showStudentSchedule(true)", self.entry)
+        self.assertIn("startTeacherSchedulePolling()", self.entry)
+        self.assertIn("sessionId:s[0]?.id||null", self.entry)
+        migration = (ROOT / "supabase" / "migrations" /
+                     "20261014072000_weekly_schedule_runtime_times_and_session_close.sql").read_text(encoding="utf-8")
+        self.assertIn("start_time time without time zone", migration)
+        self.assertIn("end_time time without time zone", migration)
+        self.assertIn("drop function if exists public.get_student_class_schedule(text)", migration)
+
+    def test_classroom_leaves_when_server_ends_or_replaces_its_session(self):
+        self.assertIn("missingSessionPolls", self.classroom)
+        self.assertIn("closeClassAfterServerEnd", self.classroom)
+        self.assertIn("String(latest.id)!==String(C.sessionId)", self.classroom)
+        self.assertIn('location.replace("/online-class/")', self.classroom)
 
     def test_android_grants_microphone_independently_of_camera(self):
         activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /

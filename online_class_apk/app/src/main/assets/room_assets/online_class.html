@@ -266,19 +266,36 @@ function buildQuizCreate(){
 }
 async function loadQuizResults(){if(!["teacher","دبیر","manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی"].includes(C.role))return;try{let r=await api("online_class_activity?class_id=eq."+C.classId+"&event_type=eq.quiz_answer&order=id.desc&limit=200");let rows=await r.json();let box=document.getElementById("quizResults");if(!box){box=document.createElement("div");box.id="quizResults";$("quizPanel").appendChild(box)}box.innerHTML="<b>پاسخ‌های ثبت‌شده: "+rows.length+"</b>"+rows.slice(0,20).map(x=>"<div class='quizq'>دانش‌آموز #"+esc(x.student_id)+" — "+esc(x.metadata||"")+"</div>").join("")}catch(e){}}
 
-let endingSession=false,evidenceEnded=false;async function cleanupClassFiles(){try{const q=await api("smart_board_files?class_id=eq."+encodeURIComponent(C.classId)+"&select=id,file_path");if(!q.ok)return;const rows=await q.json();for(const f of rows){if(!f.file_path)continue;try{await fetch(C.url+"/storage/v1/object/online-class-files/"+f.file_path,{method:"DELETE",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token}})}catch(e){}}await api("smart_board_files?class_id=eq."+encodeURIComponent(C.classId),{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});$("files").innerHTML="";}catch(e){console.warn("Class file cleanup failed",e)}}async function endClassSession(){if(endingSession||!currentSession)return;endingSession=true;try{await api("online_class_sessions?id=eq."+encodeURIComponent(currentSession),{method:"PATCH",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({ended_at:new Date().toISOString()})});await cleanupClassFiles();setStatus("زمان کلاس پایان یافت؛ فایل‌های کلاس پاک شدند.");}catch(e){console.error("Could not end class session",e)}finally{endingSession=false}}function updateClassTimer(){const e=$("classTimer");if(!e)return;if(!sessionStartedAt){e.textContent="در انتظار شروع دبیر";return}const left=Math.max(0,Math.max(5,Math.min(240,Number(C.durationMinutes)||50))*60-Math.floor((Date.now()-sessionStartedAt)/1000));e.textContent=String(Math.floor(left/60)).padStart(2,"0")+":"+String(left%60).padStart(2,"0");if(left===0){e.style.color="#ff7373";if(!endingSession)endClassSession()}}
+let endingSession=false,evidenceEnded=false,missingSessionPolls=0;async function cleanupClassFiles(){try{const q=await api("smart_board_files?class_id=eq."+encodeURIComponent(C.classId)+"&select=id,file_path");if(!q.ok)return;const rows=await q.json();for(const f of rows){if(!f.file_path)continue;try{await fetch(C.url+"/storage/v1/object/online-class-files/"+f.file_path,{method:"DELETE",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token}})}catch(e){}}await api("smart_board_files?class_id=eq."+encodeURIComponent(C.classId),{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});$("files").innerHTML="";}catch(e){console.warn("Class file cleanup failed",e)}}async function endClassSession(){if(endingSession||!currentSession)return;endingSession=true;try{await api("online_class_sessions?id=eq."+encodeURIComponent(currentSession),{method:"PATCH",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({ended_at:new Date().toISOString()})});await cleanupClassFiles();setStatus("زمان کلاس پایان یافت؛ فایل‌های کلاس پاک شدند.");}catch(e){console.error("Could not end class session",e)}finally{endingSession=false}}function updateClassTimer(){if(evidenceEnded)return;const e=$("classTimer");if(!e)return;if(!sessionStartedAt){e.textContent="در انتظار شروع دبیر";return}const left=Math.max(0,Math.max(5,Math.min(240,Number(C.durationMinutes)||50))*60-Math.floor((Date.now()-sessionStartedAt)/1000));e.textContent=String(Math.floor(left/60)).padStart(2,"0")+":"+String(left%60).padStart(2,"0");if(left===0){e.style.color="#ff7373";if(!endingSession)endClassSession()}}
 function sessionTimestamp(row){if(!row)return null;for(const key of ["started_at","session_started_at","start_time","started_on","created_at","inserted_at","created_on"]){const n=parseSessionTimestamp(row[key]);if(n)return n}return null}
+async function closeClassAfterServerEnd(){
+ if(evidenceEnded)return;
+ evidenceEnded=true;
+ try{await send("leave",{name:C.name,reason:"scheduled_session_ended"})}catch(e){}
+ try{if(localStream)localStream.getTracks().forEach(t=>t.stop());if(screenStream)screenStream.getTracks().forEach(t=>t.stop());peers.forEach(pc=>{try{pc.close()}catch(e){}});peers.clear()}catch(e){}
+ const page=$("page");if(page)page.textContent="زمان این زنگ به پایان رسیده است؛ در حال خروج از کلاس…";
+ const board=$("board");if(board)board.style.pointerEvents="none";
+ const micButton=$("mic"),camButton=$("cam");if(micButton)micButton.disabled=true;if(camButton)camButton.disabled=true;
+ setTimeout(()=>{try{location.replace("/online-class/")}catch(e){}},1800);
+}
 async function refreshSessionTimer(){
  try{
   const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&ended_at=is.null&order=id.desc&limit=1");
   if(!r.ok)throw new Error("HTTP "+r.status);
   const rows=await r.json(),latest=rows[0];
   if(latest){
+   if(C.sessionId&&String(latest.id)!==String(C.sessionId)){currentSession=null;await closeClassAfterServerEnd();return;}
    currentSession=latest.id;
+   missingSessionPolls=0;
    sessionStartedAt=sessionTimestamp(latest)||sessionStartedAt||parseSessionTimestamp(C.sessionStartedAt)||Date.now();
    evidenceEnded=false;
    updateClassTimer();
    return;
+  }
+  if(currentSession||C.sessionId){
+   missingSessionPolls++;
+   if(missingSessionPolls>=2){currentSession=null;await closeClassAfterServerEnd();return;}
+   if(currentSession){const configuredStart=parseSessionTimestamp(C.sessionStartedAt);if(configuredStart){sessionStartedAt=configuredStart;updateClassTimer()}return;}
   }
   currentSession=null;
   const configuredStart=parseSessionTimestamp(C.sessionStartedAt);
