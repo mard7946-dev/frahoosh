@@ -82,6 +82,8 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("needsCamera && checkSelfPermission(Manifest.permission.CAMERA)", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
         self.assertIn("denying camera must not mute the microphone", activity)
+        self.assertNotIn("requestMediaPermissions();", activity)
+        self.assertNotIn("hasMediaPermissions()", activity)
         # A combined camera+microphone permission check must not gate a microphone-only request.
         permission_handler = activity.split("public void onPermissionRequest", 1)[1].split("public boolean onShowFileChooser", 1)[0]
         self.assertNotIn("hasMediaPermissions()", permission_handler)
