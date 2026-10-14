@@ -225,7 +225,7 @@ button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 /* Persian Jalali date picker for class creation; stores selected day as Gregorian ISO internally. */
 .jalali-picker{position:relative;margin-top:8px;padding:12px;border:1px solid #d9b45c88;border-radius:15px;background:#0a192a;box-shadow:0 14px 32px #0005;color:#f5f7fb;min-width:250px;z-index:30}.jalali-picker[hidden]{display:none}.jalali-picker-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.jalali-picker-head strong{font-size:13px;color:#f4ca62}.jalali-picker button{padding:7px 10px;border-radius:9px;background:#18314a;color:#f8d77e;border:1px solid #d9b45c66}.jalali-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}.jalali-days span{font-size:11px;color:#aebed0;padding:5px 0}.jalali-days button{padding:8px 0;font-size:12px;background:#10253a;color:#fff;border:1px solid transparent}.jalali-days button:hover,.jalali-days button:focus{border-color:#f4ca62}.jalali-days button.selected{background:#f4ca62;color:#09182a;font-weight:bold}.jalali-picker-foot{display:flex;justify-content:space-between;gap:8px;margin-top:10px}.jalali-picker-foot button{font-size:11px}
 
-#cdateDisplay{direction:ltr!important;unicode-bidi:isolate;text-align:center;font-variant-numeric:tabular-nums}
+#cdateDisplay{direction:ltr!important;unicode-bidi:isolate-override!important;text-align:center;font-variant-numeric:tabular-nums}
 .digital-time-shell #ctime{direction:ltr!important;unicode-bidi:isolate;text-align:center;cursor:pointer}
 .time-open-btn{flex:0 0 auto;min-height:42px;padding:8px 12px;border:1px solid #f4ca6280;border-radius:10px;background:#f4ca621a;color:#ffdc83;font-weight:700}
 .time-picker{margin-top:10px;padding:14px;border:1px solid #d9b45c88;border-radius:16px;background:linear-gradient(145deg,#071423,#10263b)}.time-picker[hidden]{display:none!important}.time-picker-title{color:#f4ca62;font-weight:700;margin-bottom:10px}.time-picker-groups{display:grid;grid-template-columns:1fr 1fr;gap:12px}.time-picker-group strong{display:block;color:#c8d5e5;font-size:12px;margin-bottom:7px}.time-picker-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;max-height:156px;overflow:auto}.time-picker-options button{padding:8px 2px;border:1px solid #344a63;border-radius:8px;background:#0a1a2c;color:#f5f7fb;font:700 14px ui-monospace,monospace}.time-picker-options button.selected{background:#f4ca62;color:#08182b;border-color:#f4ca62}.time-picker-actions{display:flex;justify-content:space-between;gap:8px;margin-top:12px}.time-picker-actions button{padding:10px 14px;border-radius:9px;border:1px solid #d9b45c88;background:#f4ca62;color:#08182b;font-weight:700}.time-picker-actions button.secondary{background:#10253a;color:#f5d276}@media(max-width:520px){.time-picker{padding:10px}.time-picker-options{grid-template-columns:repeat(3,minmax(0,1fr));max-height:132px}.time-open-btn{padding:8px 9px}}
@@ -350,7 +350,7 @@ let classWizardStep=0;
 const classWizardLabels=["انتخاب دبیر","عنوان کلاس","درس","پایه / کلاس","تاریخ برگزاری","ساعت برگزاری"];
 function renderClassWizard(){const fields=[...document.querySelectorAll("#managerCreate .class-step-field")];fields.forEach((f,i)=>{f.hidden=i!==classWizardStep});$("classWizardBack").disabled=classWizardStep===0;$("classWizardNext").style.display=classWizardStep===fields.length-1?"none":"";$("createClass").style.display=classWizardStep===fields.length-1?"":"none";$("classWizardProgress").textContent="مرحله "+(classWizardStep+1)+" از "+fields.length+": "+classWizardLabels[classWizardStep];}
 function resetClassWizard(){classWizardStep=0;renderClassWizard()}
-function advanceClassWizard(){const field=document.querySelector('#managerCreate .class-step-field[data-step="'+classWizardStep+'"]');const input=field?.querySelector("input,select");if(input&&!input.value.trim()){input.focus();$("createMsg").textContent="لطفاً "+classWizardLabels[classWizardStep]+" را تکمیل کنید.";return}if(classWizardStep<5){classWizardStep++;$("createMsg").textContent="";renderClassWizard();const next=document.querySelector('#managerCreate .class-step-field[data-step="'+classWizardStep+'"] input, #managerCreate .class-step-field[data-step="'+classWizardStep+'"] select');next?.focus()}}
+function advanceClassWizard(){const field=document.querySelector('#managerCreate .class-step-field[data-step="'+classWizardStep+'"]');const input=classWizardStep===4?$("cdateDisplay"):classWizardStep===5?$("ctime"):field?.querySelector("input:not([type=hidden]),select");const value=classWizardStep===4?$("cdate").value:input?.value;if(input&&!String(value||"").trim()){if(classWizardStep===4)$("cdateDisplay").click();else input.focus();$("createMsg").textContent="لطفاً "+classWizardLabels[classWizardStep]+" را تکمیل کنید.";return}if(classWizardStep<5){classWizardStep++;$("createMsg").textContent="";renderClassWizard();const next=classWizardStep===4?$("cdateDisplay"):classWizardStep===5?$("ctime"):document.querySelector('#managerCreate .class-step-field[data-step="'+classWizardStep+'"] input:not([type=hidden]), #managerCreate .class-step-field[data-step="'+classWizardStep+'"] select');next?.focus()}}
 $("classWizardNext").onclick=advanceClassWizard;$("classWizardBack").onclick=()=>{if(classWizardStep>0){classWizardStep--;renderClassWizard();$("createMsg").textContent=""}};$("cteacher").addEventListener("change",()=>{if(classWizardStep===0&&$("cteacher").value){$("createMsg").textContent="دبیر انتخاب شد؛ به مرحله بعد بروید."}});
 async function createClass(){
  try{
@@ -358,7 +358,17 @@ async function createClass(){
   if(!canCreate)throw Error("فقط مدیریت و معاون آموزشی مجاز به ساخت یا ویرایش کلاس آنلاین هستند.");
   const duration=isManager?Number($("cduration").value||50):50;
   if(!Number.isInteger(duration)||duration<5||duration>240)throw Error("مدت کلاس باید بین ۵ تا ۲۴۰ دقیقه باشد.");
-  const p={title:$("ctitle").value.trim()||"کلاس آنلاین",subject:$("csubject").value.trim(),class_name:$("cname").value.trim(),duration};
+  const selectedDate=$("cdate").value,selectedTime=normalizeDigits($("ctime").value).trim();
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate))throw Error("تاریخ شمسی را از تقویم انتخاب کنید؛ تاریخ دستی یا نامعتبر پذیرفته نیست.");
+   if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(selectedTime))throw Error("ساعت شروع را از انتخاب‌گر ساعت ۲۴ ساعته انتخاب کنید.");
+   const startAt=selectedDate+"T"+selectedTime+":00+03:30",startDateTime=new Date(startAt);
+   if(!Number.isFinite(startDateTime.getTime()))throw Error("تاریخ و ساعت انتخاب‌شده معتبر نیست.");
+   const endDateTime=new Date(startDateTime.getTime()+duration*60000);
+   const tehranParts=(date,calendar)=>Object.fromEntries(new Intl.DateTimeFormat("en-US-u-ca-"+calendar+"-nu-latn",{timeZone:"Asia/Tehran",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(date).filter(x=>x.type!=="literal").map(x=>[x.type,x.value]));
+   const endParts=tehranParts(endDateTime,"gregory"),endJalali=tehranParts(endDateTime,"persian");
+   const startJalaliText=normalizeDigits($("cdateDisplay").value).replace(/-/g,"/")+" "+selectedTime;
+   const endJalaliText=[endJalali.year,endJalali.month,endJalali.day].join("/")+" "+endParts.hour+":"+endParts.minute;
+   const p={title:$("ctitle").value.trim()||"کلاس آنلاین",subject:$("csubject").value.trim(),class_name:$("cname").value.trim(),duration,start_time:selectedTime,end_time:endParts.hour+":"+endParts.minute,start_time_shamsi:startJalaliText,end_time_shamsi:endJalaliText,start_at:startAt,end_at:endDateTime.toISOString()};
   if(!p.class_name)throw Error("نام کلاس الزامی است.");
   if(!isValidClassCode(p.class_name))throw Error("فرمت کلاس باید دقیقاً مانند ۷/۱ یا 7/1 باشد؛ فاصله و قالب‌هایی مثل ۷۰۱ پذیرفته نیست.");
   const teacherId=Number($("cteacher").value||0);
@@ -381,9 +391,9 @@ async function createClass(){
  }catch(e){$("createMsg").textContent="عملیات کلاس انجام نشد: "+(e.message||e)}
 }
 async function editClass(id){
- try{const rows=await api("/rest/v1/online_classes?select=id,title,subject,class_name,duration&id=eq."+id+"&limit=1"),r=rows[0];if(!r)throw Error("کلاس پیدا نشد.");
+ try{const rows=await api("/rest/v1/online_classes?select=id,title,subject,class_name,duration,start_time,end_time,start_time_shamsi,end_time_shamsi,start_at,end_at&id=eq."+id+"&limit=1"),r=rows[0];if(!r)throw Error("کلاس پیدا نشد.");
  const maps=await api("/rest/v1/online_class_teachers?select=teacher_id&class_id=eq."+id+"&limit=1");
- $("ctitle").value=r.title||"";$("csubject").value=r.subject||"";$("cname").value=r.class_name||"";$("cduration").value=Number(r.duration)||50;$("cteacher").value=maps[0]?.teacher_id||"";
+ $("ctitle").value=r.title||"";$("csubject").value=r.subject||"";$("cname").value=r.class_name||"";$("cduration").value=Number(r.duration)||50;$("cteacher").value=maps[0]?.teacher_id||"";const savedShamsi=String(r.start_time_shamsi||"").split(" ")[0];$("cdate").value=String(r.start_at||"").slice(0,10);$("cdateDisplay").value=savedShamsi?savedShamsi.replace(/\d/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]):(r.start_at?new Intl.DateTimeFormat("fa-IR-u-ca-persian",{timeZone:"Asia/Tehran",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(r.start_at)).replace(/-/g,"/"):"");$("ctime").value=r.start_time||String(r.start_at||"").slice(11,16);
  editingClassId=Number(id);classWizardStep=0;renderClassWizard();$("createClass").textContent="ذخیره تغییرات";$("createMsg").textContent="کلاس شماره "+id+" در حالت ویرایش است.";$("adminCreate").scrollIntoView({behavior:"smooth",block:"start"});
  }catch(e){alert("ویرایش بارگذاری نشد: "+e.message)}
 }
