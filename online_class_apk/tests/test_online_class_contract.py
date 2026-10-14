@@ -112,11 +112,12 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("end_time time without time zone", migration)
         self.assertIn("drop function if exists public.get_student_class_schedule(text)", migration)
 
-    def test_classroom_leaves_when_server_ends_or_replaces_its_session(self):
-        self.assertIn("missingSessionPolls", self.classroom)
-        self.assertIn("closeClassAfterServerEnd", self.classroom)
-        self.assertIn("String(latest.id)!==String(C.sessionId)", self.classroom)
-        self.assertIn('location.replace("/online-class/")', self.classroom)
+    def test_transient_session_polling_never_ejects_active_classroom(self):
+        self.assertIn("CLASS_SESSION_ID_MISMATCH; preserving active classroom media", self.classroom)
+        self.assertIn("temporarily missing/RLS-filtered session row must never tear down working audio/video", self.classroom)
+        refresh = self.classroom.split("async function refreshSessionTimer()", 1)[1].split("async function loadAttendance()", 1)[0]
+        self.assertNotIn("closeClassAfterServerEnd()", refresh)
+        self.assertIn("updateClassTimer()", refresh)
 
     def test_classroom_keeps_the_existing_startup_media_permission_flow(self):
         activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
