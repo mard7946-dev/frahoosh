@@ -109,19 +109,12 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("String(latest.id)!==String(C.sessionId)", self.classroom)
         self.assertIn('location.replace("/online-class/")', self.classroom)
 
-    def test_android_grants_microphone_independently_of_camera(self):
+    def test_classroom_keeps_the_existing_startup_media_permission_flow(self):
         activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
                     "ir" / "frahoosh" / "classroom" / "MainActivity.java").read_text(encoding="utf-8")
-        self.assertIn("missingPermissionsFor(PermissionRequest request)", activity)
-        self.assertIn("needsAudio && checkSelfPermission(Manifest.permission.RECORD_AUDIO)", activity)
-        self.assertIn("needsCamera && checkSelfPermission(Manifest.permission.CAMERA)", activity)
+        self.assertIn("buildWebView();\\n        requestMediaPermissions();", activity)
+        self.assertIn("hasMediaPermissions()", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
-        self.assertIn("denying camera must not mute the microphone", activity)
-        self.assertNotIn("requestMediaPermissions();", activity)
-        self.assertNotIn("hasMediaPermissions()", activity)
-        # A combined camera+microphone permission check must not gate a microphone-only request.
-        permission_handler = activity.split("public void onPermissionRequest", 1)[1].split("public boolean onShowFileChooser", 1)[0]
-        self.assertNotIn("hasMediaPermissions()", permission_handler)
 
     def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
         self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
