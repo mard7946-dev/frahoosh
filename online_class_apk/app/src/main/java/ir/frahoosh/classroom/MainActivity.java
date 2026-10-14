@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.res.AssetManager;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,6 +33,9 @@ public final class MainActivity extends Activity {
     private static final String CLASSROOM_URL = "https://frahoosh.ir/online-class/";
 
     private WebView webView;
+    private AudioManager audioManager;
+    private int previousAudioMode = AudioManager.MODE_NORMAL;
+    private boolean previousSpeakerphoneState = false;
     private PermissionRequest pendingWebPermission;
     private ValueCallback<Uri[]> fileCallback;
 
@@ -48,8 +52,35 @@ public final class MainActivity extends Activity {
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
         );
 
+        configureClassroomAudio();
         buildWebView();
         requestMediaPermissions();
+    }
+
+    private void configureClassroomAudio() {
+        try {
+            audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if (audioManager == null) return;
+            previousAudioMode = audioManager.getMode();
+            previousSpeakerphoneState = audioManager.isSpeakerphoneOn();
+            // WebRTC classroom audio should play through the loudspeaker, not
+            // silently route to the handset earpiece on Android devices.
+            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+            audioManager.setSpeakerphoneOn(true);
+        } catch (Exception e) {
+            android.util.Log.w("FrahooshClassroom", "Could not configure classroom audio route", e);
+        }
+    }
+
+    private void restoreAudioRoute() {
+        try {
+            if (audioManager != null) {
+                audioManager.setSpeakerphoneOn(previousSpeakerphoneState);
+                audioManager.setMode(previousAudioMode);
+            }
+        } catch (Exception e) {
+            android.util.Log.w("FrahooshClassroom", "Could not restore audio route", e);
+        }
     }
 
     private void buildWebView() {
@@ -283,6 +314,7 @@ public final class MainActivity extends Activity {
             webView.destroy();
             webView = null;
         }
+        restoreAudioRoute();
         super.onDestroy();
     }
 }
