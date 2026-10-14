@@ -221,6 +221,31 @@ input,select,button{max-width:100%;min-width:0}
 .role-option{cursor:pointer;pointer-events:auto;position:relative;z-index:2}
 button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 
+
+/* Persian Jalali date picker for class creation; stores selected day as Gregorian ISO internally. */
+.jalali-picker{position:relative;margin-top:8px;padding:12px;border:1px solid #d9b45c88;border-radius:15px;background:#0a192a;box-shadow:0 14px 32px #0005;color:#f5f7fb;min-width:250px;z-index:30}.jalali-picker[hidden]{display:none}.jalali-picker-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.jalali-picker-head strong{font-size:13px;color:#f4ca62}.jalali-picker button{padding:7px 10px;border-radius:9px;background:#18314a;color:#f8d77e;border:1px solid #d9b45c66}.jalali-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}.jalali-days span{font-size:11px;color:#aebed0;padding:5px 0}.jalali-days button{padding:8px 0;font-size:12px;background:#10253a;color:#fff;border:1px solid transparent}.jalali-days button:hover,.jalali-days button:focus{border-color:#f4ca62}.jalali-days button.selected{background:#f4ca62;color:#09182a;font-weight:bold}.jalali-picker-foot{display:flex;justify-content:space-between;gap:8px;margin-top:10px}.jalali-picker-foot button{font-size:11px}
+
+#cdateDisplay{direction:ltr!important;unicode-bidi:isolate;text-align:center;font-variant-numeric:tabular-nums}
+.digital-time-shell #ctime{direction:ltr!important;unicode-bidi:isolate;text-align:center;cursor:pointer}
+.time-open-btn{flex:0 0 auto;min-height:42px;padding:8px 12px;border:1px solid #f4ca6280;border-radius:10px;background:#f4ca621a;color:#ffdc83;font-weight:700}
+.time-picker{margin-top:10px;padding:14px;border:1px solid #d9b45c88;border-radius:16px;background:linear-gradient(145deg,#071423,#10263b)}.time-picker[hidden]{display:none!important}.time-picker-title{color:#f4ca62;font-weight:700;margin-bottom:10px}.time-picker-groups{display:grid;grid-template-columns:1fr 1fr;gap:12px}.time-picker-group strong{display:block;color:#c8d5e5;font-size:12px;margin-bottom:7px}.time-picker-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;max-height:156px;overflow:auto}.time-picker-options button{padding:8px 2px;border:1px solid #344a63;border-radius:8px;background:#0a1a2c;color:#f5f7fb;font:700 14px ui-monospace,monospace}.time-picker-options button.selected{background:#f4ca62;color:#08182b;border-color:#f4ca62}.time-picker-actions{display:flex;justify-content:space-between;gap:8px;margin-top:12px}.time-picker-actions button{padding:10px 14px;border-radius:9px;border:1px solid #d9b45c88;background:#f4ca62;color:#08182b;font-weight:700}.time-picker-actions button.secondary{background:#10253a;color:#f5d276}@media(max-width:520px){.time-picker{padding:10px}.time-picker-options{grid-template-columns:repeat(3,minmax(0,1fr));max-height:132px}.time-open-btn{padding:8px 9px}}
+/* Polished digital time field for the in-page 24-hour picker. */
+.class-time-field{display:block}
+.digital-time-shell{display:flex;align-items:center;gap:12px;margin-top:9px;padding:8px 14px;border:1px solid #d9b45c88;border-radius:16px;background:linear-gradient(145deg,#061321,#10263b);box-shadow:inset 0 1px #ffffff0b,0 10px 24px #0002}
+.digital-time-icon{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#f4ca621a;border:1px solid #f4ca624d;color:#f4ca62;font-size:29px;line-height:1}
+#ctime{flex:1;width:100%;min-width:0;min-height:62px;padding:8px 10px!important;border:0!important;border-radius:10px!important;background:transparent!important;color:#ffdc83!important;font-family:ui-monospace,"SFMono-Regular",Consolas,monospace!important;font-size:clamp(28px,7vw,38px)!important;font-weight:800!important;letter-spacing:2px;font-variant-numeric:tabular-nums;text-align:center;direction:ltr;box-shadow:none!important;accent-color:#f4ca62}
+#ctime:focus{outline:2px solid #f4ca6280;outline-offset:1px}
+#ctime::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.9;filter:invert(83%) sepia(44%) saturate(520%) hue-rotate(350deg)}
+.time-hint{display:block;margin-top:8px;color:#aebed0;font-size:11px;line-height:1.8;font-weight:400}
+@media(max-width:520px){.digital-time-shell{padding:7px 10px}.digital-time-icon{width:38px;height:38px;flex-basis:38px}#ctime{min-height:58px;font-size:32px!important}}
+
+
+
+/* Emergency interaction fix: keep portal controls above decorative layers and tappable on mobile. */
+.content,#rolePicker,.role-options,.entry-grid,.entry-card,#login,#managerCreate,#classWizardControls{position:relative;z-index:20;pointer-events:auto}
+.role-option,.role-option *,.entry-card button,.entry-card input,.entry-card select,#classWizardControls button,#openTimePicker,#cdateDisplay{pointer-events:auto!important;touch-action:manipulation}
+.role-option{isolation:isolate;cursor:pointer; -webkit-tap-highlight-color:rgba(242,201,104,.22)}
+
 </style>
 </head>
 <body><div class="box">
@@ -275,8 +300,8 @@ button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 <label class="class-step-field" data-step="1" hidden>عنوان کلاس<input id="ctitle" placeholder="عنوان کلاس"></label>
 <label class="class-step-field" data-step="2" hidden>درس<input id="csubject" placeholder="درس"></label>
 <label class="class-step-field" data-step="3" hidden>پایه / کلاس<input id="cname" placeholder="مثلاً ۷/۱"></label>
-<label class="class-step-field" data-step="4" hidden>تاریخ<input id="cdate" type="date"></label>
-<label class="class-step-field" data-step="5" hidden>ساعت<input id="ctime" type="time"></label>
+<label class="class-step-field" data-step="4" hidden>تاریخ برگزاری (شمسی)<input id="cdateDisplay" type="text" inputmode="none" placeholder="انتخاب تاریخ شمسی" autocomplete="off" readonly aria-label="انتخاب تاریخ برگزاری به شمسی"><input id="cdate" type="hidden"><div id="jalaliPicker" class="jalali-picker" hidden></div></label>
+<label class="class-step-field class-time-field" data-step="5" hidden>ساعت برگزاری<div class="digital-time-shell"><span class="digital-time-icon" aria-hidden="true">◷</span><input id="ctime" type="text" inputmode="none" placeholder="انتخاب ساعت" readonly aria-label="انتخاب ساعت برگزاری"><button type="button" id="openTimePicker" class="time-open-btn">تنظیم</button></div><div id="timePicker" class="time-picker" hidden></div><small class="time-hint">ساعت را از انتخاب‌گر دیجیتال ۲۴ ساعته تعیین کنید.</small></label>
 <div id="durationControl" style="display:none"><label for="cduration">مدت کلاس به دقیقه</label><input id="cduration" type="number" min="5" max="240" step="5" value="50"></div>
 </div>
 <div id="classWizardControls" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button type="button" id="classWizardBack" class="secondary" disabled>مرحله قبل</button><button type="button" id="classWizardNext" class="primary">مرحله بعد</button><button id="createClass" style="display:none">ساخت کلاس</button></div><div id="classWizardProgress" role="status" style="color:#b7c5d7;margin-top:8px;font-size:13px">مرحله ۱ از ۶: انتخاب دبیر</div><span id="createMsg" style="display:block;margin-top:10px"></span>
@@ -291,29 +316,7 @@ button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 <div id="managerClassesList"></div>
 </section>
 </div>
-<div id=list></div></section></div><script>
-/* APK failsafe: keep role buttons responsive even if a remote script fails to load. */
-(function(){
- const err=()=>document.getElementById("err");
- document.addEventListener("click",function(e){
-  const card=e.target.closest("[data-login-role]");
-  if(!card)return;
-  if(typeof window.chooseRole==="function")return;
-  e.preventDefault();
-  const role=card.getAttribute("data-login-role"),picker=document.getElementById("rolePicker"),grid=document.getElementById("entryGrid"),login=document.getElementById("login");
-  if(picker)picker.style.display="none";
-  if(grid)grid.classList.add("active");
-  if(login)login.style.display="block";
-  const heading=document.getElementById("loginHeading"),desc=document.getElementById("loginDescription");
-  if(heading)heading.textContent=role==="student"?"ورود دانش‌آموز":role==="manager"?"ورود مدیر":"ورود دبیر";
-  if(desc)desc.textContent="برنامه ورود کامل بارگذاری نشد. اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.";
-  const msg=err();if(msg)msg.textContent="خطای بارگذاری سامانه: بخش ورود اجرا نشده است. اتصال اینترنت را بررسی و صفحه را تازه‌سازی کنید.";
- },true);
- window.addEventListener("unhandledrejection",function(e){const msg=err();if(msg&&!msg.textContent)msg.textContent="خطای ارتباط یا اجرای برنامه: "+String(e.reason&&e.reason.message||e.reason||"خطای نامشخص");});
- window.addEventListener("error",function(e){const msg=err();if(msg&&!msg.textContent)msg.textContent="خطای بارگذاری سامانه: "+(e.message||"خطای جاوااسکریپت");});
-})();
-</script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<div id=list></div></section></div><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 /* Keep school details in the hero only and show startup errors visibly. */
 window.addEventListener("error",function(event){
@@ -321,7 +324,7 @@ window.addEventListener("error",function(event){
   if(err && !err.textContent) err.textContent="خطای بارگذاری سامانه: "+(event.message||"بخشی از برنامه بارگذاری نشد")+"؛ اتصال اینترنت را بررسی و صفحه را تازه‌سازی کنید.";
 });
 </script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../runtime-config.js"></script><script>
-const U=FRAHOOH_CONFIG.supabase_url,K=FRAHOOH_CONFIG.supabase_anon_key;let token="",profile={},editingClassId=null,studentAccessToken="",selectedRole="";const $=x=>document.getElementById(x);async function api(p,o={}){let r;try{r=await fetch(U+p,{...o,headers:{"apikey":K,"Authorization":"Bearer "+(token||K),"Content-Type":"application/json"}})}catch(e){throw Error("ارتباط با سرور کلاس برقرار نشد ("+p+"): "+(e&&e.message||"Failed to fetch"))}if(!r.ok){const detail=await r.text().catch(()=>r.statusText);throw Error("درخواست سرور کلاس ناموفق بود ("+r.status+"، "+p+"): "+detail)}const type=r.headers.get("content-type")||"";if(!type.includes("application/json"))throw Error("پاسخ سرور کلاس JSON نیست ("+p+")");return r.json()}function isValidClassCode(value){return /^[۰-۹0-9]+\/[۰-۹0-9]+$/.test(String(value||""));}
+const U=FRAHOOH_CONFIG.supabase_url,K=FRAHOOH_CONFIG.supabase_anon_key;let token="",profile={},editingClassId=null,studentAccessToken="",selectedRole="";const $=x=>document.getElementById(x);async function api(p,o={}){let r;try{r=await fetch(U+p,{...o,headers:{...(o.headers||{}),"apikey":K,"Authorization":"Bearer "+(token||K),"Content-Type":"application/json"}})}catch(e){throw Error("ارتباط با سرور کلاس برقرار نشد ("+p+"): "+(e&&e.message||"Failed to fetch"))}if(!r.ok){const detail=await r.text().catch(()=>r.statusText);throw Error("درخواست سرور کلاس ناموفق بود ("+r.status+"، "+p+"): "+detail)}const type=r.headers.get("content-type")||"";if(!type.includes("application/json")){const body=await r.text().catch(()=>"");if(!body&&r.status>=200&&r.status<300)return null;throw Error("پاسخ سرور کلاس JSON نیست ("+p+"؛ HTTP "+r.status+"؛ "+type+"): "+body.slice(0,180))}return r.json()}function isValidClassCode(value){return /^[۰-۹0-9]+\/[۰-۹0-9]+$/.test(String(value||""));}
 function normalizeDigits(value){return String(value||"").replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).trim()}
 function normalizeRole(value){const v=String(value||"").trim().toLowerCase().replace(/ي/g,"ی").replace(/ك/g,"ک").replace(/[ـ‌]/g,"").replace(/\s+/g," ");const aliases={"admin":"manager","administrator":"manager","principal":"manager","management":"manager","مدیر":"manager","مدیریت":"manager","مدیر مدرسه":"manager","مدیریت مدرسه":"manager","school manager":"manager","school_manager":"manager","school_admin":"manager","super_admin":"manager","teacher":"teacher","دبیر":"teacher","دانش آموز":"student","دانش‌آموز":"student","student":"student","parent":"parent","ولی":"parent","اولیا":"parent","executive":"executive","معاون اجرایی":"executive","educational":"educational","معاون آموزشی":"educational","cultural":"cultural","معاون پرورشی":"cultural","advisor":"advisor","counselor":"advisor","counselling":"advisor","مشاور":"advisor","مشاوره":"advisor","accounting":"accountant","finance":"accountant","حسابدار":"accountant"};return aliases[v]||v}
 async function requestJson(url,options={}){let response;try{response=await fetch(url,options)}catch(e){throw Error("ارتباط با سرور برقرار نشد: "+(e?.message||"خطای شبکه"))}const raw=await response.text();let data;try{data=raw?JSON.parse(raw):null}catch(_){data=null}if(!response.ok)throw Error(data?.msg||data?.message||data?.error_description||data?.hint||data?.details||("درخواست ناموفق بود ("+response.status+")"));return data}
@@ -372,7 +375,7 @@ async function createClass(){
     $("createMsg").textContent=teacherId?"کلاس ساخته و به دبیر انتخاب‌شده اختصاص داده شد.":"کلاس ساخته شد؛ دبیر را برای ورود دانش‌آموزان تخصیص دهید.";
   }
   editingClassId=null;$("createClass").textContent="ساخت کلاس";$("cteacher").value="";resetClassWizard();
-  $("ctitle").value=$("csubject").value=$("cname").value=$("cdate").value=$("ctime").value="";
+  $("ctitle").value=$("csubject").value=$("cname").value=$("cdate").value=$("cdateDisplay").value=$("ctime").value="";
   if(isManager)$("cduration").value="50";
   await load();
  }catch(e){$("createMsg").textContent="عملیات کلاس انجام نشد: "+(e.message||e)}
@@ -410,4 +413,135 @@ document.querySelectorAll("[data-login-role]").forEach(function(card){
  });
 });
 
+
+
+/* In-page digital time picker: independent of the phone's native time widget. */
+(function initDigitalTimePicker(){
+ const input=document.getElementById("ctime"),panel=document.getElementById("timePicker"),open=document.getElementById("openTimePicker");
+ if(!input||!panel||!open)return;
+ let hour=8,minute=0;
+ const pad=n=>String(n).padStart(2,"0");
+ function draw(){
+  let hours="",minutes="";
+  for(let h=0;h<24;h++)hours+='<button type="button" data-hour="'+h+'" class="'+(h===hour?"selected":"")+'">'+pad(h)+'</button>';
+  for(let m=0;m<60;m++)minutes+='<button type="button" data-minute="'+m+'" class="'+(m===minute?"selected":"")+'">'+pad(m)+'</button>';
+  panel.innerHTML='<div class="time-picker-title">انتخاب ساعت — '+pad(hour)+':'+pad(minute)+'</div><div class="time-picker-groups"><div class="time-picker-group"><strong>ساعت</strong><div class="time-picker-options">'+hours+'</div></div><div class="time-picker-group"><strong>دقیقه</strong><div class="time-picker-options">'+minutes+'</div></div></div><div class="time-picker-actions"><button type="button" data-confirm-time>تأیید ساعت</button><button type="button" class="secondary" data-cancel-time>انصراف</button></div>';
+  panel.hidden=false;
+  panel.querySelectorAll("[data-hour]").forEach(b=>b.addEventListener("click",()=>{hour=Number(b.dataset.hour);draw()}));
+  panel.querySelectorAll("[data-minute]").forEach(b=>b.addEventListener("click",()=>{minute=Number(b.dataset.minute);draw()}));
+  panel.querySelector("[data-confirm-time]").addEventListener("click",()=>{input.value=pad(hour)+":"+pad(minute);panel.hidden=true;input.dispatchEvent(new Event("change",{bubbles:true}))});
+  panel.querySelector("[data-cancel-time]").addEventListener("click",()=>{panel.hidden=true});
+ }
+ function show(){
+  const parts=String(input.value||"").split(":");
+  if(parts.length===2&&parts[0]!==""&&parts[1]!==""){hour=Math.min(23,Math.max(0,Number(parts[0])||0));minute=Math.min(59,Math.max(0,Number(parts[1])||0))}
+  draw();
+ }
+ input.addEventListener("click",show);open.addEventListener("click",show);
+ input.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();show()}if(e.key==="Escape")panel.hidden=true});
+ document.addEventListener("click",e=>{if(!panel.contains(e.target)&&e.target!==input&&e.target!==open)panel.hidden=true});
+})();
+ 
+/* Deterministic Solar Hijri (Jalali) date picker. Does not rely on browser Intl calendar support. */
+(function initJalaliClassDatePicker(){
+ const input=document.getElementById("cdateDisplay"),stored=document.getElementById("cdate"),panel=document.getElementById("jalaliPicker");
+ if(!input||!stored||!panel)return;
+ const breaks=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
+ const div=(a,b)=>Math.floor(a/b),mod=(a,b)=>a-Math.floor(a/b)*b;
+ function jalCal(jy){
+  const gy=jy+621;let leapJ=-14,jp=breaks[0],jm=0,jump=0;
+  if(jy<jp||jy>=breaks[breaks.length-1])throw new Error("Jalali year out of range");
+  for(let i=1;i<breaks.length;i++){jm=breaks[i];jump=jm-jp;if(jy<jm)break;leapJ+=div(jump,33)*8+div(mod(jump,33),4);jp=jm}
+  let n=jy-jp;leapJ+=div(n,33)*8+div(mod(n,33)+3,4);
+  if(mod(jump,33)===4&&jump-n===4)leapJ++;
+  const leapG=div(gy,4)-div((div(gy,100)+1)*3,4)-150;
+  const march=20+leapJ-leapG;
+  if(jump-n<6)n=n-jump+div(jump+4,33)*33;
+  let leap=mod(mod(n+1,33)-1,4);if(leap===-1)leap=4;
+  return {leap,gy,march};
+ }
+ function g2d(gy,gm,gd){
+  let d=div((gy+div(gm-8,6)+100100)*1461,4)+div(153*mod(gm+9,12)+2,5)+gd-34840408;
+  return d-div(div(gy+100100+div(gm-8,6),100)*3,4)+752;
+ }
+ function d2g(jdn){
+  let j=4*jdn+139361631;
+  j+=div(div(4*jdn+183187720,146097)*3,4)*4-3908;
+  const i=div(mod(j,1461),4)*5+308,gd=div(mod(i,153),5)+1,gm=mod(div(i,153),12)+1;
+  const gy=div(j,1461)-100100+div(8-gm,6);
+  return {year:gy,month:gm,day:gd};
+ }
+ function j2d(jy,jm,jd){const r=jalCal(jy);return g2d(r.gy,3,r.march)+(jm-1)*31-div(jm,7)*(jm-7)+jd-1}
+ function d2j(jdn){
+  let gy=d2g(jdn).year,jy=gy-621,r=jalCal(jy),k=jdn-g2d(gy,3,r.march),jm,jd;
+  if(k>=0){if(k<=185){jm=1+div(k,31);jd=mod(k,31)+1;return {year:jy,month:jm,day:jd}}k-=186}
+  else {jy--;k+=179;if(r.leap===1)k++}
+  jm=7+div(k,30);jd=mod(k,30)+1;return {year:jy,month:jm,day:jd};
+ }
+ const monthNames=["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور","مهر","آبان","آذر","دی","بهمن","اسفند"];
+ const weekdays=["ش","ی","د","س","چ","پ","ج"],faDigits=v=>String(v).replace(/\d/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+ function isoFromJalali(y,m,d){const g=d2g(j2d(y,m,d));return g.year+"-"+String(g.month).padStart(2,"0")+"-"+String(g.day).padStart(2,"0")}
+ function jalaliFromISO(value){const a=value.split("-").map(Number);return d2j(g2d(a[0],a[1],a[2]))}
+ function todayJalali(){const n=new Date();return d2j(g2d(n.getFullYear(),n.getMonth()+1,n.getDate()))}
+ let current=todayJalali(),viewYear=current.year,viewMonth=current.month;
+ function monthLength(y,m){if(m<=6)return 31;if(m<=11)return 30;return jalCal(y).leap===0?30:29}
+ function show(){
+  let html='<div class="jalali-picker-head"><button type="button" data-jalali-nav="-1" aria-label="ماه قبل">‹ ماه قبل</button><strong>'+monthNames[viewMonth-1]+' '+faDigits(viewYear)+'</strong><button type="button" data-jalali-nav="1" aria-label="ماه بعد">ماه بعد ›</button></div><div class="jalali-days">'+weekdays.map(d=>"<span>"+d+"</span>").join("");
+  const first=d2g(j2d(viewYear,viewMonth,1)),offset=(new Date(first.year,first.month-1,first.day).getDay()+1)%7;
+  for(let i=0;i<offset;i++)html+="<span></span>";
+  const count=monthLength(viewYear,viewMonth);
+  for(let day=1;day<=count;day++){const value=isoFromJalali(viewYear,viewMonth,day),selected=value===stored.value;html+='<button type="button" data-jalali-date="'+value+'" class="'+(selected?"selected":"")+'">'+faDigits(day)+'</button>'}
+  html+='</div><div class="jalali-picker-foot"><button type="button" data-jalali-today>امروز</button><button type="button" data-jalali-close>بستن تقویم</button></div>';panel.innerHTML=html;panel.hidden=false;
+  panel.querySelectorAll("[data-jalali-nav]").forEach(b=>b.addEventListener("click",()=>{viewMonth+=Number(b.dataset.jalaliNav);if(viewMonth<1){viewMonth=12;viewYear--}if(viewMonth>12){viewMonth=1;viewYear++}show()}));
+  panel.querySelectorAll("[data-jalali-date]").forEach(b=>b.addEventListener("click",()=>{const value=b.dataset.jalaliDate,p=jalaliFromISO(value);stored.value=value;input.value=faDigits(p.year)+"/"+faDigits(String(p.month).padStart(2,"0"))+"/"+faDigits(String(p.day).padStart(2,"0"));input.style.direction="ltr";input.style.unicodeBidi="isolate";input.style.textAlign="center";panel.hidden=true;input.dispatchEvent(new Event("change",{bubbles:true}))}));
+  panel.querySelector("[data-jalali-today]").addEventListener("click",()=>{current=todayJalali();viewYear=current.year;viewMonth=current.month;show()});
+  panel.querySelector("[data-jalali-close]").addEventListener("click",()=>{panel.hidden=true});
+ }
+ input.addEventListener("click",()=>{if(panel.hidden){current=stored.value?jalaliFromISO(stored.value):todayJalali();viewYear=current.year;viewMonth=current.month;show()}else panel.hidden=true});
+ input.addEventListener("keydown",e=>{if(e.key==="Escape")panel.hidden=true;if(e.key==="Enter"||e.key===" "){e.preventDefault();input.click()}});
+ document.addEventListener("click",e=>{if(!panel.contains(e.target)&&e.target!==input)panel.hidden=true});
+})();
+
 </script>
+
+<script id="frahoosh-role-entry-diagnostic">
+/* Resilient role selection and visible startup diagnostics, independent of main-script initialization. */
+(function(){
+  function showEntryError(message){
+    var err=document.getElementById("err");
+    if(err){err.textContent="خطای ورود: "+message;err.style.display="block";err.style.visibility="visible";}
+  }
+  window.addEventListener("error",function(e){if(e&&e.message)showEntryError(e.message);});
+  window.addEventListener("unhandledrejection",function(e){
+    var reason=e&&e.reason;
+    showEntryError(reason&&reason.message?reason.message:"خطا در راه‌اندازی سامانه");
+  });
+  document.addEventListener("click",function(e){
+    var button=e.target&&e.target.closest?e.target.closest("[data-login-role]"):null;
+    if(!button)return;
+    var role=button.getAttribute("data-login-role");
+    try{
+      var picker=document.getElementById("rolePicker"),grid=document.getElementById("entryGrid"),
+          login=document.getElementById("login"),staff=document.getElementById("staffFields"),
+          student=document.getElementById("studentFields");
+      if(!picker||!grid||!login||!staff||!student)throw Error("بخش ورود در صفحه پیدا نشد.");
+      picker.style.display="none";grid.classList.add("active");login.style.display="block";login.classList.add("active");
+      staff.style.display=role==="student"?"none":"block";student.style.display=role==="student"?"block":"none";
+      var heading=document.getElementById("loginHeading"),description=document.getElementById("loginDescription");
+      if(heading)heading.textContent=role==="student"?"ورود دانش‌آموز":role==="manager"?"ورود مدیر":"ورود دبیر";
+      if(description)description.textContent=role==="student"?"نام و نام خانوادگی را وارد کنید؛ سپس کلاس و برنامه روزانه را ببینید.":role==="manager"?"نام کاربری و رمز عبور مدیر را وارد کنید.":"نام کاربری و رمز عبور دبیر را وارد کنید.";
+      var label=document.getElementById("goLabel");if(label)label.textContent="ورود";
+      var myClasses=document.getElementById("myClasses");if(myClasses)myClasses.style.display=role==="teacher"?"block":"none";
+      var err=document.getElementById("err");if(err)err.textContent="";
+      if(role!=="student"){
+        var id=document.getElementById("id"),remember=document.getElementById("rememberLogin");
+        var saved=localStorage.getItem("frahoosh_saved_login")||"";
+        if(id)id.value=saved;if(remember)remember.checked=!!saved;
+      }
+    }catch(error){showEntryError(error&&error.message?error.message:"انتخاب نقش انجام نشد.");}
+  },true);
+})();
+</script>
+
+</body>
+</html>
