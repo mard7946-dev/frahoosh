@@ -71,6 +71,8 @@ class OnlineClassContractTests(unittest.TestCase):
         for field in ("start_time_shamsi", "end_time_shamsi", "start_at", "end_at"):
             self.assertIn(field, self.entry)
         self.assertIn('unicode-bidi:isolate-override!important', self.entry)
+        self.assertIn('timeZone:"Asia/Tehran"', self.entry)
+        self.assertIn('function todayJalali(){const p=Object.fromEntries', self.entry)
 
     def test_shared_room_loader_uses_paths_supported_by_web_and_android(self):
         self.assertIn('getText("/mobile/assets/online_class.html"', self.room)
