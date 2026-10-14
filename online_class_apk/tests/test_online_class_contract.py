@@ -109,12 +109,15 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("String(latest.id)!==String(C.sessionId)", self.classroom)
         self.assertIn('location.replace("/online-class/")', self.classroom)
 
-    def test_classroom_keeps_the_existing_startup_media_permission_flow(self):
+    def test_classroom_keeps_startup_permissions_and_grants_audio_independently(self):
         activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
                     "ir" / "frahoosh" / "classroom" / "MainActivity.java").read_text(encoding="utf-8")
-        self.assertIn("buildWebView();\n        requestMediaPermissions();", activity)
-        self.assertIn("hasMediaPermissions()", activity)
+        self.assertIn("buildWebView();\\n        requestMediaPermissions();", activity)
+        self.assertIn("missingPermissionsFor(request)", activity)
+        self.assertIn("PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)", activity)
+        self.assertIn("checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
+        self.assertIn("// Grant each requested capability independently: camera denial must not block microphone audio.", activity)
 
     def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
         self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
