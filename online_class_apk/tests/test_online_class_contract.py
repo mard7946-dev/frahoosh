@@ -42,6 +42,36 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('["نام *","نام خانوادگی *","کلاس *"]', self.entry)
         self.assertIn('"ایمیل (اختیاری)"', self.entry)
 
+    def test_local_teacher_and_student_rosters_support_edit_and_confirmed_delete(self):
+        for token in (
+            'data-edit-local-student=',
+            'data-remove-local-student=',
+            'data-edit-local-teacher=',
+            'data-remove-local-teacher=',
+            'editingLocalStudentIndex!==null',
+            'editingLocalTeacherIndex!==null',
+            'cancelStudentEdit',
+            'cancelTeacherEdit',
+            'if(!confirm("این دانش‌آموز از فهرست محلی همین دستگاه حذف شود؟"))',
+            'if(!confirm("این دبیر از فهرست محلی همین دستگاه حذف شود؟"))',
+        ):
+            self.assertIn(token, self.entry)
+        self.assertIn('writeLocalRows("frahoosh_local_students"', self.entry)
+        self.assertIn('writeLocalRows("frahoosh_local_teachers"', self.entry)
+
+    def test_excel_templates_work_in_android_webview_and_report_results(self):
+        self.assertIn('src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"', self.entry)
+        self.assertIn('window.FrahooshNative.saveExcelTemplate(fileName,XLSX.write(wb,{bookType:"xlsx",type:"base64"}))', self.entry)
+        self.assertIn('window.frahooshTemplateSaved=function(success)', self.entry)
+        self.assertIn('XLSX.writeFile(wb,fileName)', self.entry)
+        activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
+                    "ir" / "frahoosh" / "classroom" / "MainActivity.java").read_text(encoding="utf-8")
+        self.assertIn('addJavascriptInterface(new TemplateDownloadBridge(), "FrahooshNative")', activity)
+        self.assertIn('MediaStore.Downloads.EXTERNAL_CONTENT_URI', activity)
+        self.assertIn('onJsAlert(', activity)
+        self.assertIn('onJsConfirm(', activity)
+        self.assertIn('@JavascriptInterface', activity)
+
     def test_weekly_schedule_uses_existing_supabase_contract(self):
         self.assertIn("weekly_schedule_entries", self.entry)
         self.assertIn("get_student_class_schedule", self.entry)
@@ -64,6 +94,17 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("refresh_online_class_statuses", migration)
         self.assertIn("Asia/Tehran", migration)
         self.assertIn("ورود دبیر به این کلاس فقط در بازه زمانی", migration)
+
+    def test_manager_can_open_class_without_implicitly_starting_teacher_session(self):
+        open_room = self.entry.split("async function openRoom(id)", 1)[1].split("$(\"importStudents\")", 1)[0]
+        self.assertIn("if(isManager){/* Manager may inspect any class without implicitly starting the teacher session. */", open_room)
+        manager_branch = open_room.split("if(isManager){", 1)[1].split("}else{", 1)[0]
+        self.assertNotIn("start_online_class_session", manager_branch)
+        self.assertIn("هنوز دبیر کلاس را شروع نکرده است", open_room)
+
+    def test_room_bootstrap_has_cross_origin_source_fallbacks_for_raw_githack(self):
+        self.assertIn("https://raw.githubusercontent.com/mard7946-dev/frahoosh/fix/classroom-audio-timer-menu/mobile/assets/online_class.html", (ROOT / "web" / "online-class" / "room.html").read_text(encoding="utf-8"))
+        self.assertIn("https://raw.githubusercontent.com/mard7946-dev/frahoosh/fix/classroom-audio-timer-menu/online_class_apk/classroom_patch.js", (ROOT / "web" / "online-class" / "room.html").read_text(encoding="utf-8"))
 
     def test_room_requires_a_complete_authenticated_session(self):
         self.assertIn('!config.token', self.room)
@@ -119,22 +160,60 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertNotIn("closeClassAfterServerEnd()", refresh)
         self.assertIn("updateClassTimer()", refresh)
 
-    def test_classroom_keeps_the_existing_startup_media_permission_flow(self):
+    def test_classroom_grants_webview_audio_without_requiring_camera_permission(self):
         activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
                     "ir" / "frahoosh" / "classroom" / "MainActivity.java").read_text(encoding="utf-8")
         self.assertIn("buildWebView();\n        requestMediaPermissions();", activity)
-        self.assertIn("hasMediaPermissions()", activity)
-        self.assertIn("grantWebMediaPermission(request);", activity)
+        self.assertIn("private boolean hasRequestedMediaPermissions(PermissionRequest request)", activity)
+        self.assertIn("RESOURCE_AUDIO_CAPTURE.equals(resource)", activity)
+        self.assertIn("Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED", activity)
+        self.assertIn("s.setMediaPlaybackRequiresUserGesture(false);", activity)
+        permission_result = activity.split("public void onRequestPermissionsResult", 1)[1].split("@Override", 1)[0]
+        self.assertIn("grantWebMediaPermission(request);", permission_result)
+        self.assertNotIn("if (hasMediaPermissions())", permission_result)
+        self.assertIn("Denying camera must not mute audio", permission_result)
 
-    def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
-        self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
-        self.assertIn('getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
-        self.assertIn("base.href=new URL(htmlResult.path,location.href).href", self.room)
-        self.assertNotIn("../../online_class_apk/app/src/main/assets", self.room)
+    def test_shared_room_loader_keeps_classroom_in_the_top_level_webview(self):
+        self.assertIn('https://raw.githubusercontent.com/mard7946-dev/frahoosh/fix/classroom-audio-timer-menu/mobile/assets/online_class.html', self.room)
+        self.assertIn('https://raw.githubusercontent.com/mard7946-dev/frahoosh/fix/classroom-audio-timer-menu/online_class_apk/classroom_patch.js', self.room)
+        self.assertIn('../../online_class_apk/classroom_patch.js', self.room)
+        self.assertIn('new URL("index.html",location.href).href', self.room)
+        self.assertIn("document.open();document.write(page);document.close()", self.room)
+        self.assertNotIn("frame.srcdoc", self.room)
+        self.assertNotIn("<iframe", self.room)
+
+    def test_remote_audio_uses_an_explicit_audio_playback_path(self):
+        self.assertIn('<audio autoplay playsinline></audio>', self.classroom)
+        self.assertIn('audio.srcObject=stream', self.classroom)
+        self.assertIn('REMOTE_AUDIO_PLAY_BLOCKED', self.classroom)
+        self.assertIn('e.streams&&e.streams[0]?e.streams[0]:new MediaStream([e.track])', self.classroom)
+
+    def test_attendance_refresh_only_uses_an_active_session_for_the_timer(self):
+        self.assertIn('online_class_sessions?class_id=eq."+C.classId+"&ended_at=is.null&order=id.desc&limit=1', self.classroom)
+
+    def test_hidden_student_tool_menu_cannot_toggle_class_layout(self):
+        self.assertIn('const mt=$("menuToggle");if(mt){if(!teacher){mt.style.display="none"}else mt.onclick=e=>{e.preventDefault();e.stopPropagation();drawer.open=!drawer.open;layout.classList.toggle("drawer-open",drawer.open)}};', self.classroom)
 
     def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
         self.assertIn(".layout{flex:1 1 0;height:auto;min-height:0", self.classroom)
         self.assertIn(".boardwrap{flex:1 1 0;height:auto;min-height:0", self.classroom)
+
+    def test_raw_githack_paths_and_manager_session_start_are_supported(self):
+        apk_entry = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "index.html"
+        apk_room = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room.html"
+        self.assertEqual(self.entry, apk_entry.read_text(encoding="utf-8"))
+        self.assertEqual(self.room, apk_room.read_text(encoding="utf-8"))
+        for entry in (self.entry, apk_entry.read_text(encoding="utf-8")):
+            self.assertIn('resolveEmailsByUsername(identifier)', entry)
+            self.assertIn('account_settings?select=email&username=eq.', entry)
+            self.assertIn('if(isManager){/* Manager may inspect any class without implicitly starting the teacher session. */', entry)
+            self.assertNotIn('if(!s[0]){const started=await api("/rest/v1/rpc/start_online_class_session"', entry)
+            self.assertIn('sessionStartedAt:s[0]?.started_at||null', entry)
+        for room in (self.room, apk_room.read_text(encoding="utf-8")):
+            self.assertIn("../../mobile/assets/online_class.html", room)
+            self.assertIn("../../online_class_apk/classroom_patch.js", room)
+        self.assertIn('location.replace(C.guestInviteBase||new URL("index.html",location.href).href)', self.classroom)
+        self.assertIn('resumeRemoteAudio()', self.classroom)
 
 
 if __name__ == "__main__":

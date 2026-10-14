@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - fix/standalone-classroom-apk-ci
+      - fix/classroom-audio-timer-menu
     paths:
       - "online_class_apk/**"
       - "web/online-class/**"

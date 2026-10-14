@@ -2,18 +2,25 @@ package ir.frahoosh.classroom;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.ContentValues;
 import android.content.res.AssetManager;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.os.Bundle;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.JavascriptInterface;
+import android.webkit.JsResult;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceError;
 import android.webkit.WebSettings;
@@ -22,6 +29,10 @@ import android.webkit.WebViewClient;
 import android.webkit.WebResourceResponse;
 
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import android.util.Base64;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
@@ -32,6 +43,9 @@ public final class MainActivity extends Activity {
     private static final String CLASSROOM_URL = "https://frahoosh.ir/online-class/";
 
     private WebView webView;
+    private AudioManager audioManager;
+    private int previousAudioMode = AudioManager.MODE_NORMAL;
+    private boolean previousSpeakerphoneState = false;
     private PermissionRequest pendingWebPermission;
     private ValueCallback<Uri[]> fileCallback;
 
@@ -48,8 +62,35 @@ public final class MainActivity extends Activity {
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
         );
 
+        configureClassroomAudio();
         buildWebView();
         requestMediaPermissions();
+    }
+
+    private void configureClassroomAudio() {
+        try {
+            audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if (audioManager == null) return;
+            previousAudioMode = audioManager.getMode();
+            previousSpeakerphoneState = audioManager.isSpeakerphoneOn();
+            // WebRTC classroom audio should play through the loudspeaker, not
+            // silently route to the handset earpiece on Android devices.
+            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+            audioManager.setSpeakerphoneOn(true);
+        } catch (Exception e) {
+            android.util.Log.w("FrahooshClassroom", "Could not configure classroom audio route", e);
+        }
+    }
+
+    private void restoreAudioRoute() {
+        try {
+            if (audioManager != null) {
+                audioManager.setSpeakerphoneOn(previousSpeakerphoneState);
+                audioManager.setMode(previousAudioMode);
+            }
+        } catch (Exception e) {
+            android.util.Log.w("FrahooshClassroom", "Could not restore audio route", e);
+        }
     }
 
     private void buildWebView() {
@@ -85,6 +126,10 @@ public final class MainActivity extends Activity {
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
         webView.setBackgroundColor(Color.BLACK);
+        // The manager portal creates small Excel templates in JavaScript. Android WebView
+        // does not handle Blob downloads by itself, so route those two known templates
+        // through a constrained native saver into Downloads/Frahoosh.
+        webView.addJavascriptInterface(new TemplateDownloadBridge(), "FrahooshNative");
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -110,9 +155,32 @@ public final class MainActivity extends Activity {
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
+            public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("فراهوش")
+                        .setMessage(message)
+                        .setPositiveButton("باشه", (dialog, which) -> result.confirm())
+                        .setOnCancelListener(dialog -> result.cancel())
+                        .show();
+                return true;
+            }
+
+            @Override
+            public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("تأیید عملیات")
+                        .setMessage(message)
+                        .setPositiveButton("تأیید", (dialog, which) -> result.confirm())
+                        .setNegativeButton("انصراف", (dialog, which) -> result.cancel())
+                        .setOnCancelListener(dialog -> result.cancel())
+                        .show();
+                return true;
+            }
+
+            @Override
             public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> {
-                    if (hasMediaPermissions()) {
+                    if (hasRequestedMediaPermissions(request)) {
                         grantWebMediaPermission(request);
                     } else {
                         pendingWebPermission = request;
@@ -143,6 +211,73 @@ public final class MainActivity extends Activity {
         webView.loadUrl(CLASSROOM_URL + "index.html");
     }
 
+    private final class TemplateDownloadBridge {
+        @JavascriptInterface
+        public void saveExcelTemplate(String fileName, String encodedContent) {
+            if (!("قالب_دانش‌آموزان_فراهوش.xlsx".equals(fileName)
+                    || "قالب_دبیران_فراهوش.xlsx".equals(fileName))) {
+                notifyTemplateSaved(false);
+                return;
+            }
+            if (encodedContent == null || encodedContent.isEmpty()
+                    || encodedContent.length() > 2 * 1024 * 1024) {
+                notifyTemplateSaved(false);
+                return;
+            }
+
+            Uri outputUri = null;
+            try {
+                byte[] content = Base64.decode(encodedContent, Base64.DEFAULT);
+                if (content.length == 0 || content.length > 1024 * 1024) {
+                    notifyTemplateSaved(false);
+                    return;
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ContentValues values = new ContentValues();
+                    values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+                    values.put(MediaStore.Downloads.MIME_TYPE,
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                    values.put(MediaStore.Downloads.RELATIVE_PATH,
+                            Environment.DIRECTORY_DOWNLOADS + "/Frahoosh");
+                    outputUri = getContentResolver().insert(
+                            MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                    if (outputUri == null) throw new IllegalStateException("Downloads provider returned no URI");
+                    try (OutputStream stream = getContentResolver().openOutputStream(outputUri)) {
+                        if (stream == null) throw new IllegalStateException("Could not open output stream");
+                        stream.write(content);
+                    }
+                } else {
+                    File base = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                    if (base == null) throw new IllegalStateException("External files directory unavailable");
+                    File directory = new File(base, "Frahoosh");
+                    if (!directory.exists() && !directory.mkdirs()) {
+                        throw new IllegalStateException("Could not create template directory");
+                    }
+                    File target = new File(directory, fileName);
+                    try (FileOutputStream stream = new FileOutputStream(target)) {
+                        stream.write(content);
+                    }
+                }
+                notifyTemplateSaved(true);
+            } catch (Exception e) {
+                if (outputUri != null) {
+                    try { getContentResolver().delete(outputUri, null, null); } catch (Exception ignored) { }
+                }
+                android.util.Log.e("FrahooshClassroom", "Excel template save failed", e);
+                notifyTemplateSaved(false);
+            }
+        }
+    }
+
+    private void notifyTemplateSaved(boolean success) {
+        WebView current = webView;
+        if (current == null) return;
+        current.post(() -> current.evaluateJavascript(
+                "if(window.frahooshTemplateSaved){window.frahooshTemplateSaved("
+                        + (success ? "true" : "false") + ");}", null));
+    }
+
     private WebResourceResponse localAssetResponse(String path) {
         if (path == null) return null;
         String asset = null;
@@ -168,10 +303,21 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private boolean hasMediaPermissions() {
+    private boolean hasRequestedMediaPermissions(PermissionRequest request) {
         if (Build.VERSION.SDK_INT < 23) return true;
-        return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        if (request == null) return false;
+
+        for (String resource : request.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)
+                    && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)
+                    && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void requestMediaPermissions() {
@@ -219,11 +365,8 @@ public final class MainActivity extends Activity {
         if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermission != null) {
             PermissionRequest request = pendingWebPermission;
             pendingWebPermission = null;
-            if (hasMediaPermissions()) {
-                grantWebMediaPermission(request);
-            } else {
-                request.deny();
-            }
+            // Grant each WebView resource independently. Denying camera must not mute audio.
+            grantWebMediaPermission(request);
         }
     }
 
@@ -275,6 +418,7 @@ public final class MainActivity extends Activity {
             webView.destroy();
             webView = null;
         }
+        restoreAudioRoute();
         super.onDestroy();
     }
 }
