@@ -160,6 +160,27 @@ body{min-height:100vh;padding:clamp(16px,3vw,38px);background:radial-gradient(el
 @media(max-width:420px){body{padding:9px}.box{border-radius:22px}.hero{padding:23px 14px 18px}.content{padding:13px;gap:13px}.brand h1{font-size:23px!important}.brand small{font-size:12px!important}#rolePicker{border-radius:20px}.role-option{grid-template-columns:44px minmax(0,1fr) 18px;gap:9px;padding:12px 10px}.role-symbol{width:42px;height:42px;border-radius:13px}.role-copy strong{font-size:15px}.role-copy small{font-size:10px}.info-meta{grid-template-columns:1fr 1fr}}
 
 
+/* Responsive layout hardening: prevent horizontal overflow and keep the identity panel beside login cards */
+.box{display:block;min-width:0;max-width:100%;overflow:hidden}
+.content{display:grid;min-width:0;grid-template-columns:minmax(0,1fr);grid-template-areas:"role" "info";gap:18px}
+#rolePicker,#entryGrid,#brandInfo,.entry-card,.role-options,.role-option{min-width:0;max-width:100%}
+.role-option{overflow-wrap:anywhere;white-space:normal}
+.role-copy{min-width:0;overflow-wrap:anywhere}
+.role-copy strong,.role-copy small{white-space:normal;overflow-wrap:anywhere}
+input,select,button{max-width:100%;min-width:0}
+@media(min-width:760px){
+ .box{display:block;width:min(1180px,100%);margin:auto}
+ .content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"info role";align-items:stretch;gap:clamp(20px,3vw,38px);padding:clamp(20px,3vw,38px)}
+ #brandInfo{grid-area:info;width:100%;min-width:0}
+ #rolePicker,#entryGrid{grid-area:role;width:100%;min-width:0}
+ #rolePicker .role-option{grid-template-columns:46px minmax(0,1fr) 18px;padding:16px 12px}
+}
+@media(max-width:759px){
+ .content{display:flex;flex-direction:column;align-items:stretch}
+ #rolePicker,#entryGrid,#brandInfo{width:100%;margin:0}
+ .role-option{grid-template-columns:44px minmax(0,1fr) 18px;padding:13px 11px;gap:10px}
+}
+
 /* Final layout: centered brain mark above, school identity left, role cards right */
 @media(min-width:760px){
  .box{width:min(1240px,100%);grid-template-columns:1fr;grid-template-areas:"hero" "content"}
