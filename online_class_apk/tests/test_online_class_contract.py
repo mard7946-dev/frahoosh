@@ -64,5 +64,11 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertEqual(source_patch.read_text(encoding="utf-8"), apk_patch.read_text(encoding="utf-8"))
 
 
+    def test_shared_room_loader_uses_paths_supported_by_web_and_android(self):
+        self.assertIn('getText("/mobile/assets/online_class.html"', self.room)
+        self.assertIn('getText("/online_class_apk/classroom_patch.js"', self.room)
+        self.assertNotIn("../../online_class_apk/app/src/main/assets", self.room)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -34,15 +34,15 @@ async function start(){
  box.textContent="در حال بارگذاری محیط کلاس…";
  try{
   let [html,patch]=await Promise.all([
-   getText("../../online_class_apk/app/src/main/assets/room_assets/online_class.html","بارگذاری محیط کلاس مستقل APK ناموفق بود"),
-   getText("../../online_class_apk/app/src/main/assets/room_assets/classroom_patch.js","بارگذاری ابزارهای مستقل APK ناموفق بود")
+   getText("/mobile/assets/online_class.html","بارگذاری محیط کلاس ناموفق بود"),
+   getText("/online_class_apk/classroom_patch.js","بارگذاری ابزارهای کلاس ناموفق بود")
   ]);
   if(!html.includes("const C=__CONFIG__;"))throw Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
-  config.guestInviteBase="https://raw.githack.com/mard7946-dev/frahoosh/main/web/online-class/index.html";
+  config.guestInviteBase=new URL("index.html",location.href).href;
   html=html.replace("const C=__CONFIG__;","window.C="+JSON.stringify(config)+";const C=window.C;");
   const closeScript="</scr"+"ipt>";
   html=html.replace("</body>","<script>"+patch+closeScript+"</body>");
-  const base=document.createElement("base");base.href=new URL("../../online_class_apk/app/src/main/assets/room_assets/online_class.html",location.href).href;
+  const base=document.createElement("base");base.href=new URL("/mobile/assets/online_class.html",location.href).href;
   html=html.replace(/<head([^>]*)>/i,"<head$1>"+base.outerHTML);
   frame.onload=()=>{box.style.display="none";frame.style.display="block";};
   frame.srcdoc=html;
