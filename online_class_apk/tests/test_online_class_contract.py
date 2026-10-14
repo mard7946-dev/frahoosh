@@ -174,8 +174,9 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("Denying camera must not mute audio", permission_result)
 
     def test_shared_room_loader_keeps_classroom_in_the_top_level_webview(self):
-        self.assertIn('getTextFallback(["../../mobile/assets/online_class.html","/online-class/online_class.html","/mobile/assets/online_class.html"]', self.room)
-        self.assertIn('getTextFallback(["../../online_class_apk/classroom_patch.js","/online-class/classroom_patch.js","/online_class_apk/classroom_patch.js"]', self.room)
+        self.assertIn('https://raw.githubusercontent.com/mard7946-dev/frahoosh/fix/classroom-audio-timer-menu/mobile/assets/online_class.html', self.room)
+        self.assertIn('https://raw.githubusercontent.com/mard7946-dev/frahoosh/fix/classroom-audio-timer-menu/online_class_apk/classroom_patch.js', self.room)
+        self.assertIn('../../online_class_apk/classroom_patch.js', self.room)
         self.assertIn('new URL("index.html",location.href).href', self.room)
         self.assertIn("document.open();document.write(page);document.close()", self.room)
         self.assertNotIn("frame.srcdoc", self.room)
@@ -205,7 +206,8 @@ class OnlineClassContractTests(unittest.TestCase):
         for entry in (self.entry, apk_entry.read_text(encoding="utf-8")):
             self.assertIn('resolveEmailsByUsername(identifier)', entry)
             self.assertIn('account_settings?select=email&username=eq.', entry)
-            self.assertIn('if(!s[0]){const started=await api("/rest/v1/rpc/start_online_class_session"', entry)
+            self.assertIn('if(isManager){/* Manager may inspect any class without implicitly starting the teacher session. */', entry)
+            self.assertNotIn('if(!s[0]){const started=await api("/rest/v1/rpc/start_online_class_session"', entry)
             self.assertIn('sessionStartedAt:s[0]?.started_at||null', entry)
         for room in (self.room, apk_room.read_text(encoding="utf-8")):
             self.assertIn("../../mobile/assets/online_class.html", room)
