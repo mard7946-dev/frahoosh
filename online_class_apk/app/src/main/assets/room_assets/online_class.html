@@ -325,7 +325,7 @@ async function refreshSessionTimer(){
   if(!r.ok)throw new Error("HTTP "+r.status);
   const rows=await r.json(),latest=rows[0];
   if(latest){
-   if(C.sessionId&&String(latest.id)!==String(C.sessionId)){currentSession=null;await closeClassAfterServerEnd();return;}
+   if(C.sessionId&&String(latest.id)!==String(C.sessionId)){const configuredStart=parseSessionTimestamp(C.sessionStartedAt);if(configuredStart){sessionStartedAt=configuredStart;updateClassTimer();}console.warn("CLASS_SESSION_ID_MISMATCH; preserving active classroom media",{expected:C.sessionId,latest:latest.id});return;}
    currentSession=latest.id;
    missingSessionPolls=0;
    sessionStartedAt=sessionTimestamp(latest)||sessionStartedAt||parseSessionTimestamp(C.sessionStartedAt)||Date.now();
@@ -335,7 +335,7 @@ async function refreshSessionTimer(){
   }
   if(currentSession||C.sessionId){
    missingSessionPolls++;
-   if(missingSessionPolls>=2){currentSession=null;await closeClassAfterServerEnd();return;}
+   /* A temporarily missing/RLS-filtered session row must never tear down working audio/video. */
    if(currentSession){const configuredStart=parseSessionTimestamp(C.sessionStartedAt);if(configuredStart){sessionStartedAt=configuredStart;updateClassTimer()}return;}
   }
   currentSession=null;
