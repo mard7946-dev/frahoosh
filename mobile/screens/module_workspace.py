@@ -251,7 +251,7 @@ def _module_fields(table):
 # its exact panel/module membership; the shared catalog is only used for table
 # fields and labels.  Every module below resolves to a real backend table.
 _MOTHER_MODULES = {
-    "management":[("مدیریت کاربران و کارکنان","users"),("کلاس آنلاین","online"),("برنامه هفتگی و برنامه امتحانات","schedule"),("گزارش‌ها و آمار","reports"),("تنظیمات مدرسه","settings"),("ملاقات‌ها","meeting_requests"),("مالی","finance")],
+    "management":[("مدیریت کاربران و کارکنان","users"),("فهرست دبیران","teachers"),("فهرست دانش‌آموزان","students"),("کلاس آنلاین","online"),("برنامه هفتگی و برنامه امتحانات","schedule"),("گزارش‌ها و آمار","reports"),("تنظیمات مدرسه","settings"),("ملاقات‌ها","meeting_requests"),("مالی","finance")],
     "executive":[("دانش‌آموزان","students"),("کلاس‌ها","executive_classes"),("کارکنان","staff"),("پرونده‌ها","archive_items"),("امور اجرایی","executive_operations"),("گزارش‌ها","executive_reports"),("درخواست گواهی اشتغال به تحصیل","certificate_requests"),("درخواست‌های ملاقات","meeting_requests")],
     "educational":[("حضور و غیاب","attendance"),("ارجاعات آموزشی","student_referrals"),("جلسات","meeting_requests"),("اطلاع‌رسانی","messages"),("امتحانات","teacher_exams"),("بانک سؤال","quiz_questions"),("گزارش‌های آموزشی","ai_smart_reports"),("تأیید و مدیریت ملاقات‌ها","meeting_requests")],
     "cultural":[("فعالیت‌های فرهنگی","educational_activities"),("مسابقات","cultural_competitions"),("برنامه‌های پرورشی","school_events"),("ثبت‌نام فعالیت‌ها","cultural_activity_registrations"),("گزارش‌های پرورشی","cultural_reports"),("درخواست‌های ملاقات","meeting_requests")],
