@@ -353,3 +353,31 @@ async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody"
 </script>
 </body>
 </html>
+/* Mobile overflow fix: keep the classroom inside the viewport and let panels scroll internally */
+html,body{width:100%;max-width:100%;overflow:hidden}
+body{height:100dvh;min-height:0}
+header{max-width:100%;min-width:0;box-sizing:border-box}
+header h2{min-width:0;overflow-wrap:anywhere}
+.layout{height:calc(100dvh - 58px);min-height:0;max-height:calc(100dvh - 58px);overflow:hidden}
+.main{min-width:0;min-height:0;overflow:hidden}
+.boardwrap{min-width:0;min-height:0;height:auto;max-height:none;flex:1 1 auto;overflow:hidden}
+.boardbar{max-width:100%;min-width:0}
+.board{display:block;width:100%;max-width:100%;min-width:0;min-height:0;height:100%}
+#quizPanel{max-height:30dvh;overflow:auto;flex:0 1 auto}
+@media(max-width:800px){
+ header{gap:5px;padding:6px;max-height:30dvh;overflow-y:auto;align-content:flex-start}
+ header h2{font-size:14px;flex:1 1 130px}
+ header .toolbar{flex:1 1 100%;gap:4px}
+ header .toolbar button{padding:7px 8px;font-size:12px}
+ #toolDrawer{position:relative;top:auto;right:auto;width:100%;max-width:100%;order:5}
+ #toolDrawerBody{max-height:32dvh}
+ .layout,.layout.drawer-open{height:auto;max-height:none;min-height:0;flex:1 1 0;grid-template-columns:minmax(0,1fr);overflow:hidden}
+ .main{height:100%;overflow:hidden}
+ .videos{flex:0 0 64px;height:64px;max-height:64px;min-height:64px;overflow-x:auto;overflow-y:hidden;grid-auto-flow:column;grid-auto-columns:minmax(90px,30vw);grid-template-columns:none}
+ .tile{height:58px;min-height:58px}
+ .boardwrap{height:auto;min-height:0;max-height:none;flex:1 1 0;padding:3px;overflow:hidden}
+ .boardbar{flex:0 0 auto;max-height:24dvh;overflow:auto;align-content:flex-start}
+ .boardbar .tools{min-width:0;max-width:100%}
+ .board{height:100%;min-height:0;max-height:100%;touch-action:none}
+ .side{min-height:0}
+}
