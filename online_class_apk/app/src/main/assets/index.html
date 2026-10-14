@@ -291,7 +291,29 @@ button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 <div id="managerClassesList"></div>
 </section>
 </div>
-<div id=list></div></section></div><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<div id=list></div></section></div><script>
+/* APK failsafe: keep role buttons responsive even if a remote script fails to load. */
+(function(){
+ const err=()=>document.getElementById("err");
+ document.addEventListener("click",function(e){
+  const card=e.target.closest("[data-login-role]");
+  if(!card)return;
+  if(typeof window.chooseRole==="function")return;
+  e.preventDefault();
+  const role=card.getAttribute("data-login-role"),picker=document.getElementById("rolePicker"),grid=document.getElementById("entryGrid"),login=document.getElementById("login");
+  if(picker)picker.style.display="none";
+  if(grid)grid.classList.add("active");
+  if(login)login.style.display="block";
+  const heading=document.getElementById("loginHeading"),desc=document.getElementById("loginDescription");
+  if(heading)heading.textContent=role==="student"?"ورود دانش‌آموز":role==="manager"?"ورود مدیر":"ورود دبیر";
+  if(desc)desc.textContent="برنامه ورود کامل بارگذاری نشد. اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.";
+  const msg=err();if(msg)msg.textContent="خطای بارگذاری سامانه: بخش ورود اجرا نشده است. اتصال اینترنت را بررسی و صفحه را تازه‌سازی کنید.";
+ },true);
+ window.addEventListener("unhandledrejection",function(e){const msg=err();if(msg&&!msg.textContent)msg.textContent="خطای ارتباط یا اجرای برنامه: "+String(e.reason&&e.reason.message||e.reason||"خطای نامشخص");});
+ window.addEventListener("error",function(e){const msg=err();if(msg&&!msg.textContent)msg.textContent="خطای بارگذاری سامانه: "+(e.message||"خطای جاوااسکریپت");});
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 /* Keep school details in the hero only and show startup errors visibly. */
 window.addEventListener("error",function(event){
