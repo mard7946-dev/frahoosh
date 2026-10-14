@@ -293,18 +293,11 @@ button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 </div>
 <div id=list></div></section></div><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-/* Add the school identity panel without changing authentication, permissions, or classroom flows. */
-(function(){
- const host=document.querySelector(".content"),roles=document.getElementById("rolePicker");
- if(!host||!roles||document.getElementById("brandInfo"))return;
- const info=document.createElement("aside");info.id="brandInfo";info.setAttribute("aria-label","مشخصات سامانه و مدرسه");
- info.innerHTML='<div class="info-emblem" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M31 12c-6-8-17-3-17 6-8 3-8 14-2 18-4 8 2 16 10 15 2 7 9 8 10 1V12Z"/><path d="M33 12c6-8 17-3 17 6 8 3 8 14 2 18 4 8-2 16-10 15-2 7-9 8-10 1V12Z"/><path d="M32 10v43M20 21l8 6m-11 8 10 3m-3 10 6-5m14-22-8 6m11 8-10 3m3 10-6-5"/></svg></div><h2>سامانه کلاس آنلاین فراهوش</h2><p class="info-school">دبیرستان سردار شهید حاجی‌زاده ۲</p><p class="info-motto">سامانه هوشمند، مدرسه یکپارچه، دانش‌آموز خلاق</p><p class="info-manager">مدیریت: حسن مردانه جهان تیغ</p><div class="info-meta"><div class="info-chip">سال تحصیلی<strong>۱۴۰۵ - ۱۴۰۶</strong></div><div class="info-chip">تاریخ و ساعت<strong id="infoLiveClock">در حال بروزرسانی</strong></div></div>';
- host.insertBefore(info,roles);
- const dateNode=document.getElementById("jalaliDate"),timeNode=document.getElementById("digitalClock"),infoClock=document.getElementById("infoLiveClock");
- function syncInfoClock(){if(infoClock)infoClock.textContent=(dateNode?dateNode.textContent:"")+" · "+(timeNode?timeNode.textContent:"")}
- syncInfoClock();setInterval(syncInfoClock,1000);
-})();
-
+/* Keep school details in the hero only and show startup errors visibly. */
+window.addEventListener("error",function(event){
+  const err=document.getElementById("err");
+  if(err && !err.textContent) err.textContent="خطای بارگذاری سامانه: "+(event.message||"بخشی از برنامه بارگذاری نشد")+"؛ اتصال اینترنت را بررسی و صفحه را تازه‌سازی کنید.";
+});
 </script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../runtime-config.js"></script><script>
 const U=FRAHOOH_CONFIG.supabase_url,K=FRAHOOH_CONFIG.supabase_anon_key;let token="",profile={},editingClassId=null,studentAccessToken="",selectedRole="";const $=x=>document.getElementById(x);async function api(p,o={}){let r;try{r=await fetch(U+p,{...o,headers:{"apikey":K,"Authorization":"Bearer "+(token||K),"Content-Type":"application/json"}})}catch(e){throw Error("ارتباط با سرور کلاس برقرار نشد ("+p+"): "+(e&&e.message||"Failed to fetch"))}if(!r.ok){const detail=await r.text().catch(()=>r.statusText);throw Error("درخواست سرور کلاس ناموفق بود ("+r.status+"، "+p+"): "+detail)}const type=r.headers.get("content-type")||"";if(!type.includes("application/json"))throw Error("پاسخ سرور کلاس JSON نیست ("+p+")");return r.json()}function isValidClassCode(value){return /^[۰-۹0-9]+\/[۰-۹0-9]+$/.test(String(value||""));}
 function normalizeDigits(value){return String(value||"").replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).trim()}
