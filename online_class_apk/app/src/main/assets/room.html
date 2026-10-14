@@ -39,8 +39,8 @@ async function start(){
  box.textContent="در حال بارگذاری محیط کلاس…";
  try{
   const [html,patch]=await Promise.all([
-   getTextFallback(["../../mobile/assets/online_class.html","/online-class/online_class.html","/mobile/assets/online_class.html"],"بارگذاری محیط کلاس ناموفق بود"),
-   getTextFallback(["../../online_class_apk/classroom_patch.js","/online-class/classroom_patch.js","/online_class_apk/classroom_patch.js"],"بارگذاری ابزارهای کلاس ناموفق بود")
+   getTextFallback(["../../mobile/assets/online_class.html","https://raw.githubusercontent.com/mard7946-dev/frahoosh/fix/classroom-audio-timer-menu/mobile/assets/online_class.html","/online-class/online_class.html","/mobile/assets/online_class.html"],"بارگذاری محیط کلاس ناموفق بود"),
+   getTextFallback(["../../online_class_apk/classroom_patch.js","https://raw.githubusercontent.com/mard7946-dev/frahoosh/fix/classroom-audio-timer-menu/online_class_apk/classroom_patch.js","/online-class/classroom_patch.js","/online_class_apk/classroom_patch.js"],"بارگذاری ابزارهای کلاس ناموفق بود")
   ]);
   if(!html.includes("const C=__CONFIG__;"))throw Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
   config.guestInviteBase=new URL("index.html",location.href).href;
