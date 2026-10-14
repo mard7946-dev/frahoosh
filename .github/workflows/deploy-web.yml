@@ -47,9 +47,12 @@ jobs:
           test -s dist/online-class/room.html
           test -s dist/online_class_apk/app/src/main/assets/room_assets/online_class.html
           test -s dist/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js
-          grep -q "online_class_apk/app/src/main/assets/room_assets/online_class.html" dist/online-class/room.html
+          test -s dist/mobile/assets/online_class.html
+          test -s dist/online_class_apk/classroom_patch.js
+          grep -q 'getText("/mobile/assets/online_class.html"' dist/online-class/room.html
+          grep -q 'getText("/online_class_apk/classroom_patch.js"' dist/online-class/room.html
           test -s dist/index.html
-          echo "Verified online-class entry, room page, classroom runtime assets, and main site entry."
+          echo "Verified shared web/APK entry, room loader routes, classroom runtime assets, and main site entry."
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
