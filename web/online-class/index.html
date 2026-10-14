@@ -413,7 +413,7 @@ function renderLocalStudentRoster(){const host=$("localStudentRoster");if(!host)
 $("forgotPassword").onclick=async()=>{const id=normalizeDigits($("id").value.trim());if(!id){$("err").textContent="ابتدا نام کاربری یا رایانامه ثبت‌شده را وارد کنید.";return}try{const emails=id.includes("@")?[id]:await resolveEmailsByNationalCode(id),email=emails[0];if(!email)throw Error("رایانامه ثبت‌شده پیدا نشد.");await requestJson(U+"/auth/v1/recover",{method:"POST",headers:authHeaders(""),body:JSON.stringify({email})});$("err").textContent="اگر حساب معتبر باشد، راهنمای بازیابی رمز به رایانامه ثبت‌شده ارسال می‌شود."}catch(e){$("err").textContent="بازیابی رمز انجام نشد: "+(e.message||e)}};
 $("myClasses").onclick=()=>login();
 $("staffLoginForm").addEventListener("submit",e=>{e.preventDefault();login()});$("id").onkeydown=e=>{if(e.key==="Enter")$("pw").focus()};
-(function(){const dateNode=document.getElementById("jalaliDate"),timeNode=document.getElementById("digitalClock");function updateSchoolClock(){const now=new Date();try{dateNode.textContent=new Intl.DateTimeFormat("fa-IR-u-ca-persian",{weekday:"long",year:"numeric",month:"long",day:"numeric"}).format(now)}catch(_){dateNode.textContent=now.toLocaleDateString("fa-IR")}timeNode.textContent=new Intl.DateTimeFormat("fa-IR",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(now)}updateSchoolClock();setInterval(updateSchoolClock,1000)})();
+(function(){const dateNode=document.getElementById("jalaliDate"),timeNode=document.getElementById("digitalClock");function updateSchoolClock(){const now=new Date();try{dateNode.textContent=new Intl.DateTimeFormat("fa-IR-u-ca-persian",{timeZone:"Asia/Tehran",weekday:"long",year:"numeric",month:"long",day:"numeric"}).format(now)}catch(_){dateNode.textContent=now.toLocaleDateString("fa-IR")}timeNode.textContent=new Intl.DateTimeFormat("fa-IR",{timeZone:"Asia/Tehran",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(now)}updateSchoolClock();setInterval(updateSchoolClock,1000)})();
 /* Explicitly bind role cards after all portal functions are defined. */
 document.querySelectorAll("[data-login-role]").forEach(function(card){
  card.addEventListener("click",function(){
@@ -492,7 +492,7 @@ document.querySelectorAll("[data-login-role]").forEach(function(card){
  const weekdays=["ش","ی","د","س","چ","پ","ج"],faDigits=v=>String(v).replace(/\d/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
  function isoFromJalali(y,m,d){const g=d2g(j2d(y,m,d));return g.year+"-"+String(g.month).padStart(2,"0")+"-"+String(g.day).padStart(2,"0")}
  function jalaliFromISO(value){const a=value.split("-").map(Number);return d2j(g2d(a[0],a[1],a[2]))}
- function todayJalali(){const n=new Date();return d2j(g2d(n.getFullYear(),n.getMonth()+1,n.getDate()))}
+ function todayJalali(){const p=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Tehran",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date()).filter(x=>x.type!=="literal").map(x=>[x.type,x.value]));return d2j(g2d(Number(p.year),Number(p.month),Number(p.day)))}
  let current=todayJalali(),viewYear=current.year,viewMonth=current.month;
  function monthLength(y,m){if(m<=6)return 31;if(m<=11)return 30;return jalCal(y).leap===0?30:29}
  function show(){
