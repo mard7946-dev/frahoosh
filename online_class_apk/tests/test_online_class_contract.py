@@ -95,6 +95,17 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("Asia/Tehran", migration)
         self.assertIn("ورود دبیر به این کلاس فقط در بازه زمانی", migration)
 
+    def test_manager_can_open_class_without_implicitly_starting_teacher_session(self):
+        open_room = self.entry.split("async function openRoom(id)", 1)[1].split("$(\"importStudents\")", 1)[0]
+        self.assertIn("if(isManager){/* Manager may inspect any class without implicitly starting the teacher session. */", open_room)
+        manager_branch = open_room.split("if(isManager){", 1)[1].split("}else{", 1)[0]
+        self.assertNotIn("start_online_class_session", manager_branch)
+        self.assertIn("هنوز دبیر کلاس را شروع نکرده است", open_room)
+
+    def test_room_bootstrap_has_cross_origin_source_fallbacks_for_raw_githack(self):
+        self.assertIn("https://raw.githubusercontent.com/mard7946-dev/frahoosh/fix/classroom-audio-timer-menu/mobile/assets/online_class.html", (ROOT / "web" / "online-class" / "room.html").read_text(encoding="utf-8"))
+        self.assertIn("https://raw.githubusercontent.com/mard7946-dev/frahoosh/fix/classroom-audio-timer-menu/online_class_apk/classroom_patch.js", (ROOT / "web" / "online-class" / "room.html").read_text(encoding="utf-8"))
+
     def test_room_requires_a_complete_authenticated_session(self):
         self.assertIn('!config.token', self.room)
         self.assertIn('!config.userId', self.room)
