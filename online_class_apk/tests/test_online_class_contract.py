@@ -39,6 +39,21 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('register_online_class_student_guest', self.entry)
         self.assertIn('location.href="room.html"', self.entry)
 
+    def test_weekly_bell_times_are_editable_and_shared_with_apk(self):
+        for field in ('scheduleStartTime', 'scheduleEndTime'):
+            self.assertIn(f'id="{field}"', self.entry)
+        self.assertIn('data-edit-schedule=', self.entry)
+        self.assertIn('start_time,end_time', self.entry)
+        self.assertIn('if(start_time>=end_time)', self.entry)
+        self.assertIn('weekly_schedule_entries', self.entry)
+        self.assertIn('ساعت پایان باید بعد از ساعت شروع باشد.', self.entry)
+        migration = (ROOT / "supabase" / "migrations" /
+                     "20261014070000_weekly_schedule_bell_time_automation.sql").read_text(encoding="utf-8")
+        self.assertIn("trg_validate_weekly_schedule_bell_times", migration)
+        self.assertIn("refresh_online_class_statuses", migration)
+        self.assertIn("Asia/Tehran", migration)
+        self.assertIn("ورود دبیر به این کلاس فقط در بازه زمانی", migration)
+
     def test_room_requires_a_complete_authenticated_session(self):
         self.assertIn('!config.token', self.room)
         self.assertIn('!config.userId', self.room)
