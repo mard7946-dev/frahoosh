@@ -221,6 +221,9 @@ input,select,button{max-width:100%;min-width:0}
 .role-option{cursor:pointer;pointer-events:auto;position:relative;z-index:2}
 button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 
+
+/* Persian Jalali date picker for class creation; stores selected day as Gregorian ISO internally. */
+.jalali-picker{position:relative;margin-top:8px;padding:12px;border:1px solid #d9b45c88;border-radius:15px;background:#0a192a;box-shadow:0 14px 32px #0005;color:#f5f7fb;min-width:250px;z-index:30}.jalali-picker[hidden]{display:none}.jalali-picker-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.jalali-picker-head strong{font-size:13px;color:#f4ca62}.jalali-picker button{padding:7px 10px;border-radius:9px;background:#18314a;color:#f8d77e;border:1px solid #d9b45c66}.jalali-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}.jalali-days span{font-size:11px;color:#aebed0;padding:5px 0}.jalali-days button{padding:8px 0;font-size:12px;background:#10253a;color:#fff;border:1px solid transparent}.jalali-days button:hover,.jalali-days button:focus{border-color:#f4ca62}.jalali-days button.selected{background:#f4ca62;color:#09182a;font-weight:bold}.jalali-picker-foot{display:flex;justify-content:space-between;gap:8px;margin-top:10px}.jalali-picker-foot button{font-size:11px}
 </style>
 </head>
 <body><div class="box">
@@ -275,7 +278,7 @@ button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 <label class="class-step-field" data-step="1" hidden>عنوان کلاس<input id="ctitle" placeholder="عنوان کلاس"></label>
 <label class="class-step-field" data-step="2" hidden>درس<input id="csubject" placeholder="درس"></label>
 <label class="class-step-field" data-step="3" hidden>پایه / کلاس<input id="cname" placeholder="مثلاً ۷/۱"></label>
-<label class="class-step-field" data-step="4" hidden>تاریخ<input id="cdate" type="date"></label>
+<label class="class-step-field" data-step="4" hidden>تاریخ برگزاری (شمسی)<input id="cdateDisplay" type="text" inputmode="none" placeholder="انتخاب تاریخ شمسی" autocomplete="off" readonly aria-label="انتخاب تاریخ برگزاری به شمسی"><input id="cdate" type="hidden"><div id="jalaliPicker" class="jalali-picker" hidden></div></label>
 <label class="class-step-field" data-step="5" hidden>ساعت<input id="ctime" type="time"></label>
 <div id="durationControl" style="display:none"><label for="cduration">مدت کلاس به دقیقه</label><input id="cduration" type="number" min="5" max="240" step="5" value="50"></div>
 </div>
@@ -350,7 +353,7 @@ async function createClass(){
     $("createMsg").textContent=teacherId?"کلاس ساخته و به دبیر انتخاب‌شده اختصاص داده شد.":"کلاس ساخته شد؛ دبیر را برای ورود دانش‌آموزان تخصیص دهید.";
   }
   editingClassId=null;$("createClass").textContent="ساخت کلاس";$("cteacher").value="";resetClassWizard();
-  $("ctitle").value=$("csubject").value=$("cname").value=$("cdate").value=$("ctime").value="";
+  $("ctitle").value=$("csubject").value=$("cname").value=$("cdate").value=$("cdateDisplay").value=$("ctime").value="";
   if(isManager)$("cduration").value="50";
   await load();
  }catch(e){$("createMsg").textContent="عملیات کلاس انجام نشد: "+(e.message||e)}
@@ -387,5 +390,32 @@ document.querySelectorAll("[data-login-role]").forEach(function(card){
   else { const error=document.getElementById("err"); if(error) error.textContent="بخش ورود هنوز بارگذاری نشده است؛ صفحه را یک‌بار تازه‌سازی کنید."; }
  });
 });
+
+
+/* Reliable Jalali calendar for the class-date field; no change to class/login APIs. */
+(function initJalaliClassDatePicker(){
+ const input=document.getElementById("cdateDisplay"),stored=document.getElementById("cdate"),panel=document.getElementById("jalaliPicker");
+ if(!input||!stored||!panel)return;
+ const numeric=new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn",{year:"numeric",month:"numeric",day:"numeric"});
+ const monthFmt=new Intl.DateTimeFormat("fa-IR-u-ca-persian",{month:"long",year:"numeric"});
+ const faDigits=v=>String(v).replace(/\d/g,d=>"۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+ function parts(date){const p={};numeric.formatToParts(date).forEach(x=>{if(x.type==="year"||x.type==="month"||x.type==="day")p[x.type]=Number(x.value)});return p}
+ function startOfPersianMonth(date){let d=new Date(date.getFullYear(),date.getMonth(),date.getDate());for(let i=0;i<35;i++){if(parts(d).day===1)return d;d.setDate(d.getDate()-1)}return d}
+ let monthStart=startOfPersianMonth(new Date());
+ const weekdays=["ش","ی","د","س","چ","پ","ج"];
+ function iso(date){return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0")}
+ function show(){const p=parts(monthStart),title=monthFmt.format(monthStart);let html='<div class="jalali-picker-head"><button type="button" data-jalali-nav="-1" aria-label="ماه قبل">‹ ماه قبل</button><strong>'+title+'</strong><button type="button" data-jalali-nav="1" aria-label="ماه بعد">ماه بعد ›</button></div><div class="jalali-days">'+weekdays.map(d=>"<span>"+d+"</span>").join("");
+ const offset=(monthStart.getDay()+1)%7;for(let i=0;i<offset;i++)html+="<span></span>";
+ const cursor=new Date(monthStart);for(let i=0;i<31&&parts(cursor).month===p.month&&parts(cursor).year===p.year;i++){const day=parts(cursor).day,selected=iso(cursor)===stored.value;html+='<button type="button" data-jalali-date="'+iso(cursor)+'" class="'+(selected?"selected":"")+'">'+faDigits(day)+'</button>';cursor.setDate(cursor.getDate()+1)}
+ html+='</div><div class="jalali-picker-foot"><button type="button" data-jalali-today>امروز</button><button type="button" data-jalali-close>بستن تقویم</button></div>';panel.innerHTML=html;panel.hidden=false;
+ panel.querySelectorAll("[data-jalali-nav]").forEach(b=>b.addEventListener("click",()=>{const shift=Number(b.dataset.jalaliNav);const anchor=new Date(monthStart);anchor.setDate(anchor.getDate()+(shift>0?35:-1));monthStart=startOfPersianMonth(anchor);show()}));
+ panel.querySelectorAll("[data-jalali-date]").forEach(b=>b.addEventListener("click",()=>{const value=b.dataset.jalaliDate,d=new Date(value+"T12:00:00"),p=parts(d);stored.value=value;input.value=faDigits(p.year+"/"+String(p.month).padStart(2,"0")+"/"+String(p.day).padStart(2,"0"));panel.hidden=true;input.dispatchEvent(new Event("change",{bubbles:true}))}));
+ panel.querySelector("[data-jalali-today]").addEventListener("click",()=>{monthStart=startOfPersianMonth(new Date());show()});
+ panel.querySelector("[data-jalali-close]").addEventListener("click",()=>{panel.hidden=true});
+ }
+ input.addEventListener("click",()=>{if(panel.hidden){monthStart=stored.value?startOfPersianMonth(new Date(stored.value+"T12:00:00")):startOfPersianMonth(new Date());show()}else panel.hidden=true});
+ input.addEventListener("keydown",e=>{if(e.key==="Escape")panel.hidden=true;if(e.key==="Enter"||e.key===" "){e.preventDefault();input.click()}});
+ document.addEventListener("click",e=>{if(!panel.contains(e.target)&&e.target!==input)panel.hidden=true});
+})();
 
 </script>
