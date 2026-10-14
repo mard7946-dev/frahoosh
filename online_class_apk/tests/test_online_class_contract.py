@@ -123,10 +123,14 @@ class OnlineClassContractTests(unittest.TestCase):
         permission_handler = activity.split("public void onPermissionRequest", 1)[1].split("public boolean onShowFileChooser", 1)[0]
         self.assertNotIn("hasMediaPermissions()", permission_handler)
 
-    def test_shared_room_loader_uses_paths_supported_by_web_and_android(self):
-        self.assertIn('getText("/mobile/assets/online_class.html"', self.room)
-        self.assertIn('getText("/online_class_apk/classroom_patch.js"', self.room)
+    def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
+        self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
+        self.assertIn('getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
         self.assertNotIn("../../online_class_apk/app/src/main/assets", self.room)
+
+    def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
+        self.assertIn(".layout{flex:1 1 0;height:auto;min-height:0", self.classroom)
+        self.assertIn(".boardwrap{flex:1 1 0;height:auto;min-height:0", self.classroom)
 
 
 if __name__ == "__main__":
