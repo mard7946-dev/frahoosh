@@ -163,8 +163,9 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("Denying camera must not mute audio", permission_result)
 
     def test_shared_room_loader_keeps_classroom_in_the_top_level_webview(self):
-        self.assertIn('getTextFallback(["/online-class/online_class.html","/mobile/assets/online_class.html"]', self.room)
-        self.assertIn('getTextFallback(["/online-class/classroom_patch.js","/online_class_apk/classroom_patch.js"]', self.room)
+        self.assertIn('getTextFallback(["../../mobile/assets/online_class.html","/online-class/online_class.html","/mobile/assets/online_class.html"]', self.room)
+        self.assertIn('getTextFallback(["../../online_class_apk/classroom_patch.js","/online-class/classroom_patch.js","/online_class_apk/classroom_patch.js"]', self.room)
+        self.assertIn('new URL("index.html",location.href).href', self.room)
         self.assertIn("document.open();document.write(page);document.close()", self.room)
         self.assertNotIn("frame.srcdoc", self.room)
         self.assertNotIn("<iframe", self.room)
@@ -184,6 +185,22 @@ class OnlineClassContractTests(unittest.TestCase):
     def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
         self.assertIn(".layout{flex:1 1 0;height:auto;min-height:0", self.classroom)
         self.assertIn(".boardwrap{flex:1 1 0;height:auto;min-height:0", self.classroom)
+
+    def test_raw_githack_paths_and_manager_session_start_are_supported(self):
+        apk_entry = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "index.html"
+        apk_room = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room.html"
+        self.assertEqual(self.entry, apk_entry.read_text(encoding="utf-8"))
+        self.assertEqual(self.room, apk_room.read_text(encoding="utf-8"))
+        for entry in (self.entry, apk_entry.read_text(encoding="utf-8")):
+            self.assertIn('resolveEmailsByUsername(identifier)', entry)
+            self.assertIn('account_settings?select=email&username=eq.', entry)
+            self.assertIn('if(!s[0]){const started=await api("/rest/v1/rpc/start_online_class_session"', entry)
+            self.assertIn('sessionStartedAt:s[0]?.started_at||null', entry)
+        for room in (self.room, apk_room.read_text(encoding="utf-8")):
+            self.assertIn("../../mobile/assets/online_class.html", room)
+            self.assertIn("../../online_class_apk/classroom_patch.js", room)
+        self.assertIn('location.replace(C.guestInviteBase||new URL("index.html",location.href).href)', self.classroom)
+        self.assertIn('resumeRemoteAudio()', self.classroom)
 
 
 if __name__ == "__main__":
