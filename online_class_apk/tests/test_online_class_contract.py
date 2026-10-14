@@ -126,11 +126,24 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("hasMediaPermissions()", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
 
-    def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
-        self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
-        self.assertIn('getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
-        self.assertIn("base.href=new URL(htmlResult.path,location.href).href", self.room)
-        self.assertNotIn("../../online_class_apk/app/src/main/assets", self.room)
+    def test_shared_room_loader_keeps_classroom_in_the_top_level_webview(self):
+        self.assertIn('getTextFallback(["/online-class/online_class.html","/mobile/assets/online_class.html"]', self.room)
+        self.assertIn('getTextFallback(["/online-class/classroom_patch.js","/online_class_apk/classroom_patch.js"]', self.room)
+        self.assertIn("document.open();document.write(page);document.close()", self.room)
+        self.assertNotIn("frame.srcdoc", self.room)
+        self.assertNotIn("<iframe", self.room)
+
+    def test_remote_audio_uses_an_explicit_audio_playback_path(self):
+        self.assertIn('<audio autoplay playsinline></audio>', self.classroom)
+        self.assertIn('audio.srcObject=stream', self.classroom)
+        self.assertIn('REMOTE_AUDIO_PLAY_BLOCKED', self.classroom)
+        self.assertIn('e.streams&&e.streams[0]?e.streams[0]:new MediaStream([e.track])', self.classroom)
+
+    def test_attendance_refresh_only_uses_an_active_session_for_the_timer(self):
+        self.assertIn('online_class_sessions?class_id=eq."+C.classId+"&ended_at=is.null&order=id.desc&limit=1', self.classroom)
+
+    def test_hidden_student_tool_menu_cannot_toggle_class_layout(self):
+        self.assertIn('if(!teacher){mt.style.display="none"}else mt.onclick=e=>{e.preventDefault();e.stopPropagation();drawer.open=!drawer.open;layout.classList.toggle("drawer-open",drawer.open)};', self.classroom)
 
     def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
         self.assertIn(".layout{flex:1 1 0;height:auto;min-height:0", self.classroom)
