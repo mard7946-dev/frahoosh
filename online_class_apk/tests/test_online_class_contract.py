@@ -119,12 +119,18 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertNotIn("closeClassAfterServerEnd()", refresh)
         self.assertIn("updateClassTimer()", refresh)
 
-    def test_classroom_keeps_the_existing_startup_media_permission_flow(self):
+    def test_classroom_grants_webview_audio_without_requiring_camera_permission(self):
         activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
                     "ir" / "frahoosh" / "classroom" / "MainActivity.java").read_text(encoding="utf-8")
         self.assertIn("buildWebView();\n        requestMediaPermissions();", activity)
-        self.assertIn("hasMediaPermissions()", activity)
-        self.assertIn("grantWebMediaPermission(request);", activity)
+        self.assertIn("private boolean hasRequestedMediaPermissions(PermissionRequest request)", activity)
+        self.assertIn("RESOURCE_AUDIO_CAPTURE.equals(resource)", activity)
+        self.assertIn("Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED", activity)
+        self.assertIn("s.setMediaPlaybackRequiresUserGesture(false);", activity)
+        permission_result = activity.split("public void onRequestPermissionsResult", 1)[1].split("@Override", 1)[0]
+        self.assertIn("grantWebMediaPermission(request);", permission_result)
+        self.assertNotIn("if (hasMediaPermissions())", permission_result)
+        self.assertIn("Denying camera must not mute audio", permission_result)
 
     def test_shared_room_loader_keeps_classroom_in_the_top_level_webview(self):
         self.assertIn('getTextFallback(["/online-class/online_class.html","/mobile/assets/online_class.html"]', self.room)

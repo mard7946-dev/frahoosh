@@ -112,7 +112,7 @@ public final class MainActivity extends Activity {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> {
-                    if (hasMediaPermissions()) {
+                    if (hasRequestedMediaPermissions(request)) {
                         grantWebMediaPermission(request);
                     } else {
                         pendingWebPermission = request;
@@ -168,10 +168,21 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private boolean hasMediaPermissions() {
+    private boolean hasRequestedMediaPermissions(PermissionRequest request) {
         if (Build.VERSION.SDK_INT < 23) return true;
-        return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        if (request == null) return false;
+
+        for (String resource : request.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)
+                    && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)
+                    && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void requestMediaPermissions() {
@@ -219,11 +230,8 @@ public final class MainActivity extends Activity {
         if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermission != null) {
             PermissionRequest request = pendingWebPermission;
             pendingWebPermission = null;
-            if (hasMediaPermissions()) {
-                grantWebMediaPermission(request);
-            } else {
-                request.deny();
-            }
+            // Grant each WebView resource independently. Denying camera must not mute audio.
+            grantWebMediaPermission(request);
         }
     }
 
