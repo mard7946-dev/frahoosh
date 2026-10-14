@@ -22,16 +22,25 @@ class OnlineClassContractTests(unittest.TestCase):
             self.assertIn(f"chooseRole('{role}')", self.entry)
         self.assertNotIn("chooseRole('staff')", self.entry)
 
-    def test_student_roster_is_local_not_posted_to_supabase(self):
-        self.assertIn('localStorage.setItem("frahoosh_local_students"', self.entry)
-        self.assertIn('if(kind==="students")', self.entry)
-        self.assertIn("هیچ اطلاعات دانش‌آموزی به پایگاه داده مرکزی ارسال نشد", self.entry)
-        self.assertIn('api("/rest/v1/teachers"', self.entry)
-        # Student import must return before the teacher-table insert loop.
-        student_branch = self.entry.index('if(kind==="students"){')
-        teacher_insert = self.entry.index('api("/rest/v1/teachers"', student_branch)
-        student_return = self.entry.index("return}", student_branch)
-        self.assertLess(student_return, teacher_insert)
+    def test_teacher_and_student_rosters_are_local_not_posted_to_supabase(self):
+        self.assertIn('writeLocalRows("frahoosh_local_students"', self.entry)
+        self.assertIn('writeLocalRows("frahoosh_local_teachers"', self.entry)
+        import_block = self.entry[self.entry.index("async function importPeople"):self.entry.index("let classWizardStep=0;")]
+        self.assertNotIn('api("/rest/v1/teachers"', import_block)
+        self.assertIn("اطلاعات به Supabase ارسال نشد", import_block)
+
+    def test_manual_roster_forms_match_excel_templates_and_mark_required_fields(self):
+        for field in ("newStudentFirst", "newStudentLast", "newStudentClass",
+                      "newTeacherFirst", "newTeacherLast", "newTeacherCode",
+                      "newTeacherEmail", "newTeacherPhone", "newTeacherSubject"):
+            self.assertIn(f'id="{field}"', self.entry)
+        self.assertIn('id="downloadStudentsTemplate"', self.entry)
+        self.assertIn('id="downloadTeachersTemplate"', self.entry)
+        self.assertIn('id="saveStudentLocal"', self.entry)
+        self.assertIn('class="required-mark"', self.entry)
+        self.assertIn('class="optional-mark">(اختیاری)', self.entry)
+        self.assertIn('["نام *","نام خانوادگی *","کلاس *"]', self.entry)
+        self.assertIn('"ایمیل (اختیاری)"', self.entry)
 
     def test_weekly_schedule_uses_existing_supabase_contract(self):
         self.assertIn("weekly_schedule_entries", self.entry)
