@@ -119,9 +119,11 @@ declare
 begin
   if not (
     v_role in ('manager','مدیر','مدیریت','educational','معاون آموزشی','معاونت آموزشی','executive','معاون اجرایی','معاونت اجرایی')
-    or (v_role in ('teacher','دبیر') and exists (
-      select 1 from public.online_class_teachers t
-      where t.class_id = p_class_id and t.teacher_id = v_teacher_id
+    or (v_role in ('teacher','دبیر') and (
+      exists (select 1 from public.online_class_teachers t
+              where t.class_id = p_class_id and t.teacher_id = v_teacher_id)
+      or exists (select 1 from public.weekly_schedule_entries w
+                 where w.online_class_id = p_class_id and w.teacher_id = v_teacher_id)
     ))
   ) then raise exception 'not authorized to start this class'; end if;
 
