@@ -3259,6 +3259,7 @@
         "plan_code",
         "name",
         "duration_months",
+        "student_min",
         "student_limit",
         "price_irr",
         "is_active"
@@ -3280,6 +3281,7 @@
         "grace_days",
         "status",
         "payment_reference",
+        "student_min",
         "notes"
       ],
       "operations": [
