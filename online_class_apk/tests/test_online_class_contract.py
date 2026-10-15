@@ -93,7 +93,10 @@ class OnlineClassContractTests(unittest.TestCase):
         web_classroom = ROOT / "mobile" / "assets" / "online_class.html"
         source_patch = ROOT / "online_class_apk" / "classroom_patch.js"
         self.assertEqual(self.entry, apk_entry.read_text(encoding="utf-8"))
-        self.assertEqual(self.room, apk_room.read_text(encoding="utf-8"))
+        apk_room_text = apk_room.read_text(encoding="utf-8")
+        self.assertIn('getTextFallback(["/mobile/assets/online_class.html"', apk_room_text)
+        self.assertIn('getTextFallback(["../../mobile/assets/online_class.html"', self.room)
+        self.assertIn('frahoosh_room_entry_authorized', self.room)
         self.assertEqual(web_classroom.read_text(encoding="utf-8"), apk_classroom.read_text(encoding="utf-8"))
         self.assertEqual(source_patch.read_text(encoding="utf-8"), apk_patch.read_text(encoding="utf-8"))
 
