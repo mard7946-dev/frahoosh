@@ -11,8 +11,13 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build:
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     name: Build Frahoosh APK
     runs-on: ubuntu-22.04
     timeout-minutes: 45
@@ -399,7 +404,8 @@ jobs:
           numeric_version=169
           architectures=arm64-v8a,armeabi-v7a
           package_id=ir.frahoosh
-apk_file=$(basename "${apk}")
+          apk_file=$(basename "${apk}")
+          signing_mode=$(cut -d= -f2 apk-signing-mode.txt)
           EOF
           cat apk-provenance.txt
           cat apk.sha256
@@ -419,3 +425,27 @@ apk_file=$(basename "${apk}")
             apk-signing-mode.txt
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish signed APK to stable download branch
+        if: success() && github.event_name == 'push' && env.ANDROID_KEYSTORE_BASE64 != ''
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          APK_SOURCE="$(find bin -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "${APK_SOURCE}"
+          PUBLISH_DIR="${RUNNER_TEMP}/frahoosh-apk-publish"
+          rm -rf "${PUBLISH_DIR}"
+          mkdir -p "${PUBLISH_DIR}"
+          cp "${APK_SOURCE}" "${PUBLISH_DIR}/frahoosh.apk"
+          cp apk-provenance.txt apk-permissions.txt apk-signing.txt apk-signing-mode.txt "${PUBLISH_DIR}/"
+          (cd "${PUBLISH_DIR}" && sha256sum frahoosh.apk > frahoosh.apk.sha256)
+          git -C "${PUBLISH_DIR}" init
+          git -C "${PUBLISH_DIR}" checkout -b apk-download
+          git -C "${PUBLISH_DIR}" config user.name "github-actions[bot]"
+          git -C "${PUBLISH_DIR}" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "${PUBLISH_DIR}" add .
+          git -C "${PUBLISH_DIR}" commit -m "Publish signed Frahoosh APK v1.6.9"
+          git -C "${PUBLISH_DIR}" remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git -C "${PUBLISH_DIR}" push --force origin HEAD:apk-download
