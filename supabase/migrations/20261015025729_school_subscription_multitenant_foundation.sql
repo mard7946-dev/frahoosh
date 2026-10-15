@@ -200,7 +200,8 @@ begin
  return new;
 end; $;
 drop trigger if exists frahoosh_subscription_capacity_check on public.school_subscriptions;
-create trigger frahoosh_subscription_capacity_check before insert or update on public.school_subscriptions
+drop trigger if exists zz_frahoosh_subscription_capacity_check on public.school_subscriptions;
+create trigger zz_frahoosh_subscription_capacity_check before insert or update on public.school_subscriptions
 for each row execute function private.frahoosh_validate_subscription_capacity();
 
 create or replace function private.frahoosh_enforce_student_limit()
