@@ -120,6 +120,26 @@
       [
         "کارت امتحان",
         "exam_cards"
+      ],
+      [
+        "حساب‌های کاربران و نقش‌ها",
+        "account_settings"
+      ],
+      [
+        "مدیریت مدارس",
+        "schools"
+      ],
+      [
+        "طرح‌های اشتراک",
+        "subscription_plans"
+      ],
+      [
+        "اشتراک مدارس",
+        "school_subscriptions"
+      ],
+      [
+        "نقش‌های کاربران مدارس",
+        "school_memberships"
       ]
     ],
     "educational": [
@@ -918,7 +938,7 @@
     "finance_accounts": "حساب‌های مالی",
     "payment_attempts": "درخواست‌های پرداخت",
     "report_card_snapshots": "نسخه‌های کارنامه",
-    "account_settings": "تنظیمات حساب",
+    "account_settings": "حساب‌های کاربران و نقش‌ها",
     "backup_records": "پشتیبان‌گیری",
     "smart_board_whiteboards": "تخته آموزشی",
     "smart_board_files": "فایل‌ها",
@@ -974,7 +994,11 @@
     "student_registrations": "ثبت‌نام فعالیت‌ها",
     "survey_answers": "پاسخ‌های نظرسنجی",
     "survey_questions": "سؤالات نظرسنجی",
-    "module_activations": "فعال‌سازی قابلیت‌ها"
+    "module_activations": "فعال‌سازی قابلیت‌ها",
+    "schools": "مدیریت مدارس",
+    "subscription_plans": "طرح‌های اشتراک",
+    "school_subscriptions": "اشتراک مدارس",
+    "school_memberships": "نقش‌های کاربران مدارس"
   },
   "modules": {
     "users": {
@@ -999,14 +1023,15 @@
       "fields": [
         "username",
         "display_name",
-        "phone",
         "email",
-        "preferences",
-        "updated_at",
-        "national_code"
+        "phone",
+        "national_code",
+        "role",
+        "tenant_school_id"
       ],
       "operations": [
         "create",
+        "read",
         "update",
         "delete"
       ]
@@ -3214,6 +3239,73 @@
       ],
       "operations": [
         "create",
+        "update",
+        "delete"
+      ]
+    },
+    "schools": {
+      "table": "schools",
+      "fields": [
+        "slug",
+        "name",
+        "school_code",
+        "owner_auth_user_id",
+        "status"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ]
+    },
+    "subscription_plans": {
+      "table": "subscription_plans",
+      "fields": [
+        "plan_code",
+        "name",
+        "duration_months",
+        "student_limit",
+        "price_irr",
+        "is_active"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ]
+    },
+    "school_subscriptions": {
+      "table": "school_subscriptions",
+      "fields": [
+        "school_id",
+        "plan_id",
+        "starts_at",
+        "ends_at",
+        "grace_days",
+        "status",
+        "payment_reference",
+        "notes"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ]
+    },
+    "school_memberships": {
+      "table": "school_memberships",
+      "fields": [
+        "school_id",
+        "auth_user_id",
+        "role",
+        "is_active"
+      ],
+      "operations": [
+        "create",
+        "read",
         "update",
         "delete"
       ]
