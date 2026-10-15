@@ -842,6 +842,8 @@ class DashboardScreen(Screen):
         self._parent_seen=set()
         self._parent_poll_event=None
         self._parent_poll_busy=False
+        self._subscription_state=None
+        self._subscription_check_started=False
         try:
             self._build()
         except Exception as exc:
@@ -898,6 +900,9 @@ class DashboardScreen(Screen):
 
     def items(self):
         role = self.role()
+        state = self._subscription_state or {}
+        if state.get("expired") and not state.get("platform_admin"):
+            return [("اشتراک و مدارس", "panelhub:management")] if role == "manager" else []
         if role == "manager":
             return [(title, "panelhub:" + key) for title, key in PANEL_HUBS]
         own_panel = {
@@ -1238,6 +1243,9 @@ class DashboardScreen(Screen):
         }.get(panel_key, panel_key)
         catalog = MOTHER_PANEL_CATALOG.get(catalog_key) or {}
         raw_items = catalog.get("items") or []
+        subscription_state = getattr(self.app_state, "subscription_status", {}) or {}
+        if subscription_state.get("expired") and not subscription_state.get("platform_admin"):
+            raw_items = [("اشتراک مدارس", "school_subscriptions")] if panel_key == "management" and role == "manager" else []
         if panel_key == "staff":
             raw_items = [("کادر و کارکنان","staff")]
         if panel_key == "online":
@@ -1291,6 +1299,12 @@ class DashboardScreen(Screen):
 
     def open_route(self,route):
         route_key = str(route or "")
+        subscription_state = getattr(self.app_state, "subscription_status", {}) or {}
+        if subscription_state.get("expired") and not subscription_state.get("platform_admin"):
+            allowed = route_key == "school_subscriptions" or route_key == "panelhub:management"
+            if not allowed:
+                self._set_parent_alert("اشتراک مدرسه پایان یافته است؛ برای فعال‌سازی مجدد به بخش اشتراک مدارس بروید.")
+                return
         if route_key.startswith("panelhub:"):
             panel_key = route_key.split(":",1)[1]
             role = self.role()
@@ -1472,6 +1486,32 @@ class DashboardScreen(Screen):
         except Exception as exc:
             print("POST-LOGIN GUEST ACTION CLEANUP ERROR:", repr(exc))
 
+    def _subscription_check_done(self, state):
+        self._subscription_state = dict(state or {"unknown": True})
+        if self.app_state is not None:
+            self.app_state.subscription_status = self._subscription_state
+        try:
+            self.refresh()
+            if self._subscription_state.get("expired") and not self._subscription_state.get("platform_admin"):
+                self._set_parent_alert("اشتراک مدرسه پایان یافته است؛ برای ادامهٔ فعالیت، اشتراک را تمدید کنید.")
+            elif self._subscription_state.get("unknown"):
+                self._set_parent_alert("وضعیت اشتراک از سرور تأیید نشد؛ عملیات همچنان با مجوزهای سرور کنترل می‌شود.")
+        except Exception as exc:
+            print("SUBSCRIPTION DASHBOARD REFRESH ERROR:", repr(exc))
+
+    def _check_subscription_async(self):
+        if self._subscription_check_started:
+            return
+        self._subscription_check_started = True
+        def worker():
+            try:
+                state = self.app_state.subscription_status()
+            except Exception as exc:
+                print("SUBSCRIPTION CHECK WORKER ERROR:", repr(exc))
+                state = {"unknown": True, "expired": False, "platform_admin": False}
+            Clock.schedule_once(lambda dt, value=state: self._subscription_check_done(value), 0)
+        Thread(target=worker, daemon=True, name="frahoosh-subscription-check").start()
+
     def on_pre_enter(self,*_):
         # Never let a dashboard refresh exception escape the Kivy lifecycle.
         # On Android an uncaught exception here can terminate the process
@@ -1479,6 +1519,16 @@ class DashboardScreen(Screen):
         if self.app_state is None or not getattr(self.app_state,"logged_in",False):
             if self.manager:
                 self.manager.current="login"
+            return
+        if self._subscription_state is None:
+            try:
+                self.welcome.text = rtl_text(f"خوش آمدید، {getattr(self.app_state,'display_name','کاربر فراهوش')}")
+                self.role_text.text = rtl_text("در حال بررسی وضعیت اشتراک مدرسه...")
+                self.grid.clear_widgets()
+            except Exception:
+                pass
+            self._check_subscription_async()
+            self._remove_guest_login_actions()
             return
         try:
             self.refresh()
