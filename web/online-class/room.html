@@ -42,8 +42,8 @@ async function start(){
  box.textContent="در حال بارگذاری محیط کلاس…";
  try{
   let [htmlResult,patchResult]=await Promise.all([
-   getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"],"بارگذاری محیط کلاس ناموفق بود"),
-   getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"],"بارگذاری ابزارهای کلاس ناموفق بود")
+   getTextFallback(["../../mobile/assets/online_class.html","../../online_class_apk/app/src/main/assets/room_assets/online_class.html"],"بارگذاری محیط کلاس ناموفق بود"),
+   getTextFallback(["../../online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"],"بارگذاری ابزارهای کلاس ناموفق بود")
   ]);
   let html=htmlResult.text,patch=patchResult.text;
   if(!html.includes("const C=__CONFIG__;"))throw Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
