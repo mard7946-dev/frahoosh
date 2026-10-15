@@ -244,8 +244,8 @@ jobs:
           PY
           APP_VERSION="$(awk -F'= ' '/^version = /{print $2; exit}' buildozer.spec)"
           APP_NUMERIC_VERSION="$(awk -F'= ' '/^android.numeric_version = /{print $2; exit}' buildozer.spec)"
-          test "$APP_VERSION" = "1.6.8"
-          test "$APP_NUMERIC_VERSION" = "168"
+          test "$APP_VERSION" = "1.6.9"
+          test "$APP_NUMERIC_VERSION" = "169"
           grep -Fq "package.name = frahooshmobile" buildozer.spec
           grep -Fq "package.domain = ir.frahoosh" buildozer.spec
           grep -Fq "source.dir = ." buildozer.spec
@@ -354,13 +354,23 @@ jobs:
           test -x "${AAPT}"
           BADGING="$("${AAPT}" dump badging "${apk}")"
           echo "${BADGING}" | grep -Fq "package: name='ir.frahoosh.frahooshmobile'"
-          echo "${BADGING}" | grep -Fq "versionName='1.6.8'"
+          echo "${BADGING}" | grep -Fq "versionName='1.6.9'"
+          PERMISSIONS="$("${AAPT}" dump permissions "${apk}")"
+          printf '%s\\n' "${PERMISSIONS}" | tee apk-permissions.txt
+          if printf '%s\\n' "${PERMISSIONS}" | grep -Eiq 'READ_SMS|RECEIVE_SMS|SEND_SMS|READ_CALL_LOG|WRITE_CALL_LOG|BIND_ACCESSIBILITY_SERVICE|SYSTEM_ALERT_WINDOW|WRITE_SETTINGS'; then
+            echo "Unexpected high-risk Android permission found in APK."
+            exit 1
+          fi
+          APKSIGNER="${SDK}/build-tools/35.0.0/apksigner"
+          test -x "${APKSIGNER}"
+          "${APKSIGNER}" verify --verbose "${apk}"
+          "${APKSIGNER}" verify --print-certs "${apk}" | tee apk-signing.txt
           sha256sum "${apk}" | tee apk.sha256
           stat -c 'APK_SIZE_BYTES=%s' "${apk}" | tee apk.size
           cat > apk-provenance.txt <<EOF
           commit_sha=${GITHUB_SHA}
-          version=1.6.8
-          numeric_version=168
+          version=1.6.9
+          numeric_version=169
           architectures=arm64-v8a,armeabi-v7a
           apk_file=$(basename "${apk}")
           EOF
@@ -377,5 +387,7 @@ jobs:
             apk.sha256
             apk.size
             apk-provenance.txt
+            apk-permissions.txt
+            apk-signing.txt
           if-no-files-found: error
           retention-days: 14
