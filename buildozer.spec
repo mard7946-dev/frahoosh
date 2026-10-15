@@ -1,8 +1,8 @@
 [app]
 
 title = Frahoosh
-package.name = frahooshmobile
-package.domain = ir.frahoosh
+package.name = frahoosh
+package.domain = ir
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,svg,kv,atlas,ttf,json,html
 version = 1.6.9
