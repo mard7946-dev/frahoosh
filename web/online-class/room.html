@@ -35,8 +35,11 @@ async function getTextFallback(paths,label){
  throw lastError||Error(label);
 }
 async function start(){
+ const authorized=sessionStorage.getItem("frahoosh_room_entry_authorized")==="1";
+ sessionStorage.removeItem("frahoosh_room_entry_authorized");
  let config=null;
- for(const store of [sessionStorage,localStorage]){try{config=JSON.parse(store.getItem("frahoosh_online_class_config")||"null")}catch(_){}if(config)break;}
+ try{config=JSON.parse(sessionStorage.getItem("frahoosh_online_class_config")||"null")}catch(_){}
+ if(!authorized){sessionStorage.removeItem("frahoosh_online_class_config");show("برای ورود امن به کلاس، ابتدا از صفحه ورود کلاس وارد شوید.");return;}
  if(!config){show("نشست کلاس آماده نیست؛ ابتدا از صفحه ورود کلاس وارد شوید.");return;}
  if(!config.url||!config.anon||!config.token||!config.classId||!config.userId){show("اطلاعات نشست کلاس ناقص است؛ از صفحه ورود کلاس دوباره وارد شوید.");return;}
  box.textContent="در حال بارگذاری محیط کلاس…";
