@@ -157,7 +157,7 @@ async function renderSubscriptionWorkspace(){
    $("subActivate").onclick=async()=>{
     const schoolId=$("subTargetSchool").value,planId=$("subPlan").value,startValue=$("subStart").value,grace=Number($("subGrace").value||0),status=$("subPlanStatus");
     if(!schoolId||!planId){status.textContent="مدرسه و طرح اشتراک را انتخاب کنید.";return}
-    const plan=plans.find(p=>p.id===planId);if(!plan){status.textContent="طرح اشتراک پیدا نشد.";return}
+    const plan=plans.find(p=>p.id===planId);if(!plan){status.textContent="طرح اشتراک پیدا نشد.";return}if(Number(plan.price_irr||0)<=0){status.textContent="قیمت این طرح هنوز تعیین نشده است؛ ابتدا در بخش «طرح‌های اشتراک» قیمت را ثبت کنید.";return}
     const start=startValue?new Date(startValue):new Date();
     if(!Number.isFinite(start.getTime())){status.textContent="زمان شروع معتبر نیست.";return}
     const end=new Date(start.getTime());const dayOfMonth=end.getDate();end.setDate(1);end.setMonth(end.getMonth()+Number(plan.duration_months));end.setDate(Math.min(dayOfMonth,new Date(end.getFullYear(),end.getMonth()+1,0).getDate()));
