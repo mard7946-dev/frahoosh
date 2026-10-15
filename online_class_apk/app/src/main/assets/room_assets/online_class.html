@@ -186,48 +186,19 @@ function removeVideo(id){let t=document.getElementById("v-"+id);if(t)t.remove()}
 function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="person">'+esc(n)+(id===C.userId?" (شما)":"")+"</div>";$("participants").innerHTML=h}
 async function ensureMedia(){
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStatus("این محیط دسترسی رسانه را پشتیبانی نمی‌کند.");return false}
- if(localStream&&localStream.getTracks().some(t=>t.readyState==="live")){
-  if(isStudent()){mic=false;cam=false;localStream.getAudioTracks().forEach(t=>t.enabled=false);localStream.getVideoTracks().forEach(t=>t.enabled=false)}
-  addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
-  return localStream.getAudioTracks().some(t=>t.readyState==="live");
- }
- let stream=null;
- try{
-  try{
-   stream=await navigator.mediaDevices.getUserMedia({video:!isStudent(),audio:true});
-  }catch(combinedError){
-   console.warn("COMBINED_MEDIA_FALLBACK_TO_AUDIO",combinedError);
-   stream=await navigator.mediaDevices.getUserMedia({video:false,audio:true});
-   setStatus("صدا فعال است؛ تصویر به‌دلیل مجوز یا محدودیت دوربین فعال نشد.");
-  }
-  if(isStudent()){
-   mic=false;cam=false;
-   stream.getAudioTracks().forEach(t=>t.enabled=false);
-   stream.getVideoTracks().forEach(t=>t.enabled=false);
-  }else{
-   stream.getAudioTracks().forEach(t=>t.enabled=mic);
-   stream.getVideoTracks().forEach(t=>t.enabled=cam);
-  }
-  localStream=stream;
-  addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
-  for(const [id,pc] of peers){
-   let added=false;
-   for(const track of localStream.getTracks()){
-    const already=pc.getSenders().some(x=>x.track===track);
-    if(!already){pc.addTrack(track,localStream);added=true}
-   }
-   if(added)await requestNegotiation(id,pc);
-  }
-  $("mic").classList.toggle("active",mic&&localStream.getAudioTracks().length>0);
-  $("cam").classList.toggle("active",cam&&localStream.getVideoTracks().length>0);
-  if(!localStream.getAudioTracks().some(t=>t.readyState==="live"))throw new Error("NO_AUDIO_TRACK");
-  return true;
- }catch(e){
-  console.warn("MEDIA_PERMISSION_ERROR",e);
-  setStatus("دسترسی میکروفون/رسانه فعال نشد: "+(e.name||"خطا"));
-  alert("دسترسی میکروفون/رسانه داده نشد؛ مجوز میکروفون را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")");
-  return false;
- }
+ const acquired=localStream&&localStream.getTracks().some(t=>t.readyState==="live")?localStream:new MediaStream();
+ let videoError=null,audioError=null;
+ const hasVideo=acquired.getVideoTracks().some(t=>t.readyState==="live");
+ const hasAudio=acquired.getAudioTracks().some(t=>t.readyState==="live");
+ if(!hasVideo){try{const v=await navigator.mediaDevices.getUserMedia({video:true,audio:false});v.getVideoTracks().forEach(t=>{t.enabled=cam;acquired.addTrack(t)})}catch(e){videoError=e;console.warn("CAMERA_PERMISSION_ERROR",e)}}
+ if(!hasAudio){try{const a=await navigator.mediaDevices.getUserMedia({video:false,audio:true});a.getAudioTracks().forEach(t=>{t.enabled=mic;acquired.addTrack(t)})}catch(e){audioError=e;console.warn("MIC_PERMISSION_ERROR",e)}}
+ if(!acquired.getTracks().some(t=>t.readyState==="live")){setStatus("دسترسی دوربین/میکروفون فعال نشد: "+((videoError||audioError)?.name||"خطا"));alert("مجوز دوربین و میکروفون برنامه را در تنظیمات Android بررسی کنید.");return false}
+ localStream=acquired;addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
+ for(const [,pc] of peers)for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already)pc.addTrack(track,localStream)}
+ $("mic").classList.toggle("active",mic&&localStream.getAudioTracks().length>0);$("cam").classList.toggle("active",cam&&localStream.getVideoTracks().length>0);
+ if(videoError)setStatus("دوربین فعال نشد ("+(videoError.name||"خطا")+"). مجوز دوربین برنامه را بررسی کنید.");
+ else if(audioError)setStatus("میکروفون فعال نشد ("+(audioError.name||"خطا")+"). مجوز میکروفون برنامه را بررسی کنید.");
+ return !videoError||localStream.getAudioTracks().length>0;
 }
 let studentMediaPermissions={mic:false,cam:false};
 window.setStudentToolsPermission=function(permissions={}){
@@ -246,6 +217,7 @@ async function poll(){try{let r=await api("online_class_signals?class_id=eq."+C.
 function appendMsg(n,t){let d=document.createElement("div");d.className="msg";d.innerHTML="<b>"+esc(n)+"</b><br>"+esc(t);$("msgs").appendChild(d);$("msgs").scrollTop=$("msgs").scrollHeight}
 $("send").onclick=async()=>{let t=$("chatInput").value.trim();if(!t)return;appendMsg(C.name,t);$("chatInput").value="";await send("chat",{name:C.name,text:t})};
 $("mic").onclick=async()=>{
+  const next=!mic;
   try{
    if(!navigator.mediaDevices?.getUserMedia)throw new Error("MEDIA_API_UNAVAILABLE");
    let tracks=localStream?.getAudioTracks?.().filter(t=>t.readyState==="live")||[];
@@ -254,15 +226,11 @@ $("mic").onclick=async()=>{
     tracks=audioStream.getAudioTracks();
     if(!tracks.length)throw new Error("NO_AUDIO_TRACK");
     if(!localStream)localStream=new MediaStream();
-    tracks.forEach(t=>{t.enabled=true;localStream.addTrack(t)});
-    for(const [id,pc] of peers){
-     let added=false;
-     for(const track of tracks){const sender=pc.getSenders().find(x=>x.track?.kind==="audio");if(sender)await sender.replaceTrack(track);else{pc.addTrack(track,localStream);added=true}}
-     if(added)await requestNegotiation(id,pc);
-    }
+    tracks.forEach(t=>{t.enabled=next;localStream.addTrack(t)});
+    for(const [,pc] of peers)for(const track of tracks){const sender=pc.getSenders().find(s=>s.track?.kind==="audio");if(sender)await sender.replaceTrack(track);else pc.addTrack(track,localStream)}
     addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
-    mic=true;
-   }else{mic=!mic;tracks.forEach(t=>t.enabled=mic)}
+   }else tracks.forEach(t=>t.enabled=next);
+   mic=next;
    $("mic").classList.toggle("active",mic);
    $("mic").textContent=mic?"میکروفون روشن":"میکروفون خاموش";
   }catch(e){console.warn("MIC_START_FAILED",e);alert("میکروفون فعال نشد. مجوز میکروفون را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")")}
@@ -278,7 +246,7 @@ $("cam").onclick=async()=>{
    if(!localStream)localStream=new MediaStream();
    videoTracks.forEach(t=>{t.enabled=true;localStream.addTrack(t)});
    addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
-   for(const [id,pc] of peers){let added=false;for(const track of videoTracks){const sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender)await sender.replaceTrack(track);else{pc.addTrack(track,localStream);added=true}}if(added)await requestNegotiation(id,pc)}
+   for(const [,pc] of peers){let sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender)await sender.replaceTrack(videoTracks[0]);else pc.addTrack(videoTracks[0],localStream)}
    cam=true;
   }catch(e){console.warn("CAMERA_START_FAILED",e);alert("دوربین فعال نشد. مجوز دوربین را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")");return}
  }else{cam=!cam;tracks.forEach(t=>t.enabled=cam)}
