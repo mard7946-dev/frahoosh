@@ -68,11 +68,16 @@ async function loadSubscriptionState(){
   let schoolId=profile?.tenant_school_id;
   if(!schoolId&&profile?.auth_user_id){const a=await api("/rest/v1/account_settings?auth_user_id=eq."+encodeURIComponent(profile.auth_user_id)+"&select=tenant_school_id&limit=1");schoolId=a?.[0]?.tenant_school_id; if(schoolId)profile.tenant_school_id=schoolId}
   if(!schoolId)return;
-  const rows=await api("/rest/v1/school_subscriptions?school_id=eq."+encodeURIComponent(schoolId)+"&select=status,ends_at,grace_days,student_limit&order=ends_at.desc&limit=1");
+  const results=await Promise.all([
+   api("/rest/v1/school_subscriptions?school_id=eq."+encodeURIComponent(schoolId)+"&select=status,ends_at,grace_days,student_limit&order=ends_at.desc&limit=1"),
+   api("/rest/v1/schools?id=eq."+encodeURIComponent(schoolId)+"&select=status&limit=1")
+  ]);
+  const rows=results[0],schoolRows=results[1];
   const record=Array.isArray(rows)&&rows.length?rows[0]:null;
   if(!record){subscriptionState={expired:true,unknown:false,record:null};return}
   const deadline=new Date(record.ends_at).getTime()+Math.max(0,Number(record.grace_days)||0)*86400000;
-  const active=["active","past_due"].includes(String(record.status||"").toLowerCase())&&Number.isFinite(deadline)&&Date.now()<=deadline;
+  const schoolActive=Array.isArray(schoolRows)&&schoolRows.length>0&&schoolRows[0].status==="active";
+  const active=schoolActive&&["active","past_due"].includes(String(record.status||"").toLowerCase())&&Number.isFinite(deadline)&&Date.now()<=deadline;
   subscriptionState={expired:!active,unknown:false,record};
  }catch(e){subscriptionState={expired:false,unknown:true,record:null}}
 }
