@@ -155,7 +155,7 @@ async function renderSubscriptionWorkspace(){
     const plan=plans.find(p=>p.id===planId);if(!plan){status.textContent="طرح اشتراک پیدا نشد.";return}
     const start=startValue?new Date(startValue):new Date();
     if(!Number.isFinite(start.getTime())){status.textContent="زمان شروع معتبر نیست.";return}
-    const end=new Date(start.getTime());end.setMonth(end.getMonth()+Number(plan.duration_months));
+    const end=new Date(start.getTime());const dayOfMonth=end.getDate();end.setDate(1);end.setMonth(end.getMonth()+Number(plan.duration_months));end.setDate(Math.min(dayOfMonth,new Date(end.getFullYear(),end.getMonth()+1,0).getDate()));
     try{
      await api("/rest/v1/school_subscriptions",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({school_id:schoolId,plan_id:planId,starts_at:start.toISOString(),ends_at:end.toISOString(),grace_days:grace,status:"active",created_by:profile?.auth_user_id||null})});
      status.textContent="اشتراک ثبت شد و محدودیت ظرفیت از سمت پایگاه داده اعمال می‌شود.";
