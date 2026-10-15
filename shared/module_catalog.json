@@ -3276,12 +3276,15 @@
       "fields": [
         "school_id",
         "plan_id",
+        "duration_months",
+        "student_min",
+        "student_limit",
+        "price_irr",
         "starts_at",
         "ends_at",
         "grace_days",
         "status",
         "payment_reference",
-        "student_min",
         "notes"
       ],
       "operations": [
