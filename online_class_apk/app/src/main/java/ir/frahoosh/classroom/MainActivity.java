@@ -168,25 +168,41 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private boolean hasMediaPermissions() {
-        if (Build.VERSION.SDK_INT < 23) return true;
-        return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    private boolean hasMediaPermissions(PermissionRequest request) {
+        if (Build.VERSION.SDK_INT < 23 || request == null) return true;
+        for (String resource : request.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)
+                    && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)
+                    && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void requestMediaPermissions() {
         if (Build.VERSION.SDK_INT < 23) return;
+        PermissionRequest request = pendingWebPermission;
+        if (request == null) return;
         ArrayList<String> missing = new ArrayList<>();
-        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        boolean needsCamera = false;
+        boolean needsAudio = false;
+        for (String resource : request.getResources()) {
+            needsCamera |= PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource);
+            needsAudio |= PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource);
+        }
+        if (needsCamera && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             missing.add(Manifest.permission.CAMERA);
         }
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        if (needsAudio && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             missing.add(Manifest.permission.RECORD_AUDIO);
         }
         if (!missing.isEmpty()) {
             requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
-        } else if (pendingWebPermission != null) {
-            PermissionRequest request = pendingWebPermission;
+        } else {
             pendingWebPermission = null;
             grantWebMediaPermission(request);
         }
@@ -219,10 +235,12 @@ public final class MainActivity extends Activity {
         if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermission != null) {
             PermissionRequest request = pendingWebPermission;
             pendingWebPermission = null;
-            if (hasMediaPermissions()) {
+            if (hasMediaPermissions(request)) {
                 grantWebMediaPermission(request);
             } else {
-                request.deny();
+                // Grant any media resource already authorized; do not let a denied camera
+                // permission block microphone-only classroom audio (or vice versa).
+                grantWebMediaPermission(request);
             }
         }
     }
