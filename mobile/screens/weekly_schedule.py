@@ -157,7 +157,9 @@ class WeeklyScheduleScreen(Screen):
                     and int(r.get("period") or 0) == period
                 ]
                 text = "—" if not matches else "\n".join(
-                    f"{r.get('class_name') or 'کلاس'} • {r.get('subject') or 'درس'}\n{r.get('teacher_name') or 'دبیر'}"
+                    f"{r.get('class_name') or 'کلاس'} • {r.get('subject') or 'درس'}\n"
+                    f"{r.get('teacher_name') or 'دبیر'} • {str(r.get('start_time') or '--:--')[:5]} تا {str(r.get('end_time') or '--:--')}\n"
+                    f"{'فعال' if r.get('day_enabled', True) else 'غیرفعال'}"
                     for r in matches[:3]
                 )
                 grid.add_widget(self._cell(text, False, 82))
@@ -170,7 +172,10 @@ class WeeklyScheduleScreen(Screen):
         lst = BoxLayout(orientation="vertical", spacing=dp(4), size_hint_y=None)
         lst.bind(minimum_height=lst.setter("height"))
         for row in self.rows:
-            title = f"{row.get('weekday') or '-'} • زنگ {row.get('period') or '-'} • {row.get('class_name') or '-'} • {row.get('subject') or '-'} • {row.get('teacher_name') or '-'}"
+            day_name = CODE_TO_DAY.get(str(row.get("weekday") or ""), str(row.get("weekday") or "-"))
+            bell_time = f"{str(row.get('start_time') or '--:--')[:5]} تا {str(row.get('end_time') or '--:--')[:5]}"
+            day_state = "فعال" if row.get("day_enabled", True) else "غیرفعال"
+            title = f"{day_name} • زنگ {row.get('period') or '-'} ({bell_time}) • {row.get('class_name') or '-'} • {row.get('subject') or '-'} • {row.get('teacher_name') or '-'} • {day_state}"
             line = BoxLayout(size_hint_y=None, height=dp(50), spacing=dp(4))
             line.add_widget(self.label(title, "9sp", SECONDARY, False, False, 46))
             if self._can_write():
@@ -258,7 +263,7 @@ class WeeklyScheduleScreen(Screen):
         start_time = inputs["start_time"].text.strip().translate(digit_map)
         end_time = inputs["end_time"].text.strip().translate(digit_map)
         import re
-        if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", start_time) or not re.fullmatch(r"(?:[01]\\d|2[0-3]):[0-5]\\d", end_time) or start_time >= end_time:
+        if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", start_time) or not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", end_time) or start_time >= end_time:
             self.status.text = rtl_text("ساعت شروع و پایان باید معتبر باشند و پایان بعد از شروع باشد.")
             self.status.color = ERROR
             return
