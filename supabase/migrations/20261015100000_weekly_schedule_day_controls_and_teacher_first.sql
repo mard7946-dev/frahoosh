@@ -6,9 +6,10 @@ create or replace function public.set_weekly_schedule_day_enabled(p_weekday text
 returns integer
 language plpgsql security definer set search_path = ''
 as $$
-declare v_role text := lower(coalesce((select private.frahoosh_current_role()),''));
-declare v_count integer := 0;
-declare v_now timestamptz := now();
+declare
+  v_role text := lower(coalesce((select private.frahoosh_current_role()),''));
+  v_count integer := 0;
+  v_now timestamptz := now();
 begin
   if v_role not in ('manager','مدیر','مدیریت','educational','معاون آموزشی','معاونت آموزشی') then
     raise exception 'فقط مدیریت یا معاون آموزشی می‌تواند وضعیت همه کلاس‌های یک روز را تغییر دهد.';
