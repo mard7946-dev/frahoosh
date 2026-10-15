@@ -401,6 +401,7 @@ async function showStudentSchedule(silent=false){
  studentScheduleRefreshBusy=true;
  const displayName=(first+" "+last).trim();
  try{
+  const verified=await api("/rest/v1/rpc/verify_online_class_student",{method:"POST",body:JSON.stringify({p_first_name:first,p_last_name:last,p_class_name:classCode,p_student_code:studentCode})});if(verified!==true)throw Error("مشخصات شما در فهرست رسمی این مدرسه با این کلاس تطبیق ندارد؛ کلاس یا کد دانش‌آموزی را اصلاح کنید.");
   const rows=await api("/rest/v1/rpc/get_student_class_schedule",{method:"POST",body:JSON.stringify({p_weekday:day})});
   const matches=(rows||[]).filter(x=>normalizeDigits(x.class_name)===normalizeDigits(classCode)).sort((a,b)=>Number(a.period)-Number(b.period));
   let html="<div style='margin-top:16px;padding:15px;border:1px solid #d9b45c77;border-radius:14px;background:#0d1c2e;text-align:right'><h3 style='color:#f4ca62;margin-top:0'>برنامه "+day+" • کلاس "+classCode+"</h3><p style='color:#9fb1c7;font-size:11px'>وضعیت زنگ هر ۱۵ ثانیه به‌طور خودکار به‌روزرسانی می‌شود.</p>";
