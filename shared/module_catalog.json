@@ -136,10 +136,6 @@
       [
         "اشتراک مدارس",
         "school_subscriptions"
-      ],
-      [
-        "نقش‌های کاربران مدارس",
-        "school_memberships"
       ]
     ],
     "educational": [
@@ -997,8 +993,7 @@
     "module_activations": "فعال‌سازی قابلیت‌ها",
     "schools": "مدیریت مدارس",
     "subscription_plans": "طرح‌های اشتراک",
-    "school_subscriptions": "اشتراک مدارس",
-    "school_memberships": "نقش‌های کاربران مدارس"
+    "school_subscriptions": "اشتراک مدارس"
   },
   "modules": {
     "users": {
@@ -1026,8 +1021,7 @@
         "email",
         "phone",
         "national_code",
-        "role",
-        "tenant_school_id"
+        "role"
       ],
       "operations": [
         "create",
@@ -3287,21 +3281,6 @@
         "status",
         "payment_reference",
         "notes"
-      ],
-      "operations": [
-        "create",
-        "read",
-        "update",
-        "delete"
-      ]
-    },
-    "school_memberships": {
-      "table": "school_memberships",
-      "fields": [
-        "school_id",
-        "auth_user_id",
-        "role",
-        "is_active"
       ],
       "operations": [
         "create",
