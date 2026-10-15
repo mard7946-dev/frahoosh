@@ -176,15 +176,32 @@ begin
   select * into p from public.subscription_plans where id=new.plan_id;
   if not found then raise exception 'طرح اشتراک انتخاب‌شده معتبر نیست.' using errcode='23503'; end if;
   if not p.is_active and (tg_op='INSERT' or new.plan_id is distinct from old.plan_id) then raise exception 'طرح اشتراک غیرفعال است.' using errcode='23514'; end if;
-  new.duration_months:=p.duration_months; new.student_limit:=p.student_limit; new.price_irr:=p.price_irr;
+  new.duration_months:=p.duration_months; new.student_min:=p.student_min; new.student_limit:=p.student_limit; new.price_irr:=p.price_irr;
  end if;
  if new.starts_at is null then new.starts_at:=now(); end if;
  if new.ends_at is null then new.ends_at:=new.starts_at+make_interval(months=>new.duration_months); end if;
  new.updated_at:=now(); return new;
 end; $$;
 drop trigger if exists frahoosh_subscription_plan_defaults on public.school_subscriptions;
-create trigger frahoosh_subscription_plan_defaults before insert or update of plan_id,starts_at,ends_at,duration_months,student_limit,price_irr
+create trigger frahoosh_subscription_plan_defaults before insert or update of plan_id,starts_at,ends_at,duration_months,student_min,student_limit,price_irr
 on public.school_subscriptions for each row execute function private.frahoosh_fill_subscription_from_plan();
+
+create or replace function private.frahoosh_validate_subscription_capacity()
+returns trigger language plpgsql security definer set search_path=''
+as $
+declare v_count bigint;
+begin
+ if new.status in ('active','past_due') then
+  select count(*) into v_count from public.students s where s.tenant_school_id=new.school_id;
+  if v_count>new.student_limit then
+   raise exception 'تعداد دانش‌آموزان فعلی (%) از ظرفیت طرح انتخابی (%) بیشتر است.',v_count,new.student_limit using errcode='23514';
+  end if;
+ end if;
+ return new;
+end; $;
+drop trigger if exists frahoosh_subscription_capacity_check on public.school_subscriptions;
+create trigger frahoosh_subscription_capacity_check before insert or update on public.school_subscriptions
+for each row execute function private.frahoosh_validate_subscription_capacity();
 
 create or replace function private.frahoosh_enforce_student_limit()
 returns trigger language plpgsql security definer set search_path=''
