@@ -32,7 +32,7 @@ class OnlineClassContractTests(unittest.TestCase):
     def test_manual_roster_forms_match_excel_templates_and_mark_required_fields(self):
         for field in ("newStudentFirst", "newStudentLast", "newStudentClass",
                       "newTeacherFirst", "newTeacherLast", "newTeacherCode",
-                      "newTeacherEmail", "newTeacherPhone", "newTeacherSubject"):
+                      "newTeacherPhone", "newTeacherSubject"):
             self.assertIn(f'id="{field}"', self.entry)
         self.assertIn('id="downloadStudentsTemplate"', self.entry)
         self.assertIn('id="downloadTeachersTemplate"', self.entry)
@@ -40,7 +40,8 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('class="required-mark"', self.entry)
         self.assertIn('class="optional-mark">(اختیاری)', self.entry)
         self.assertIn('["نام *","نام خانوادگی *","کلاس *"]', self.entry)
-        self.assertIn('"ایمیل (اختیاری)"', self.entry)
+        self.assertNotIn('id="newTeacherEmail"', self.entry)
+        self.assertNotIn('"ایمیل (اختیاری)"', self.entry)
 
     def test_weekly_schedule_uses_existing_supabase_contract(self):
         self.assertIn("weekly_schedule_entries", self.entry)
@@ -89,6 +90,18 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertEqual(web_classroom.read_text(encoding="utf-8"), apk_classroom.read_text(encoding="utf-8"))
         self.assertEqual(source_patch.read_text(encoding="utf-8"), apk_patch.read_text(encoding="utf-8"))
 
+
+    def test_classroom_quiz_supports_four_types_schedule_and_exports(self):
+        for token in (
+            'value="choice"', 'value="tf"', 'value="short"', 'value="fill"',
+            'حداکثر ۴', 'type="datetime-local"', 'publish_at', 'ends_at',
+            'خروجی Excel', 'خروجی PDF / چاپ', 'score', 'max_score',
+        ):
+            self.assertIn(token, self.classroom)
+        migration = (ROOT / "supabase" / "migrations" /
+                     "20261015100000_scheduled_typed_classroom_quizzes.sql").read_text(encoding="utf-8")
+        for token in ("publish_at", "ends_at", "questions jsonb", "smart_board_quizzes_schedule_order_check"):
+            self.assertIn(token, migration)
 
     def test_class_creation_persists_valid_jalali_date_and_24_hour_time(self):
         self.assertIn('classWizardStep===4?$("cdateDisplay")', self.entry)
