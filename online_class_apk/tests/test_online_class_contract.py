@@ -32,7 +32,7 @@ class OnlineClassContractTests(unittest.TestCase):
     def test_manual_roster_forms_match_excel_templates_and_mark_required_fields(self):
         for field in ("newStudentFirst", "newStudentLast", "newStudentClass",
                       "newTeacherFirst", "newTeacherLast", "newTeacherCode",
-                      "newTeacherEmail", "newTeacherPhone", "newTeacherSubject"):
+                      "newTeacherPhone", "newTeacherSubject"):
             self.assertIn(f'id="{field}"', self.entry)
         self.assertIn('id="downloadStudentsTemplate"', self.entry)
         self.assertIn('id="downloadTeachersTemplate"', self.entry)
@@ -40,7 +40,8 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('class="required-mark"', self.entry)
         self.assertIn('class="optional-mark">(اختیاری)', self.entry)
         self.assertIn('["نام *","نام خانوادگی *","کلاس *"]', self.entry)
-        self.assertIn('"ایمیل (اختیاری)"', self.entry)
+        self.assertNotIn('id="newTeacherEmail"', self.entry)
+        self.assertNotIn('"ایمیل (اختیاری)"', self.entry)
 
     def test_weekly_schedule_uses_existing_supabase_contract(self):
         self.assertIn("weekly_schedule_entries", self.entry)
