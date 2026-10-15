@@ -64,8 +64,8 @@ using (
     from public.students st
     join public.online_classes c on c.id = smart_board_quizzes.class_id
     where st.id = (select private.frahoosh_current_student_id())
-      and replace(replace(regexp_replace(lower(btrim(st.class_name)), '\\s+', '', 'g'),'ي','ی'),'ك','ک')
-        = replace(replace(regexp_replace(lower(btrim(c.class_name)), '\\s+', '', 'g'),'ي','ی'),'ك','ک')
+      and replace(replace(regexp_replace(lower(btrim(st.class_name)), '\s+', '', 'g'),'ي','ی'),'ك','ک')
+        = replace(replace(regexp_replace(lower(btrim(c.class_name)), '\s+', '', 'g'),'ي','ی'),'ك','ک')
   )
   and exists (
     select 1 from public.online_class_sessions s
