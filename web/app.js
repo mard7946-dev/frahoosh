@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id);
 let token=localStorage.getItem("frahoosh_access_token")||sessionStorage.getItem("frahoosh_access_token")||"";
 let refreshToken=localStorage.getItem("frahoosh_refresh_token")||sessionStorage.getItem("frahoosh_refresh_token")||"";
 let profile=JSON.parse(localStorage.getItem("frahoosh_profile")||sessionStorage.getItem("frahoosh_profile")||"null");
-let catalog=null,currentPanel=null,currentTable=null,rows=[],selectedIndex=-1;
+let catalog=null,currentPanel=null,currentTable=null,rows=[],selectedIndex=-1,platformAdmin=false,subscriptionState={expired:false,unknown:true,record:null};
 const panelTitles={management:"مدیریت",educational:"معاون آموزشی",executive:"معاون اجرایی",cultural:"معاون پرورشی",advisor:"مشاوره",teachers:"دبیران",students:"دانش‌آموزان",parents:"اولیا",finance:"مالی",online:"کلاس‌های آنلاین",teacher_exams:"آزمون آنلاین",smart_board:"تابلو هوشمند",ai:"هوش مصنوعی",reports:"گزارش‌ها",schedule:"برنامه هفتگی",messages:"صندوق پیام‌ها"};
 const aliases={admin:"manager",administrator:"manager","مدیر":"manager","مدیریت":"manager","معاون آموزشی":"educational","معاون اجرایی":"executive","معاون پرورشی":"cultural","مشاور":"advisor","دبیر":"teacher","معلم":"teacher","دانش‌آموز":"student","ولی":"parent","اولیا":"parent"};
 const roles={manager:"مدیریت",educational:"معاون آموزشی",executive:"معاون اجرایی",cultural:"معاون پرورشی",advisor:"مشاوره",teacher:"دبیر",student:"دانش‌آموز",parent:"ولی"};
@@ -12,7 +12,7 @@ const consumerWrite={student:new Set(["assignment_submissions","school_ally","ba
 const managerRoles=new Set(["manager","educational","executive","cultural","advisor","teacher"]);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 const norm=v=>String(v||"").replace(/[۰-۹٠-٩]/g,x=>{const a="۰۱۲۳۴۵۶۷۸۹",b="٠١٢٣٤٥٦٧٨٩";let i=a.indexOf(x);return i>=0?String(i):String(b.indexOf(x))});
-const fieldLabels={national_code:"کد ملی",first_name:"نام",last_name:"نام خانوادگی",full_name:"نام و نام خانوادگی",username:"نام کاربری",email:"ایمیل",phone:"شماره تماس",mobile:"شماره همراه",role:"نقش",status:"وضعیت",gender:"جنسیت",birth_date:"تاریخ تولد",class_name:"کلاس",grade:"پایه",subject:"درس",teacher_name:"نام دبیر",student_name:"نام دانش‌آموز",date:"تاریخ",time:"زمان",description:"توضیحات",title:"عنوان",message:"پیام",score:"نمره",attendance_status:"وضعیت حضور",notes:"توضیحات",amount:"مبلغ",address:"آدرس",reason:"علت/موضوع",target:"مخاطب"};
+const fieldLabels={national_code:"کد ملی",first_name:"نام",last_name:"نام خانوادگی",full_name:"نام و نام خانوادگی",username:"نام کاربری",email:"ایمیل",phone:"شماره تماس",mobile:"شماره همراه",role:"نقش",status:"وضعیت",gender:"جنسیت",birth_date:"تاریخ تولد",class_name:"کلاس",grade:"پایه",subject:"درس",teacher_name:"نام دبیر",student_name:"نام دانش‌آموز",date:"تاریخ",time:"زمان",description:"توضیحات",title:"عنوان",message:"پیام",score:"نمره",attendance_status:"وضعیت حضور",notes:"توضیحات",amount:"مبلغ",address:"آدرس",reason:"علت/موضوع",target:"مخاطب",tenant_school_id:"شناسه مدرسه",school_id:"شناسه مدرسه",school_code:"کد مدرسه",slug:"شناسه یکتا",plan_id:"طرح اشتراک",plan_code:"کد طرح",duration_months:"مدت اشتراک (ماه)",student_limit:"ظرفیت دانش‌آموز",price_irr:"قیمت (ریال)",grace_days:"مهلت تمدید (روز)",starts_at:"شروع اشتراک",ends_at:"پایان اشتراک",payment_reference:"شناسه پرداخت",owner_auth_user_id:"مدیر مدرسه",auth_user_id:"شناسه حساب کاربری",is_active:"فعال",created_by:"ثبت‌کننده"};
 const fieldLabel=k=>fieldLabels[k]||String(k).replaceAll("_"," ");
 const ignoredExcelFields=new Set(["id","created_at","updated_at","deleted_at"]);
 const excelKey=v=>String(v??"").replace(/^\uFEFF/,"").trim().replace(/\s+/g," ");
@@ -29,7 +29,7 @@ async function login(){
  try{setStatus("در حال بررسی اطلاعات...");let email=id;
  if(!id.includes("@")){if(!/^\d{10}$/.test(id))throw Error("کد ملی باید ۱۰ رقمی باشد.");const e=await api("/rest/v1/rpc/lookup_auth_email_by_national_code",{method:"POST",body:JSON.stringify({p_national_code:id})});email=Array.isArray(e)?e[0]:e;if(!email)throw Error("برای این کد ملی حساب کاربری پیدا نشد.")}
  const d=await fetch(CFG.supabase_url+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"apikey":CFG.supabase_anon_key,"Content-Type":"application/json"},body:JSON.stringify({email,password:pw})}).then(async r=>{if(!r.ok)throw Error((await r.text())||"ورود ناموفق بود.");return r.json()});
- token=d.access_token;refreshToken=d.refresh_token||"";profile=(await api("/rest/v1/account_settings?email=eq."+encodeURIComponent(email)+"&limit=1"))[0]||{role:"student",display_name:email,username:email,email};saveSession();renderDashboard();
+ token=d.access_token;refreshToken=d.refresh_token||"";profile=(await api("/rest/v1/account_settings?email=eq."+encodeURIComponent(email)+"&limit=1"))[0]||{role:"student",display_name:email,username:email,email};saveSession();await loadPlatformAdmin();await loadSubscriptionState();renderDashboard();
  }catch(e){setStatus(e.message||"ورود انجام نشد.",true)}
 }
 async function loadCatalog(){catalog=await fetch("../shared/module_catalog.json").then(r=>{if(!r.ok)throw Error("قرارداد ماژول‌ها پیدا نشد.");return r.json()})}
@@ -37,25 +37,48 @@ function show(id){["login","dashboard","workspace"].forEach(x=>$(x).classList.to
 function setStatus(t,err=false){$("loginStatus").textContent=t;$("loginStatus").style.color=err?"#ff9d9d":"#7ee2a8"}
 function allowedPanels(){
  const r=role();
+ if(subscriptionState.expired&&!platformAdmin)return ["management"];
  if(r==="manager")return Object.keys(catalog.panels||{});
  const map={educational:["educational"],executive:["executive"],cultural:["cultural"],advisor:["advisor"],teacher:["teachers"],student:["students"],parent:["parents"]};
  return map[r]||[];
 }
 function renderDashboard(){
  show("dashboard");$("schoolTitle").textContent=CFG.school_name||"دبیرستان";$("welcome").textContent="خوش آمدید، "+(profile?.display_name||profile?.username||"کاربر");
- const r=role();$("role").textContent="پنل "+(roles[r]||r)+" | دسترسی فعال";$("panels").innerHTML="";
+ const r=role();$("role").textContent="پنل "+(roles[r]||r)+(subscriptionState.expired&&!platformAdmin?" | اشتراک منقضی شده":" | دسترسی فعال");$("status").textContent=subscriptionState.expired&&!platformAdmin?"اشتراک مدرسه پایان یافته است؛ بخش‌های آموزشی تا تمدید اشتراک قفل هستند. از بخش «اشتراک مدارس» وضعیت را ببینید.":subscriptionState.unknown?"وضعیت اشتراک هنوز قابل تأیید نیست.":subscriptionState.record?"پایان اشتراک: "+new Date(subscriptionState.record.ends_at).toLocaleDateString("fa-IR")+" | ظرفیت: "+subscriptionState.record.student_limit+" دانش‌آموز":"";$("status").style.color=subscriptionState.expired&&!platformAdmin?"#b42318":"#66758b";$("panels").innerHTML="";
  allowedPanels().forEach(k=>{const items=catalog.panels[k]||[],el=document.createElement("button");el.className="panel";el.innerHTML="<b>"+esc(panelTitles[k]||catalog.friendly?.[k]||k)+"</b><span>"+items.length+" زیرپنل عملیاتی</span>";el.onclick=()=>openPanel(k);$("panels").appendChild(el)});
 }
 function canWrite(table){
  const r=role();
+ if(["schools","subscription_plans","school_subscriptions"].includes(table))return platformAdmin;
+ if(table==="school_memberships")return platformAdmin||r==="manager";
  if(r==="manager"||managerRoles.has(r))return true;
  return !!consumerWrite[r]?.has(table);
 }
 function specialViewOnly(table){return (role()==="student"||role()==="parent")&&!canWrite(table)}
 const meetingTables=new Set(["meeting_requests","parent_meeting_requests","teacher_meetings","meetings"]);
+async function loadPlatformAdmin(){
+ platformAdmin=false;
+ const uid=profile?.auth_user_id;
+ if(!uid)return;
+ try{const rows=await api("/rest/v1/platform_admins?auth_user_id=eq."+encodeURIComponent(uid)+"&select=auth_user_id&limit=1");platformAdmin=Array.isArray(rows)&&rows.length>0}catch(e){platformAdmin=false}
+}
+async function loadSubscriptionState(){
+ subscriptionState={expired:false,unknown:true,record:null};
+ try{
+  let schoolId=profile?.tenant_school_id;
+  if(!schoolId&&profile?.auth_user_id){const a=await api("/rest/v1/account_settings?auth_user_id=eq."+encodeURIComponent(profile.auth_user_id)+"&select=tenant_school_id&limit=1");schoolId=a?.[0]?.tenant_school_id; if(schoolId)profile.tenant_school_id=schoolId}
+  if(!schoolId)return;
+  const rows=await api("/rest/v1/school_subscriptions?school_id=eq."+encodeURIComponent(schoolId)+"&select=status,ends_at,grace_days,student_limit&order=ends_at.desc&limit=1");
+  const record=Array.isArray(rows)&&rows.length?rows[0]:null;
+  if(!record){subscriptionState={expired:true,unknown:false,record:null};return}
+  const deadline=new Date(record.ends_at).getTime()+Math.max(0,Number(record.grace_days)||0)*86400000;
+  const active=["active","past_due"].includes(String(record.status||"").toLowerCase())&&Number.isFinite(deadline)&&Date.now()<=deadline;
+  subscriptionState={expired:!active,unknown:false,record};
+ }catch(e){subscriptionState={expired:false,unknown:true,record:null}}
+}
 function openPanel(key){currentPanel=key;currentTable=null;selectedIndex=-1;show("workspace");$("workspaceTitle").textContent=panelTitles[key]||catalog.friendly?.[key]||key;$("workspaceMeta").textContent="محیط عملیاتی مشترک Web و Android • منبع داده: Supabase";renderModules()}
 function renderModules(){
- const items=catalog.panels[currentPanel]||[];$("modules").innerHTML="";const excelAllowed=managerRoles.has(role());
+ let items=catalog.panels[currentPanel]||[];if(currentPanel==="management"&&subscriptionState.expired&&!platformAdmin)items=items.filter(([,table])=>["account_settings","schools","subscription_plans","school_subscriptions","school_memberships"].includes(table));$("modules").innerHTML="";const excelAllowed=managerRoles.has(role());
  items.forEach(([label,table])=>{
   const card=document.createElement("div");card.className="module-card"+(table===currentTable?" active":"");
   const title=document.createElement("button");title.className="module";title.innerHTML="<b>"+esc(label)+"</b><span>"+esc(catalog.friendly?.[table]||table)+"</span>";title.onclick=()=>openTable(table);card.appendChild(title);
@@ -73,7 +96,7 @@ async function openTable(table){
  try{rows=await api("/rest/v1/"+encodeURIComponent(table)+"?select=*&limit=300");if(!Array.isArray(rows))rows=[];renderTable(rows);return true}
  catch(e){rows=[];$("tableArea").innerHTML='<div class="table-wrap"><div class="empty">دریافت اطلاعات انجام نشد: '+esc(e.message)+'</div></div>';return false}
 }
-function tableKeys(data){const keys=[];data.forEach(r=>Object.keys(r||{}).forEach(k=>{if(!ignoredExcelFields.has(k)&&!keys.includes(k))keys.push(k)}));return keys}
+function tableKeys(data){const keys=[];const showIds=["schools","subscription_plans","school_subscriptions","school_memberships"].includes(currentTable);data.forEach(r=>Object.keys(r||{}).forEach(k=>{if((!ignoredExcelFields.has(k)||(showIds&&k==="id"))&&!keys.includes(k))keys.push(k)}));return keys}
 function renderTable(data){
  const keys=tableKeys(data),write=canWrite(currentTable),viewOnly=specialViewOnly(currentTable);
  let html='<div class="table-wrap"><div class="table-tools"><input id="tableSearch" placeholder="جستجو در همین زیرپنل"><button class="primary" id="reload">تازه‌سازی</button>';
@@ -102,7 +125,7 @@ function editorFields(row){
  const keys=[...new Set([...configured,...existing])].filter(k=>!ignoredExcelFields.has(k)&&k!=="id");
  return keys.map(k=>{
   const value=row?.[k]??"";
-  const numeric=["id","student_id","teacher_id","parent_id","class_id","assignment_id","exam_id","activity_id","children_count","teaching_hours","duration","amount","score","max_score","coefficient","quantity","fixed_amount"].includes(k);
+  const numeric=["id","student_id","teacher_id","parent_id","class_id","assignment_id","exam_id","activity_id","children_count","teaching_hours","duration","duration_months","student_limit","grace_days","amount","price_irr","score","max_score","coefficient","quantity","fixed_amount"].includes(k);
   const multiline=["description","content","answer_text","message","note","executive_note","report","reason"].includes(k);
   const input=multiline
    ? '<textarea data-field="'+esc(k)+'" rows="3">'+esc(value)+'</textarea>'
@@ -183,4 +206,4 @@ async function importExcel(){
 }
 function escText(s){return String(s??"").replace(/[\r\n]/g," ")}
 $("loginBtn").onclick=login;$("password").addEventListener("keydown",e=>{if(e.key==="Enter")login()});$("forgot").onclick=()=>setStatus("بازیابی رمز باید از مسیر حساب کاربری/ایمیل ثبت‌شده انجام شود.");$("back").onclick=renderDashboard;$("refresh").onclick=()=>currentTable?openTable(currentTable):renderModules();$("logout").onclick=()=>{token="";refreshToken="";profile=null;sessionStorage.clear();localStorage.removeItem("frahoosh_access_token");localStorage.removeItem("frahoosh_refresh_token");localStorage.removeItem("frahoosh_profile");show("login")};
-(async()=>{try{await loadCatalog();const saved=localStorage.getItem("frahoosh_access_token")||sessionStorage.getItem("frahoosh_access_token"),p=localStorage.getItem("frahoosh_profile")||sessionStorage.getItem("frahoosh_profile");if(saved&&p){token=saved;profile=JSON.parse(p);renderDashboard()}else show("login")}catch(e){setStatus("قرارداد مشترک Web بارگذاری نشد.",true)}})();
+(async()=>{try{await loadCatalog();const saved=localStorage.getItem("frahoosh_access_token")||sessionStorage.getItem("frahoosh_access_token"),p=localStorage.getItem("frahoosh_profile")||sessionStorage.getItem("frahoosh_profile");if(saved&&p){token=saved;profile=JSON.parse(p);await loadPlatformAdmin();await loadSubscriptionState();renderDashboard()}else show("login")}catch(e){setStatus("قرارداد مشترک Web بارگذاری نشد.",true)}})();
