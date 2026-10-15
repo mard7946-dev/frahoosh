@@ -339,7 +339,7 @@ jobs:
           apks=(bin/*.apk)
           test "${#apks[@]}" -gt 0
           echo "APK produced:"
-          printf '%s\\n' "${apks[@]}"
+          printf '%s\n' "${apks[@]}"
 
       - name: Verify APK provenance
         shell: bash
@@ -356,8 +356,8 @@ jobs:
           echo "${BADGING}" | grep -Fq "package: name='ir.frahoosh.frahooshmobile'"
           echo "${BADGING}" | grep -Fq "versionName='1.6.9'"
           PERMISSIONS="$("${AAPT}" dump permissions "${apk}")"
-          printf '%s\\n' "${PERMISSIONS}" | tee apk-permissions.txt
-          if printf '%s\\n' "${PERMISSIONS}" | grep -Eiq 'READ_SMS|RECEIVE_SMS|SEND_SMS|READ_CALL_LOG|WRITE_CALL_LOG|BIND_ACCESSIBILITY_SERVICE|SYSTEM_ALERT_WINDOW|WRITE_SETTINGS'; then
+          printf '%s\n' "${PERMISSIONS}" | tee apk-permissions.txt
+          if printf '%s\n' "${PERMISSIONS}" | grep -Eiq 'READ_SMS|RECEIVE_SMS|SEND_SMS|READ_CALL_LOG|WRITE_CALL_LOG|BIND_ACCESSIBILITY_SERVICE|SYSTEM_ALERT_WINDOW|WRITE_SETTINGS'; then
             echo "Unexpected high-risk Android permission found in APK."
             exit 1
           fi
@@ -381,7 +381,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Frahoosh-APK-v1.6.8
+          name: Frahoosh-APK-v1.6.9
           path: |
             bin/*.apk
             apk.sha256
