@@ -157,24 +157,61 @@ async function requestNegotiation(id,pc){
   catch(e){console.warn("AUDIO_RENEGOTIATION_FAILED",e)}
  }else await send("renegotiate",{},id);
 }
-function addVideo(id,name,stream){let tile=document.getElementById("v-"+id);if(!tile){tile=document.createElement("div");tile.className="tile";tile.id="v-"+id;tile.innerHTML='<video autoplay playsinline></video><span>'+esc(name)+'</span>';$("videos").appendChild(tile)}const video=tile.querySelector("video");video.autoplay=true;video.playsInline=true;video.muted=String(id)===String(C.userId);video.srcObject=stream;const playback=video.play();if(playback&&playback.catch)playback.catch(e=>console.warn("VIDEO_PLAY_BLOCKED",e&&e.name))}
+function addVideo(id,name,stream){
+ let tile=document.getElementById("v-"+id);
+ if(!tile){tile=document.createElement("div");tile.className="tile";tile.id="v-"+id;tile.innerHTML='<video autoplay playsinline></video><span>'+esc(name)+'</span>';$("videos").appendChild(tile)}
+ const video=tile.querySelector("video");video.autoplay=true;video.playsInline=true;
+ const isLocal=String(id)===String(C.userId);video.muted=isLocal;video.srcObject=stream;
+ const retryAudio=()=>{
+  if(isLocal)return;
+  video.muted=false;
+  const p=video.play();
+  if(p&&p.catch)p.catch(e=>console.warn("REMOTE_AUDIO_PLAY_RETRY_FAILED",e&&e.name));
+  const prompt=tile.querySelector(".audio-playback-retry");if(prompt)prompt.remove();
+ };
+ const playback=video.play();
+ if(playback&&playback.catch)playback.catch(e=>{
+  console.warn("VIDEO_PLAY_BLOCKED",e&&e.name);
+  if(!isLocal&&!tile.querySelector(".audio-playback-retry")){
+   const prompt=document.createElement("button");prompt.className="audio-playback-retry";prompt.type="button";prompt.textContent="برای شنیدن صدا لمس کنید";
+   prompt.style.cssText="position:absolute;z-index:5;bottom:8px;right:8px;padding:8px 10px;border:0;border-radius:8px;background:#075985;color:white;font-weight:600";
+   prompt.addEventListener("click",retryAudio);tile.style.position="relative";tile.appendChild(prompt);
+  }
+ });
+}
 function removeVideo(id){let t=document.getElementById("v-"+id);if(t)t.remove()}
 function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="person">'+esc(n)+(id===C.userId?" (شما)":"")+"</div>";$("participants").innerHTML=h}
 async function ensureMedia(){
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStatus("این محیط دسترسی رسانه را پشتیبانی نمی‌کند.");return false}
- const acquired=localStream&&localStream.getTracks().some(t=>t.readyState==="live")?localStream:new MediaStream();
- let videoError=null,audioError=null;
- const hasVideo=acquired.getVideoTracks().some(t=>t.readyState==="live");
- const hasAudio=acquired.getAudioTracks().some(t=>t.readyState==="live");
- if(!hasVideo){try{const v=await navigator.mediaDevices.getUserMedia({video:true,audio:false});v.getVideoTracks().forEach(t=>{t.enabled=cam;acquired.addTrack(t)})}catch(e){videoError=e;console.warn("CAMERA_PERMISSION_ERROR",e)}}
- if(!hasAudio){try{const a=await navigator.mediaDevices.getUserMedia({video:false,audio:true});a.getAudioTracks().forEach(t=>{t.enabled=mic;acquired.addTrack(t)})}catch(e){audioError=e;console.warn("MIC_PERMISSION_ERROR",e)}}
- if(!acquired.getTracks().some(t=>t.readyState==="live")){setStatus("دسترسی دوربین/میکروفون فعال نشد: "+((videoError||audioError)?.name||"خطا"));alert("مجوز دوربین و میکروفون برنامه را در تنظیمات Android بررسی کنید.");return false}
- localStream=acquired;addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
- for(const [id,pc] of peers){let added=false;for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already){pc.addTrack(track,localStream);added=true}}if(added)await requestNegotiation(id,pc)}
- $("mic").classList.toggle("active",mic&&localStream.getAudioTracks().length>0);$("cam").classList.toggle("active",cam&&localStream.getVideoTracks().length>0);
- if(videoError)setStatus("دوربین فعال نشد ("+(videoError.name||"خطا")+"). مجوز دوربین برنامه را بررسی کنید.");
- else if(audioError)setStatus("میکروفون فعال نشد ("+(audioError.name||"خطا")+"). مجوز میکروفون برنامه را بررسی کنید.");
- return !videoError||localStream.getAudioTracks().length>0;
+ if(localStream&&localStream.getTracks().some(t=>t.readyState==="live")){
+  addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();return localStream.getAudioTracks().some(t=>t.readyState==="live");
+ }
+ let stream=null;
+ try{
+  // Keep the known-good APK's single combined media request; separate camera/mic
+  // requests were a regression risk in Android WebView.
+  stream=await navigator.mediaDevices.getUserMedia({video:!isStudent(),audio:true});
+  stream.getAudioTracks().forEach(t=>t.enabled=mic);
+  stream.getVideoTracks().forEach(t=>t.enabled=cam);
+  localStream=stream;
+  addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
+  for(const [id,pc] of peers){
+   let added=false;
+   for(const track of localStream.getTracks()){
+    const already=pc.getSenders().some(x=>x.track===track);
+    if(!already){pc.addTrack(track,localStream);added=true}
+   }
+   if(added)await requestNegotiation(id,pc);
+  }
+  $("mic").classList.toggle("active",mic&&localStream.getAudioTracks().length>0);
+  $("cam").classList.toggle("active",cam&&localStream.getVideoTracks().length>0);
+  return localStream.getAudioTracks().some(t=>t.readyState==="live");
+ }catch(e){
+  console.warn("MEDIA_PERMISSION_ERROR",e);
+  setStatus("دسترسی میکروفون/رسانه فعال نشد: "+(e.name||"خطا"));
+  alert("دسترسی میکروفون/رسانه داده نشد؛ مجوز میکروفون و دوربین را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")");
+  return false;
+ }
 }
 async function makePeer(id,name){if(peers.has(id))return peers.get(id);let pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});peers.set(id,pc);names.set(id,name||"کاربر");renderPeople();if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.onicecandidate=e=>{if(e.candidate)send("candidate",{candidate:e.candidate},id)};pc.ontrack=e=>addVideo(id,names.get(id)||"کاربر",e.streams[0]);pc.onconnectionstatechange=()=>{if(["failed","closed","disconnected"].includes(pc.connectionState)){removeVideo(id);}};return pc}
 async function offerTo(id,name){let pc=await makePeer(id,name);let o=await pc.createOffer();await pc.setLocalDescription(o);await send("offer",{sdp:pc.localDescription},id)}
