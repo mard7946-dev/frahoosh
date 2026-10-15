@@ -3,7 +3,7 @@ const C=window.C||{},$=id=>document.getElementById(id);
 const role=String(C.role||"student").toLowerCase();
 const student=["student","دانش‌آموز","guest","میهمان"].includes(role);
 const teacher=["teacher","دبیر"].includes(role);
-const controller=["teacher","دبیر","manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی","counselor","مشاوره","principal","admin"].includes(role);
+const controller=["teacher","دبیر","manager","مدیر","executive","executive_deputy","معاون اجرایی","معاونت اجرایی","educational","educational_deputy","معاون آموزشی","معاونت آموزشی","cultural","cultural_deputy","معاون پرورشی","معاونت پرورشی","counselor","مشاوره","principal","administrator","admin"].includes(role);
 let target="",presence=new Map(),latestNames=new Map();
 const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"};
 async function api(path,opts={}){const r=await fetch(C.url+"/rest/v1/"+path,{...opts,headers:{...headers,...(opts.headers||{})}});if(!r.ok)throw Error(await r.text());const t=await r.text();return t?JSON.parse(t):null}
