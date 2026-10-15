@@ -13,7 +13,7 @@ create unique index if not exists schools_school_code_unique on public.schools(s
 
 create table if not exists public.subscription_plans (
  id uuid primary key default gen_random_uuid(), plan_code text not null unique, name text not null,
- duration_months integer not null check(duration_months>0), student_limit integer not null check(student_limit>0),
+ duration_months integer not null check(duration_months>0), student_min integer not null default 1 check(student_min>0), student_limit integer not null check(student_limit>=student_min),
  price_irr bigint not null default 0 check(price_irr>=0), is_active boolean not null default true,
  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
@@ -21,7 +21,7 @@ create table if not exists public.school_subscriptions (
  id uuid primary key default gen_random_uuid(), school_id uuid not null references public.schools(id) on delete restrict,
  plan_id uuid references public.subscription_plans(id) on delete restrict,
  duration_months integer not null default 1 check(duration_months>0),
- student_limit integer not null default 100 check(student_limit>0), price_irr bigint not null default 0 check(price_irr>=0),
+ student_min integer not null default 1 check(student_min>0), student_limit integer not null default 100 check(student_limit>=student_min), price_irr bigint not null default 0 check(price_irr>=0),
  starts_at timestamptz not null default now(), ends_at timestamptz not null,
  grace_days integer not null default 0 check(grace_days between 0 and 30),
  status text not null default 'active' check(status in ('active','past_due','expired','suspended','cancelled')),
@@ -47,11 +47,11 @@ select 'frahoosh-default',
  coalesce(nullif((select school_name from public.school_profile order by id limit 1),''),'مدرسهٔ فراهوش'),
  nullif((select school_code from public.school_profile order by id limit 1),''),'active'
 on conflict(slug) do nothing;
-insert into public.subscription_plans(plan_code,name,duration_months,student_limit,price_irr,is_active)
-select 'm'||d.months::text||'_s'||c.capacity::text,d.label||' / حداکثر '||c.capacity::text||' دانش‌آموز',
- d.months,c.capacity,0,true
+insert into public.subscription_plans(plan_code,name,duration_months,student_min,student_limit,price_irr,is_active)
+select 'm'||d.months::text||'_s'||c.capacity::text,d.label||' / '||c.range_label||' دانش‌آموز',
+ d.months,c.minimum,c.capacity,0,true
 from (values (1,'یک‌ماهه'),(2,'دوماهه'),(3,'سه‌ماهه'),(6,'شش‌ماهه'),(9,'نه‌ماهه'),(12,'یک‌ساله'),(24,'دوساله')) d(months,label)
-cross join (values(100),(200),(300),(500),(700),(1000)) c(capacity)
+cross join (values(1,100,'۱ تا ۱۰۰'),(101,200,'۱۰۱ تا ۲۰۰'),(201,300,'۲۰۱ تا ۳۰۰'),(301,500,'۳۰۱ تا ۵۰۰'),(501,700,'۵۰۱ تا ۷۰۰'),(701,1000,'۷۰۱ تا ۱۰۰۰')) c(minimum,capacity,range_label)
 on conflict(plan_code) do nothing;
 
 alter table public.account_settings add column if not exists tenant_school_id uuid references public.schools(id) on delete restrict;
