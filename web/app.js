@@ -104,8 +104,8 @@ async function renderSubscriptionWorkspace(){
  try{
   const results=await Promise.all([
    api("/rest/v1/schools?select=id,slug,name,school_code,owner_auth_user_id,status,created_at&order=created_at.desc&limit=300"),
-   api("/rest/v1/subscription_plans?select=id,plan_code,name,duration_months,student_limit,price_irr,is_active&is_active=eq.true&order=duration_months.asc&limit=200"),
-   api("/rest/v1/school_subscriptions?select=id,school_id,plan_id,duration_months,student_limit,price_irr,starts_at,ends_at,grace_days,status,payment_reference,created_at&order=created_at.desc&limit=300")
+   api("/rest/v1/subscription_plans?select=id,plan_code,name,duration_months,student_min,student_limit,price_irr,is_active&is_active=eq.true&order=duration_months.asc&limit=200"),
+   api("/rest/v1/school_subscriptions?select=id,school_id,plan_id,duration_months,student_min,student_limit,price_irr,starts_at,ends_at,grace_days,status,payment_reference,created_at&order=created_at.desc&limit=300")
   ]);
   const schools=Array.isArray(results[0])?results[0]:[];
   const plans=Array.isArray(results[1])?results[1]:[];
