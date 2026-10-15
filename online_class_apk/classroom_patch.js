@@ -7,7 +7,7 @@ const controller=["teacher","دبیر","manager","مدیر","executive","executi
 let target="",presence=new Map(),latestNames=new Map(),lastAppliedPermissions="";
 const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"};
 async function api(path,opts={}){const r=await fetch(C.url+"/rest/v1/"+path,{...opts,headers:{...headers,...(opts.headers||{})}});if(!r.ok)throw Error(await r.text());const t=await r.text();return t?JSON.parse(t):null}
-async function sig(type,p={},to=null){try{await api("online_class_signals",{method:"POST",headers:{...headers,"Prefer":"return=minimal"},body:JSON.stringify({class_id:C.classId,sender_user_id:C.userId,receiver_user_id:to,signal_type:type,payload:p})})}catch(e){console.warn("Classroom signal failed",e)}}
+async function sig(type,p={},to=null){try{await api("online_class_signals",{method:"POST",headers:{...headers,"Prefer":"return=minimal"},body:JSON.stringify({class_id:C.classId,sender_user_id:C.userId,receiver_user_id:to,signal_type:type,payload:{...(p||{}),sessionId:C.sessionId??null}})})}catch(e){console.warn("Classroom signal failed",e)}}
 function esc(s){return String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
 function rosterMarkup(rows){
  const now=Date.now(),latest=new Map();
