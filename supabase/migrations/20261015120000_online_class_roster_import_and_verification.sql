@@ -107,9 +107,12 @@ begin
         = replace(replace(regexp_replace(lower(v_class), '\s+', '', 'g'),'ي','ی'),'ك','ک')) then
     raise exception 'این کلاس در برنامه هفتگی به جلسه فعال متصل نیست';
   end if;
-  insert into public.guest_online_members(class_id,user_id,display_name,role,left_at)
-  values(p_class_id,v_uid,v_name,'guest',null)
-  on conflict(class_id,user_id) do update set display_name=excluded.display_name,role='guest',left_at=null;
+  update public.guest_online_members set display_name=v_name,role='guest',left_at=null
+    where class_id=p_class_id and user_id=v_uid;
+  if not found then
+    insert into public.guest_online_members(class_id,user_id,display_name,role)
+    values(p_class_id,v_uid,v_name,'guest');
+  end if;
   return true;
 end;
 $$;
