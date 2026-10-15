@@ -414,7 +414,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Frahoosh-APK-v1.6.9
+          name: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && 'Frahoosh-APK-v1.6.9-RELEASE' || 'Frahoosh-APK-v1.6.9-DEBUG-TEST-ONLY' }}
           path: |
             bin/*.apk
             apk.sha256
@@ -427,7 +427,7 @@ jobs:
           retention-days: 14
 
       - name: Publish signed APK to stable download branch
-        if: success() && github.event_name == 'push' && env.ANDROID_KEYSTORE_BASE64 != ''
+        if: success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && env.ANDROID_KEYSTORE_BASE64 != ''
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
