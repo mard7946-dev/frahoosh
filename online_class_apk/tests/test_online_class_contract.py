@@ -90,6 +90,18 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertEqual(source_patch.read_text(encoding="utf-8"), apk_patch.read_text(encoding="utf-8"))
 
 
+    def test_classroom_quiz_supports_four_types_schedule_and_exports(self):
+        for token in (
+            'value="choice"', 'value="tf"', 'value="short"', 'value="fill"',
+            'حداکثر ۴', 'type="datetime-local"', 'publish_at', 'ends_at',
+            'خروجی Excel', 'خروجی PDF / چاپ', 'score', 'max_score',
+        ):
+            self.assertIn(token, self.classroom)
+        migration = (ROOT / "supabase" / "migrations" /
+                     "20261015100000_scheduled_typed_classroom_quizzes.sql").read_text(encoding="utf-8")
+        for token in ("publish_at", "ends_at", "questions jsonb", "smart_board_quizzes_schedule_order_check"):
+            self.assertIn(token, migration)
+
     def test_class_creation_persists_valid_jalali_date_and_24_hour_time(self):
         self.assertIn('classWizardStep===4?$("cdateDisplay")', self.entry)
         self.assertIn('if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(selectedDate))', self.entry)
