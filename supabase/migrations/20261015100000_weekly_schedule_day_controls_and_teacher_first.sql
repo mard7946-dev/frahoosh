@@ -70,6 +70,7 @@ begin
     when w.weekday = v_weekday
      and v_now >= ((v_today + w.start_time) at time zone 'Asia/Tehran')
      and v_now < ((v_today + w.end_time) at time zone 'Asia/Tehran')
+     and w.day_enabled
     then coalesce(w.activated_at, v_now) else null end
   where w.start_time is not null and w.end_time is not null;
 
