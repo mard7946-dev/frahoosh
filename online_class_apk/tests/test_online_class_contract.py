@@ -144,6 +144,15 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertNotIn("closeClassAfterServerEnd()", refresh)
         self.assertIn("updateClassTimer()", refresh)
 
+    def test_webrtc_signaling_is_session_scoped_and_preserves_early_ice_candidates(self):
+        self.assertIn('function isCurrentSessionSignal(row,payload)', self.classroom)
+        self.assertIn('if(!isCurrentSessionSignal(x,p))continue;', self.classroom)
+        self.assertIn('sessionId:C.sessionId??null', self.classroom)
+        self.assertIn('function queueIceCandidate(id,candidate)', self.classroom)
+        self.assertIn('await flushIceCandidates(x.sender_user_id,pc)', self.classroom)
+        self.assertIn('CLASSROOM_SIGNAL_REJECTED', self.classroom)
+        self.assertIn('pendingIceCandidates.delete(String(x.sender_user_id))', self.classroom)
+
     def test_classroom_keeps_the_existing_startup_media_permission_flow(self):
         activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
                     "ir" / "frahoosh" / "classroom" / "MainActivity.java").read_text(encoding="utf-8")
