@@ -309,6 +309,7 @@ jobs:
         shell: bash
         env:
           P4A_BUILD_ARGS: "--color=always"
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           set -euo pipefail
           export ANDROID_NDK_HOME="${ANDROID_SDK_ROOT}/ndk/28.2.13676358"
@@ -320,8 +321,14 @@ jobs:
           git config --global url."https://github.com/google/skcms.git".insteadOf "https://skia.googlesource.com/skcms"
           git config --global url."https://github.com/google/skcms.git".insteadOf "https://skia.googlesource.com/skcms.git"
 
+          if [[ -n "${ANDROID_KEYSTORE_BASE64:-}" ]]; then
+            BUILD_MODE=release
+          else
+            BUILD_MODE=debug
+          fi
+          echo "Selected Android build mode: ${BUILD_MODE}"
           build_attempt=1
-          until buildozer -v android debug; do
+          until buildozer -v android "${BUILD_MODE}"; do
             if [ "$build_attempt" -ge 3 ]; then
               echo "Buildozer failed after ${build_attempt} attempts."
               exit 1
@@ -343,6 +350,11 @@ jobs:
 
       - name: Verify APK provenance
         shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -363,6 +375,20 @@ jobs:
           fi
           APKSIGNER="${SDK}/build-tools/35.0.0/apksigner"
           test -x "${APKSIGNER}"
+          if [[ -n "${ANDROID_KEYSTORE_BASE64:-}" ]]; then
+            : "${ANDROID_KEYSTORE_PASSWORD:?ANDROID_KEYSTORE_PASSWORD secret is required when a release keystore is configured}"
+            : "${ANDROID_KEY_ALIAS:?ANDROID_KEY_ALIAS secret is required when a release keystore is configured}"
+            : "${ANDROID_KEY_PASSWORD:?ANDROID_KEY_PASSWORD secret is required when a release keystore is configured}"
+            KEYSTORE="${RUNNER_TEMP}/frahoosh-release.keystore"
+            printf '%s' "${ANDROID_KEYSTORE_BASE64}" | base64 --decode > "${KEYSTORE}"
+            test -s "${KEYSTORE}"
+            "${APKSIGNER}" sign --ks "${KEYSTORE}" --ks-key-alias "${ANDROID_KEY_ALIAS}" --ks-pass "pass:${ANDROID_KEYSTORE_PASSWORD}" --key-pass "pass:${ANDROID_KEY_PASSWORD}" "${apk}"
+            echo "SIGNING_MODE=release-keystore" | tee apk-signing-mode.txt
+            rm -f "${KEYSTORE}"
+          else
+            echo "SIGNING_MODE=buildozer-debug-keystore" | tee apk-signing-mode.txt
+            echo "WARNING: No persistent release keystore configured; Play Protect may still warn on sideload installation."
+          fi
           "${APKSIGNER}" verify --verbose "${apk}"
           "${APKSIGNER}" verify --print-certs "${apk}" | tee apk-signing.txt
           sha256sum "${apk}" | tee apk.sha256
@@ -390,5 +416,6 @@ apk_file=$(basename "${apk}")
             apk-provenance.txt
             apk-permissions.txt
             apk-signing.txt
+            apk-signing-mode.txt
           if-no-files-found: error
           retention-days: 14
