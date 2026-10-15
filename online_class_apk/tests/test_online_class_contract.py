@@ -76,6 +76,14 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('tools_permission', self.patch)
         self.assertIn('pollPermissions', self.patch)
 
+    def test_guest_student_media_is_gated_by_active_session_permissions(self):
+        self.assertIn('"guest","میهمان"', self.classroom)
+        self.assertIn('if(isStudent()){mic=false;cam=false;', self.classroom)
+        self.assertIn('window.setStudentToolsPermission=function(permissions={})', self.classroom)
+        self.assertIn('sessionId:C.sessionId??null', self.patch)
+        self.assertIn('String(payload.sessionId)!==String(C.sessionId||"")', self.patch)
+        self.assertIn('signature!==lastAppliedPermissions', self.patch)
+
 
     def test_apk_bundles_exact_same_entry_and_classroom_sources(self):
         apk_entry = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "index.html"
