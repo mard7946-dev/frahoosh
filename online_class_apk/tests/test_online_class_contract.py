@@ -112,6 +112,23 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("end_time time without time zone", migration)
         self.assertIn("drop function if exists public.get_student_class_schedule(text)", migration)
 
+    def test_weekly_schedule_day_controls_enforce_teacher_first_entry(self):
+        self.assertIn('id="scheduleControlDay"', self.entry)
+        self.assertIn('id="enableScheduleDay"', self.entry)
+        self.assertIn('id="disableScheduleDay"', self.entry)
+        self.assertIn('set_weekly_schedule_day_enabled', self.entry)
+        self.assertIn('day_enabled', self.entry)
+        migration = (ROOT / "supabase" / "migrations" /
+                     "20261015100000_weekly_schedule_day_controls_and_teacher_first.sql").read_text(encoding="utf-8")
+        self.assertIn("add column if not exists day_enabled boolean not null default true", migration)
+        self.assertIn("w.day_enabled", migration)
+        self.assertIn("کلاس‌های این روز توسط مدیریت غیرفعال شده‌اند.", migration)
+        self.assertIn("teacher_user_id", migration)
+        mobile_schedule = (ROOT / "mobile" / "screens" / "weekly_schedule.py").read_text(encoding="utf-8")
+        self.assertIn('"start_time": start_time', mobile_schedule)
+        self.assertIn('set_weekly_schedule_day_enabled', mobile_schedule)
+        self.assertIn('BELLS = [1, 2, 3, 4, 5, 6]', mobile_schedule)
+
     def test_transient_session_polling_never_ejects_active_classroom(self):
         self.assertIn("CLASS_SESSION_ID_MISMATCH; preserving active classroom media", self.classroom)
         self.assertIn("temporarily missing/RLS-filtered session row must never tear down working audio/video", self.classroom)
