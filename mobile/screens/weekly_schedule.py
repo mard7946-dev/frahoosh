@@ -141,7 +141,7 @@ class WeeklyScheduleScreen(Screen):
     def _render(self):
         self.area.clear_widgets()
         scroll = ScrollView(do_scroll_x=True, do_scroll_y=True)
-        grid = GridLayout(cols=6, spacing=dp(3), padding=dp(3), size_hint=(None, None), width=dp(6 * 185))
+        grid = GridLayout(cols=7, spacing=dp(3), padding=dp(3), size_hint=(None, None), width=dp(7 * 185))
         grid.bind(minimum_height=grid.setter("height"))
 
         headers = ["زنگ", *DAYS]
