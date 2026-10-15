@@ -66,9 +66,9 @@ jobs:
           count = 0
           for path in files:
               html = path.read_text(encoding="utf-8")
-              for i, match in enumerate(re.finditer(r"<script\\b([^>]*)>(.*?)</script\\s*>", html, re.I | re.S)):
+              for i, match in enumerate(re.finditer(r"<script\b([^>]*)>(.*?)</script\s*>", html, re.I | re.S)):
                   attrs, body = match.group(1), match.group(2)
-                  if re.search(r"\\bsrc\\s*=", attrs, re.I) or not body.strip():
+                  if re.search(r"\bsrc\s*=", attrs, re.I) or not body.strip():
                       continue
                   target = pathlib.Path("/tmp") / f"frahoosh-{path.stem}-{i}.js"
                   target.write_text(body, encoding="utf-8")
