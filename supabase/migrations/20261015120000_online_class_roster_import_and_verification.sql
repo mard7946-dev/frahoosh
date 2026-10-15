@@ -90,7 +90,7 @@ begin
   if not exists (
     select 1 from public.students st
     where st.tenant_school_id=v_school and st.student_code=v_code
-      and replace(replace(regexp_replace(lower(btrim(coalesce(st.class_name,'')), '\s+', '', 'g'),'ي','ی'),'ك','ک')
+      and replace(replace(regexp_replace(lower(btrim(coalesce(st.class_name,''))), '\s+', '', 'g'),'ي','ی'),'ك','ک')
         = replace(replace(regexp_replace(lower(v_class), '\s+', '', 'g'),'ي','ی'),'ك','ک')
       and replace(replace(regexp_replace(lower(btrim(coalesce(st.first_name,'')||' '||coalesce(st.last_name,''))), '\s+', ' ', 'g'),'ي','ی'),'ك','ک')
         = replace(replace(regexp_replace(lower(v_name), '\s+', ' ', 'g'),'ي','ی'),'ك','ک')
