@@ -51,6 +51,8 @@ function canWrite(table){
  const r=role();
  if(["schools","subscription_plans","school_subscriptions"].includes(table))return platformAdmin;
  if(table==="school_memberships")return platformAdmin||r==="manager";
+ // Only the school manager can assign or change school roles; RLS remains the final authority.
+ if(table==="account_settings")return r==="manager"||platformAdmin;
  if(r==="manager"||managerRoles.has(r))return true;
  return !!consumerWrite[r]?.has(table);
 }
@@ -69,7 +71,7 @@ async function loadSubscriptionState(){
   if(!schoolId&&profile?.auth_user_id){const a=await api("/rest/v1/account_settings?auth_user_id=eq."+encodeURIComponent(profile.auth_user_id)+"&select=tenant_school_id&limit=1");schoolId=a?.[0]?.tenant_school_id; if(schoolId)profile.tenant_school_id=schoolId}
   if(!schoolId)return;
   const results=await Promise.all([
-   api("/rest/v1/school_subscriptions?school_id=eq."+encodeURIComponent(schoolId)+"&select=status,ends_at,grace_days,student_limit&order=ends_at.desc&limit=1"),
+   api("/rest/v1/school_subscriptions?school_id=eq."+encodeURIComponent(schoolId)+"&select=status,starts_at,ends_at,grace_days,student_limit&order=ends_at.desc&limit=1"),
    api("/rest/v1/schools?id=eq."+encodeURIComponent(schoolId)+"&select=status&limit=1")
   ]);
   const rows=results[0],schoolRows=results[1];
@@ -77,7 +79,7 @@ async function loadSubscriptionState(){
   if(!record){subscriptionState={expired:true,unknown:false,record:null};return}
   const deadline=new Date(record.ends_at).getTime()+Math.max(0,Number(record.grace_days)||0)*86400000;
   const schoolActive=Array.isArray(schoolRows)&&schoolRows.length>0&&schoolRows[0].status==="active";
-  const active=schoolActive&&["active","past_due"].includes(String(record.status||"").toLowerCase())&&Number.isFinite(deadline)&&Date.now()<=deadline;
+  const startAt=new Date(record.starts_at||0).getTime();const active=schoolActive&&["active","past_due"].includes(String(record.status||"").toLowerCase())&&Number.isFinite(startAt)&&Date.now()>=startAt&&Number.isFinite(deadline)&&Date.now()<=deadline;
   subscriptionState={expired:!active,unknown:false,record};
  }catch(e){subscriptionState={expired:false,unknown:true,record:null}}
 }
@@ -114,6 +116,7 @@ async function renderSubscriptionWorkspace(){
   const planMap=Object.fromEntries(plans.map(x=>[x.id,x]));
   let html='<div class="table-wrap"><h3>مدیریت اشتراک مدارس</h3><p class="crud-hint">هر مدرسه شناسه و ظرفیت مستقل دارد. پس از پایان اشتراک، دسترسی عملیاتی از سمت پایگاه داده محدود می‌شود و اطلاعات حذف نمی‌شود.</p>';
   if(platformAdmin){
+   html+='<section class="subscription-admin-card"><h4>تعرفه طرح‌های اشتراک</h4><p class="crud-hint">قیمت‌ها عمداً از پیش تعیین نشده‌اند؛ برای هر ترکیب مدت و ظرفیت، قیمت را به ریال وارد و ذخیره کنید.</p><div class="table-wrap"><table class="data-table"><thead><tr><th>مدت (ماه)</th><th>ظرفیت دانش‌آموز</th><th>قیمت (ریال)</th><th>عملیات</th></tr></thead><tbody>'+plans.map(p=>'<tr><td>'+Number(p.duration_months).toLocaleString("fa-IR")+'</td><td>'+Number(p.student_min).toLocaleString("fa-IR")+' تا '+Number(p.student_limit).toLocaleString("fa-IR")+'</td><td><input type="number" min="0" step="1000" data-plan-price="'+esc(p.id)+'" value="'+Number(p.price_irr||0)+'" aria-label="قیمت طرح"></td><td><button type="button" data-save-plan="'+esc(p.id)+'">ذخیره قیمت</button></td></tr>').join("")+'</tbody></table></div><div class="message" id="subPlanPriceStatus"></div></section>';
    html+='<section class="subscription-admin-card"><h4>ثبت مدرسه جدید</h4><div class="form-grid"><label>نام مدرسه<input id="subSchoolName" required placeholder="نام کامل مدرسه"></label><label>شناسه یکتا (لاتین)<input id="subSchoolSlug" required placeholder="school-city-01"></label><label>کد مدرسه (اختیاری)<input id="subSchoolCode" placeholder="کد مدرسه"></label><label>شناسه حساب مدیر (اختیاری)<input id="subOwnerId" placeholder="UUID حساب Auth موجود"></label><label>ایمیل مدیر (برای ایجاد پیوند حساب)<input id="subOwnerEmail" type="email" placeholder="manager@example.com"></label></div><button class="primary" id="subCreateSchool">ثبت مدرسه</button><div class="message" id="subSchoolStatus"></div></section>';
    html+='<section class="subscription-admin-card"><h4>فعال‌سازی یا تمدید اشتراک</h4><div class="form-grid"><label>مدرسه<select id="subTargetSchool"><option value="">انتخاب مدرسه</option>'+schools.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.slug)+'</option>').join("")+'</select></label><label>طرح اشتراک<select id="subPlan"><option value="">انتخاب مدت و ظرفیت</option>'+plans.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+' | '+(Number(x.price_irr||0)>0?Number(x.price_irr).toLocaleString("fa-IR")+' ریال':'قیمت تعیین نشده')+'</option>').join("")+'</select></label><label>شروع اشتراک<input id="subStart" type="datetime-local" value="'+localDateTimeValue(new Date())+'"></label><label>مهلت تمدید<select id="subGrace"><option value="0">بدون مهلت اضافی</option><option value="3">۳ روز</option><option value="7">۷ روز</option><option value="15">۱۵ روز</option></select></label></div><button class="primary" id="subActivate">فعال‌سازی / تمدید اشتراک</button><div class="message" id="subPlanStatus"></div></section>';
   }
@@ -128,25 +131,46 @@ async function renderSubscriptionWorkspace(){
   html+='</div>';
   area.innerHTML=html;
   if(platformAdmin){
+   area.querySelectorAll("[data-save-plan]").forEach(button=>button.onclick=async()=>{
+    const planId=button.getAttribute("data-save-plan"),input=area.querySelector('[data-plan-price="'+planId+'"]'),price=Number(input?.value),status=$("subPlanPriceStatus");
+    if(!Number.isSafeInteger(price)||price<0){status.textContent="قیمت باید عدد صحیح و نامنفی به ریال باشد.";return}
+    button.disabled=true;
+    try{
+     await api("/rest/v1/subscription_plans?id=eq."+encodeURIComponent(planId),{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({price_irr:price,updated_at:new Date().toISOString()})});
+     status.textContent="قیمت طرح ذخیره شد.";
+    }catch(e){status.textContent="ذخیره قیمت انجام نشد: "+(e.message||e)}
+    finally{button.disabled=false}
+   });
    $("subCreateSchool").onclick=async()=>{
-    const name=$("subSchoolName").value.trim(),slug=$("subSchoolSlug").value.trim().toLowerCase(),code=$("subSchoolCode").value.trim(),ownerId=$("subOwnerId").value.trim(),ownerEmail=$("subOwnerEmail").value.trim();
+    const name=$("subSchoolName").value.trim(),slug=$("subSchoolSlug").value.trim().toLowerCase(),code=$("subSchoolCode").value.trim();let ownerId=$("subOwnerId").value.trim();const ownerEmail=$("subOwnerEmail").value.trim();
     const status=$("subSchoolStatus");
     if(!name||!slug){status.textContent="نام مدرسه و شناسه یکتا الزامی است.";return}
     if(!/^[a-z0-9][a-z0-9-]{2,62}$/.test(slug)){status.textContent="شناسه یکتا باید لاتین، بدون فاصله و شامل حروف کوچک، عدد یا خط تیره باشد.";return}
+    if(!ownerId&&!ownerEmail){status.textContent="برای جلوگیری از ساخت مدرسه بدون مدیر، شناسه حساب Auth یا ایمیل مدیر موجود را وارد کنید.";return}
     try{
-     const payload={name,slug,status:"active"};
+     let ownerAccount=null;
+     if(ownerId){
+      const matches=await api("/rest/v1/account_settings?auth_user_id=eq."+encodeURIComponent(ownerId)+"&select=username,email,auth_user_id&limit=1");
+      ownerAccount=matches?.[0]||null;
+     }else if(ownerEmail){
+      const matches=await api("/rest/v1/account_settings?email=eq."+encodeURIComponent(ownerEmail)+"&select=username,email,auth_user_id&limit=1");
+      ownerAccount=matches?.[0]||null;
+      ownerId=ownerAccount?.auth_user_id||"";
+     }
+     if(!ownerId||(!ownerAccount&&!ownerEmail))throw Error("مدیر باید حساب Auth موجود داشته باشد. ابتدا حساب را بسازید و سپس شناسه یا ایمیل آن را وارد کنید.");
+     const payload={name,slug,status:"active",owner_auth_user_id:ownerId};
      if(code)payload.school_code=code;
      if(ownerId)payload.owner_auth_user_id=ownerId;
      const created=await api("/rest/v1/schools",{method:"POST",headers:{"Prefer":"return=representation"},body:JSON.stringify(payload)});
      const school=Array.isArray(created)?created[0]:created;
      if(ownerId){
-      const existing=await api("/rest/v1/account_settings?auth_user_id=eq."+encodeURIComponent(ownerId)+"&select=username&limit=1");
+      const existing=await api("/rest/v1/account_settings?auth_user_id=eq."+encodeURIComponent(ownerId)+"&select=username,email&limit=1");
       if(existing.length){
        await api("/rest/v1/account_settings?auth_user_id=eq."+encodeURIComponent(ownerId),{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({tenant_school_id:school.id,role:"manager"})});
       }else if(ownerEmail){
        await api("/rest/v1/account_settings",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({username:ownerEmail,email:ownerEmail,display_name:"مدیر مدرسه",role:"manager",auth_user_id:ownerId,tenant_school_id:school.id})});
       }else{
-       throw Error("مدرسه ساخته شد؛ برای اتصال مدیر، ایمیل مدیر را وارد کنید یا حساب Auth او را از قبل ایجاد کنید.");
+       throw Error("مدرسه ثبت شد، اما حساب مدیر به‌علت نبود رکورد account_settings متصل نشد. ایمیل مدیر را وارد کنید تا پیوند حساب تکمیل شود.");
       }
      }
      status.textContent="مدرسه ثبت شد. اکنون از بخش فعال‌سازی اشتراک، طرح و ظرفیت را انتخاب کنید.";
