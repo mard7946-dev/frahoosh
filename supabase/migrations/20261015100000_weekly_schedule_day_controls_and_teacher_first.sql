@@ -125,6 +125,13 @@ begin
     ))
   ) then raise exception 'not authorized to start this class'; end if;
 
+  if exists (
+    select 1 from public.weekly_schedule_entries w
+    where w.online_class_id = p_class_id
+      and w.weekday = extract(dow from (now() at time zone 'Asia/Tehran'))::integer::text
+      and not w.day_enabled
+  ) then raise exception 'کلاس‌های این روز توسط مدیریت غیرفعال شده‌اند.'; end if;
+
   if v_role in ('teacher','دبیر')
      and exists (select 1 from public.weekly_schedule_entries w
        where w.online_class_id = p_class_id and w.start_time is not null and w.end_time is not null)
