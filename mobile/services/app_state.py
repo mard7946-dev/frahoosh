@@ -214,9 +214,13 @@ class AppState:
             return state
 
         try:
-            admins = self.api.table_select("platform_admins", {
-                "select": "auth_user_id", "auth_user_id": "eq." + user_id, "limit": "1"
-            })
+            try:
+                admins = self.api.table_select("platform_admins", {
+                    "select": "auth_user_id", "auth_user_id": "eq." + user_id, "limit": "1"
+                })
+            except Exception as admin_check_exc:
+                print("PLATFORM ADMIN CHECK ERROR:", repr(admin_check_exc))
+                admins = []
             if isinstance(admins, list) and admins:
                 return {"expired": False, "unknown": False, "platform_admin": True, "school_id": None, "record": None}
 
