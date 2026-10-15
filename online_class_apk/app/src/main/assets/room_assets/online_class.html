@@ -190,7 +190,14 @@ async function ensureMedia(){
  try{
   // Keep the known-good APK's single combined media request; separate camera/mic
   // requests were a regression risk in Android WebView.
-  stream=await navigator.mediaDevices.getUserMedia({video:!isStudent(),audio:true});
+  try{
+   stream=await navigator.mediaDevices.getUserMedia({video:!isStudent(),audio:true});
+  }catch(combinedError){
+   // Camera denial/device failure must not silence the class when the mic is available.
+   console.warn("COMBINED_MEDIA_FALLBACK_TO_AUDIO",combinedError);
+   stream=await navigator.mediaDevices.getUserMedia({video:false,audio:true});
+   setStatus("صدا فعال است؛ تصویر به‌دلیل مجوز یا محدودیت دوربین فعال نشد.");
+  }
   stream.getAudioTracks().forEach(t=>t.enabled=mic);
   stream.getVideoTracks().forEach(t=>t.enabled=cam);
   localStream=stream;
