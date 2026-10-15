@@ -8,14 +8,17 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
+from kivy.uix.spinner import Spinner
 from kivy.uix.popup import Popup
 
 from mobile.config import PRIMARY, SECONDARY, SUCCESS, WHITE, CARD, ERROR
 from mobile.ui import font_name, rtl_text, PersianTextInput
 
 
-DAYS = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه"]
-BELLS = [1, 2, 3]
+DAYS = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه"]
+DAY_TO_CODE = {"شنبه": "6", "یکشنبه": "0", "دوشنبه": "1", "سه‌شنبه": "2", "چهارشنبه": "3", "پنجشنبه": "4"}
+CODE_TO_DAY = {v: k for k, v in DAY_TO_CODE.items()}
+BELLS = [1, 2, 3, 4, 5, 6]
 
 
 class WeeklyScheduleScreen(Screen):
@@ -82,6 +85,13 @@ class WeeklyScheduleScreen(Screen):
             actions.add_widget(self.btn("ویرایش", lambda *_: self.editor(self.selected), PRIMARY, 40))
             actions.add_widget(self.btn("حذف", lambda *_: self.delete_selected(), ERROR, 40))
             root.add_widget(actions)
+        if self._role() in {"manager", "admin", "administrator", "مدیر", "مدیریت", "educational", "معاون آموزشی", "معاونت آموزشی"}:
+            day_controls = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(5))
+            self.day_spinner = Spinner(text="شنبه", values=DAYS, size_hint_x=0.55, font_name=font_name())
+            day_controls.add_widget(self.day_spinner)
+            day_controls.add_widget(self.btn("فعال‌کردن همه کلاس‌های روز", lambda *_: self.set_day_enabled(True), SUCCESS, 40))
+            day_controls.add_widget(self.btn("غیرفعال‌کردن همه کلاس‌های روز", lambda *_: self.set_day_enabled(False), ERROR, 40))
+            root.add_widget(day_controls)
 
         self.status = self.label("در حال دریافت برنامه واقعی…", "9sp", SUCCESS, True, True, 28)
         root.add_widget(self.status)
@@ -191,13 +201,15 @@ class WeeklyScheduleScreen(Screen):
             return
 
         fields = [
-            ("weekday", "روز (شنبه تا چهارشنبه)"),
-            ("period", "زنگ (۱ تا ۳)"),
+            ("weekday", "روز (شنبه تا پنجشنبه)"),
+            ("period", "زنگ (۱ تا ۶)"),
             ("class_name", "کلاس"),
             ("subject", "درس"),
             ("teacher_name", "دبیر"),
             ("teacher_id", "شناسه دبیر (اختیاری)"),
             ("room", "کلاس/اتاق (اختیاری)"),
+            ("start_time", "ساعت شروع زنگ (مثلاً 08:00)"),
+            ("end_time", "ساعت پایان زنگ (مثلاً 08:50)"),
         ]
         root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(5))
         scroll = ScrollView()
@@ -233,14 +245,27 @@ class WeeklyScheduleScreen(Screen):
             period = int(inputs["period"].text.strip().replace("۱", "1").replace("۲", "2").replace("۳", "3"))
         except ValueError:
             period = 0
-        valid_day = day.replace("‌", "") in {x.replace("‌", "") for x in DAYS}
+        normalized_day = day.replace("‌", "")
+        valid_day = normalized_day in {x.replace("‌", "") for x in DAYS} or day in DAY_TO_CODE.values()
         if not valid_day or period not in BELLS:
-            self.status.text = rtl_text("روز باید شنبه تا چهارشنبه و زنگ باید ۱ تا ۳ باشد.")
+            self.status.text = rtl_text("روز باید شنبه تا پنجشنبه و زنگ باید ۱ تا ۶ باشد.")
+            self.status.color = ERROR
+            return
+        day_code = DAY_TO_CODE.get(day, day)
+        if day not in DAY_TO_CODE and normalized_day in {x.replace("‌", "") for x in DAYS}:
+            day_code = next((code for label, code in DAY_TO_CODE.items() if label.replace("‌", "") == normalized_day), day)
+        start_time = inputs["start_time"].text.strip()
+        end_time = inputs["end_time"].text.strip()
+        import re
+        if not re.fullmatch(r"(?:[01]\\d|2[0-3]):[0-5]\\d", start_time) or not re.fullmatch(r"(?:[01]\\d|2[0-3]):[0-5]\\d", end_time) or start_time >= end_time:
+            self.status.text = rtl_text("ساعت شروع و پایان باید معتبر باشند و پایان بعد از شروع باشد.")
             self.status.color = ERROR
             return
         payload = {
-            "weekday": day,
+            "weekday": day_code,
             "period": period,
+            "start_time": start_time,
+            "end_time": end_time,
             "class_name": inputs["class_name"].text.strip(),
             "subject": inputs["subject"].text.strip(),
             "teacher_name": inputs["teacher_name"].text.strip(),
@@ -279,6 +304,31 @@ class WeeklyScheduleScreen(Screen):
             self.status.text = rtl_text("برنامه در Supabase ذخیره شد و دوباره بارگذاری می‌شود.")
             self.status.color = SUCCESS
             self.load()
+
+    def set_day_enabled(self, enabled):
+        if self._role() not in {"manager", "admin", "administrator", "مدیر", "مدیریت", "educational", "معاون آموزشی", "معاونت آموزشی"}:
+            self.status.text = rtl_text("فقط مدیریت یا معاون آموزشی می‌تواند وضعیت همه کلاس‌های یک روز را تغییر دهد.")
+            self.status.color = ERROR
+            return
+        day = getattr(self, "day_spinner", None)
+        if day is None:
+            return
+        day_code = DAY_TO_CODE.get(day.text, "6")
+        self.status.text = rtl_text("در حال به‌روزرسانی همه زنگ‌های " + day.text + "…")
+        self.status.color = SECONDARY
+        self._async(
+            lambda: self._api().rpc("set_weekly_schedule_day_enabled", {"p_weekday": day_code, "p_enabled": bool(enabled)}),
+            lambda value, error: self._day_toggle_done(day.text, enabled, value, error),
+        )
+
+    def _day_toggle_done(self, day, enabled, value, error):
+        if error:
+            self.status.text = rtl_text("تغییر وضعیت کلاس‌های روز انجام نشد: " + error)
+            self.status.color = ERROR
+            return
+        self.status.text = rtl_text("همه کلاس‌های روز " + day + (" فعال شدند؛ ورود دانش‌آموز پس از ورود دبیر انجام می‌شود." if enabled else " غیرفعال شدند و جلسه‌های باز بسته شدند."))
+        self.status.color = SUCCESS
+        self.load()
 
     def delete_selected(self):
         if not self.selected or not self.selected.get("id"):
