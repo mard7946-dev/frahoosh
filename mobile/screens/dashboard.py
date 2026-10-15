@@ -1487,6 +1487,7 @@ class DashboardScreen(Screen):
             print("POST-LOGIN GUEST ACTION CLEANUP ERROR:", repr(exc))
 
     def _subscription_check_done(self, state):
+        self._subscription_check_started = False
         self._subscription_state = dict(state or {"unknown": True})
         if self.app_state is not None:
             self.app_state.subscription_status = self._subscription_state
@@ -1520,13 +1521,14 @@ class DashboardScreen(Screen):
             if self.manager:
                 self.manager.current="login"
             return
-        if self._subscription_state is None:
-            try:
-                self.welcome.text = rtl_text(f"خوش آمدید، {getattr(self.app_state,'display_name','کاربر فراهوش')}")
-                self.role_text.text = rtl_text("در حال بررسی وضعیت اشتراک مدرسه...")
-                self.grid.clear_widgets()
-            except Exception:
-                pass
+        if not self._subscription_check_started:
+            if self._subscription_state is None:
+                try:
+                    self.welcome.text = rtl_text(f"خوش آمدید، {getattr(self.app_state,'display_name','کاربر فراهوش')}")
+                    self.role_text.text = rtl_text("در حال بررسی وضعیت اشتراک مدرسه...")
+                    self.grid.clear_widgets()
+                except Exception:
+                    pass
             self._check_subscription_async()
             self._remove_guest_login_actions()
             return
