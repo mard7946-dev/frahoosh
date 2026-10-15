@@ -65,6 +65,13 @@ begin
   'where w.tenant_school_id=private.frahoosh_current_school_id() and (p_weekday is null or w.weekday=p_weekday)');
  execute v_def;
 
+ v_def:=pg_get_functiondef(to_regprocedure('public.create_online_class_with_members(integer,text,text,text,text,text,text)'));
+ v_def:=replace(v_def,'join public.students s on s.class_name=tc.class_name and s.grade=tc.grade',
+  'join public.students s on s.class_name=tc.class_name and s.grade=tc.grade and s.tenant_school_id=private.frahoosh_current_school_id()');
+ v_def:=replace(v_def,'where tc.teacher_id=p_teacher_id and coalesce(tc.active,1)=1',
+  'where tc.teacher_id=p_teacher_id and tc.tenant_school_id=private.frahoosh_current_school_id() and coalesce(tc.active,1)=1');
+ execute v_def;
+
  v_def:=pg_get_functiondef(to_regprocedure('public.create_payment_attempt(integer,integer)'));
  v_def:=replace(v_def,'where id=p_offer_id and active=1;','where id=p_offer_id and active=1 and tenant_school_id=private.frahoosh_current_school_id();');
  v_def:=replace(v_def,'insert into public.payment_attempts',
