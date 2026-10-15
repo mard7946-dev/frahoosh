@@ -242,7 +242,7 @@ class WeeklyScheduleScreen(Screen):
     def save(self, row, inputs, popup):
         day = inputs["weekday"].text.strip()
         try:
-            period = int(inputs["period"].text.strip().replace("۱", "1").replace("۲", "2").replace("۳", "3"))
+            period = int(inputs["period"].text.strip().translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")))
         except ValueError:
             period = 0
         normalized_day = day.replace("‌", "")
@@ -254,8 +254,9 @@ class WeeklyScheduleScreen(Screen):
         day_code = DAY_TO_CODE.get(day, day)
         if day not in DAY_TO_CODE and normalized_day in {x.replace("‌", "") for x in DAYS}:
             day_code = next((code for label, code in DAY_TO_CODE.items() if label.replace("‌", "") == normalized_day), day)
-        start_time = inputs["start_time"].text.strip()
-        end_time = inputs["end_time"].text.strip()
+        digit_map = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
+        start_time = inputs["start_time"].text.strip().translate(digit_map)
+        end_time = inputs["end_time"].text.strip().translate(digit_map)
         import re
         if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", start_time) or not re.fullmatch(r"(?:[01]\\d|2[0-3]):[0-5]\\d", end_time) or start_time >= end_time:
             self.status.text = rtl_text("ساعت شروع و پایان باید معتبر باشند و پایان بعد از شروع باشد.")
