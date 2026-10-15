@@ -3,8 +3,8 @@
 ## School subscription model
 
 - Each school has a stable UUID, slug, school code, and status.
-- Plans are seeded for 1, 2, 3, 6, 9, 12, and 24 months with capacity bands of 100, 200, 300, 500, 700, and 1000 students.
-- Prices intentionally start at 0 IRR; the platform owner must set actual prices in the subscription-plan module before selling plans.
+- Plans are seeded for 1, 2, 3, 6, 9, 12, and 24 months with capacity bands of 1–100, 101–200, 201–300, 301–500, 501–700, and 701–1000 students.
+- Prices remain unset at 0 IRR; the platform owner must set actual prices in the subscription-plan module before activating a paid plan. The database blocks activation while the price is unset.
 - The original school retains a legacy entitlement so existing users are not locked during rollout.
 - Expiration is enforced by database row-level policies and operational RPC checks. School data is retained after expiry.
 - A school manager can manage roles in the account-management module. Authentication IDs cannot be reassigned by ordinary school managers.
