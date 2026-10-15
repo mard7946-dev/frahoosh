@@ -153,7 +153,7 @@ class WeeklyScheduleScreen(Screen):
             for day in DAYS:
                 matches = [
                     r for r in self.rows
-                    if str(r.get("weekday") or "").replace("‌", "") == day.replace("‌", "")
+                    if CODE_TO_DAY.get(str(r.get("weekday") or ""), str(r.get("weekday") or "")).replace("‌", "") == day.replace("‌", "")
                     and int(r.get("period") or 0) == period
                 ]
                 text = "—" if not matches else "\n".join(
@@ -219,7 +219,7 @@ class WeeklyScheduleScreen(Screen):
         for key, hint in fields:
             form.add_widget(self.label(hint, "9sp", PRIMARY, True, False, 26))
             ti = PersianTextInput(
-                text="" if row is None else str(row.get(key, "")),
+                text="" if row is None else (CODE_TO_DAY.get(str(row.get(key, "")), str(row.get(key, ""))) if key == "weekday" else str(row.get(key, ""))),
                 hint_text=rtl_text(hint),
                 font_name=font_name(),
                 font_size="12sp",
@@ -257,7 +257,7 @@ class WeeklyScheduleScreen(Screen):
         start_time = inputs["start_time"].text.strip()
         end_time = inputs["end_time"].text.strip()
         import re
-        if not re.fullmatch(r"(?:[01]\\d|2[0-3]):[0-5]\\d", start_time) or not re.fullmatch(r"(?:[01]\\d|2[0-3]):[0-5]\\d", end_time) or start_time >= end_time:
+        if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", start_time) or not re.fullmatch(r"(?:[01]\\d|2[0-3]):[0-5]\\d", end_time) or start_time >= end_time:
             self.status.text = rtl_text("ساعت شروع و پایان باید معتبر باشند و پایان بعد از شروع باشد.")
             self.status.color = ERROR
             return
