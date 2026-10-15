@@ -240,72 +240,88 @@ async function uploadFile(file){if(!file||C.role==="student")return;try{if(file.
 async function downloadFile(path,title){try{let r=await fetch(C.url+"/storage/v1/object/authenticated/online-class-files/"+path,{headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token}});if(!r.ok)throw new Error("دسترسی به فایل ممکن نیست");let blob=await r.blob(),url=URL.createObjectURL(blob);if(blob.type.startsWith("video/")){$("previewVideo").style.display="block";$("previewVideo").src=url;$("previewVideo").play().catch(()=>{})}else{let a=document.createElement("a");a.href=url;a.download=title||"file";a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}}catch(e){alert("دریافت فایل انجام نشد.")}}
 $("file").onchange=e=>uploadFile(e.target.files[0]);
 
+function quizParse(q){
+ try{const x=JSON.parse(q.question||"");if(x&&x.frahooshQuiz===1&&Array.isArray(x.questions))return x}catch(e){}
+ return {frahooshQuiz:1,questions:[{type:"mcq",text:q.question||"",options:[q.option_a,q.option_b,q.option_c,q.option_d].filter(Boolean),correct:q.correct_option||"a"}],publishAt:q.published_at||"",endAt:""};
+}
+function quizLocalIso(v){return v?new Date(v).toISOString():""}
+function quizEscape(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 async function loadQuizzes(){
  const box=$("quizzes");
  try{
   const r=await api("smart_board_quizzes?class_id=eq."+encodeURIComponent(C.classId)+"&is_published=eq.true&order=id.desc&limit=100");
   if(!r.ok)throw new Error(await r.text());
-  const rows=await r.json();
-  box.innerHTML="";
-  if(!rows.length){box.innerHTML='<p class="status">هنوز آزمونی برای این کلاس منتشر نشده است.</p>';return}
-  for(const q of rows){
-   const d=document.createElement("div");d.className="quizq";
-   const title=document.createElement("b");title.textContent=q.title||"آزمونک";
-   const question=document.createElement("p");question.textContent=q.question||"";
-   d.append(title,question);
+  const rows=await r.json(), now=Date.now(); box.innerHTML="";
+  const visible=rows.filter(q=>{const x=quizParse(q),p=x.publishAt?Date.parse(x.publishAt):Date.parse(q.published_at||0),e=x.endAt?Date.parse(x.endAt):0;return (!p||p<=now)&&(!e||e>=now)});
+  if(!visible.length){box.innerHTML='<p class="status">در حال حاضر آزمونک فعالی برای این کلاس وجود ندارد.</p>';return}
+  for(const q of visible){
+   const data=quizParse(q),d=document.createElement("div");d.className="quizq";
+   const title=document.createElement("b");title.textContent=q.title||"آزمونک";d.append(title);
+   if(data.endAt){const t=document.createElement("p");t.textContent="پایان پاسخ‌گویی: "+new Date(data.endAt).toLocaleString();d.append(t)}
    if(["student","دانش‌آموز"].includes(C.role)){
-    const choices=document.createElement("div");choices.className="row";
-    ["a","b","c","d"].forEach(k=>{
-     if(q["option_"+k]){
-      const b=document.createElement("button");b.textContent=q["option_"+k];
-      b.onclick=()=>answerQuiz(q,b.dataset.answer||k);choices.appendChild(b);
-     }
+    const form=document.createElement("div");form.className="quiz-answers";
+    data.questions.forEach((item,i)=>{
+      const group=document.createElement("fieldset");group.style.cssText="border:1px solid #40546a;border-radius:8px;margin:8px 0;padding:8px";
+      const legend=document.createElement("legend");legend.textContent=(i+1)+". "+item.text;group.append(legend);
+      if(item.type==="mcq"){(item.options||[]).forEach((opt,j)=>{const label=document.createElement("label");label.style.display="block";const input=document.createElement("input");input.type="radio";input.name="qa_"+q.id+"_"+i;input.value=String(j);label.append(input,document.createTextNode(" "+opt));group.append(label)})}
+      else if(item.type==="tf"){["صحیح","غلط"].forEach(opt=>{const label=document.createElement("label");label.style.display="inline-flex";label.style.margin="6px";const input=document.createElement("input");input.type="radio";input.name="qa_"+q.id+"_"+i;input.value=opt;label.append(input,document.createTextNode(" "+opt));group.append(label)})}
+      else {const input=document.createElement("textarea");input.rows=2;input.style.width="100%";input.dataset.answerIndex=String(i);input.placeholder=item.type==="blank"?"پاسخ جای خالی":"پاسخ کوتاه";group.append(input)}
+      form.append(group);
     });
-    d.appendChild(choices);
+    const submit=document.createElement("button");submit.textContent="ثبت پاسخ آزمونک";submit.onclick=async()=>{const answers=[];for(let i=0;i<data.questions.length;i++){const item=data.questions[i];let val;if(item.type==="short"||item.type==="blank")val=form.querySelector('textarea[data-answer-index="'+i+'"]')?.value.trim()||"";else val=form.querySelector('input[name="qa_'+q.id+"_"+i+'"]:checked')?.value||"";if(!val){alert("لطفاً به همه سؤال‌ها پاسخ دهید.");return}answers.push({index:i+1,type:item.type,answer:val})}await answerQuiz(q,answers)};form.append(submit);d.append(form);
    }else{
-    const state=document.createElement("div");state.className="status";state.textContent="منتشرشده برای اعضای همین کلاس";d.appendChild(state);
+    const state=document.createElement("div");state.className="status";state.textContent="تعداد سؤال‌ها: "+data.questions.length+" — مرتبط با همین کلاس";d.append(state);
    }
-   box.appendChild(d);
+   box.append(d);
   }
- }catch(e){
-  console.error("Could not load classroom quizzes",e);
-  box.innerHTML='<p class="status">بارگذاری آزمون‌ها ناموفق بود: '+esc(e.message||"خطای سرور")+'</p>';
- }
+ }catch(e){console.error("Could not load classroom quizzes",e);box.innerHTML='<p class="status">بارگذاری آزمون‌ها ناموفق بود: '+esc(e.message||"خطای سرور")+'</p>'}
 }
-async function answerQuiz(q,a){
+async function answerQuiz(q,answers){
  if(!["student","دانش‌آموز"].includes(C.role))return;
  try{
-  const r=await api("online_class_activity",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:Number(C.classId),session_id:currentSession?Number(currentSession):null,student_id:Number(C.studentId),event_type:"quiz_answer",event_time:new Date().toISOString(),metadata:JSON.stringify({quiz_id:q.id,answer:a,title:q.title||""})})});
-  if(!r.ok)throw new Error(await r.text());
-  alert("پاسخ آزمون ثبت شد.");
-  await loadQuizResults();
+  const r=await api("online_class_activity",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:Number(C.classId),session_id:currentSession?Number(currentSession):null,student_id:Number(C.studentId),event_type:"quiz_answer",event_time:new Date().toISOString(),metadata:JSON.stringify({quiz_id:q.id,answers,title:q.title||""})})});
+  if(!r.ok)throw new Error(await r.text());alert("پاسخ آزمون ثبت شد.");await loadQuizResults();
  }catch(e){console.error("Could not save classroom quiz answer",e);alert("ثبت پاسخ انجام نشد: "+(e.message||"خطای سرور"))}
+}
+function quizQuestionEditor(i){
+ return '<fieldset class="quizq" style="margin:8px 0"><legend>سؤال '+(i+1)+'</legend><select id="qtype'+i+'"><option value="mcq">تستی</option><option value="tf">صحیح و غلط</option><option value="short">پاسخ کوتاه</option><option value="blank">جای خالی</option></select><input id="qtext'+i+'" placeholder="متن سؤال" style="width:100%;margin:6px 0"><div id="qopts'+i+'"><input id="qoptA'+i+'" placeholder="گزینه ۱"><input id="qoptB'+i+'" placeholder="گزینه ۲"><input id="qoptC'+i+'" placeholder="گزینه ۳ (اختیاری)"><input id="qoptD'+i+'" placeholder="گزینه ۴ (اختیاری)"><select id="qcorrect'+i+'"><option value="0">پاسخ صحیح: گزینه ۱</option><option value="1">پاسخ صحیح: گزینه ۲</option><option value="2">پاسخ صحیح: گزینه ۳</option><option value="3">پاسخ صحیح: گزینه ۴</option></select></div></fieldset>';
 }
 function buildQuizCreate(){
  if(!["teacher","دبیر","manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی"].includes(C.role))return;
- $("quizCreate").innerHTML='<div class="row"><input id="qt" placeholder="عنوان آزمون"><input id="qq" placeholder="متن سؤال"></div><div class="row"><input id="qa" placeholder="گزینه A"><input id="qb" placeholder="گزینه B"></div><div class="row"><input id="qc" placeholder="گزینه C (اختیاری)"><input id="qd" placeholder="گزینه D (اختیاری)"><select id="qcorr"><option value="a">گزینه A صحیح</option><option value="b">گزینه B صحیح</option><option value="c">گزینه C صحیح</option><option value="d">گزینه D صحیح</option></select></div><div class="row"><button id="qsave" type="button">ثبت و انتشار سؤال برای همین کلاس</button></div><p id="qstatus" class="status" role="status" aria-live="polite"></p>';
+ $("quizCreate").innerHTML='<div class="row"><input id="qt" placeholder="عنوان آزمونک"></div><label>زمان انتشار</label><input id="qpublish" type="datetime-local"><label>پایان پاسخ‌گویی</label><input id="qend" type="datetime-local"><div id="quizQuestions">'+[0,1,2,3].map(quizQuestionEditor).join("")+'</div><button id="qsave" type="button">ثبت آزمونک برای همین کلاس</button><p id="qstatus" class="status" role="status" aria-live="polite"></p>';
+ [0,1,2,3].forEach(i=>{const type=$("qtype"+i),opts=$("qopts"+i);type.onchange=()=>{opts.style.display=type.value==="mcq"?"block":"none";if(type.value==="tf")opts.innerHTML='<select id="qcorrect'+i+'"><option value="صحیح">پاسخ صحیح: صحیح</option><option value="غلط">پاسخ صحیح: غلط</option></select>';else if(type.value==="short"||type.value==="blank")opts.innerHTML='<p class="status">پاسخ توسط دبیر بررسی می‌شود.</p>';else opts.innerHTML='<input id="qoptA'+i+'" placeholder="گزینه ۱"><input id="qoptB'+i+'" placeholder="گزینه ۲"><input id="qoptC'+i+'" placeholder="گزینه ۳ (اختیاری)"><input id="qoptD'+i+'" placeholder="گزینه ۴ (اختیاری)"><select id="qcorrect'+i+'"><option value="0">پاسخ صحیح: گزینه ۱</option><option value="1">پاسخ صحیح: گزینه ۲</option><option value="2">پاسخ صحیح: گزینه ۳</option><option value="3">پاسخ صحیح: گزینه ۴</option></select>'}});
  $("qsave").onclick=async()=>{
-  const title=$("qt").value.trim(),question=$("qq").value.trim(),status=$("qstatus");
-  const a=$("qa").value.trim(),b=$("qb").value.trim(),c=$("qc").value.trim(),d=$("qd").value.trim();
-  if(!title||!question){status.textContent="عنوان آزمون و متن سؤال الزامی است.";return}
-  if(!a||!b){status.textContent="برای آزمون چندگزینه‌ای دست‌کم دو گزینه وارد کنید.";return}
-  if($("qsave").disabled)return;
-  $("qsave").disabled=true;status.textContent="در حال ثبت و انتشار آزمون برای کلاس...";
-  const now=new Date().toISOString();
-  const p={title,question,option_a:a,option_b:b,option_c:c,option_d:d,correct_option:$("qcorr").value,class_id:Number(C.classId),teacher_id:C.teacherId?Number(C.teacherId):null,quiz_date_shamsi:now.slice(0,10),is_published:true,published_at:now};
-  try{
-   const r=await api("smart_board_quizzes",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify(p)});
-   if(!r.ok)throw new Error(await r.text());
-   ["qt","qq","qa","qb","qc","qd"].forEach(id=>$(id).value="");
-   status.textContent="آزمون با موفقیت ثبت و برای دانش‌آموزان همین کلاس منتشر شد.";
-   await loadQuizzes();
-  }catch(e){
-   console.error("Could not publish classroom quiz",e);
-   status.textContent="ثبت/انتشار ناموفق بود: "+(e.message||"خطای سرور");
-  }finally{$("qsave").disabled=false}
+  const title=$("qt").value.trim(),status=$("qstatus");if(!title){status.textContent="عنوان آزمونک الزامی است.";return}
+  const questions=[];
+  for(let i=0;i<4;i++){const type=$("qtype"+i).value,text=$("qtext"+i).value.trim();if(!text)continue;const item={type,text};
+   if(type==="mcq"){item.options=["A","B","C","D"].map(k=>$("qopt"+k+i)?.value.trim()||"").filter(Boolean);if(item.options.length<2){status.textContent="سؤال تستی باید دست‌کم دو گزینه داشته باشد.";return}item.correct=$("qcorrect"+i).value;if(Number(item.correct)>=item.options.length){status.textContent="گزینه صحیح سؤال "+(i+1)+" معتبر نیست.";return}}
+   else if(type==="tf")item.correct=$("qcorrect"+i).value;
+   questions.push(item);
+  }
+  if(!questions.length){status.textContent="حداقل یک سؤال وارد کنید.";return}
+  const pub=$("qpublish").value?new Date($("qpublish").value):new Date(),end=$("qend").value?new Date($("qend").value):null;
+  if(Number.isNaN(pub.getTime())||(end&&Number.isNaN(end.getTime()))){status.textContent="زمان‌بندی معتبر نیست.";return}
+  if(end&&end<=pub){status.textContent="پایان پاسخ‌گویی باید بعد از زمان انتشار باشد.";return}
+  if($("qsave").disabled)return;$("qsave").disabled=true;status.textContent="در حال ثبت آزمونک...";
+  const payload={frahooshQuiz:1,questions,publishAt:pub.toISOString(),endAt:end?end.toISOString():""};
+  const p={title,question:JSON.stringify(payload),option_a:null,option_b:null,option_c:null,option_d:null,correct_option:null,class_id:Number(C.classId),teacher_id:C.teacherId?Number(C.teacherId):null,quiz_date_shamsi:pub.toISOString().slice(0,10),is_published:true,published_at:pub.toISOString()};
+  try{const r=await api("smart_board_quizzes",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify(p)});if(!r.ok)throw new Error(await r.text());status.textContent="آزمونک ثبت شد و طبق زمان‌بندی نمایش داده می‌شود.";await loadQuizzes();await loadQuizResults()}
+  catch(e){console.error("Could not publish classroom quiz",e);status.textContent="ثبت آزمونک ناموفق بود: "+(e.message||"خطای سرور")}
+  finally{$("qsave").disabled=false}
  };
 }
-async function loadQuizResults(){if(!["teacher","دبیر","manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی"].includes(C.role))return;try{let r=await api("online_class_activity?class_id=eq."+C.classId+"&event_type=eq.quiz_answer&order=id.desc&limit=200");let rows=await r.json();let box=document.getElementById("quizResults");if(!box){box=document.createElement("div");box.id="quizResults";$("quizPanel").appendChild(box)}box.innerHTML="<b>پاسخ‌های ثبت‌شده: "+rows.length+"</b>"+rows.slice(0,20).map(x=>"<div class='quizq'>دانش‌آموز #"+esc(x.student_id)+" — "+esc(x.metadata||"")+"</div>").join("")}catch(e){}}
+async function loadQuizResults(){
+ if(!["teacher","دبیر","manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی"].includes(C.role))return;
+ try{
+  const r=await api("online_class_activity?class_id=eq."+encodeURIComponent(C.classId)+"&event_type=eq.quiz_answer&order=id.desc&limit=500");if(!r.ok)throw new Error(await r.text());const rows=await r.json();
+  let box=document.getElementById("quizResults");if(!box){box=document.createElement("div");box.id="quizResults";$("quizPanel").appendChild(box)}
+  const parsed=rows.map(x=>{let m={};try{m=JSON.parse(x.metadata||"{}")}catch(e){}return {student:x.student_id,quiz:m.title||("آزمونک "+(m.quiz_id||"")),answers:(m.answers||[]).map(a=>a.answer).join(" | "),time:x.event_time||""}});
+  box.innerHTML="<b>پاسخ‌های ثبت‌شده: "+rows.length+"</b> <button type='button' id='quizCsv'>خروجی Excel</button> <button type='button' id='quizPdf'>خروجی PDF</button><div id='quizResultRows'></div>";
+  $("quizResultRows").innerHTML=parsed.slice(0,100).map(x=>"<div class='quizq'>دانش‌آموز #"+esc(x.student)+" — "+esc(x.quiz)+" — "+esc(x.answers)+"</div>").join("");
+  $("quizCsv").onclick=()=>{const csv=[["شناسه دانش‌آموز","آزمونک","پاسخ‌ها","زمان ثبت"],...parsed.map(x=>[x.student,x.quiz,x.answers,x.time])].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="frahoosh-quiz-results.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)};
+  $("quizPdf").onclick=()=>{const w=window.open("","_blank");if(!w){alert("برای خروجی PDF اجازه بازشدن پنجره را بدهید.");return}w.document.write('<html lang="fa" dir="rtl"><meta charset="utf-8"><title>نتایج آزمونک</title><style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:8px;text-align:right}</style><h2>نتایج آزمونک فراهوش</h2><table><tr><th>شناسه دانش‌آموز</th><th>آزمونک</th><th>پاسخ‌ها</th><th>زمان ثبت</th></tr>'+parsed.map(x=>'<tr><td>'+quizEscape(x.student)+'</td><td>'+quizEscape(x.quiz)+'</td><td>'+quizEscape(x.answers)+'</td><td>'+quizEscape(x.time)+'</td></tr>').join("")+'</table><script>window.onload=()=>window.print()<\/script></html>');w.document.close()};
+ }catch(e){console.error("Could not load quiz results",e)}
+}
 
 let endingSession=false,evidenceEnded=false,missingSessionPolls=0;async function cleanupClassFiles(){try{const q=await api("smart_board_files?class_id=eq."+encodeURIComponent(C.classId)+"&select=id,file_path");if(!q.ok)return;const rows=await q.json();for(const f of rows){if(!f.file_path)continue;try{await fetch(C.url+"/storage/v1/object/online-class-files/"+f.file_path,{method:"DELETE",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token}})}catch(e){}}await api("smart_board_files?class_id=eq."+encodeURIComponent(C.classId),{method:"DELETE",headers:jsonHeaders({"Prefer":"return=minimal"})});$("files").innerHTML="";}catch(e){console.warn("Class file cleanup failed",e)}}async function endClassSession(){if(endingSession||!currentSession)return;endingSession=true;try{await api("online_class_sessions?id=eq."+encodeURIComponent(currentSession),{method:"PATCH",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({ended_at:new Date().toISOString()})});await cleanupClassFiles();setStatus("زمان کلاس پایان یافت؛ فایل‌های کلاس پاک شدند.");}catch(e){console.error("Could not end class session",e)}finally{endingSession=false}}function updateClassTimer(){if(evidenceEnded)return;const e=$("classTimer");if(!e)return;if(!sessionStartedAt){e.textContent="در انتظار شروع دبیر";return}const left=Math.max(0,Math.max(5,Math.min(240,Number(C.durationMinutes)||50))*60-Math.floor((Date.now()-sessionStartedAt)/1000));e.textContent=String(Math.floor(left/60)).padStart(2,"0")+":"+String(left%60).padStart(2,"0");if(left===0){e.style.color="#ff7373";if(!endingSession)endClassSession()}}
 function sessionTimestamp(row){if(!row)return null;for(const key of ["started_at","session_started_at","start_time","started_on","created_at","inserted_at","created_on"]){const n=parseSessionTimestamp(row[key]);if(n)return n}return null}
