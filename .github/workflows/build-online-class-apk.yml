@@ -54,6 +54,31 @@ jobs:
       - name: Run classroom regression tests
         run: python -m unittest discover -s online_class_apk/tests -v
 
+      - name: Syntax-check classroom and web inline JavaScript
+        run: |
+          python - <<'PY'
+          import pathlib, re
+          files = [
+              pathlib.Path("web/online-class/index.html"),
+              pathlib.Path("web/online-class/room.html"),
+              pathlib.Path("mobile/assets/online_class.html"),
+          ]
+          count = 0
+          for path in files:
+              html = path.read_text(encoding="utf-8")
+              for i, match in enumerate(re.finditer(r"<script\\b([^>]*)>(.*?)</script\\s*>", html, re.I | re.S)):
+                  attrs, body = match.group(1), match.group(2)
+                  if re.search(r"\\bsrc\\s*=", attrs, re.I) or not body.strip():
+                      continue
+                  target = pathlib.Path("/tmp") / f"frahoosh-{path.stem}-{i}.js"
+                  target.write_text(body, encoding="utf-8")
+                  print(f"Checking {path} inline script {i}")
+                  count += 1
+          if count == 0:
+              raise SystemExit("No inline JavaScript found for syntax validation")
+          PY
+          for script in /tmp/frahoosh-*.js; do node --check "$script"; done
+
       - name: Build standalone classroom app
         run: gradle -p online_class_apk --no-daemon clean assembleDebug
 
