@@ -64,7 +64,7 @@ BEGIN
     RAISE EXCEPTION 'رایانامه حساب مدیر مدرسه الزامی است.' USING errcode = '23514';
   END IF;
 
-  SELECT a.auth_user_id, a.role, a.username, a.tenant_school_id,
+  SELECT a.auth_user_id, a.role, a.username,
          coalesce(u.email, a.email) AS owner_email
     INTO v_owner
     FROM public.account_settings a
@@ -82,11 +82,6 @@ BEGIN
   IF lower(coalesce(v_owner.role,'')) NOT IN ('manager','مدیر','مدیریت','مدیر مدرسه','principal','administrator','admin') THEN
     RAISE EXCEPTION 'حساب انتخاب‌شده نقش مدیریت مدرسه ندارد.' USING errcode = '23514';
   END IF;
-  IF v_owner.tenant_school_id IS NOT NULL
-     AND v_owner.tenant_school_id <> (SELECT id FROM public.schools WHERE slug='frahoosh-default' LIMIT 1) THEN
-    RAISE EXCEPTION 'این حساب از قبل به مدرسهٔ دیگری متصل است؛ برای جلوگیری از انتقال ناخواسته، حساب مدیر یکتای همان مدرسه را وارد کنید.' USING errcode = '23514';
-  END IF;
-
   SELECT * INTO v_plan
     FROM public.subscription_plans
    WHERE id = p_plan_id AND is_active = true;
