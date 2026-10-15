@@ -164,6 +164,13 @@ begin
     update public.online_classes set status = 'active', activated_at = coalesce(activated_at, now()),
       pages = 15, smart_board = 1, quiz = 1, camera = 1, microphone = 1, record = 1
     where id = p_class_id;
+    update public.weekly_schedule_entries
+      set activated_at = coalesce(activated_at, now())
+      where online_class_id = p_class_id and day_enabled
+        and weekday = extract(dow from (now() at time zone 'Asia/Tehran'))::integer::text
+        and start_time is not null and end_time is not null
+        and (now() at time zone 'Asia/Tehran')::time >= start_time
+        and (now() at time zone 'Asia/Tehran')::time < end_time;
     return v_session_id;
   end if;
 
@@ -175,6 +182,13 @@ begin
   update public.online_classes set status = 'active', activated_at = now(), pages = 15,
     smart_board = 1, quiz = 1, camera = 1, microphone = 1, record = 1
   where id = p_class_id;
+  update public.weekly_schedule_entries
+    set activated_at = coalesce(activated_at, now())
+    where online_class_id = p_class_id and day_enabled
+      and weekday = extract(dow from (now() at time zone 'Asia/Tehran'))::integer::text
+      and start_time is not null and end_time is not null
+      and (now() at time zone 'Asia/Tehran')::time >= start_time
+      and (now() at time zone 'Asia/Tehran')::time < end_time;
   return v_session_id;
 end;
 $function$;
