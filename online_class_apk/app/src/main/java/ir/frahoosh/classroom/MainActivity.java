@@ -112,7 +112,7 @@ public final class MainActivity extends Activity {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> {
-                    if (hasMediaPermissions()) {
+                    if (hasMediaPermissions(request)) {
                         grantWebMediaPermission(request);
                     } else {
                         pendingWebPermission = request;
@@ -235,13 +235,9 @@ public final class MainActivity extends Activity {
         if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermission != null) {
             PermissionRequest request = pendingWebPermission;
             pendingWebPermission = null;
-            if (hasMediaPermissions(request)) {
-                grantWebMediaPermission(request);
-            } else {
-                // Grant any media resource already authorized; do not let a denied camera
-                // permission block microphone-only classroom audio (or vice versa).
-                grantWebMediaPermission(request);
-            }
+            // Grant the resources that were approved independently. A denied camera
+            // permission must not block microphone-only classroom audio, or vice versa.
+            grantWebMediaPermission(request);
         }
     }
 
