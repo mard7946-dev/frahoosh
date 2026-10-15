@@ -17,3 +17,16 @@ create index if not exists smart_board_quizzes_class_schedule_idx
 
 comment on column public.smart_board_quizzes.questions is
   'Optional JSON array of up to four classroom quiz questions; legacy question/option columns remain supported.';
+
+alter table public.smart_board_quizzes
+  drop constraint if exists smart_board_quizzes_questions_count_check;
+alter table public.smart_board_quizzes
+  add constraint smart_board_quizzes_questions_count_check
+  check (
+    case
+      when questions is null then true
+      when jsonb_typeof(questions) = 'array'
+        then jsonb_array_length(questions) between 1 and 4
+      else false
+    end
+  );
