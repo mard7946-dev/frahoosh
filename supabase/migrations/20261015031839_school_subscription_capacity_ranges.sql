@@ -38,6 +38,9 @@ begin
   if not p.is_active and (tg_op='INSERT' or new.plan_id is distinct from old.plan_id) then
    raise exception 'طرح اشتراک غیرفعال است.' using errcode='23514';
   end if;
+  if p.price_irr<=0 and new.status in ('active','past_due') then
+   raise exception 'قیمت طرح اشتراک هنوز تعیین نشده است؛ ابتدا قیمت را در مدیریت طرح‌ها ثبت کنید.' using errcode='23514';
+  end if;
   new.duration_months:=p.duration_months;
   new.student_min:=p.student_min;
   new.student_limit:=p.student_limit;
