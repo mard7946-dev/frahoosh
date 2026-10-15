@@ -78,7 +78,7 @@ async function loadSubscriptionState(){
 }
 function openPanel(key){currentPanel=key;currentTable=null;selectedIndex=-1;show("workspace");$("workspaceTitle").textContent=panelTitles[key]||catalog.friendly?.[key]||key;$("workspaceMeta").textContent="محیط عملیاتی مشترک Web و Android • منبع داده: Supabase";renderModules()}
 function renderModules(){
- let items=catalog.panels[currentPanel]||[];if(currentPanel==="management"&&subscriptionState.expired&&!platformAdmin)items=items.filter(([,table])=>["account_settings","schools","subscription_plans","school_subscriptions","school_memberships"].includes(table));$("modules").innerHTML="";const excelAllowed=managerRoles.has(role());
+ let items=catalog.panels[currentPanel]||[];if(currentPanel==="management"&&subscriptionState.expired&&!platformAdmin)items=items.filter(([,table])=>["schools","subscription_plans","school_subscriptions"].includes(table));$("modules").innerHTML="";const excelAllowed=managerRoles.has(role());
  items.forEach(([label,table])=>{
   const card=document.createElement("div");card.className="module-card"+(table===currentTable?" active":"");
   const title=document.createElement("button");title.className="module";title.innerHTML="<b>"+esc(label)+"</b><span>"+esc(catalog.friendly?.[table]||table)+"</span>";title.onclick=()=>openTable(table);card.appendChild(title);
