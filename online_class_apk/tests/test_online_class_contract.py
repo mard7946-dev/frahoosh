@@ -143,6 +143,13 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("hasMediaPermissions()", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
 
+    def test_microphone_starts_enabled_and_renegotiates_existing_peers(self):
+        self.assertIn('tracks.forEach(t=>{t.enabled=true;localStream.addTrack(t)})', self.classroom)
+        self.assertIn('async function requestNegotiation(id,pc)', self.classroom)
+        self.assertIn('x.signal_type==="renegotiate"', self.classroom)
+        self.assertIn('if(added)await requestNegotiation(id,pc)', self.classroom)
+        self.assertIn('await navigator.mediaDevices.getUserMedia({audio:true,video:false})', self.classroom)
+
     def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
         self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
         self.assertIn('getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
