@@ -246,8 +246,8 @@ jobs:
           APP_NUMERIC_VERSION="$(awk -F'= ' '/^android.numeric_version = /{print $2; exit}' buildozer.spec)"
           test "$APP_VERSION" = "1.6.9"
           test "$APP_NUMERIC_VERSION" = "169"
-          grep -Fq "package.name = frahooshmobile" buildozer.spec
-          grep -Fq "package.domain = ir.frahoosh" buildozer.spec
+          grep -Fq "package.name = frahoosh" buildozer.spec
+          grep -Fq "package.domain = ir" buildozer.spec
           grep -Fq "source.dir = ." buildozer.spec
           grep -Fq "python-bidi==0.4.2" buildozer.spec
           echo "Repository validation passed."
@@ -353,7 +353,7 @@ jobs:
           AAPT="${SDK}/build-tools/35.0.0/aapt"
           test -x "${AAPT}"
           BADGING="$("${AAPT}" dump badging "${apk}")"
-          echo "${BADGING}" | grep -Fq "package: name='ir.frahoosh.frahooshmobile'"
+          echo "${BADGING}" | grep -Fq "package: name='ir.frahoosh'"
           echo "${BADGING}" | grep -Fq "versionName='1.6.9'"
           PERMISSIONS="$("${AAPT}" dump permissions "${apk}")"
           printf '%s\n' "${PERMISSIONS}" | tee apk-permissions.txt
@@ -372,7 +372,8 @@ jobs:
           version=1.6.9
           numeric_version=169
           architectures=arm64-v8a,armeabi-v7a
-          apk_file=$(basename "${apk}")
+          package_id=ir.frahoosh
+apk_file=$(basename "${apk}")
           EOF
           cat apk-provenance.txt
           cat apk.sha256
