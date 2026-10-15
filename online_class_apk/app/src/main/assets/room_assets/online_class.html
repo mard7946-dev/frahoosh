@@ -141,7 +141,7 @@ const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":
 const $=id=>document.getElementById(id);
 let lastId=0,peers=new Map(),names=new Map(),localStream=null,screenStream=null,mic=true,cam=true;
 let tool="pen",color="#0b1f3a",size=4,drawing=false,start=null,points=[],pageNo=1;
-let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null;const normalizeRole=v=>String(v||"").trim().toLowerCase();const staffRoles=["teacher","دبیر","manager","مدیر","principal","معاون آموزشی","معاون اجرایی","معاون پرورشی","مشاوره","educational","educational_deputy","executive","executive_deputy","cultural","cultural_deputy","counselor"];const studentRoles=["student","دانش‌آموز","دانش آموز"];const isTeacher=()=>staffRoles.includes(normalizeRole(C.role));const isStudent=()=>studentRoles.includes(String(C.role||"").trim())||normalizeRole(C.role)==="student";
+let canvas,ctx,maxPages=Number(C.maxBoardPages||15),currentSession=null,students=[],sessionStartedAt=null;const normalizeRole=v=>String(v||"").trim().toLowerCase();const staffRoles=["teacher","دبیر","manager","مدیر","principal","معاون آموزشی","معاون اجرایی","معاون پرورشی","مشاوره","educational","educational_deputy","executive","executive_deputy","cultural","cultural_deputy","counselor"];const studentRoles=["student","دانش‌آموز","دانش آموز","guest","میهمان"];const isTeacher=()=>staffRoles.includes(normalizeRole(C.role));const isStudent=()=>studentRoles.includes(normalizeRole(C.role));
 $("className").textContent=C.classId;
 function api(path,opts={}){return fetch(C.url+"/rest/v1/"+path,Object.assign({headers},opts))}
 function jsonHeaders(extra={}){return Object.assign({},headers,extra)}
@@ -184,22 +184,27 @@ function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="perso
 async function ensureMedia(){
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStatus("این محیط دسترسی رسانه را پشتیبانی نمی‌کند.");return false}
  if(localStream&&localStream.getTracks().some(t=>t.readyState==="live")){
-  addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();return localStream.getAudioTracks().some(t=>t.readyState==="live");
+  if(isStudent()){mic=false;cam=false;localStream.getAudioTracks().forEach(t=>t.enabled=false);localStream.getVideoTracks().forEach(t=>t.enabled=false)}
+  addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
+  return localStream.getAudioTracks().some(t=>t.readyState==="live");
  }
  let stream=null;
  try{
-  // Keep the known-good APK's single combined media request; separate camera/mic
-  // requests were a regression risk in Android WebView.
   try{
    stream=await navigator.mediaDevices.getUserMedia({video:!isStudent(),audio:true});
   }catch(combinedError){
-   // Camera denial/device failure must not silence the class when the mic is available.
    console.warn("COMBINED_MEDIA_FALLBACK_TO_AUDIO",combinedError);
    stream=await navigator.mediaDevices.getUserMedia({video:false,audio:true});
    setStatus("صدا فعال است؛ تصویر به‌دلیل مجوز یا محدودیت دوربین فعال نشد.");
   }
-  stream.getAudioTracks().forEach(t=>t.enabled=mic);
-  stream.getVideoTracks().forEach(t=>t.enabled=cam);
+  if(isStudent()){
+   mic=false;cam=false;
+   stream.getAudioTracks().forEach(t=>t.enabled=false);
+   stream.getVideoTracks().forEach(t=>t.enabled=false);
+  }else{
+   stream.getAudioTracks().forEach(t=>t.enabled=mic);
+   stream.getVideoTracks().forEach(t=>t.enabled=cam);
+  }
   localStream=stream;
   addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
   for(const [id,pc] of peers){
@@ -212,14 +217,26 @@ async function ensureMedia(){
   }
   $("mic").classList.toggle("active",mic&&localStream.getAudioTracks().length>0);
   $("cam").classList.toggle("active",cam&&localStream.getVideoTracks().length>0);
-  return localStream.getAudioTracks().some(t=>t.readyState==="live");
+  if(!localStream.getAudioTracks().some(t=>t.readyState==="live"))throw new Error("NO_AUDIO_TRACK");
+  return true;
  }catch(e){
   console.warn("MEDIA_PERMISSION_ERROR",e);
   setStatus("دسترسی میکروفون/رسانه فعال نشد: "+(e.name||"خطا"));
-  alert("دسترسی میکروفون/رسانه داده نشد؛ مجوز میکروفون و دوربین را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")");
+  alert("دسترسی میکروفون/رسانه داده نشد؛ مجوز میکروفون را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")");
   return false;
  }
 }
+let studentMediaPermissions={mic:false,cam:false};
+window.setStudentToolsPermission=function(permissions={}){
+ if(!isStudent())return;
+ const next={mic:permissions.mic===true,cam:permissions.cam===true};
+ if(!next.mic||!studentMediaPermissions.mic){mic=false;localStream?.getAudioTracks().forEach(t=>t.enabled=false)}
+ if(!next.cam||!studentMediaPermissions.cam){cam=false;localStream?.getVideoTracks().forEach(t=>t.enabled=false)}
+ studentMediaPermissions=next;
+ const micButton=$("mic"),camButton=$("cam");
+ if(micButton){micButton.disabled=!next.mic;micButton.title=next.mic?"میکروفون با اجازه دبیر فعال است":"برای فعال‌سازی میکروفون باید دبیر مجوز بدهد";micButton.textContent=mic?"میکروفون روشن":"میکروفون خاموش";micButton.classList.toggle("active",mic)}
+ if(camButton){camButton.disabled=!next.cam;camButton.title=next.cam?"دوربین با اجازه دبیر فعال است":"برای فعال‌سازی دوربین باید دبیر مجوز بدهد";camButton.textContent=cam?"دوربین روشن":"دوربین خاموش";camButton.classList.toggle("active",cam)}
+};
 async function makePeer(id,name){if(peers.has(id))return peers.get(id);let pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});peers.set(id,pc);names.set(id,name||"کاربر");renderPeople();if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.onicecandidate=e=>{if(e.candidate)send("candidate",{candidate:e.candidate},id)};pc.ontrack=e=>addVideo(id,names.get(id)||"کاربر",e.streams[0]);pc.onconnectionstatechange=()=>{if(["failed","closed","disconnected"].includes(pc.connectionState)){removeVideo(id);}};return pc}
 async function offerTo(id,name){let pc=await makePeer(id,name);let o=await pc.createOffer();await pc.setLocalDescription(o);await send("offer",{sdp:pc.localDescription},id)}
 async function poll(){try{let r=await api("online_class_signals?class_id=eq."+C.classId+"&id=gt."+lastId+"&order=id.asc&limit=200");let rows=await r.json();for(const x of rows){lastId=Math.max(lastId,Number(x.id));if(x.sender_user_id===C.userId)continue;if(x.receiver_user_id&&x.receiver_user_id!==C.userId)continue;let p=x.payload||{};if(x.signal_type==="join"){names.set(x.sender_user_id,p.name||"کاربر");renderPeople();if(C.userId<x.sender_user_id)await offerTo(x.sender_user_id,p.name)}else if(x.signal_type==="leave"){peers.get(x.sender_user_id)?.close();peers.delete(x.sender_user_id);names.delete(x.sender_user_id);removeVideo(x.sender_user_id);renderPeople()}else if(x.signal_type==="offer"){names.set(x.sender_user_id,p.name||"کاربر");let pc=await makePeer(x.sender_user_id,p.name);await pc.setRemoteDescription(p.sdp);let a=await pc.createAnswer();await pc.setLocalDescription(a);await send("answer",{sdp:pc.localDescription},x.sender_user_id)}else if(x.signal_type==="answer"){let pc=peers.get(x.sender_user_id);if(pc)await pc.setRemoteDescription(p.sdp)}else if(x.signal_type==="candidate"){let pc=peers.get(x.sender_user_id);if(pc&&p.candidate)try{await pc.addIceCandidate(p.candidate)}catch(e){}}else if(x.signal_type==="renegotiate"){if(String(C.userId)<String(x.sender_user_id))await offerTo(x.sender_user_id,names.get(x.sender_user_id)||"کاربر")}else if(x.signal_type==="chat"){appendMsg(p.name||"کاربر",p.text||"")}else if(x.signal_type==="board"){applyBoard(p,false)}else if(x.signal_type==="quiz_answer"&&C.role!=="student"){loadQuizResults()}}}catch(e){}}
