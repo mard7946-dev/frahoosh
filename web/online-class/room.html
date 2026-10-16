@@ -35,23 +35,28 @@ async function getTextFallback(paths,label){
  throw lastError||Error(label);
 }
 async function start(){
+ const authorized=sessionStorage.getItem("frahoosh_room_entry_authorized")==="1";
+ sessionStorage.removeItem("frahoosh_room_entry_authorized");
  let config=null;
- for(const store of [sessionStorage,localStorage]){try{config=JSON.parse(store.getItem("frahoosh_online_class_config")||"null")}catch(_){}if(config)break;}
+ try{config=JSON.parse(sessionStorage.getItem("frahoosh_online_class_config")||"null")}catch(_){}
+ if(!authorized){sessionStorage.removeItem("frahoosh_online_class_config");show("برای ورود امن به کلاس، ابتدا از صفحه ورود کلاس وارد شوید.");return;}
  if(!config){show("نشست کلاس آماده نیست؛ ابتدا از صفحه ورود کلاس وارد شوید.");return;}
  if(!config.url||!config.anon||!config.token||!config.classId||!config.userId){show("اطلاعات نشست کلاس ناقص است؛ از صفحه ورود کلاس دوباره وارد شوید.");return;}
  box.textContent="در حال بارگذاری محیط کلاس…";
  try{
   let [htmlResult,patchResult]=await Promise.all([
-   getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"],"بارگذاری محیط کلاس ناموفق بود"),
-   getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"],"بارگذاری ابزارهای کلاس ناموفق بود")
+   getTextFallback(["https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/online_class.html","https://raw.githack.com/mard7946-dev/frahoosh/main/mobile/assets/online_class.html"],"بارگذاری محیط کلاس ناموفق بود"),
+   getTextFallback(["https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"],"بارگذاری ابزارهای کلاس ناموفق بود")
   ]);
   let html=htmlResult.text,patch=patchResult.text;
   if(!html.includes("const C=__CONFIG__;"))throw Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
   config.guestInviteBase=new URL("index.html",location.href).href;
   html=html.replace("const C=__CONFIG__;","window.C="+JSON.stringify(config)+";const C=window.C;");
+  // Keep the APK media/whiteboard implementation as the shared web source while preserving manager access.
+  html=html.replace('if(!isStudent()&&!["teacher","دبیر"].includes(normalizeRole(C.role))&&!currentSession)','if(!isStudent()&&!isTeacher()&&!currentSession)');
   const closeScript="</scr"+"ipt>";
   html=html.replace("</body>","<script>"+patch+closeScript+"</body>");
-  const base=document.createElement("base");base.href=new URL(htmlResult.path,location.href).href;
+  const base=document.createElement("base");base.href=htmlResult.path;
   html=html.replace(/<head([^>]*)>/i,"<head$1>"+base.outerHTML);
   frame.onload=()=>{box.style.display="none";frame.style.display="block";};
   frame.srcdoc=html;
