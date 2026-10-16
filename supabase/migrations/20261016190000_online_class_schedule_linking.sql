@@ -43,7 +43,7 @@ AS $function$
   where w.tenant_school_id=private.frahoosh_current_school_id()
     and (p_weekday is null or private.frahoosh_weekday_number(w.weekday)=private.frahoosh_weekday_number(p_weekday))
   order by w.class_name,w.period,w.id;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.register_online_class_student_guest(p_class_id integer, p_session_id integer, p_display_name text, p_class_name text)
@@ -91,7 +91,7 @@ begin
   end if;
   return true;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.start_online_class_session(p_class_id integer)
@@ -188,5 +188,5 @@ begin
 
   return v_session_id;
 end;
-$function$
+$function$;
 
