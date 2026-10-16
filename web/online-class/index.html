@@ -299,6 +299,7 @@ button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 </div>
 <button type="button" id="importStudents" style="margin-top:12px">ثبت دانش‌آموزان از اکسل</button>
 <button type="button" id="importTeachers" style="margin-top:12px">ثبت دبیران از اکسل</button>
+<button type="button" id="createTeacherAccountsFromExcel" class="primary" style="margin-top:10px">ساخت حساب ورود دبیران از همین اکسل</button>
 <p id="excelImportStatus" role="status" style="font-size:13px;line-height:1.9;color:#d7e2ee;overflow-wrap:anywhere"></p>
 <hr style="border:0;border-top:1px solid #354d67;margin:20px 0">
 <h3>ثبت دستی دانش‌آموز</h3>
@@ -475,6 +476,48 @@ if(["manager","مدیر","principal","administrator","admin","educational","مع
 function normalizeImportHeader(value){return String(value||"").trim().toLowerCase().replace(/اختیاری|اجباری/g,"").replace(/[()*:：*]/g,"").replace(/[\u200c\s_\-\/]+/g,"").replace(/ي/g,"ی").replace(/ك/g,"ک")}
 function readImportFile(file){return new Promise((resolve,reject)=>{if(!file)return reject(Error("ابتدا فایل را انتخاب کنید."));const reader=new FileReader();reader.onerror=()=>reject(Error("خواندن فایل ناموفق بود."));reader.onload=()=>{try{let rows;if(/\.csv$/i.test(file.name)){const wb=XLSX.read(String(reader.result||""),{type:"string"});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""})}else{const wb=XLSX.read(reader.result,{type:"array"});if(!wb.SheetNames.length)throw Error("برگه‌ای در فایل پیدا نشد.");rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""})}if(!rows.length)throw Error("فایل خالی است یا ردیف عنوان ستون‌ها ندارد.");resolve(rows)}catch(e){reject(e)}};if(/\.csv$/i.test(file.name))reader.readAsText(file,"UTF-8");else reader.readAsArrayBuffer(file)})}
 function mapImportRow(row,kind){const entries=Object.entries(row),pick=(keys)=>{const aliases=keys.map(normalizeImportHeader);for(const [k,v] of entries){if(aliases.includes(normalizeImportHeader(k))&&String(v??"").trim()!=="")return String(v).trim()}return ""};const first=pick(["نام","firstname","نامکوچک","نامدانشآموز","نامدبیر","first_name"]),last=pick(["نامخانوادگی","lastname","نامفامیل","last_name"]),nc=normalizeDigits(pick(["کدملی","nationalcode","national_code","شناسه"])),className=normalizeDigits(pick(["کلاس","نامکلاس","پایه","class","class_name"])),email=pick(["ایمیل","رایانامه","email","e-mail"]).toLowerCase(),phone=normalizeDigits(pick(["شمارههمراه","همراه","تلفنهمراه","phone","mobile"])),subject=pick(["درستخصصی","درس","تخصص","subject"]);if(!first||!last)return null;if(kind==="teachers"&&nc&&!/^[0-9]{10}$/.test(nc))return null;if(kind==="teachers"&&email&&!/^\S+@\S+\.\S+$/.test(email))return null;if(kind==="students"&&!isValidClassCode(className))return null;const out={first_name:first,last_name:last};if(kind==="teachers")Object.assign(out,{national_code:nc,email,phone,subject});else out.class_name=className;return out}
+
+async function createTeacherAccountsFromExcel(){
+ const status=$("excelImportStatus"),button=$("createTeacherAccountsFromExcel");
+ status.textContent="";button.disabled=true;
+ try{
+  if(!["manager","مدیر","مدیریت","principal","administrator","admin"].includes(normalizeRole(profile.role)))throw Error("ساخت حساب گروهی فقط برای مدیریت مجاز است.");
+  if(typeof XLSX==="undefined")throw Error("کتابخانه خواندن Excel بارگیری نشد؛ اتصال اینترنت را بررسی کنید.");
+  const raw=await readImportFile($("teachersExcel").files[0]);
+  const get=(row,aliases)=>{for(const [k,v] of Object.entries(row||{})){if(aliases.includes(normalizeImportHeader(k))&&String(v??"").trim())return String(v).trim()}return ""};
+  const normalizePhone=v=>normalizeDigits(v).replace(/[^\d]/g,"");
+  const skipNames=["امیرحسین زارعی طورانی","عادل کلهر","محمدرضا صفی"];
+  const candidates=[];
+  for(const row of raw){
+   const full=get(row,["نامونامخانوادگی","نامو نامخانوادگی","نامخانوادگیونام","نامو نامخانوادگی"]);
+   let first=get(row,["نام","firstname","first_name","نامکوچک"]),last=get(row,["نامخانوادگی","lastname","last_name"]);
+   if(!first||!last){const parts=full.trim().split(/\s+/).filter(Boolean);if(parts.length<2)continue;first=parts[0];last=parts.slice(1).join(" ")}
+   const phone=normalizePhone(get(row,["شمارههمراه","همراه","تلفنهمراه","phone","mobile","شمارهتلفن"]));
+   const desc=get(row,["توضیح","سمت","نقش","role","توضیحات"]);
+   const fullName=(first+" "+last).trim();
+   if(skipNames.some(n=>normalizeImportHeader(n)===normalizeImportHeader(fullName)))continue;
+   if(/معاون|اجرایی|پرورشی|آموزشی|مشاور|کادر|مدیر/i.test(desc))continue;
+   const username=teacherUsernameFromPhone(phone);
+   if(!username)continue;
+   candidates.push({first_name:first.trim(),last_name:last.trim(),phone,username});
+  }
+  const unique=[...new Map(candidates.map(x=>[x.username,x])).values()];
+  if(!unique.length)throw Error("از فایل، ردیف دبیر با نام و شماره همراه معتبر پیدا نشد. فایل فهرست کاربران همکاران را انتخاب کنید.");
+  if(!confirm("برای "+unique.length+" دبیر حساب ورود ساخته شود؟ نام کاربری از شماره همراه بدون صفر اول ساخته می‌شود و رمز اولیه همه 12345 خواهد بود. حساب‌های موجود ممکن است خطا بدهند؛ هیچ حسابی حذف نمی‌شود."))return;
+  let created=0,failed=0,details=[];
+  for(let i=0;i<unique.length;i++){
+   const t=unique[i];status.textContent="در حال ساخت حساب "+(i+1)+" از "+unique.length+": "+t.first_name+" "+t.last_name;
+   try{
+    const result=await requestJson(U+"/functions/v1/admin-create-teacher",{method:"POST",headers:authHeaders(token),body:JSON.stringify({first_name:t.first_name,last_name:t.last_name,national_code:"",username:t.username,email:"",phone:t.phone,subject:"",password:"12345"})});
+    created++;details.push("✓ "+t.first_name+" "+t.last_name+" — "+(result.username||t.username));
+   }catch(e){failed++;details.push("✗ "+t.first_name+" "+t.last_name+" — "+(e.message||"خطا"))}
+  }
+  status.textContent="پایان عملیات حساب‌های دبیران: موفق "+created+"، ناموفق/قبلاً موجود "+failed+". رمز اولیه حساب‌های تازه‌ساخته‌شده 12345 است؛ هر دبیر باید در اولین ورود رمز را تغییر دهد.\n"+details.join("\n");
+ }catch(e){status.textContent="ساخت حساب‌های دبیران انجام نشد: "+(e.message||e)}
+ finally{button.disabled=false}
+}
+$("createTeacherAccountsFromExcel").onclick=createTeacherAccountsFromExcel;
+
 function readLocalRows(key){try{const rows=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(rows)?rows:[]}catch(_){return []}}
 function writeLocalRows(key,rows){localStorage.setItem(key,JSON.stringify(rows))}
 async function importPeople(kind){const status=$("excelImportStatus"),button=$(kind==="students"?"importStudents":"importTeachers"),fileInput=$(kind==="students"?"studentsExcel":"teachersExcel");status.textContent="";button.disabled=true;try{if(!["manager","مدیر","مدیریت","principal","administrator","admin"].includes(normalizeRole(profile.role)))throw Error("ورود گروهی فقط برای حساب مدیریت مجاز است.");if(typeof XLSX==="undefined")throw Error("کتابخانه خواندن Excel بارگیری نشد؛ اتصال اینترنت را بررسی کنید.");const raw=await readImportFile(fileInput.files[0]),nonempty=raw.filter(r=>Object.values(r||{}).some(v=>String(v??"").trim()!==""));if(nonempty.length>1000)throw Error("در هر بار حداکثر ۱۰۰۰ ردیف وارد کنید.");const mapped=nonempty.map(r=>mapImportRow(r,kind)),bad=mapped.filter(x=>!x),rows=mapped.filter(Boolean);if(!rows.length)throw Error(kind==="students"?"هیچ ردیف معتبری پیدا نشد؛ نام، نام خانوادگی و کلاس اجباری است.":"هیچ ردیف معتبری پیدا نشد؛ نام و نام خانوادگی دبیر اجباری است و کد ملی در صورت ورود باید ۱۰ رقم باشد.");if(bad.length)throw Error(bad.length+" ردیف از "+nonempty.length+" ردیف معتبر نیست. هیچ تغییری ذخیره نشد؛ فیلدهای اجباری و قالب کد ملی/کلاس را بررسی کنید.");if(kind==="students"){const old=readLocalRows("frahoosh_local_students"),merged=new Map(old.map(x=>[[normalizeDigits(x.first_name),normalizeDigits(x.last_name),normalizeDigits(x.class_name)].join("|"),x]));for(const r of rows)merged.set([normalizeDigits(r.first_name),normalizeDigits(r.last_name),normalizeDigits(r.class_name)].join("|"),r);const saved=[...merged.values()];writeLocalRows("frahoosh_local_students",saved);status.textContent="ورود موفق: "+rows.length+" ردیف اکسل بررسی شد؛ فهرست محلی اکنون "+saved.length+" دانش‌آموز دارد. اطلاعات به Supabase ارسال نشد.";renderLocalStudentRoster();await loadStudentClassOptions();return}const old=readLocalRows("frahoosh_local_teachers"),teacherKey=x=>normalizeDigits(x.national_code)||("name:"+normalizeDigits(x.first_name)+"|"+normalizeDigits(x.last_name)+"|"+String(x.email||"").trim().toLowerCase()+"|"+normalizeDigits(x.phone)),merged=new Map(old.map(x=>[teacherKey(x),x]));for(const r of rows)merged.set(teacherKey(r),r);const saved=[...merged.values()];writeLocalRows("frahoosh_local_teachers",saved);status.textContent="ورود موفق: "+rows.length+" ردیف اکسل بررسی شد؛ فهرست محلی اکنون "+saved.length+" دبیر دارد. اطلاعات به Supabase ارسال نشد.";renderLocalTeacherRoster()}catch(e){status.textContent="ورود انجام نشد: "+(e.message||e)}finally{button.disabled=false}}
