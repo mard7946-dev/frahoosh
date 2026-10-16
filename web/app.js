@@ -207,15 +207,28 @@ function tableKeys(data){const keys=[];const showIds=["schools","subscription_pl
 function renderTable(data){
  const keys=tableKeys(data),write=canWrite(currentTable),viewOnly=specialViewOnly(currentTable);
  const rowActions=write&&!viewOnly&&["students","teachers"].includes(currentTable);
+ const authDeleteActions=write&&!viewOnly&&currentTable==="account_settings";
  let html='<div class="table-wrap"><div class="table-tools"><input id="tableSearch" placeholder="جستجو در همین زیرپنل"><button class="primary" id="reload">تازه‌سازی</button>';
  if(write&&!viewOnly){const meeting=meetingTables.has(currentTable);html+='<button id="addRow">ثبت</button>';if(!rowActions)html+='<button id="editRow">ویرایش</button><button class="danger" id="deleteRow">حذف</button>';if(!meeting)html+='<button id="importExcel">ورودی اکسل</button><button id="exportExcel">خروجی اکسل</button><button id="exportPdf">خروجی PDF</button>';}
  html+='</div><div class="crud-hint">'+(write&&!viewOnly?"یک ردیف را انتخاب کنید؛ سپس ویرایش یا حذف را بزنید.":"این زیرپنل برای این نقش فقط قابل مشاهده است.")+'</div>';
  if(!data.length){html+='<div class="empty">رکوردی برای نمایش وجود ندارد.</div></div>';$("tableArea").innerHTML=html;bindTools();return}
  html+='<table class="data-table"><thead><tr><th>انتخاب</th>'+(rowActions?'<th>عملیات</th>':'')+keys.map(k=>"<th>"+esc(fieldLabel(k))+"</th>").join("")+'</tr></thead><tbody>'+data.map((r,i)=>"<tr data-index=\""+i+"\"><td><input type=\"radio\" name=\"rowpick\" value=\""+i+"\" "+(selectedIndex>=0&&rows[selectedIndex]&&String(rows[selectedIndex].id)===String(r.id)?"checked":"")+"></td>"+(rowActions?'<td><button type="button" data-row-edit="'+esc(r.id)+'">ویرایش</button><button type="button" class="danger" data-row-delete="'+esc(r.id)+'">حذف</button></td>':"")+keys.map(k=>"<td>"+esc(r[k]===null||r[k]===undefined||r[k]===""?"—":r[k])+"</td>").join("")+"</tr>").join("")+'</tbody></table></div>';
  $("tableArea").innerHTML=html;
+ if(authDeleteActions){
+  const table=$("tableArea").querySelector("table.data-table");
+  const head=table?.querySelector("thead tr");
+  if(head){const th=document.createElement("th");th.textContent="عملیات";head.appendChild(th)}
+  table?.querySelectorAll("tbody tr").forEach(tr=>{
+   const row=data[Number(tr.dataset.index)];const td=document.createElement("td");
+   if(row?.auth_user_id){const button=document.createElement("button");button.type="button";button.className="danger";button.textContent="حذف حساب Supabase";button.dataset.authUserDelete=String(row.auth_user_id);td.appendChild(button)}
+   else td.textContent="حساب Auth متصل نیست";
+   tr.appendChild(td);
+  });
+ }
  $("tableArea").querySelectorAll("input[name=rowpick]").forEach(x=>x.onchange=()=>{const picked=data[Number(x.value)];selectedIndex=picked?rows.findIndex(r=>String(r.id)===String(picked.id)):-1});
  $("tableArea").querySelectorAll("[data-row-edit]").forEach(button=>button.onclick=()=>{const row=data.find(r=>String(r.id)===button.dataset.rowEdit);if(!row){alert("رکورد برای ویرایش پیدا نشد.");return}selectedIndex=rows.findIndex(r=>String(r.id)===String(row.id));openEditor(row)});
  $("tableArea").querySelectorAll("[data-row-delete]").forEach(button=>button.onclick=()=>{const row=data.find(r=>String(r.id)===button.dataset.rowDelete);if(!row){alert("رکورد برای حذف پیدا نشد.");return}deleteRecord(row)});
+ $("tableArea").querySelectorAll("[data-auth-user-delete]").forEach(button=>button.onclick=()=>{const row=data.find(r=>String(r.auth_user_id)===button.dataset.authUserDelete);if(!row){alert("حساب کاربری برای حذف پیدا نشد.");return}deleteAuthUser(row)});
  $("reload").onclick=()=>openTable(currentTable);$("tableSearch").oninput=e=>{const q=e.target.value.toLowerCase();renderTable(rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q)))};
  bindTools();
 }
@@ -253,6 +266,17 @@ function openEditor(rowOverride){
  const missing=required.filter(k=>payload[k]===undefined||payload[k]===null||payload[k]==="");
  if(missing.length)throw Error("فیلدهای الزامی را وارد کنید: "+missing.map(fieldLabel).join("، "));
 if(row){const id=row.id;if(id===undefined||id===null)throw Error("این رکورد شناسه قابل ویرایش ندارد.");await api("/rest/v1/"+encodeURIComponent(currentTable)+"?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify(payload)})}else await api("/rest/v1/"+encodeURIComponent(currentTable),{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(payload)});wrap.remove();selectedIndex=-1;await openTable(currentTable)}catch(e){alert("ذخیره انجام نشد: "+e.message)}};
+}
+async function deleteAuthUser(row){
+ if(role()!=="manager"&&!platformAdmin){alert("فقط مدیر مجاز به حذف حساب کاربری است.");return}
+ if(!row||!row.auth_user_id){alert("این رکورد به حساب احراز هویت Supabase متصل نیست.");return}
+ if(!confirm("حساب ورود Supabase این کاربر حذف شود؟ این کاربر دیگر نمی‌تواند وارد سامانه شود. اطلاعات دانش‌آموز/دبیر به‌صورت جداگانه حذف نمی‌شود."))return;
+ try{
+  const response=await fetch(CFG.supabase_url+"/functions/v1/admin-delete-user",{method:"POST",headers:{"apikey":CFG.supabase_anon_key,"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({auth_user_id:row.auth_user_id})});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(result.error||("HTTP "+response.status));
+  selectedIndex=-1;alert(result.message||"حساب ورود Supabase حذف شد.");await openTable(currentTable);
+ }catch(e){alert("حذف حساب Supabase انجام نشد: "+(e.message||e))}
 }
 async function deleteSelected(){
  if(selectedIndex<0){alert("ابتدا یک ردیف را انتخاب کنید.");return}
