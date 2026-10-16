@@ -740,25 +740,22 @@ document.querySelectorAll("[data-login-role]").forEach(function(card){
     var button=e.target&&e.target.closest?e.target.closest("[data-login-role]"):null;
     if(!button)return;
     var role=button.getAttribute("data-login-role");
+    e.preventDefault();
+    e.stopImmediatePropagation();
     try{
-      var picker=document.getElementById("rolePicker"),grid=document.getElementById("entryGrid"),
-          login=document.getElementById("login"),staff=document.getElementById("staffFields"),
-          student=document.getElementById("studentFields");
-      if(!picker||!grid||!login||!staff||!student)throw Error("بخش ورود در صفحه پیدا نشد.");
-      picker.style.display="none";grid.classList.add("active");login.style.display="block";login.classList.add("active");
-      staff.style.display=role==="student"?"none":"block";student.style.display=role==="student"?"block":"none";
-      var heading=document.getElementById("loginHeading"),description=document.getElementById("loginDescription");
-      if(heading)heading.textContent=role==="student"?"ورود دانش‌آموز":role==="manager"?"ورود مدیر":"ورود دبیر";
-      if(description)description.textContent=role==="student"?"نام و نام خانوادگی را وارد کنید؛ سپس کلاس و برنامه روزانه را ببینید.":role==="manager"?"نام کاربری و رمز عبور مدیر را وارد کنید.":"نام کاربری و رمز عبور دبیر را وارد کنید.";
-      var label=document.getElementById("goLabel");if(label)label.textContent="ورود";
-      var myClasses=document.getElementById("myClasses");if(myClasses)myClasses.style.display=role==="teacher"?"block":"none";
-      var err=document.getElementById("err");if(err)err.textContent="";
-      if(role!=="student"){
-        var id=document.getElementById("id"),remember=document.getElementById("rememberLogin");
-        var saved=localStorage.getItem("frahoosh_saved_login")||"";
-        if(id)id.value=saved;if(remember)remember.checked=!!saved;
-      }
+      if(typeof chooseRole==="function"){chooseRole(role);return;}
+      throw Error("اسکریپت اصلی ورود بارگذاری نشده است؛ صفحه را تازه‌سازی کنید.");
     }catch(error){showEntryError(error&&error.message?error.message:"انتخاب نقش انجام نشد.");}
+  },true);
+  /* Intercept the form before native navigation so a startup failure never silently reloads the page. */
+  document.addEventListener("submit",function(e){
+    if(!e.target||e.target.id!=="staffLoginForm")return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    try{
+      if(typeof login==="function"){login();return;}
+      throw Error("سامانه ورود کامل بارگذاری نشده است؛ صفحه را تازه‌سازی کنید.");
+    }catch(error){showEntryError(error&&error.message?error.message:"ارسال فرم ورود انجام نشد.");}
   },true);
 })();
 </script>
