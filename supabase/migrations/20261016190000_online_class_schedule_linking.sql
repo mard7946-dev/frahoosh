@@ -19,7 +19,7 @@ AS $function$
     when '3' then '3' when '4' then '4' when '5' then '5' when '6' then '6'
     else trim(coalesce(p_weekday,''))
   end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_student_class_schedule(p_weekday text DEFAULT NULL::text)
