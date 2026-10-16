@@ -78,8 +78,10 @@ class OnlineClassContractTests(unittest.TestCase):
 
     def test_guest_student_media_is_gated_by_active_session_permissions(self):
         self.assertIn('"guest","میهمان"', self.classroom)
-        self.assertIn('if(isStudent()){mic=false;cam=false;', self.classroom)
-        self.assertIn('window.setStudentToolsPermission=function(permissions={})', self.classroom)
+        self.assertIn('if(isStudent()){cam=false;for(const t of localStream.getAudioTracks())t.enabled=false;}', self.classroom)
+        self.assertIn('const student=["student","دانش‌آموز","guest","میهمان"].includes(role);', self.patch)
+        self.assertIn('el.disabled=true;el.title="برای فعال‌سازی باید دبیر مجوز بدهد"', self.patch)
+        self.assertIn('tools_permission', self.patch)
         self.assertIn('sessionId:C.sessionId??null', self.patch)
         self.assertIn('String(payload.sessionId)!==String(C.sessionId||"")', self.patch)
         self.assertIn('signature!==lastAppliedPermissions', self.patch)
@@ -164,7 +166,7 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("grantWebMediaPermission(request);", activity)
 
     def test_microphone_starts_enabled_and_renegotiates_existing_peers(self):
-        self.assertIn('tracks.forEach(t=>{t.enabled=true;localStream.addTrack(t)})', self.classroom)
+        self.assertIn('tracks.forEach(t=>{t.enabled=next;localStream.addTrack(t)})', self.classroom)
         self.assertIn('async function requestNegotiation(id,pc)', self.classroom)
         self.assertIn('x.signal_type==="renegotiate"', self.classroom)
         self.assertIn('if(added)await requestNegotiation(id,pc)', self.classroom)
