@@ -28,31 +28,34 @@ Deno.serve(async (req: Request) => {
   if (authError || !authData.user) return respond({ error: "نشست ورود معتبر نیست؛ دوباره وارد شوید." }, 401);
 
   const { data: caller, error: callerError } = await admin
-    .from("account_settings").select("role")
+    .from("account_settings").select("role,tenant_school_id")
     .eq("auth_user_id", authData.user.id).maybeSingle();
   if (callerError) return respond({ error: "نقش کاربر جاری بررسی نشد." }, 500);
   if (!["manager", "مدیر", "principal", "administrator", "admin"].includes(normRole(caller?.role))) {
     return respond({ error: "فقط مدیر مدرسه اجازه ایجاد حساب دبیر را دارد." }, 403);
   }
 
+  const tenantSchoolId = caller?.tenant_school_id;
+  if (!tenantSchoolId) return respond({ error: "مدرسه برای حساب مدیریت مشخص نشده است؛ تنظیم tenant_school_id را بررسی کنید." }, 400);
+
   const body = await req.json().catch(() => ({}));
   const firstName = text(body.first_name), lastName = text(body.last_name);
+  const username = text(body.username).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   const nationalCode = text(body.national_code).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
-  let phone = text(body.phone).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[\s()-]/g, "");
-  if (phone.startsWith("+98") && phone.length === 13) phone = "0" + phone.slice(3);
-  else if (phone.startsWith("0098") && phone.length === 14) phone = "0" + phone.slice(4);
+  const employeeCode = text(body.employee_code).replace(/[^0-9]/g, "");
+  let phone = text(body.phone).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/\D/g, "");
+  if (phone.startsWith("0098") && phone.length === 14) phone = "0" + phone.slice(4);
   else if (phone.startsWith("98") && phone.length === 12) phone = "0" + phone.slice(2);
-  if (/^9\d{9}$/.test(phone)) phone = "0" + phone;
-  const username = /^09\d{9}$/.test(phone) ? phone.slice(1) : "";
+  else if (phone.startsWith("9") && phone.length === 10) phone = "0" + phone;
   const email = (text(body.email) || (username + "@users.frahoosh.ir")).toLowerCase();
   const password = text(body.password) || "12345", subject = text(body.subject);
   const displayName = [firstName, lastName].filter(Boolean).join(" ");
-  if (!firstName || !lastName || !phone || !username) {
-    return respond({ error: "نام، نام خانوادگی و شماره همراه معتبر دبیر الزامی است." }, 400);
+  if (!firstName || !lastName || !username || !phone) {
+    return respond({ error: "نام، نام خانوادگی، نام کاربری و شماره همراه دبیر الزامی است." }, 400);
   }
-  if (!/^09\d{9}$/.test(phone)) return respond({ error: "شماره همراه باید شماره موبایل معتبر ایران باشد؛ مانند 09123456789." }, 400);
-  if (!/^9\d{9}$/.test(username)) return respond({ error: "نام کاربری از شماره همراه بدون صفر اول ساخته می‌شود." }, 400);
+  if (!/^\d{8,12}$/.test(username)) return respond({ error: "نام کاربری باید عددی و بین ۸ تا ۱۲ رقم باشد." }, 400);
   if (nationalCode && !/^\d{10}$/.test(nationalCode)) return respond({ error: "کد ملی در صورت ورود باید ۱۰ رقم باشد." }, 400);
+  if (!/^09\d{9}$/.test(phone)) return respond({ error: "شماره همراه باید با قالب 09123456789 وارد شود." }, 400);
   if (!/^\S+@\S+\.\S+$/.test(email)) return respond({ error: "ایمیل واردشده معتبر نیست." }, 400);
   if (password !== "12345") return respond({ error: "رمز اولیه حساب دبیر باید 12345 باشد." }, 400);
 
@@ -60,12 +63,15 @@ Deno.serve(async (req: Request) => {
     .from("account_settings").select("username,national_code,role,auth_user_id")
     .eq("username", username).maybeSingle();
   if (usernameError) return respond({ error: "بررسی یکتایی نام کاربری ناموفق بود." }, 500);
+  if (usernameOwner && usernameOwner.national_code !== nationalCode) return respond({ error: "این نام کاربری قبلاً به حساب دیگری اختصاص یافته است." }, 409);
   if (usernameOwner?.auth_user_id) return respond({ error: "برای این نام کاربری قبلاً حساب ورود ساخته شده است." }, 409);
-  if (usernameOwner && nationalCode && usernameOwner.national_code && usernameOwner.national_code !== nationalCode) return respond({ error: "این نام کاربری قبلاً به حساب دیگری اختصاص یافته است." }, 409);
-  const { data: existingByCode, error: existingError } = nationalCode
-    ? await admin.from("account_settings").select("username,role,auth_user_id").eq("national_code", nationalCode).maybeSingle()
-    : { data: null, error: null };
-  if (existingError) return respond({ error: "بررسی حساب قبلی ناموفق بود." }, 500);
+
+  let existingByCode: { username: string; role: string | null; auth_user_id: string | null } | null = null;
+  if (nationalCode) {
+    const { data, error } = await admin.from("account_settings").select("username,role,auth_user_id").eq("national_code", nationalCode).maybeSingle();
+    if (error) return respond({ error: "بررسی حساب قبلی ناموفق بود." }, 500);
+    existingByCode = data;
+  }
   if (existingByCode?.auth_user_id) return respond({ error: "برای این دبیر قبلاً حساب ورود ساخته شده است." }, 409);
   if (existingByCode && normRole(existingByCode.role) !== "teacher" && normRole(existingByCode.role) !== "دبیر") {
     return respond({ error: "این کد ملی به نقش دیگری متصل است؛ ابتدا اطلاعات آن حساب باید توسط مدیر بررسی شود." }, 409);
@@ -73,7 +79,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email, password, email_confirm: true,
-    user_metadata: { role: "teacher", display_name: displayName, national_code: nationalCode || null, username, must_change_password: true }
+    user_metadata: { role: "teacher", display_name: displayName, ...(nationalCode ? { national_code: nationalCode } : {}), username, must_change_password: true }
   });
   if (createError || !created.user) {
     return respond({ error: createError?.message ?? "ساخت حساب احراز هویت ناموفق بود." }, 400);
@@ -81,14 +87,16 @@ Deno.serve(async (req: Request) => {
 
   const finalUsername = username;
   try {
-    const { data: oldTeacher, error: teacherLookupError } = nationalCode
+    const teacherLookup = nationalCode
       ? await admin.from("teachers").select("id").eq("national_code", nationalCode).maybeSingle()
-      : { data: null, error: null };
+      : await admin.from("teachers").select("id").or(`phone.eq.${phone},mobile.eq.${phone}`).maybeSingle();
+    const oldTeacher = teacherLookup.data;
+    const teacherLookupError = teacherLookup.error;
     if (teacherLookupError) throw teacherLookupError;
     const teacherRow = {
       first_name: firstName, last_name: lastName, national_code: nationalCode || null,
-      email, phone: phone || null, mobile: phone || null, subject: subject || null,
-      employment_status: "فعال"
+      employee_code: employeeCode || null, email, phone, mobile: phone, subject: subject || null,
+      tenant_school_id: tenantSchoolId, employment_status: "فعال"
     };
     const teacherWrite = oldTeacher
       ? await admin.from("teachers").update(teacherRow).eq("id", oldTeacher.id)
@@ -96,7 +104,7 @@ Deno.serve(async (req: Request) => {
     if (teacherWrite.error) throw teacherWrite.error;
 
     const accountRow = { username: finalUsername, display_name: displayName, email, national_code: nationalCode || null,
-      role: "teacher", auth_user_id: created.user.id, phone: phone || "", preferences: "{}" };
+      role: "teacher", auth_user_id: created.user.id, phone, tenant_school_id: tenantSchoolId, preferences: "{}" };
     const accountWrite = existingByCode
       ? await admin.from("account_settings").update(accountRow).eq("username", existingByCode.username)
       : usernameOwner
