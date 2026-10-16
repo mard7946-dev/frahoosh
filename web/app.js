@@ -49,6 +49,9 @@ function renderDashboard(){
 }
 function canWrite(table){
  const r=role();
+ // Student and teacher directory edits are reserved for the school manager.
+ // Supabase RLS remains the final authorization boundary.
+ if(table==="students"||table==="teachers")return r==="manager";
  if(["schools","subscription_plans","school_subscriptions"].includes(table))return platformAdmin;
  if(table==="school_memberships")return platformAdmin||r==="manager";
  // Only the school manager can assign or change school roles; RLS remains the final authority.
@@ -203,13 +206,16 @@ async function openTable(table){
 function tableKeys(data){const keys=[];const showIds=["schools","subscription_plans","school_subscriptions","school_memberships"].includes(currentTable);data.forEach(r=>Object.keys(r||{}).forEach(k=>{if((!ignoredExcelFields.has(k)||(showIds&&k==="id"))&&!keys.includes(k))keys.push(k)}));return keys}
 function renderTable(data){
  const keys=tableKeys(data),write=canWrite(currentTable),viewOnly=specialViewOnly(currentTable);
+ const rowActions=write&&!viewOnly&&["students","teachers"].includes(currentTable);
  let html='<div class="table-wrap"><div class="table-tools"><input id="tableSearch" placeholder="جستجو در همین زیرپنل"><button class="primary" id="reload">تازه‌سازی</button>';
- if(write&&!viewOnly){const meeting=meetingTables.has(currentTable);html+='<button id="addRow">ثبت</button><button id="editRow">ویرایش</button><button class="danger" id="deleteRow">حذف</button>';if(!meeting)html+='<button id="importExcel">ورودی اکسل</button><button id="exportExcel">خروجی اکسل</button><button id="exportPdf">خروجی PDF</button>';}
+ if(write&&!viewOnly){const meeting=meetingTables.has(currentTable);html+='<button id="addRow">ثبت</button>';if(!rowActions)html+='<button id="editRow">ویرایش</button><button class="danger" id="deleteRow">حذف</button>';if(!meeting)html+='<button id="importExcel">ورودی اکسل</button><button id="exportExcel">خروجی اکسل</button><button id="exportPdf">خروجی PDF</button>';}
  html+='</div><div class="crud-hint">'+(write&&!viewOnly?"یک ردیف را انتخاب کنید؛ سپس ویرایش یا حذف را بزنید.":"این زیرپنل برای این نقش فقط قابل مشاهده است.")+'</div>';
  if(!data.length){html+='<div class="empty">رکوردی برای نمایش وجود ندارد.</div></div>';$("tableArea").innerHTML=html;bindTools();return}
- html+='<table class="data-table"><thead><tr><th>انتخاب</th>'+keys.map(k=>"<th>"+esc(fieldLabel(k))+"</th>").join("")+'</tr></thead><tbody>'+data.map((r,i)=>"<tr data-index=\""+i+"\"><td><input type=\"radio\" name=\"rowpick\" value=\""+i+"\" "+(i===selectedIndex?"checked":"")+"></td>"+keys.map(k=>"<td>"+esc(r[k]===null||r[k]===undefined||r[k]===""?"—":r[k])+"</td>").join("")+"</tr>").join("")+'</tbody></table></div>';
+ html+='<table class="data-table"><thead><tr><th>انتخاب</th>'+(rowActions?'<th>عملیات</th>':'')+keys.map(k=>"<th>"+esc(fieldLabel(k))+"</th>").join("")+'</tr></thead><tbody>'+data.map((r,i)=>"<tr data-index=\\""+i+"\\"><td><input type=\\"radio\\" name=\\"rowpick\\" value=\\""+i+"\\" "+(selectedIndex>=0&&rows[selectedIndex]&&String(rows[selectedIndex].id)===String(r.id)?"checked":"")+"></td>"+(rowActions?'<td><button type="button" data-row-edit="'+esc(r.id)+'">ویرایش</button><button type="button" class="danger" data-row-delete="'+esc(r.id)+'">حذف</button></td>':"")+keys.map(k=>"<td>"+esc(r[k]===null||r[k]===undefined||r[k]===""?"—":r[k])+"</td>").join("")+"</tr>").join("")+'</tbody></table></div>';
  $("tableArea").innerHTML=html;
- document.querySelectorAll("input[name=rowpick]").forEach(x=>x.onchange=()=>{selectedIndex=Number(x.value)});
+ $("tableArea").querySelectorAll("input[name=rowpick]").forEach(x=>x.onchange=()=>{const picked=data[Number(x.value)];selectedIndex=picked?rows.findIndex(r=>String(r.id)===String(picked.id)):-1});
+ $("tableArea").querySelectorAll("[data-row-edit]").forEach(button=>button.onclick=()=>{const row=data.find(r=>String(r.id)===button.dataset.rowEdit);if(!row){alert("رکورد برای ویرایش پیدا نشد.");return}selectedIndex=rows.findIndex(r=>String(r.id)===String(row.id));openEditor(row)});
+ $("tableArea").querySelectorAll("[data-row-delete]").forEach(button=>button.onclick=()=>{const row=data.find(r=>String(r.id)===button.dataset.rowDelete);if(!row){alert("رکورد برای حذف پیدا نشد.");return}deleteRecord(row)});
  $("reload").onclick=()=>openTable(currentTable);$("tableSearch").oninput=e=>{const q=e.target.value.toLowerCase();renderTable(rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q)))};
  bindTools();
 }
@@ -237,8 +243,8 @@ function editorFields(row){
   return '<label>'+esc(fieldLabel(k))+input+'</label>';
  }).join("");
 }
-function openEditor(){
- const row=selectedIndex>=0?rows[selectedIndex]:null;
+function openEditor(rowOverride){
+ const row=arguments.length?rowOverride:(selectedIndex>=0?rows[selectedIndex]:null);
  const wrap=document.createElement("div");wrap.className="modal";wrap.innerHTML='<div class="modal-card"><h3>'+(row?"ویرایش رکورد":"ثبت رکورد")+'</h3><div class="form-grid">'+editorFields(row)+'</div><div class="modal-actions"><button id="saveRecord" class="primary">ذخیره</button><button id="cancelRecord" class="secondary">انصراف</button></div></div>';document.body.appendChild(wrap);
  $("cancelRecord").onclick=()=>wrap.remove();
  $("saveRecord").onclick=async()=>{const payload={};wrap.querySelectorAll("[data-field]").forEach(i=>{if(i.value!=="")payload[i.dataset.field]=i.type==="number"?Number(i.value):i.value});try{
@@ -250,7 +256,11 @@ if(row){const id=row.id;if(id===undefined||id===null)throw Error("این رکو�
 }
 async function deleteSelected(){
  if(selectedIndex<0){alert("ابتدا یک ردیف را انتخاب کنید.");return}
- const row=rows[selectedIndex];if(row.id===undefined||row.id===null){alert("این رکورد شناسه قابل حذف ندارد.");return}
+ return deleteRecord(rows[selectedIndex]);
+}
+async function deleteRecord(row){
+ if(!row){alert("رکورد برای حذف پیدا نشد.");return}
+ if(row.id===undefined||row.id===null){alert("این رکورد شناسه قابل حذف ندارد.");return}
  if(!confirm("این رکورد حذف شود؟"))return;
  try{await api("/rest/v1/"+encodeURIComponent(currentTable)+"?id=eq."+encodeURIComponent(row.id),{method:"DELETE",headers:{"Prefer":"return=minimal"}});selectedIndex=-1;await openTable(currentTable)}catch(e){alert("حذف انجام نشد: "+e.message)}
 }
