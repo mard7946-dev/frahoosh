@@ -48,7 +48,7 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('id="scheduleDay"', self.entry)
         self.assertIn('id="studentSchedule"', self.entry)
         self.assertIn('register_online_class_student_guest', self.entry)
-        self.assertRegex(self.entry, r'location\.href="room\.html(?:\\?[^"]*)?"')
+        self.assertRegex(self.entry, r'location\.href="room\.html(?:\?[^"]*)?"')
 
     def test_weekly_bell_times_are_editable_and_shared_with_apk(self):
         for field in ('scheduleStartTime', 'scheduleEndTime'):
@@ -138,10 +138,10 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("hasMediaPermissions()", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
 
-    def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
-        self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
-        self.assertIn('getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
-        self.assertIn("base.href=new URL(htmlResult.path,location.href).href", self.room)
+    def test_web_room_loader_pins_the_deployed_classroom_runtime(self):
+        self.assertIn('const revision=', self.room)
+        self.assertIn('raw.githack.com/mard7946-dev/frahoosh/', self.room)
+        self.assertIn('config.guestInviteBase=new URL("index.html",location.href).href;', self.room)
         self.assertNotIn("../../online_class_apk/app/src/main/assets", self.room)
 
     def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
