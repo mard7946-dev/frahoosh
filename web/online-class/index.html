@@ -524,7 +524,7 @@ async function createTeacherAccountsFromSchedule(){
   if(!["manager","مدیر","مدیریت","principal","administrator","admin"].includes(normalizeRole(profile.role)))throw Error("این عملیات فقط برای مدیر مدرسه مجاز است.");
   const schoolId=profile.tenant_school_id||profile.school_id||FRAHOOH_CONFIG.tenant_school_id;
   const entries=await api("/rest/v1/weekly_schedule_entries?select=teacher_name,teacher_username&tenant_school_id=eq."+encodeURIComponent(schoolId)+"&limit=500");
-  const names=[...new Set(entries.map(x=>String(x.teacher_name||"").trim()).filter(Boolean))];
+  const names=[...new Set(entries.map(x=>String(x.teacher_name||"").trim()).filter(name=>name&&normalizeImportHeader(name)!=="فرضی"))];
   if(!names.length)throw Error("در برنامه هفتگی نام دبیری پیدا نشد.");
   if(!confirm("برای "+names.length+" نام دبیر ثبت‌شده در برنامه هفتگی حساب ورود آماده شود؟ نام کاربری عددی تولید می‌شود و رمز اولیه 12345 است؛ هر دبیر باید در اولین ورود رمز را تغییر دهد."))return;
   const used=new Set(),results=[];
