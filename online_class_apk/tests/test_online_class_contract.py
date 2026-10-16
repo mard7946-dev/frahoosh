@@ -41,7 +41,7 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('class="required-mark"', self.entry)
         self.assertIn('class="optional-mark">(اختیاری)', self.entry)
         self.assertIn('["نام *","نام خانوادگی *","کد دانش‌آموزی *","کلاس *"]', self.entry)
-        self.assertIn('"ایمیل (اختیاری)"', self.entry)
+        self.assertIn('ایمیل <span class="optional-mark">(اختیاری)</span>', self.entry)
 
     def test_weekly_schedule_uses_existing_supabase_contract(self):
         self.assertIn("weekly_schedule_entries", self.entry)
