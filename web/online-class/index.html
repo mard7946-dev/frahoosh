@@ -300,6 +300,7 @@ button:focus-visible{outline:3px solid #f8d778;outline-offset:3px}
 <button type="button" id="importStudents" style="margin-top:12px">ثبت دانش‌آموزان از اکسل</button>
 <button type="button" id="importTeachers" style="margin-top:12px">ثبت دبیران از اکسل</button>
 <button type="button" id="createTeacherAccountsFromExcel" class="primary" style="margin-top:10px">ساخت حساب ورود دبیران از همین اکسل</button>
+<button type="button" id="createTeacherAccountsFromSchedule" class="primary" style="margin-top:10px">آماده‌سازی حساب دبیران از برنامه هفتگی</button>
 <p id="excelImportStatus" role="status" style="font-size:13px;line-height:1.9;color:#d7e2ee;overflow-wrap:anywhere"></p>
 <hr style="border:0;border-top:1px solid #354d67;margin:20px 0">
 <h3>ثبت دستی دانش‌آموز</h3>
@@ -517,6 +518,34 @@ async function createTeacherAccountsFromExcel(){
  finally{button.disabled=false}
 }
 $("createTeacherAccountsFromExcel").onclick=createTeacherAccountsFromExcel;
+async function createTeacherAccountsFromSchedule(){
+ const button=$("createTeacherAccountsFromSchedule"),status=$("excelImportStatus");button.disabled=true;status.textContent="";
+ try{
+  if(!["manager","مدیر","مدیریت","principal","administrator","admin"].includes(normalizeRole(profile.role)))throw Error("این عملیات فقط برای مدیر مدرسه مجاز است.");
+  const schoolId=profile.tenant_school_id||profile.school_id||FRAHOOH_CONFIG.tenant_school_id;
+  const entries=await api("/rest/v1/weekly_schedule_entries?select=teacher_name,teacher_username&tenant_school_id=eq."+encodeURIComponent(schoolId)+"&limit=500");
+  const names=[...new Set(entries.map(x=>String(x.teacher_name||"").trim()).filter(Boolean))];
+  if(!names.length)throw Error("در برنامه هفتگی نام دبیری پیدا نشد.");
+  if(!confirm("برای "+names.length+" نام دبیر ثبت‌شده در برنامه هفتگی حساب ورود آماده شود؟ نام کاربری عددی تولید می‌شود و رمز اولیه 12345 است؛ هر دبیر باید در اولین ورود رمز را تغییر دهد."))return;
+  const used=new Set(),results=[];
+  const hashName=name=>{let h=2166136261;for(const ch of name){h^=ch.codePointAt(0);h=Math.imul(h,16777619)}return String((Math.abs(h)%900000000)+100000000)};
+  for(let i=0;i<names.length;i++){
+   const name=names[i];let username="8"+hashName(name).slice(0,9);while(used.has(username))username=String((Number(username)+1)%10000000000).padStart(10,"0");used.add(username);
+   const parts=name.split(/\s+/).filter(Boolean),first=parts[0],last=parts.slice(1).join(" ")||"دبیر";
+   status.textContent="در حال آماده‌سازی حساب "+(i+1)+" از "+names.length+": "+name;
+   try{
+    const created=await requestJson(U+"/functions/v1/admin-create-teacher",{method:"POST",headers:authHeaders(token),body:JSON.stringify({first_name:first,last_name:last,username,email:"",phone:"",national_code:"",subject:"",password:"12345"})});
+    const actual=created.username||username;
+    const filter="/rest/v1/weekly_schedule_entries?tenant_school_id=eq."+encodeURIComponent(schoolId)+"&teacher_name=eq."+encodeURIComponent(name);
+    await requestJson(U+filter,{method:"PATCH",headers:{...authHeaders(token),"Prefer":"return=minimal"},body:JSON.stringify({teacher_username:actual})});
+    results.push("✓ "+name+" | نام کاربری: "+actual+" | رمز اولیه: 12345");
+   }catch(e){results.push("✗ "+name+" | "+(e.message||"خطا"))}
+  }
+  status.textContent="نتیجه آماده‌سازی حساب دبیران؛ اطلاعات ورود را محرمانه به دبیر مربوط بدهید:\n"+results.join("\n");
+ }catch(e){status.textContent="آماده‌سازی حساب‌ها انجام نشد: "+(e.message||e)}finally{button.disabled=false}
+}
+$("createTeacherAccountsFromSchedule").onclick=createTeacherAccountsFromSchedule;
+
 
 function readLocalRows(key){try{const rows=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(rows)?rows:[]}catch(_){return []}}
 function writeLocalRows(key,rows){localStorage.setItem(key,JSON.stringify(rows))}
