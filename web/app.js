@@ -14,7 +14,7 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const norm=v=>String(v||"").replace(/[۰-۹٠-٩]/g,x=>{const a="۰۱۲۳۴۵۶۷۸۹",b="٠١٢٣٤٥٦٧٨٩";let i=a.indexOf(x);return i>=0?String(i):String(b.indexOf(x))});
 const fieldLabels={national_code:"کد ملی",first_name:"نام",last_name:"نام خانوادگی",full_name:"نام و نام خانوادگی",username:"نام کاربری",email:"ایمیل",phone:"شماره تماس",mobile:"شماره همراه",role:"نقش",status:"وضعیت",gender:"جنسیت",birth_date:"تاریخ تولد",class_name:"کلاس",grade:"پایه",subject:"درس",teacher_name:"نام دبیر",student_name:"نام دانش‌آموز",date:"تاریخ",time:"زمان",description:"توضیحات",title:"عنوان",message:"پیام",score:"نمره",attendance_status:"وضعیت حضور",notes:"توضیحات",amount:"مبلغ",address:"آدرس",reason:"علت/موضوع",target:"مخاطب",tenant_school_id:"شناسه مدرسه",school_id:"شناسه مدرسه",school_code:"کد مدرسه",slug:"شناسه یکتا",plan_id:"طرح اشتراک",plan_code:"کد طرح",duration_months:"مدت اشتراک (ماه)",student_limit:"ظرفیت دانش‌آموز",price_irr:"قیمت (ریال)",grace_days:"مهلت تمدید (روز)",starts_at:"شروع اشتراک",ends_at:"پایان اشتراک",payment_reference:"شناسه پرداخت",owner_auth_user_id:"مدیر مدرسه",auth_user_id:"شناسه حساب کاربری",is_active:"فعال",created_by:"ثبت‌کننده"};
 const fieldLabel=k=>fieldLabels[k]||String(k).replaceAll("_"," ");
-const ignoredExcelFields=new Set(["id","created_at","updated_at","deleted_at"]);
+const ignoredExcelFields=new Set(["id","created_at","updated_at","deleted_at","_auth_user_id"]);
 const excelKey=v=>String(v??"").replace(/^\uFEFF/,"").trim().replace(/\s+/g," ");
 async function api(path,opt={}){
  const h={"apikey":CFG.supabase_anon_key,"Content-Type":"application/json",...(opt.headers||{})};
@@ -200,14 +200,29 @@ async function renderSubscriptionWorkspace(){
 
 async function openTable(table){
  currentTable=table;selectedIndex=-1;renderModules();if(table==="school_subscriptions"){await renderSubscriptionWorkspace();return true}$("tableArea").innerHTML='<div class="table-wrap"><div class="empty">در حال دریافت اطلاعات واقعی...</div></div>';
- try{rows=await api("/rest/v1/"+encodeURIComponent(table)+"?select=*&limit=300");if(!Array.isArray(rows))rows=[];renderTable(rows);return true}
+ try{
+  rows=await api("/rest/v1/"+encodeURIComponent(table)+"?select=*&limit=300");
+  if(!Array.isArray(rows))rows=[];
+  if(table==="users"){
+   try{
+    const accounts=await api("/rest/v1/account_settings?select=username,email,national_code,auth_user_id&limit=1000");
+    const byKey=new Map();
+    (Array.isArray(accounts)?accounts:[]).forEach(a=>{
+     if(!a.auth_user_id)return;
+     [a.username,a.email,a.national_code].filter(Boolean).forEach(k=>byKey.set(String(k).trim().toLowerCase(),a.auth_user_id));
+    });
+    rows=rows.map(r=>({...r,_auth_user_id:byKey.get(String(r.username||"").trim().toLowerCase())||byKey.get(String(r.email||"").trim().toLowerCase())||byKey.get(String(r.national_code||"").trim().toLowerCase())||null}));
+   }catch(e){rows=rows.map(r=>({...r,_auth_user_id:null}))}
+  }
+  renderTable(rows);return true
+}
  catch(e){rows=[];$("tableArea").innerHTML='<div class="table-wrap"><div class="empty">دریافت اطلاعات انجام نشد: '+esc(e.message)+'</div></div>';return false}
 }
 function tableKeys(data){const keys=[];const showIds=["schools","subscription_plans","school_subscriptions","school_memberships"].includes(currentTable);data.forEach(r=>Object.keys(r||{}).forEach(k=>{if((!ignoredExcelFields.has(k)||(showIds&&k==="id"))&&!keys.includes(k))keys.push(k)}));return keys}
 function renderTable(data){
  const keys=tableKeys(data),write=canWrite(currentTable),viewOnly=specialViewOnly(currentTable);
  const rowActions=write&&!viewOnly&&["students","teachers"].includes(currentTable);
- const authDeleteActions=write&&!viewOnly&&currentTable==="account_settings";
+ const authDeleteActions=write&&!viewOnly&&["users","account_settings"].includes(currentTable);
  let html='<div class="table-wrap"><div class="table-tools"><input id="tableSearch" placeholder="جستجو در همین زیرپنل"><button class="primary" id="reload">تازه‌سازی</button>';
  if(write&&!viewOnly){const meeting=meetingTables.has(currentTable);html+='<button id="addRow">ثبت</button>';if(!rowActions)html+='<button id="editRow">ویرایش</button><button class="danger" id="deleteRow">حذف</button>';if(!meeting)html+='<button id="importExcel">ورودی اکسل</button><button id="exportExcel">خروجی اکسل</button><button id="exportPdf">خروجی PDF</button>';}
  html+='</div><div class="crud-hint">'+(write&&!viewOnly?"یک ردیف را انتخاب کنید؛ سپس ویرایش یا حذف را بزنید.":"این زیرپنل برای این نقش فقط قابل مشاهده است.")+'</div>';
@@ -220,7 +235,7 @@ function renderTable(data){
   if(head){const th=document.createElement("th");th.textContent="عملیات";head.appendChild(th)}
   table?.querySelectorAll("tbody tr").forEach(tr=>{
    const row=data[Number(tr.dataset.index)];const td=document.createElement("td");
-   if(row?.auth_user_id){const button=document.createElement("button");button.type="button";button.className="danger";button.textContent="حذف حساب Supabase";button.dataset.authUserDelete=String(row.auth_user_id);td.appendChild(button)}
+   const authUserId=row?._auth_user_id||row?.auth_user_id;if(authUserId){const button=document.createElement("button");button.type="button";button.className="danger";button.textContent="حذف حساب Supabase";button.dataset.authUserDelete=String(authUserId);td.appendChild(button)}
    else td.textContent="حساب Auth متصل نیست";
    tr.appendChild(td);
   });
@@ -228,7 +243,7 @@ function renderTable(data){
  $("tableArea").querySelectorAll("input[name=rowpick]").forEach(x=>x.onchange=()=>{const picked=data[Number(x.value)];selectedIndex=picked?rows.findIndex(r=>String(r.id)===String(picked.id)):-1});
  $("tableArea").querySelectorAll("[data-row-edit]").forEach(button=>button.onclick=()=>{const row=data.find(r=>String(r.id)===button.dataset.rowEdit);if(!row){alert("رکورد برای ویرایش پیدا نشد.");return}selectedIndex=rows.findIndex(r=>String(r.id)===String(row.id));openEditor(row)});
  $("tableArea").querySelectorAll("[data-row-delete]").forEach(button=>button.onclick=()=>{const row=data.find(r=>String(r.id)===button.dataset.rowDelete);if(!row){alert("رکورد برای حذف پیدا نشد.");return}deleteRecord(row)});
- $("tableArea").querySelectorAll("[data-auth-user-delete]").forEach(button=>button.onclick=()=>{const row=data.find(r=>String(r.auth_user_id)===button.dataset.authUserDelete);if(!row){alert("حساب کاربری برای حذف پیدا نشد.");return}deleteAuthUser(row)});
+ $("tableArea").querySelectorAll("[data-auth-user-delete]").forEach(button=>button.onclick=()=>{const row=data.find(r=>String(r._auth_user_id||r.auth_user_id)===button.dataset.authUserDelete);if(!row){alert("حساب کاربری برای حذف پیدا نشد.");return}deleteAuthUser(row)});
  $("reload").onclick=()=>openTable(currentTable);$("tableSearch").oninput=e=>{const q=e.target.value.toLowerCase();renderTable(rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q)))};
  bindTools();
 }
