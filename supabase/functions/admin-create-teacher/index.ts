@@ -42,11 +42,11 @@ Deno.serve(async (req: Request) => {
   const email = (text(body.email) || (username + "@users.frahoosh.ir")).toLowerCase();
   const password = text(body.password) || "12345", phone = text(body.phone), subject = text(body.subject);
   const displayName = [firstName, lastName].filter(Boolean).join(" ");
-  if (!firstName || !lastName || !username || !nationalCode) {
-    return respond({ error: "نام، نام خانوادگی، نام کاربری و کد ملی دبیر الزامی است." }, 400);
+  if (!firstName || !lastName || !username) {
+    return respond({ error: "نام، نام خانوادگی و نام کاربری دبیر الزامی است." }, 400);
   }
   if (!/^\d{8,12}$/.test(username)) return respond({ error: "نام کاربری باید عددی و بین ۸ تا ۱۲ رقم باشد." }, 400);
-  if (!/^\d{10}$/.test(nationalCode)) return respond({ error: "کد ملی باید ۱۰ رقم باشد." }, 400);
+  if (nationalCode && !/^\d{10}$/.test(nationalCode)) return respond({ error: "کد ملی در صورت ورود باید ۱۰ رقم باشد." }, 400);
   if (!/^\S+@\S+\.\S+$/.test(email)) return respond({ error: "ایمیل واردشده معتبر نیست." }, 400);
   if (password !== "12345") return respond({ error: "رمز اولیه حساب دبیر باید 12345 باشد." }, 400);
 
@@ -54,12 +54,11 @@ Deno.serve(async (req: Request) => {
     .from("account_settings").select("username,national_code,role,auth_user_id")
     .eq("username", username).maybeSingle();
   if (usernameError) return respond({ error: "بررسی یکتایی نام کاربری ناموفق بود." }, 500);
-  if (usernameOwner && usernameOwner.national_code !== nationalCode) return respond({ error: "این نام کاربری قبلاً به حساب دیگری اختصاص یافته است." }, 409);
   if (usernameOwner?.auth_user_id) return respond({ error: "برای این نام کاربری قبلاً حساب ورود ساخته شده است." }, 409);
-
-  const { data: existingByCode, error: existingError } = await admin
-    .from("account_settings").select("username,role,auth_user_id")
-    .eq("national_code", nationalCode).maybeSingle();
+  if (usernameOwner && nationalCode && usernameOwner.national_code && usernameOwner.national_code !== nationalCode) return respond({ error: "این نام کاربری قبلاً به حساب دیگری اختصاص یافته است." }, 409);
+  const { data: existingByCode, error: existingError } = nationalCode
+    ? await admin.from("account_settings").select("username,role,auth_user_id").eq("national_code", nationalCode).maybeSingle()
+    : { data: null, error: null };
   if (existingError) return respond({ error: "بررسی حساب قبلی ناموفق بود." }, 500);
   if (existingByCode?.auth_user_id) return respond({ error: "برای این دبیر قبلاً حساب ورود ساخته شده است." }, 409);
   if (existingByCode && normRole(existingByCode.role) !== "teacher" && normRole(existingByCode.role) !== "دبیر") {
@@ -68,7 +67,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email, password, email_confirm: true,
-    user_metadata: { role: "teacher", display_name: displayName, national_code: nationalCode, username, must_change_password: true }
+    user_metadata: { role: "teacher", display_name: displayName, national_code: nationalCode || null, username, must_change_password: true }
   });
   if (createError || !created.user) {
     return respond({ error: createError?.message ?? "ساخت حساب احراز هویت ناموفق بود." }, 400);
@@ -76,11 +75,12 @@ Deno.serve(async (req: Request) => {
 
   const finalUsername = username;
   try {
-    const { data: oldTeacher, error: teacherLookupError } = await admin
-      .from("teachers").select("id").eq("national_code", nationalCode).maybeSingle();
+    const { data: oldTeacher, error: teacherLookupError } = nationalCode
+      ? await admin.from("teachers").select("id").eq("national_code", nationalCode).maybeSingle()
+      : { data: null, error: null };
     if (teacherLookupError) throw teacherLookupError;
     const teacherRow = {
-      first_name: firstName, last_name: lastName, national_code: nationalCode,
+      first_name: firstName, last_name: lastName, national_code: nationalCode || null,
       email, phone: phone || null, mobile: phone || null, subject: subject || null,
       employment_status: "فعال"
     };
@@ -89,7 +89,7 @@ Deno.serve(async (req: Request) => {
       : await admin.from("teachers").insert(teacherRow);
     if (teacherWrite.error) throw teacherWrite.error;
 
-    const accountRow = { username: finalUsername, display_name: displayName, email, national_code: nationalCode,
+    const accountRow = { username: finalUsername, display_name: displayName, email, national_code: nationalCode || null,
       role: "teacher", auth_user_id: created.user.id, phone: phone || "", preferences: "{}" };
     const accountWrite = existingByCode
       ? await admin.from("account_settings").update(accountRow).eq("username", existingByCode.username)
