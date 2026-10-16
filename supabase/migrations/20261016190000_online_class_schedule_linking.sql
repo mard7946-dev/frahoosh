@@ -56,13 +56,17 @@ declare
   v_uid uuid := auth.uid();
   v_name text := btrim(coalesce(p_display_name,''));
   v_class text := btrim(coalesce(p_class_name,''));
-  v_school uuid := private.frahoosh_current_school_id();
+  v_school uuid;
   v_today text := extract(dow from (now() at time zone 'Asia/Tehran'))::integer::text;
   v_now time := (now() at time zone 'Asia/Tehran')::time;
 begin
-  if v_school is null then raise exception 'مدرسه برای نشست دانش‌آموز مشخص نیست'; end if;
+  select c.tenant_school_id into v_school from public.online_classes c where c.id=p_class_id;
+  if v_school is null then raise exception 'مدرسهٔ کلاس مشخص نیست؛ کلاس باید به مدرسه متصل شود'; end if;
   if not exists(select 1 from public.online_classes c where c.id=p_class_id and c.tenant_school_id=v_school) then
     raise exception 'کلاس متعلق به این مدرسه نیست';
+  end if;
+  if private.frahoosh_current_school_id() is not null and private.frahoosh_current_school_id() <> v_school then
+    raise exception 'کلاس متعلق به مدرسهٔ دیگری است';
   end if;
   if v_uid is null then raise exception 'ورود مهمان معتبر نیست'; end if;
   if v_name='' or v_class='' then raise exception 'نام دانش‌آموز و کلاس الزامی است'; end if;
