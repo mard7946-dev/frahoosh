@@ -27,7 +27,8 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('writeLocalRows("frahoosh_local_teachers"', self.entry)
         import_block = self.entry[self.entry.index("async function importPeople"):self.entry.index("let classWizardStep=0;")]
         self.assertNotIn('api("/rest/v1/teachers"', import_block)
-        self.assertIn("اطلاعات به Supabase ارسال نشد", import_block)
+        self.assertIn('api("/rest/v1/rpc/import_online_class_roster"', import_block)
+        self.assertIn("فقط اطلاعات ضروری ثبت شد؛ رمز عبور و اطلاعات تماس ارسال نشد.", import_block)
 
     def test_manual_roster_forms_match_excel_templates_and_mark_required_fields(self):
         for field in ("newStudentFirst", "newStudentLast", "newStudentClass",
@@ -39,7 +40,7 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('id="saveStudentLocal"', self.entry)
         self.assertIn('class="required-mark"', self.entry)
         self.assertIn('class="optional-mark">(اختیاری)', self.entry)
-        self.assertIn('["نام *","نام خانوادگی *","کلاس *"]', self.entry)
+        self.assertIn('["نام *","نام خانوادگی *","کد دانش‌آموزی *","کلاس *"]', self.entry)
         self.assertIn('"ایمیل (اختیاری)"', self.entry)
 
     def test_weekly_schedule_uses_existing_supabase_contract(self):
@@ -97,7 +98,7 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertEqual(self.entry, apk_entry.read_text(encoding="utf-8"))
         apk_room_text = apk_room.read_text(encoding="utf-8")
         self.assertIn('getTextFallback(["/mobile/assets/online_class.html"', apk_room_text)
-        self.assertIn('getTextFallback(["../../mobile/assets/online_class.html"', self.room)
+        self.assertIn('getTextFallback(["https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/online_class.html"', self.room)
         self.assertIn('frahoosh_room_entry_authorized', self.room)
         self.assertEqual(web_classroom.read_text(encoding="utf-8"), apk_classroom.read_text(encoding="utf-8"))
         self.assertEqual(source_patch.read_text(encoding="utf-8"), apk_patch.read_text(encoding="utf-8"))
@@ -162,7 +163,7 @@ class OnlineClassContractTests(unittest.TestCase):
         activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
                     "ir" / "frahoosh" / "classroom" / "MainActivity.java").read_text(encoding="utf-8")
         self.assertIn("buildWebView();\n        requestMediaPermissions();", activity)
-        self.assertIn("hasMediaPermissions()", activity)
+        self.assertIn("hasMediaPermissions(request)", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
 
     def test_microphone_starts_enabled_and_renegotiates_existing_peers(self):
@@ -173,8 +174,8 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('await navigator.mediaDevices.getUserMedia({audio:true,video:false})', self.classroom)
 
     def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
-        self.assertIn('getTextFallback(["../../mobile/assets/online_class.html","../../online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
-        self.assertIn('getTextFallback(["../../online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
+        self.assertIn('getTextFallback(["https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/online_class.html","https://raw.githack.com/mard7946-dev/frahoosh/main/mobile/assets/online_class.html"]', self.room)
+        self.assertIn('getTextFallback(["https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
         self.assertIn("base.href=new URL(htmlResult.path,location.href).href", self.room)
         self.assertNotIn('getTextFallback(["/online_class_apk/', self.room)
 
