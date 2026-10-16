@@ -45,8 +45,9 @@ jobs:
           test -s dist/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js
           test -s dist/mobile/assets/online_class.html
           test -s dist/online_class_apk/classroom_patch.js
-          grep -Fq 'https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/online_class.html' dist/online-class/room.html
-          grep -Fq 'https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js' dist/online-class/room.html
+          grep -Fq 'https://raw.githack.com/mard7946-dev/frahoosh/"+revision+"/' dist/online-class/room.html
+          grep -Fq 'getText(base+"online_class_apk/app/src/main/assets/room_assets/online_class.html"' dist/online-class/room.html
+          grep -Fq 'getText(base+"online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"' dist/online-class/room.html
           test -s dist/index.html
           echo "Verified shared web/APK entry, room loader routes, classroom runtime assets, and main site entry."
       - name: Configure Pages
