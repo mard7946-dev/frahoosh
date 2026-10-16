@@ -50,7 +50,7 @@ public final class MainActivity extends Activity {
         );
 
         buildWebView();
-        requestAppMediaPermissions();
+        requestMediaPermissions();
     }
 
     private void buildWebView() {
@@ -184,44 +184,37 @@ public final class MainActivity extends Activity {
         return true;
     }
 
-    private void requestAppMediaPermissions() {
-        if (Build.VERSION.SDK_INT < 23) return;
-        ArrayList<String> missing = new ArrayList<>();
-        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            missing.add(Manifest.permission.CAMERA);
-        }
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            missing.add(Manifest.permission.RECORD_AUDIO);
-        }
-        if (!missing.isEmpty() && !mediaPermissionRequestInFlight) {
-            mediaPermissionRequestInFlight = true;
-            requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
-        }
-    }
-
     private void requestMediaPermissions() {
         if (Build.VERSION.SDK_INT < 23) return;
         PermissionRequest request = pendingWebPermission;
-        if (request == null) return;
         ArrayList<String> missing = new ArrayList<>();
-        boolean needsCamera = false;
-        boolean needsAudio = false;
-        for (String resource : request.getResources()) {
-            needsCamera |= PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource);
-            needsAudio |= PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource);
-        }
-        if (needsCamera && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            missing.add(Manifest.permission.CAMERA);
-        }
-        if (needsAudio && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            missing.add(Manifest.permission.RECORD_AUDIO);
+        if (request == null) {
+            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                missing.add(Manifest.permission.CAMERA);
+            }
+            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                missing.add(Manifest.permission.RECORD_AUDIO);
+            }
+        } else {
+            boolean needsCamera = false;
+            boolean needsAudio = false;
+            for (String resource : request.getResources()) {
+                needsCamera |= PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource);
+                needsAudio |= PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource);
+            }
+            if (needsCamera && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                missing.add(Manifest.permission.CAMERA);
+            }
+            if (needsAudio && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                missing.add(Manifest.permission.RECORD_AUDIO);
+            }
         }
         if (!missing.isEmpty()) {
             if (!mediaPermissionRequestInFlight) {
                 mediaPermissionRequestInFlight = true;
                 requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
             }
-        } else {
+        } else if (request != null) {
             pendingWebPermission = null;
             grantWebMediaPermission(request);
         }
