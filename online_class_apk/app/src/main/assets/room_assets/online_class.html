@@ -147,10 +147,7 @@ function api(path,opts={}){return fetch(C.url+"/rest/v1/"+path,Object.assign({he
 function jsonHeaders(extra={}){return Object.assign({},headers,extra)}
 function esc(s){return String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
 function setStatus(t){let e=$("page");e.textContent=t||e.textContent}
-function parseSessionTimestamp(value){if(!value)return null;let s=String(value).trim();if(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d/.test(s)){s=s.replace(" ","T").replace(/(\.\d{3})\d+/,"$1").replace(/([+-]\d\d)$/,"$1:00")}const n=Date.parse(s);return Number.isFinite(n)?n:null}
-function isCurrentSessionSignal(row,payload){const current=C.sessionId??null,incoming=payload?.sessionId??payload?.session_id??null;if(current!==null&&incoming!==null&&String(current)!==String(incoming))return false;const start=parseSessionTimestamp(C.sessionStartedAt),created=parseSessionTimestamp(row?.created_at);if(start&&created&&created<start-1500)return false;return true}
-async function flushIceCandidates(id,pc){const queued=pendingIceCandidates.get(String(id))||[];pendingIceCandidates.delete(String(id));for(const candidate of queued){try{await pc.addIceCandidate(candidate)}catch(e){console.warn("ICE_CANDIDATE_APPLY_FAILED",e)}}}
-function queueIceCandidate(id,candidate){const key=String(id),queued=pendingIceCandidates.get(key)||[];queued.push(candidate);pendingIceCandidates.set(key,queued)}
+function parseSessionTimestamp(value){if(!value)return null;let s=String(value).trim();if(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d/.test(s)){s=s.replace(" ","T").replace(/(\.\d{3})\d+/,"$1").replace(/([+-]\d\d)$/,"$1:00")}const n=Date.parse(s);return Number.isFinite(n)?n:null}\nfunction isCurrentSessionSignal(row,payload){const current=C.sessionId??null,incoming=payload?.sessionId??payload?.session_id??null;if(current!==null&&incoming!==null&&String(current)!==String(incoming))return false;const start=parseSessionTimestamp(C.sessionStartedAt),created=parseSessionTimestamp(row?.created_at);if(start&&created&&created<start-1500)return false;return true}\nasync function flushIceCandidates(id,pc){const queued=pendingIceCandidates.get(String(id))||[];pendingIceCandidates.delete(String(id));for(const candidate of queued){try{await pc.addIceCandidate(candidate)}catch(e){console.warn("ICE_CANDIDATE_APPLY_FAILED",e)}}}\nfunction queueIceCandidate(id,candidate){const key=String(id),queued=pendingIceCandidates.get(key)||[];queued.push(candidate);pendingIceCandidates.set(key,queued)}
 async function send(type,payload={},to=null){try{const signalPayload={...(payload||{}),sessionId:C.sessionId??null};const r=await api("online_class_signals",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({class_id:C.classId,sender_user_id:C.userId,receiver_user_id:to,signal_type:type,payload:signalPayload})});if(!r.ok){const detail=await r.text().catch(()=> "");console.warn("CLASSROOM_SIGNAL_REJECTED",type,r.status,detail);if(["join","offer","answer","candidate"].includes(type))setStatus("ارتباط کلاس برقرار نشد ("+r.status+"). نشست کلاس و دسترسی مدرسه را بررسی کنید.");return false}return true}catch(e){console.warn("CLASSROOM_SIGNAL_SEND_FAILED",type,e);if(["join","offer","answer","candidate"].includes(type))setStatus("ارتباط کلاس برقرار نشد؛ اتصال اینترنت را بررسی کنید.");return false}}
 async function requestNegotiation(id,pc){
  if(!pc||pc.signalingState==="closed")return;
@@ -184,14 +181,68 @@ function addVideo(id,name,stream){
 }
 function removeVideo(id){let t=document.getElementById("v-"+id);if(t)t.remove()}
 function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="person">'+esc(n)+(id===C.userId?" (شما)":"")+"</div>";$("participants").innerHTML=h}
-async function ensureMedia(){if(!navigator.mediaDevices?.getUserMedia){setStatus("این محیط دسترسی رسانه را پشتیبانی نمی‌کند.");return false}const acquired=localStream&&localStream.getTracks().some(t=>t.readyState==="live")?localStream:new MediaStream();let ve=null,ae=null;if(!isStudent()&&!acquired.getVideoTracks().some(t=>t.readyState==="live")){try{const v=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});v.getVideoTracks().forEach(t=>acquired.addTrack(t))}catch(e){ve=e;console.warn("CAMERA_PERMISSION_ERROR",e)}}if(!acquired.getAudioTracks().some(t=>t.readyState==="live")){try{const a=await navigator.mediaDevices.getUserMedia({audio:true,video:false});a.getAudioTracks().forEach(t=>acquired.addTrack(t))}catch(e){ae=e;console.warn("MIC_PERMISSION_ERROR",e)}}if(!acquired.getTracks().some(t=>t.readyState==="live")){setStatus("دسترسی صدا/تصویر برقرار نشد: "+((ve||ae)?.name||"خطا"));return false}localStream=acquired;if(isStudent()){cam=false;for(const t of localStream.getAudioTracks())t.enabled=false;}addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();for(const [,pc] of peers)for(const track of localStream.getTracks())if(!pc.getSenders().some(x=>x.track===track))pc.addTrack(track,localStream);if(ve)setStatus("دوربین فعال نشد؛ صدای کلاس همچنان قابل استفاده است.");else if(ae)setStatus("میکروفون فعال نشد؛ تصویر کلاس همچنان قابل استفاده است.");return true}
+async function ensureMedia(){
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStatus("این محیط دسترسی رسانه را پشتیبانی نمی‌کند.");return false}
+ if(localStream&&localStream.getTracks().some(t=>t.readyState==="live")){
+  if(isStudent()){mic=false;cam=false;localStream.getAudioTracks().forEach(t=>t.enabled=false);localStream.getVideoTracks().forEach(t=>t.enabled=false)}
+  addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
+  return localStream.getAudioTracks().some(t=>t.readyState==="live");
+ }
+ let stream=null;
+ try{
+  try{
+   stream=await navigator.mediaDevices.getUserMedia({video:!isStudent(),audio:true});
+  }catch(combinedError){
+   console.warn("COMBINED_MEDIA_FALLBACK_TO_AUDIO",combinedError);
+   stream=await navigator.mediaDevices.getUserMedia({video:false,audio:true});
+   setStatus("صدا فعال است؛ تصویر به‌دلیل مجوز یا محدودیت دوربین فعال نشد.");
+  }
+  if(isStudent()){
+   mic=false;cam=false;
+   stream.getAudioTracks().forEach(t=>t.enabled=false);
+   stream.getVideoTracks().forEach(t=>t.enabled=false);
+  }else{
+   stream.getAudioTracks().forEach(t=>t.enabled=mic);
+   stream.getVideoTracks().forEach(t=>t.enabled=cam);
+  }
+  localStream=stream;
+  addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
+  for(const [id,pc] of peers){
+   let added=false;
+   for(const track of localStream.getTracks()){
+    const already=pc.getSenders().some(x=>x.track===track);
+    if(!already){pc.addTrack(track,localStream);added=true}
+   }
+   if(added)await requestNegotiation(id,pc);
+  }
+  $("mic").classList.toggle("active",mic&&localStream.getAudioTracks().length>0);
+  $("cam").classList.toggle("active",cam&&localStream.getVideoTracks().length>0);
+  if(!localStream.getAudioTracks().some(t=>t.readyState==="live"))throw new Error("NO_AUDIO_TRACK");
+  return true;
+ }catch(e){
+  console.warn("MEDIA_PERMISSION_ERROR",e);
+  setStatus("دسترسی میکروفون/رسانه فعال نشد: "+(e.name||"خطا"));
+  alert("دسترسی میکروفون/رسانه داده نشد؛ مجوز میکروفون را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")");
+  return false;
+ }
+}
+let studentMediaPermissions={mic:false,cam:false};
+window.setStudentToolsPermission=function(permissions={}){
+ if(!isStudent())return;
+ const next={mic:permissions.mic===true,cam:permissions.cam===true};
+ if(!next.mic||!studentMediaPermissions.mic){mic=false;localStream?.getAudioTracks().forEach(t=>t.enabled=false)}
+ if(!next.cam||!studentMediaPermissions.cam){cam=false;localStream?.getVideoTracks().forEach(t=>t.enabled=false)}
+ studentMediaPermissions=next;
+ const micButton=$("mic"),camButton=$("cam");
+ if(micButton){micButton.disabled=!next.mic;micButton.title=next.mic?"میکروفون با اجازه دبیر فعال است":"برای فعال‌سازی میکروفون باید دبیر مجوز بدهد";micButton.textContent=mic?"میکروفون روشن":"میکروفون خاموش";micButton.classList.toggle("active",mic)}
+ if(camButton){camButton.disabled=!next.cam;camButton.title=next.cam?"دوربین با اجازه دبیر فعال است":"برای فعال‌سازی دوربین باید دبیر مجوز بدهد";camButton.textContent=cam?"دوربین روشن":"دوربین خاموش";camButton.classList.toggle("active",cam)}
+};
 async function makePeer(id,name){if(peers.has(id))return peers.get(id);let pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});peers.set(id,pc);names.set(id,name||"کاربر");renderPeople();if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.onicecandidate=e=>{if(e.candidate)send("candidate",{candidate:e.candidate},id)};pc.ontrack=e=>addVideo(id,names.get(id)||"کاربر",e.streams[0]);pc.onconnectionstatechange=()=>{if(["failed","closed","disconnected"].includes(pc.connectionState)){removeVideo(id);}};return pc}
 async function offerTo(id,name){let pc=await makePeer(id,name);let o=await pc.createOffer();await pc.setLocalDescription(o);await send("offer",{sdp:pc.localDescription},id)}
 async function poll(){try{let r=await api("online_class_signals?class_id=eq."+C.classId+"&id=gt."+lastId+"&order=id.asc&limit=200");let rows=await r.json();for(const x of rows){lastId=Math.max(lastId,Number(x.id));if(x.sender_user_id===C.userId)continue;if(x.receiver_user_id&&x.receiver_user_id!==C.userId)continue;let p=x.payload||{};if(!isCurrentSessionSignal(x,p))continue;if(x.signal_type==="join"){names.set(x.sender_user_id,p.name||"کاربر");renderPeople();if(C.userId<x.sender_user_id)await offerTo(x.sender_user_id,p.name)}else if(x.signal_type==="leave"){peers.get(x.sender_user_id)?.close();peers.delete(x.sender_user_id);pendingIceCandidates.delete(String(x.sender_user_id));names.delete(x.sender_user_id);removeVideo(x.sender_user_id);renderPeople()}else if(x.signal_type==="offer"){names.set(x.sender_user_id,p.name||"کاربر");let pc=await makePeer(x.sender_user_id,p.name);await pc.setRemoteDescription(p.sdp);await flushIceCandidates(x.sender_user_id,pc);let a=await pc.createAnswer();await pc.setLocalDescription(a);await send("answer",{sdp:pc.localDescription},x.sender_user_id)}else if(x.signal_type==="answer"){let pc=peers.get(x.sender_user_id);if(pc){await pc.setRemoteDescription(p.sdp);await flushIceCandidates(x.sender_user_id,pc)}}else if(x.signal_type==="candidate"){if(p.candidate){const pc=peers.get(x.sender_user_id);if(pc?.remoteDescription){try{await pc.addIceCandidate(p.candidate)}catch(e){console.warn("ICE_CANDIDATE_APPLY_FAILED",e)}}else queueIceCandidate(x.sender_user_id,p.candidate)}}else if(x.signal_type==="renegotiate"){if(String(C.userId)<String(x.sender_user_id))await offerTo(x.sender_user_id,names.get(x.sender_user_id)||"کاربر")}else if(x.signal_type==="chat"){appendMsg(p.name||"کاربر",p.text||"")}else if(x.signal_type==="board"){applyBoard(p,false)}else if(x.signal_type==="quiz_answer"&&C.role!=="student"){loadQuizResults()}}}catch(e){}}
 function appendMsg(n,t){let d=document.createElement("div");d.className="msg";d.innerHTML="<b>"+esc(n)+"</b><br>"+esc(t);$("msgs").appendChild(d);$("msgs").scrollTop=$("msgs").scrollHeight}
 $("send").onclick=async()=>{let t=$("chatInput").value.trim();if(!t)return;appendMsg(C.name,t);$("chatInput").value="";await send("chat",{name:C.name,text:t})};
 $("mic").onclick=async()=>{
-  const next=!mic;
   try{
    if(!navigator.mediaDevices?.getUserMedia)throw new Error("MEDIA_API_UNAVAILABLE");
    let tracks=localStream?.getAudioTracks?.().filter(t=>t.readyState==="live")||[];
@@ -200,11 +251,15 @@ $("mic").onclick=async()=>{
     tracks=audioStream.getAudioTracks();
     if(!tracks.length)throw new Error("NO_AUDIO_TRACK");
     if(!localStream)localStream=new MediaStream();
-    tracks.forEach(t=>{t.enabled=next;localStream.addTrack(t)});
-    for(const [id,pc] of peers){let added=false;for(const track of tracks){const sender=pc.getSenders().find(s=>s.track?.kind==="audio");if(sender)await sender.replaceTrack(track);else{pc.addTrack(track,localStream);added=true}}if(added)await requestNegotiation(id,pc)}
+    tracks.forEach(t=>{t.enabled=true;localStream.addTrack(t)});
+    for(const [id,pc] of peers){
+     let added=false;
+     for(const track of tracks){const sender=pc.getSenders().find(x=>x.track?.kind==="audio");if(sender)await sender.replaceTrack(track);else{pc.addTrack(track,localStream);added=true}}
+     if(added)await requestNegotiation(id,pc);
+    }
     addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
-   }else tracks.forEach(t=>t.enabled=next);
-   mic=next;
+    mic=true;
+   }else{mic=!mic;tracks.forEach(t=>t.enabled=mic)}
    $("mic").classList.toggle("active",mic);
    $("mic").textContent=mic?"میکروفون روشن":"میکروفون خاموش";
   }catch(e){console.warn("MIC_START_FAILED",e);alert("میکروفون فعال نشد. مجوز میکروفون را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")")}
@@ -220,14 +275,15 @@ $("cam").onclick=async()=>{
    if(!localStream)localStream=new MediaStream();
    videoTracks.forEach(t=>{t.enabled=true;localStream.addTrack(t)});
    addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
-   for(const [id,pc] of peers){let added=false;for(const track of videoTracks){const sender=pc.getSenders().find(s=>s.track?.kind==="video");if(sender)await sender.replaceTrack(track);else{pc.addTrack(track,localStream);added=true}}if(added)await requestNegotiation(id,pc)}
+   for(const [id,pc] of peers){let added=false;for(const track of videoTracks){const sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender)await sender.replaceTrack(track);else{pc.addTrack(track,localStream);added=true}}if(added)await requestNegotiation(id,pc)}
    cam=true;
   }catch(e){console.warn("CAMERA_START_FAILED",e);alert("دوربین فعال نشد. مجوز دوربین را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")");return}
  }else{cam=!cam;tracks.forEach(t=>t.enabled=cam)}
  $("cam").classList.toggle("active",cam);$("cam").textContent=cam?"دوربین روشن":"دوربین خاموش";
 };
 $("screen").onclick=async()=>{if(!navigator.mediaDevices||typeof navigator.mediaDevices.getDisplayMedia!=="function"){alert("اشتراک‌گذاری صفحه در این نسخه اندروید پشتیبانی نمی‌شود؛ برای این قابلیت باید نسخه APK با مجوز ضبط صفحه اندروید نصب شود. برای ارسال تصویر دوربین از دکمه «دوربین» استفاده کنید.");return}try{if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;return}screenStream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});const s=screenStream.getVideoTracks()[0];if(!s)throw new Error("NO_SCREEN_TRACK");for(const [,pc] of peers){let sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender)sender.replaceTrack(s)}s.addEventListener("ended",()=>{screenStream=null;let camTrack=localStream?.getVideoTracks?.()[0];for(const [,pc] of peers){let sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender&&camTrack)sender.replaceTrack(camTrack)}})}catch(e){console.warn("SCREEN_SHARE_UNAVAILABLE",e);alert("اشتراک‌گذاری صفحه شروع نشد. اگر پیام مجوز اندروید نمایش داده نشد، این قابلیت هنوز در APK فعال نیست.")}};
-$("leave").onclick=async()=>{send("leave",{name:C.name});if(["teacher","دبیر","manager","مدیر","executive","معاون اجرایی"].includes(C.role))await endClassSession();localStream?.getTracks().forEach(x=>x.stop());screenStream?.getTracks().forEach(x=>x.stop());peers.forEach(p=>p.close());location.href="about:blank"};
+$("leave").onclick=async()=>{send("leave",{name:C.name});if(["teacher","دبیر","manager","مدیر","مدیریت"].includes(C.role))await endClassSession();localStream?.getTracks().forEach(x=>x.stop());screenStream?.getTracks().forEach(x=>x.stop());peers.forEach(p=>p.close());location.href="about:blank"};
+
 function resize(){let r=canvas.getBoundingClientRect(),d=window.devicePixelRatio||1;canvas.width=Math.max(1,r.width*d);canvas.height=Math.max(1,r.height*d);ctx.setTransform(d,0,0,d,0,0);loadBoard()}
 function pos(e){let r=canvas.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]}
 function drawShape(a){ctx.strokeStyle=a.color||color;ctx.lineWidth=Number(a.size||size);ctx.lineCap="round";ctx.beginPath();let x1=a.x1,y1=a.y1,x2=a.x2,y2=a.y2;
@@ -250,7 +306,6 @@ canvas=$("board");ctx=canvas.getContext("2d");if(!ctx)throw new Error("Canvas 2D
 canvas.addEventListener("pointerdown",e=>{drawing=true;start=pos(e);points=[...start];if(tool==="pen"||tool==="eraser"){ctx.beginPath();ctx.moveTo(...start)}});
 canvas.addEventListener("pointermove",e=>{if(!drawing)return;let p=pos(e);if(tool==="pen"||tool==="eraser"){points.push(...p);ctx.strokeStyle=tool==="eraser"?"#fff":color;ctx.lineWidth=tool==="eraser"?Math.max(10,size*3):size;ctx.lineCap="round";ctx.lineTo(...p);ctx.stroke()}});
 canvas.addEventListener("pointerup",async e=>{if(!drawing)return;drawing=false;let end=pos(e),p;if(tool==="pen"||tool==="eraser")p={tool,points};else p={tool,x1:start[0],y1:start[1],x2:end[0],y2:end[1]};await saveBoard(p);points=[]});
-
 
 async function loadFiles(){try{let r=await api("smart_board_files?class_id=eq."+C.classId+"&order=id.desc&limit=100");let rows=await r.json();$("files").innerHTML=rows.map(x=>'<div class="fileitem"><b>'+esc(x.title||x.file_type||"فایل")+'</b><br>'+esc(x.file_type||"")+"<br><button onclick='downloadFile("+JSON.stringify(x.file_path)+","+JSON.stringify(x.title||"فایل")+" )'>مشاهده / دریافت</button></div>").join("")}catch(e){}}
 async function uploadFile(file){if(!file||C.role==="student")return;try{if(file.size>50*1024*1024)throw new Error("حجم فایل بیشتر از ۵۰ مگابایت است");let safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");let path=C.classId+"/"+C.userId+"/"+Date.now()+"_"+safe;let u=C.url+"/storage/v1/object/online-class-files/"+path;let rr=await fetch(u,{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":file.type||"application/octet-stream","x-upsert":"false"},body:file});if(!rr.ok)throw new Error(await rr.text());await api("smart_board_files",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({title:file.name,file_path:path,file_type:file.type||"application/octet-stream",class_id:C.classId,description:"فایل اشتراکی کلاس هوشمند"})});await loadFiles()}catch(e){alert("ارسال فایل انجام نشد: "+e.message)}}
@@ -354,7 +409,7 @@ async function closeClassAfterServerEnd(){
 }
 async function refreshSessionTimer(){
  try{
-  const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&teacher_user_id=not.is.null&ended_at=is.null&order=id.desc&limit=1");
+  const r=await api("online_class_sessions?class_id=eq."+encodeURIComponent(C.classId)+"&ended_at=is.null&order=id.desc&limit=1");
   if(!r.ok)throw new Error("HTTP "+r.status);
   const rows=await r.json(),latest=rows[0];
   if(latest){
@@ -440,45 +495,7 @@ async function autoMarkEntry(){
  }catch(e){console.error("Automatic attendance failed",e);alert("ثبت حضور خودکار انجام نشد؛ ورود به کلاس متوقف شد.");location.replace("/online-class/")}
 }
 
-// Apply the teacher's microphone permission to the student's real media track and existing peers.
-window.setStudentToolsPermission=async function(permissions){
- const allowed=!!(permissions&&permissions.mic);
- const button=$("mic");
- if(!allowed){
-  if(localStream)localStream.getAudioTracks().forEach(track=>{track.enabled=false});
-  mic=false;
-  if(button){button.disabled=true;button.classList.remove("active");button.textContent="میکروفون غیرفعال";button.title="برای فعال‌سازی باید دبیر مجوز بدهد"}
-  return;
- }
- try{
-  let tracks=localStream?.getAudioTracks?.().filter(track=>track.readyState==="live")||[];
-  if(!tracks.length){
-   const audio=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
-   tracks=audio.getAudioTracks();
-   if(!tracks.length)throw new Error("NO_AUDIO_TRACK");
-   if(!localStream)localStream=new MediaStream();
-   tracks.forEach(track=>localStream.addTrack(track));
-   for(const [id,pc] of peers){
-    let added=false;
-    for(const track of tracks){
-     const sender=pc.getSenders().find(item=>item.track?.kind==="audio");
-     if(sender)await sender.replaceTrack(track);
-     else{pc.addTrack(track,localStream);added=true}
-    }
-    if(added)await requestNegotiation(id,pc);
-   }
-  }
-  tracks.forEach(track=>{track.enabled=true});
-  mic=true;
-  if(button){button.disabled=false;button.classList.add("active");button.textContent="میکروفون روشن";button.title="میکروفون با اجازه دبیر فعال است"}
-  if(localStream){addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople()}
- }catch(error){
-  console.warn("STUDENT_MIC_PERMISSION_APPLY_FAILED",error);
-  if(button){button.disabled=false;button.textContent="فعال‌سازی میکروفون";button.title="برای تلاش دوباره لمس کنید"}
-  setStatus("مجوز میکروفون ثبت شد، اما فعال‌سازی صدا انجام نشد؛ مجوز میکروفون دستگاه را بررسی کنید.");
- }
-};
-async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody"),layout=document.querySelector(".layout");const teacher=isTeacher();if(!teacher){const b=$("board");if(b){b.style.touchAction="pan-y";b.style.pointerEvents="none";b.setAttribute("aria-label","تخته فقط برای مشاهده؛ منتظر مجوز دبیر باشید")}}document.querySelectorAll("[data-tool],#color,#size,#prev,#next,#clear,#clearAll,#fileManager,#quizPanel,#quizToggle,#screen").forEach(el=>{if(el)el.style.display=teacher?"":"none"});if(!teacher){drawer.style.display="none";document.querySelector(".boardbar").style.display="none";$("mic").style.display="";$("cam").style.display="";}for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);const mt=$("menuToggle");if(mt)mt.onclick=()=>{if(teacher){drawer.open=!drawer.open;layout.classList.toggle("drawer-open",drawer.open)}else{layout.classList.toggle("drawer-open");}};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await refreshSessionTimer();if(isStudent()){const ready=await waitForTeacherSession();if(!ready)return;}if(!isStudent()&&!isTeacher()&&!currentSession){setStatus("نشست فعال دبیر در سرور پیدا نشد؛ برای جلوگیری از اجرای نمایشی، ابزارهای کلاس شروع نشدند. ابتدا دبیر باید وارد شود و کلاس را آغاز کند.");for(const id of ["mic","cam","screen","guestInvite","quizToggle","menuToggle"]){const el=$(id);if(el)el.disabled=true;}return;}if(await enforceStudentBlock())return;await ensureMedia();await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass().catch(error=>{console.error('FRAHOOSH_CLASS_START_FAILED',error);const status=document.getElementById('page');if(status)status.textContent='راه‌اندازی کلاس کامل نشد: '+(error&&error.message?error.message:'خطای نامشخص')+'؛ اتصال اینترنت و مجوزهای کلاس را بررسی کنید.';});
+async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody"),layout=document.querySelector(".layout");const teacher=isTeacher();if(!teacher){const b=$("board");if(b){b.style.touchAction="pan-y";b.style.pointerEvents="none";b.setAttribute("aria-label","تخته فقط برای مشاهده؛ منتظر مجوز دبیر باشید")}}document.querySelectorAll("[data-tool],#color,#size,#prev,#next,#clear,#clearAll,#fileManager,#quizPanel,#quizToggle,#screen").forEach(el=>{if(el)el.style.display=teacher?"":"none"});if(!teacher){drawer.style.display="none";document.querySelector(".boardbar").style.display="none";$("mic").style.display="";$("cam").style.display="";}for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);const mt=$("menuToggle");if(mt)mt.onclick=()=>{if(teacher){drawer.open=!drawer.open;layout.classList.toggle("drawer-open",drawer.open)}else{layout.classList.toggle("drawer-open");}};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await refreshSessionTimer();if(isStudent()){const ready=await waitForTeacherSession();if(!ready)return;}if(await enforceStudentBlock())return;await ensureMedia();await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass();
 </script>
 </body>
 </html>
