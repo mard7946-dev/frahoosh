@@ -45,8 +45,6 @@ async function start(){
   if(!html.includes("const C=__CONFIG__;"))throw Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
   config.guestInviteBase=new URL("index.html",location.href).href;
   html=html.replace("const C=__CONFIG__;","window.C="+JSON.stringify(config)+";const C=window.C;");
-  // Keep the APK's classroom implementation intact; only retain the web manager-entry compatibility adjustment.
-  html=html.replace('if(!isStudent()&&!["teacher","دبیر"].includes(normalizeRole(C.role))&&!currentSession)','if(!isStudent()&&!isTeacher()&&!currentSession)');
   const closeScript="</scr"+"ipt>";
   html=html.replace("</body>","<script>"+patch+closeScript+"</body>");
   const baseElement=document.createElement("base");baseElement.href=base+"online_class_apk/app/src/main/assets/room_assets/online_class.html";
