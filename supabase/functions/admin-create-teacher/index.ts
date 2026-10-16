@@ -37,10 +37,15 @@ Deno.serve(async (req: Request) => {
 
   const body = await req.json().catch(() => ({}));
   const firstName = text(body.first_name), lastName = text(body.last_name);
-  const username = text(body.username).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   const nationalCode = text(body.national_code).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+  let phone = text(body.phone).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[\\s()-]/g, "");
+  if (phone.startsWith("+98") && phone.length === 13) phone = "0" + phone.slice(3);
+  else if (phone.startsWith("0098") && phone.length === 14) phone = "0" + phone.slice(4);
+  else if (phone.startsWith("98") && phone.length === 12) phone = "0" + phone.slice(2);
+  if (/^9\\d{9}$/.test(phone)) phone = "0" + phone;
+  const username = /^09\\d{9}$/.test(phone) ? phone.slice(1) : "";
   const email = (text(body.email) || (username + "@users.frahoosh.ir")).toLowerCase();
-  const password = text(body.password) || "12345", phone = text(body.phone), subject = text(body.subject);
+  const password = text(body.password) || "12345", subject = text(body.subject);
   const displayName = [firstName, lastName].filter(Boolean).join(" ");
   if (!firstName || !lastName || !username) {
     return respond({ error: "نام، نام خانوادگی و نام کاربری دبیر الزامی است." }, 400);
