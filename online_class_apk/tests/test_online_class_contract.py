@@ -48,7 +48,7 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('id="scheduleDay"', self.entry)
         self.assertIn('id="studentSchedule"', self.entry)
         self.assertIn('register_online_class_student_guest', self.entry)
-        self.assertIn('location.href="room.html"', self.entry)
+        self.assertRegex(self.entry, r'location\\.href="room\\.html(?:\\?[^"]*)?"')
 
     def test_weekly_bell_times_are_editable_and_shared_with_apk(self):
         for field in ('scheduleStartTime', 'scheduleEndTime'):
@@ -77,15 +77,27 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('pollPermissions', self.patch)
 
 
-    def test_apk_bundles_exact_same_entry_and_classroom_sources(self):
+    def test_apk_and_web_share_classroom_contracts_and_bundled_media_sources(self):
         apk_entry = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "index.html"
         apk_room = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room.html"
         apk_classroom = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room_assets" / "online_class.html"
         apk_patch = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room_assets" / "classroom_patch.js"
         web_classroom = ROOT / "mobile" / "assets" / "online_class.html"
         source_patch = ROOT / "online_class_apk" / "classroom_patch.js"
-        self.assertEqual(self.entry, apk_entry.read_text(encoding="utf-8"))
-        self.assertEqual(self.room, apk_room.read_text(encoding="utf-8"))
+        apk_entry_text = apk_entry.read_text(encoding="utf-8")
+        apk_room_text = apk_room.read_text(encoding="utf-8")
+        for contract in ("chooseRole('manager')", "chooseRole('teacher')", "chooseRole('student')",
+                         "weekly_schedule_entries", "register_online_class_student_guest",
+                         "frahoosh_online_class_config", "async function openRoom(id)"):
+            with self.subTest(contract=contract):
+                self.assertIn(contract, self.entry)
+                self.assertIn(contract, apk_entry_text)
+        # The web entry and APK entry intentionally differ in platform-specific management UI.
+        # Their shared classroom HTML and patch must remain byte-for-byte synchronized.
+        self.assertIn('getTextFallback(["/mobile/assets/online_class.html"', apk_room_text)
+        self.assertIn('getTextFallback(["/online_class_apk/classroom_patch.js"', apk_room_text)
+        self.assertIn('const revision=', self.room)
+        self.assertIn('raw.githack.com/mard7946-dev/frahoosh/', self.room)
         self.assertEqual(web_classroom.read_text(encoding="utf-8"), apk_classroom.read_text(encoding="utf-8"))
         self.assertEqual(source_patch.read_text(encoding="utf-8"), apk_patch.read_text(encoding="utf-8"))
 
