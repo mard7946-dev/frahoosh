@@ -38,19 +38,20 @@ Deno.serve(async (req: Request) => {
   const body = await req.json().catch(() => ({}));
   const firstName = text(body.first_name), lastName = text(body.last_name);
   const nationalCode = text(body.national_code).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
-  let phone = text(body.phone).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[\\s()-]/g, "");
+  let phone = text(body.phone).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[\s()-]/g, "");
   if (phone.startsWith("+98") && phone.length === 13) phone = "0" + phone.slice(3);
   else if (phone.startsWith("0098") && phone.length === 14) phone = "0" + phone.slice(4);
   else if (phone.startsWith("98") && phone.length === 12) phone = "0" + phone.slice(2);
-  if (/^9\\d{9}$/.test(phone)) phone = "0" + phone;
-  const username = /^09\\d{9}$/.test(phone) ? phone.slice(1) : "";
+  if (/^9\d{9}$/.test(phone)) phone = "0" + phone;
+  const username = /^09\d{9}$/.test(phone) ? phone.slice(1) : "";
   const email = (text(body.email) || (username + "@users.frahoosh.ir")).toLowerCase();
   const password = text(body.password) || "12345", subject = text(body.subject);
   const displayName = [firstName, lastName].filter(Boolean).join(" ");
-  if (!firstName || !lastName || !username) {
-    return respond({ error: "نام، نام خانوادگی و نام کاربری دبیر الزامی است." }, 400);
+  if (!firstName || !lastName || !phone || !username) {
+    return respond({ error: "نام، نام خانوادگی و شماره همراه معتبر دبیر الزامی است." }, 400);
   }
-  if (!/^\d{8,12}$/.test(username)) return respond({ error: "نام کاربری باید عددی و بین ۸ تا ۱۲ رقم باشد." }, 400);
+  if (!/^09\d{9}$/.test(phone)) return respond({ error: "شماره همراه باید شماره موبایل معتبر ایران باشد؛ مانند 09123456789." }, 400);
+  if (!/^9\d{9}$/.test(username)) return respond({ error: "نام کاربری از شماره همراه بدون صفر اول ساخته می‌شود." }, 400);
   if (nationalCode && !/^\d{10}$/.test(nationalCode)) return respond({ error: "کد ملی در صورت ورود باید ۱۰ رقم باشد." }, 400);
   if (!/^\S+@\S+\.\S+$/.test(email)) return respond({ error: "ایمیل واردشده معتبر نیست." }, 400);
   if (password !== "12345") return respond({ error: "رمز اولیه حساب دبیر باید 12345 باشد." }, 400);
