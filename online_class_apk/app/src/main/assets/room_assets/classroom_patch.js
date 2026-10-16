@@ -78,7 +78,7 @@ async function pollPermissions(){
 function install(){
  if(!C.token||!C.classId||!C.userId)return;
  if(student)restrictStudentUI();
- if(teacher)buildTeacherControls();
+ if(controller)buildTeacherControls();
  sig("presence",{name:C.name,role});
  setInterval(()=>sig("presence",{name:C.name,role}),5000);
  refreshRoster();setInterval(refreshRoster,5000);
