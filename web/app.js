@@ -232,7 +232,7 @@ function editorFields(row){
  const spec=catalog?.modules?.[currentTable];
  const configured=Array.isArray(spec?.fields)?spec.fields:[];
  const existing=tableKeys([row||{}]).filter(k=>k!=="id");
- const keys=[...new Set([...configured,...existing])].filter(k=>!ignoredExcelFields.has(k)&&k!=="id");
+ const keys=[...new Set([...configured,...existing])].filter(k=>!ignoredExcelFields.has(k)&&k!=="id"&&k!=="tenant_school_id");
  return keys.map(k=>{
   const value=row?.[k]??"";
   const numeric=["id","student_id","teacher_id","parent_id","class_id","assignment_id","exam_id","activity_id","children_count","teaching_hours","duration","duration_months","student_limit","grace_days","amount","price_irr","score","max_score","coefficient","quantity","fixed_amount"].includes(k);
