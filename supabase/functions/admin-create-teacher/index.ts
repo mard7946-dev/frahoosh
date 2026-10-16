@@ -50,12 +50,12 @@ Deno.serve(async (req: Request) => {
   const email = (text(body.email) || (username + "@users.frahoosh.ir")).toLowerCase();
   const password = text(body.password) || "12345", subject = text(body.subject);
   const displayName = [firstName, lastName].filter(Boolean).join(" ");
-  if (!firstName || !lastName || !username || !phone) {
-    return respond({ error: "نام، نام خانوادگی، نام کاربری و شماره همراه دبیر الزامی است." }, 400);
+  if (!firstName || !lastName || !username) {
+    return respond({ error: "نام، نام خانوادگی و نام کاربری دبیر الزامی است." }, 400);
   }
   if (!/^\d{8,12}$/.test(username)) return respond({ error: "نام کاربری باید عددی و بین ۸ تا ۱۲ رقم باشد." }, 400);
   if (nationalCode && !/^\d{10}$/.test(nationalCode)) return respond({ error: "کد ملی در صورت ورود باید ۱۰ رقم باشد." }, 400);
-  if (!/^09\d{9}$/.test(phone)) return respond({ error: "شماره همراه باید با قالب 09123456789 وارد شود." }, 400);
+  if (phone && !/^09\d{9}$/.test(phone)) return respond({ error: "شماره همراه در صورت ورود باید با قالب 09123456789 باشد." }, 400);
   if (!/^\S+@\S+\.\S+$/.test(email)) return respond({ error: "ایمیل واردشده معتبر نیست." }, 400);
   if (password !== "12345") return respond({ error: "رمز اولیه حساب دبیر باید 12345 باشد." }, 400);
 
@@ -89,7 +89,9 @@ Deno.serve(async (req: Request) => {
   try {
     const teacherLookup = nationalCode
       ? await admin.from("teachers").select("id").eq("national_code", nationalCode).maybeSingle()
-      : await admin.from("teachers").select("id").or(`phone.eq.${phone},mobile.eq.${phone}`).maybeSingle();
+      : phone
+        ? await admin.from("teachers").select("id").or(`phone.eq.${phone},mobile.eq.${phone}`).maybeSingle()
+        : { data: null, error: null };
     const oldTeacher = teacherLookup.data;
     const teacherLookupError = teacherLookup.error;
     if (teacherLookupError) throw teacherLookupError;
