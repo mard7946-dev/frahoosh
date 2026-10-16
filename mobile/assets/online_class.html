@@ -201,7 +201,7 @@ $("mic").onclick=async()=>{
     if(!tracks.length)throw new Error("NO_AUDIO_TRACK");
     if(!localStream)localStream=new MediaStream();
     tracks.forEach(t=>{t.enabled=next;localStream.addTrack(t)});
-    for(const [,pc] of peers)for(const track of tracks){const sender=pc.getSenders().find(s=>s.track?.kind==="audio");if(sender)await sender.replaceTrack(track);else pc.addTrack(track,localStream)}
+    for(const [id,pc] of peers){let added=false;for(const track of tracks){const sender=pc.getSenders().find(s=>s.track?.kind==="audio");if(sender)await sender.replaceTrack(track);else{pc.addTrack(track,localStream);added=true}}if(added)await requestNegotiation(id,pc)}
     addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
    }else tracks.forEach(t=>t.enabled=next);
    mic=next;
@@ -220,7 +220,7 @@ $("cam").onclick=async()=>{
    if(!localStream)localStream=new MediaStream();
    videoTracks.forEach(t=>{t.enabled=true;localStream.addTrack(t)});
    addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
-   for(const [,pc] of peers)for(const track of videoTracks){const sender=pc.getSenders().find(s=>s.track?.kind==="video");if(sender)await sender.replaceTrack(track);else pc.addTrack(track,localStream)}
+   for(const [id,pc] of peers){let added=false;for(const track of videoTracks){const sender=pc.getSenders().find(s=>s.track?.kind==="video");if(sender)await sender.replaceTrack(track);else{pc.addTrack(track,localStream);added=true}}if(added)await requestNegotiation(id,pc)}
    cam=true;
   }catch(e){console.warn("CAMERA_START_FAILED",e);alert("دوربین فعال نشد. مجوز دوربین را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")");return}
  }else{cam=!cam;tracks.forEach(t=>t.enabled=cam)}
