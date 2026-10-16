@@ -25,11 +25,28 @@ async function api(path,opt={}){
 }
 function saveSession(){const store=$("remember").checked?localStorage:sessionStorage;store.setItem("frahoosh_access_token",token);store.setItem("frahoosh_refresh_token",refreshToken);store.setItem("frahoosh_profile",JSON.stringify(profile))}
 async function login(){
- const id=norm($("identifier").value).trim(),pw=$("password").value;if(!id||!pw){setStatus("نام کاربری و رمز عبور را وارد کنید.",true);return}
- try{setStatus("در حال بررسی اطلاعات...");let email=id;
- if(!id.includes("@")){if(!/^\d{10}$/.test(id))throw Error("کد ملی باید ۱۰ رقمی باشد.");const e=await api("/rest/v1/rpc/lookup_auth_email_by_national_code",{method:"POST",body:JSON.stringify({p_national_code:id})});email=Array.isArray(e)?e[0]:e;if(!email)throw Error("برای این کد ملی حساب کاربری پیدا نشد.")}
- const d=await fetch(CFG.supabase_url+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"apikey":CFG.supabase_anon_key,"Content-Type":"application/json"},body:JSON.stringify({email,password:pw})}).then(async r=>{if(!r.ok)throw Error((await r.text())||"ورود ناموفق بود.");return r.json()});
- token=d.access_token;refreshToken=d.refresh_token||"";profile=(await api("/rest/v1/account_settings?email=eq."+encodeURIComponent(email)+"&limit=1"))[0]||{role:"student",display_name:email,username:email,email};saveSession();await loadPlatformAdmin();await loadSubscriptionState();renderDashboard();
+ const id=norm($("identifier").value).trim(),pw=$("password").value;
+ if(!id||!pw){setStatus("نام کاربری و رمز عبور را وارد کنید.",true);return}
+ try{
+  setStatus("در حال بررسی اطلاعات...");
+  let email=id;
+  if(!id.includes("@")){
+   if(!/^\d{8,12}$/.test(id))throw Error("نام کاربری باید ۸ تا ۱۲ رقم باشد؛ یا ایمیل ثبت‌شده را وارد کنید.");
+   const lookup=await api("/rest/v1/rpc/lookup_auth_email_by_national_code",{method:"POST",body:JSON.stringify({p_national_code:id})});
+   email=Array.isArray(lookup)?lookup[0]:lookup;
+   if(!email)throw Error("برای این نام کاربری یا کد ملی حساب کاربری پیدا نشد.");
+  }
+  const d=await fetch(CFG.supabase_url.replace(/\/$/,"")+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"apikey":CFG.supabase_anon_key,"Content-Type":"application/json"},body:JSON.stringify({email,password:pw})}).then(async r=>{if(!r.ok){let message="نام کاربری یا رمز عبور صحیح نیست.";try{const body=await r.json();message=body.msg||body.message||body.error_description||message}catch(_){}throw Error(message)}return r.json()});
+  token=d.access_token;refreshToken=d.refresh_token||"";
+  let profileRows=await api("/rest/v1/account_settings?select=*&email=eq."+encodeURIComponent(email)+"&limit=1");
+  if((!Array.isArray(profileRows)||!profileRows.length)&&d.user?.id){
+   profileRows=await api("/rest/v1/account_settings?select=*&auth_user_id=eq."+encodeURIComponent(d.user.id)+"&limit=1");
+  }
+  profile=Array.isArray(profileRows)&&profileRows[0]?profileRows[0]:{};
+  const metadata=d.user?.user_metadata||{};
+  profile={...metadata,...profile,email:profile.email||email,auth_user_id:profile.auth_user_id||d.user?.id,username:profile.username||id,display_name:profile.display_name||profile.full_name||profile.name||profile.username||id};
+  if(!profile.role)throw Error("ورود تأیید شد، اما نقش حساب از اطلاعات مدرسه دریافت نشد؛ اتصال این حساب به account_settings باید بررسی شود.");
+  saveSession();await loadPlatformAdmin();await loadSubscriptionState();renderDashboard();
  }catch(e){setStatus(e.message||"ورود انجام نشد.",true)}
 }
 async function loadCatalog(){catalog=await fetch("../shared/module_catalog.json").then(r=>{if(!r.ok)throw Error("قرارداد ماژول‌ها پیدا نشد.");return r.json()})}
