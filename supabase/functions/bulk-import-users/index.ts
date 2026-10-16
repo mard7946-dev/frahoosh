@@ -153,6 +153,7 @@ Deno.serve(async (req) => {
       continue;
     }
 
+    let newlyCreatedAuthUserId = "";
     try {
       let userId = "";
       const { data: created, error: createError } = await admin.auth.admin.createUser({
@@ -164,6 +165,7 @@ Deno.serve(async (req) => {
       });
       if (!createError && created?.user?.id) {
         userId = created.user.id;
+        newlyCreatedAuthUserId = userId;
       } else {
         const { data: existing } = await admin.from("account_settings")
           .select("auth_user_id").eq("national_code", nationalCode).maybeSingle();
@@ -213,8 +215,14 @@ Deno.serve(async (req) => {
         national_code:nationalCode, email, role, auth_user_id:userId,
         ...profileIds, success:true
       });
+      newlyCreatedAuthUserId = "";
     } catch (e) {
-      results.push({ national_code:nationalCode, email, role, success:false, error:String(e?.message ?? e) });
+      let rollbackError = "";
+      if (newlyCreatedAuthUserId) {
+        const { error: rollback } = await admin.auth.admin.deleteUser(newlyCreatedAuthUserId);
+        if (rollback) rollbackError = String(rollback.message ?? rollback);
+      }
+      results.push({ national_code:nationalCode, email, role, success:false, error:String(e?.message ?? e), ...(rollbackError ? { rollback_error: rollbackError } : {}) });
     }
   }
 
