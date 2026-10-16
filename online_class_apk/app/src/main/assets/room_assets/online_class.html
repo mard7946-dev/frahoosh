@@ -184,33 +184,7 @@ function addVideo(id,name,stream){
 }
 function removeVideo(id){let t=document.getElementById("v-"+id);if(t)t.remove()}
 function renderPeople(){let h="";for(const [id,n] of names)h+='<div class="person">'+esc(n)+(id===C.userId?" (شما)":"")+"</div>";$("participants").innerHTML=h}
-async function ensureMedia(){
- if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStatus("این محیط دسترسی رسانه را پشتیبانی نمی‌کند.");return false}
- const acquired=localStream&&localStream.getTracks().some(t=>t.readyState==="live")?localStream:new MediaStream();
- let videoError=null,audioError=null;
- const hasVideo=acquired.getVideoTracks().some(t=>t.readyState==="live");
- const hasAudio=acquired.getAudioTracks().some(t=>t.readyState==="live");
- if(!hasVideo){try{const v=await navigator.mediaDevices.getUserMedia({video:true,audio:false});v.getVideoTracks().forEach(t=>{t.enabled=cam;acquired.addTrack(t)})}catch(e){videoError=e;console.warn("CAMERA_PERMISSION_ERROR",e)}}
- if(!hasAudio){try{const a=await navigator.mediaDevices.getUserMedia({video:false,audio:true});a.getAudioTracks().forEach(t=>{t.enabled=mic;acquired.addTrack(t)})}catch(e){audioError=e;console.warn("MIC_PERMISSION_ERROR",e)}}
- if(!acquired.getTracks().some(t=>t.readyState==="live")){setStatus("دسترسی دوربین/میکروفون فعال نشد: "+((videoError||audioError)?.name||"خطا"));alert("مجوز دوربین و میکروفون برنامه را در تنظیمات Android بررسی کنید.");return false}
- localStream=acquired;addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
- for(const [,pc] of peers)for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already)pc.addTrack(track,localStream)}
- $("mic").classList.toggle("active",mic&&localStream.getAudioTracks().length>0);$("cam").classList.toggle("active",cam&&localStream.getVideoTracks().length>0);
- if(videoError)setStatus("دوربین فعال نشد ("+(videoError.name||"خطا")+"). مجوز دوربین برنامه را بررسی کنید.");
- else if(audioError)setStatus("میکروفون فعال نشد ("+(audioError.name||"خطا")+"). مجوز میکروفون برنامه را بررسی کنید.");
- return !videoError||localStream.getAudioTracks().length>0;
-}
-let studentMediaPermissions={mic:false,cam:false};
-window.setStudentToolsPermission=function(permissions={}){
- if(!isStudent())return;
- const next={mic:permissions.mic===true,cam:permissions.cam===true};
- if(!next.mic||!studentMediaPermissions.mic){mic=false;localStream?.getAudioTracks().forEach(t=>t.enabled=false)}
- if(!next.cam||!studentMediaPermissions.cam){cam=false;localStream?.getVideoTracks().forEach(t=>t.enabled=false)}
- studentMediaPermissions=next;
- const micButton=$("mic"),camButton=$("cam");
- if(micButton){micButton.disabled=!next.mic;micButton.title=next.mic?"میکروفون با اجازه دبیر فعال است":"برای فعال‌سازی میکروفون باید دبیر مجوز بدهد";micButton.textContent=mic?"میکروفون روشن":"میکروفون خاموش";micButton.classList.toggle("active",mic)}
- if(camButton){camButton.disabled=!next.cam;camButton.title=next.cam?"دوربین با اجازه دبیر فعال است":"برای فعال‌سازی دوربین باید دبیر مجوز بدهد";camButton.textContent=cam?"دوربین روشن":"دوربین خاموش";camButton.classList.toggle("active",cam)}
-};
+async function ensureMedia(){if(localStream&&localStream.getTracks().some(t=>t.readyState==="live"))return true;try{localStream=await navigator.mediaDevices.getUserMedia({video:!isStudent(),audio:true});if(isStudent()){cam=false;for(const t of localStream.getAudioTracks())t.enabled=false;}addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();for(const [,pc] of peers){for(const track of localStream.getTracks()){const already=pc.getSenders().some(x=>x.track===track);if(!already)pc.addTrack(track,localStream)}}return true}catch(e){console.warn("MEDIA_PERMISSION_ERROR",e);setStatus("دسترسی صدا/تصویر برقرار نشد: "+(e&&e.name||"خطا"));alert("دسترسی میکروفون/دوربین برقرار نشد؛ مجوزهای برنامه را بررسی کنید.");return false}}
 async function makePeer(id,name){if(peers.has(id))return peers.get(id);let pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});peers.set(id,pc);names.set(id,name||"کاربر");renderPeople();if(localStream)localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.onicecandidate=e=>{if(e.candidate)send("candidate",{candidate:e.candidate},id)};pc.ontrack=e=>addVideo(id,names.get(id)||"کاربر",e.streams[0]);pc.onconnectionstatechange=()=>{if(["failed","closed","disconnected"].includes(pc.connectionState)){removeVideo(id);}};return pc}
 async function offerTo(id,name){let pc=await makePeer(id,name);let o=await pc.createOffer();await pc.setLocalDescription(o);await send("offer",{sdp:pc.localDescription},id)}
 async function poll(){try{let r=await api("online_class_signals?class_id=eq."+C.classId+"&id=gt."+lastId+"&order=id.asc&limit=200");let rows=await r.json();for(const x of rows){lastId=Math.max(lastId,Number(x.id));if(x.sender_user_id===C.userId)continue;if(x.receiver_user_id&&x.receiver_user_id!==C.userId)continue;let p=x.payload||{};if(!isCurrentSessionSignal(x,p))continue;if(x.signal_type==="join"){names.set(x.sender_user_id,p.name||"کاربر");renderPeople();if(C.userId<x.sender_user_id)await offerTo(x.sender_user_id,p.name)}else if(x.signal_type==="leave"){peers.get(x.sender_user_id)?.close();peers.delete(x.sender_user_id);pendingIceCandidates.delete(String(x.sender_user_id));names.delete(x.sender_user_id);removeVideo(x.sender_user_id);renderPeople()}else if(x.signal_type==="offer"){names.set(x.sender_user_id,p.name||"کاربر");let pc=await makePeer(x.sender_user_id,p.name);await pc.setRemoteDescription(p.sdp);await flushIceCandidates(x.sender_user_id,pc);let a=await pc.createAnswer();await pc.setLocalDescription(a);await send("answer",{sdp:pc.localDescription},x.sender_user_id)}else if(x.signal_type==="answer"){let pc=peers.get(x.sender_user_id);if(pc){await pc.setRemoteDescription(p.sdp);await flushIceCandidates(x.sender_user_id,pc)}}else if(x.signal_type==="candidate"){if(p.candidate){const pc=peers.get(x.sender_user_id);if(pc?.remoteDescription){try{await pc.addIceCandidate(p.candidate)}catch(e){console.warn("ICE_CANDIDATE_APPLY_FAILED",e)}}else queueIceCandidate(x.sender_user_id,p.candidate)}}else if(x.signal_type==="renegotiate"){if(String(C.userId)<String(x.sender_user_id))await offerTo(x.sender_user_id,names.get(x.sender_user_id)||"کاربر")}else if(x.signal_type==="chat"){appendMsg(p.name||"کاربر",p.text||"")}else if(x.signal_type==="board"){applyBoard(p,false)}else if(x.signal_type==="quiz_answer"&&C.role!=="student"){loadQuizResults()}}}catch(e){}}
@@ -246,15 +220,14 @@ $("cam").onclick=async()=>{
    if(!localStream)localStream=new MediaStream();
    videoTracks.forEach(t=>{t.enabled=true;localStream.addTrack(t)});
    addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople();
-   for(const [,pc] of peers){let sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender)await sender.replaceTrack(videoTracks[0]);else pc.addTrack(videoTracks[0],localStream)}
+   for(const [,pc] of peers)for(const track of videoTracks){const sender=pc.getSenders().find(s=>s.track?.kind==="video");if(sender)await sender.replaceTrack(track);else pc.addTrack(track,localStream)}
    cam=true;
   }catch(e){console.warn("CAMERA_START_FAILED",e);alert("دوربین فعال نشد. مجوز دوربین را در تنظیمات Android بررسی کنید. ("+(e.name||"خطا")+")");return}
  }else{cam=!cam;tracks.forEach(t=>t.enabled=cam)}
  $("cam").classList.toggle("active",cam);$("cam").textContent=cam?"دوربین روشن":"دوربین خاموش";
 };
 $("screen").onclick=async()=>{if(!navigator.mediaDevices||typeof navigator.mediaDevices.getDisplayMedia!=="function"){alert("اشتراک‌گذاری صفحه در این نسخه اندروید پشتیبانی نمی‌شود؛ برای این قابلیت باید نسخه APK با مجوز ضبط صفحه اندروید نصب شود. برای ارسال تصویر دوربین از دکمه «دوربین» استفاده کنید.");return}try{if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;return}screenStream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});const s=screenStream.getVideoTracks()[0];if(!s)throw new Error("NO_SCREEN_TRACK");for(const [,pc] of peers){let sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender)sender.replaceTrack(s)}s.addEventListener("ended",()=>{screenStream=null;let camTrack=localStream?.getVideoTracks?.()[0];for(const [,pc] of peers){let sender=pc.getSenders().find(x=>x.track?.kind==="video");if(sender&&camTrack)sender.replaceTrack(camTrack)}})}catch(e){console.warn("SCREEN_SHARE_UNAVAILABLE",e);alert("اشتراک‌گذاری صفحه شروع نشد. اگر پیام مجوز اندروید نمایش داده نشد، این قابلیت هنوز در APK فعال نیست.")}};
-$("leave").onclick=async()=>{send("leave",{name:C.name});if(["teacher","دبیر","manager","مدیر","مدیریت"].includes(C.role))await endClassSession();localStream?.getTracks().forEach(x=>x.stop());screenStream?.getTracks().forEach(x=>x.stop());peers.forEach(p=>p.close());location.href="about:blank"};
-
+$("leave").onclick=async()=>{send("leave",{name:C.name});if(["teacher","دبیر","manager","مدیر","executive","معاون اجرایی"].includes(C.role))await endClassSession();localStream?.getTracks().forEach(x=>x.stop());screenStream?.getTracks().forEach(x=>x.stop());peers.forEach(p=>p.close());location.href="about:blank"};
 function resize(){let r=canvas.getBoundingClientRect(),d=window.devicePixelRatio||1;canvas.width=Math.max(1,r.width*d);canvas.height=Math.max(1,r.height*d);ctx.setTransform(d,0,0,d,0,0);loadBoard()}
 function pos(e){let r=canvas.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]}
 function drawShape(a){ctx.strokeStyle=a.color||color;ctx.lineWidth=Number(a.size||size);ctx.lineCap="round";ctx.beginPath();let x1=a.x1,y1=a.y1,x2=a.x2,y2=a.y2;
@@ -277,6 +250,7 @@ canvas=$("board");ctx=canvas.getContext("2d");if(!ctx)throw new Error("Canvas 2D
 canvas.addEventListener("pointerdown",e=>{drawing=true;start=pos(e);points=[...start];if(tool==="pen"||tool==="eraser"){ctx.beginPath();ctx.moveTo(...start)}});
 canvas.addEventListener("pointermove",e=>{if(!drawing)return;let p=pos(e);if(tool==="pen"||tool==="eraser"){points.push(...p);ctx.strokeStyle=tool==="eraser"?"#fff":color;ctx.lineWidth=tool==="eraser"?Math.max(10,size*3):size;ctx.lineCap="round";ctx.lineTo(...p);ctx.stroke()}});
 canvas.addEventListener("pointerup",async e=>{if(!drawing)return;drawing=false;let end=pos(e),p;if(tool==="pen"||tool==="eraser")p={tool,points};else p={tool,x1:start[0],y1:start[1],x2:end[0],y2:end[1]};await saveBoard(p);points=[]});
+
 
 async function loadFiles(){try{let r=await api("smart_board_files?class_id=eq."+C.classId+"&order=id.desc&limit=100");let rows=await r.json();$("files").innerHTML=rows.map(x=>'<div class="fileitem"><b>'+esc(x.title||x.file_type||"فایل")+'</b><br>'+esc(x.file_type||"")+"<br><button onclick='downloadFile("+JSON.stringify(x.file_path)+","+JSON.stringify(x.title||"فایل")+" )'>مشاهده / دریافت</button></div>").join("")}catch(e){}}
 async function uploadFile(file){if(!file||C.role==="student")return;try{if(file.size>50*1024*1024)throw new Error("حجم فایل بیشتر از ۵۰ مگابایت است");let safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");let path=C.classId+"/"+C.userId+"/"+Date.now()+"_"+safe;let u=C.url+"/storage/v1/object/online-class-files/"+path;let rr=await fetch(u,{method:"POST",headers:{"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":file.type||"application/octet-stream","x-upsert":"false"},body:file});if(!rr.ok)throw new Error(await rr.text());await api("smart_board_files",{method:"POST",headers:jsonHeaders({"Prefer":"return=minimal"}),body:JSON.stringify({title:file.name,file_path:path,file_type:file.type||"application/octet-stream",class_id:C.classId,description:"فایل اشتراکی کلاس هوشمند"})});await loadFiles()}catch(e){alert("ارسال فایل انجام نشد: "+e.message)}}
