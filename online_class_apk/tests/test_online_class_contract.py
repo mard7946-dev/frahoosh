@@ -176,7 +176,7 @@ class OnlineClassContractTests(unittest.TestCase):
     def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
         self.assertIn('getTextFallback(["https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/online_class.html","https://raw.githack.com/mard7946-dev/frahoosh/main/mobile/assets/online_class.html"]', self.room)
         self.assertIn('getTextFallback(["https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
-        self.assertIn("base.href=new URL(htmlResult.path,location.href).href", self.room)
+        self.assertIn("base.href=htmlResult.path", self.room)
         self.assertNotIn('getTextFallback(["/online_class_apk/', self.room)
 
     def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
