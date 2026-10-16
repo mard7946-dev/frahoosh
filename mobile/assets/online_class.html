@@ -440,6 +440,44 @@ async function autoMarkEntry(){
  }catch(e){console.error("Automatic attendance failed",e);alert("ثبت حضور خودکار انجام نشد؛ ورود به کلاس متوقف شد.");location.replace("/online-class/")}
 }
 
+// Apply the teacher's microphone permission to the student's real media track and existing peers.
+window.setStudentToolsPermission=async function(permissions){
+ const allowed=!!(permissions&&permissions.mic);
+ const button=$("mic");
+ if(!allowed){
+  if(localStream)localStream.getAudioTracks().forEach(track=>{track.enabled=false});
+  mic=false;
+  if(button){button.disabled=true;button.classList.remove("active");button.textContent="میکروفون غیرفعال";button.title="برای فعال‌سازی باید دبیر مجوز بدهد"}
+  return;
+ }
+ try{
+  let tracks=localStream?.getAudioTracks?.().filter(track=>track.readyState==="live")||[];
+  if(!tracks.length){
+   const audio=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+   tracks=audio.getAudioTracks();
+   if(!tracks.length)throw new Error("NO_AUDIO_TRACK");
+   if(!localStream)localStream=new MediaStream();
+   tracks.forEach(track=>localStream.addTrack(track));
+   for(const [id,pc] of peers){
+    let added=false;
+    for(const track of tracks){
+     const sender=pc.getSenders().find(item=>item.track?.kind==="audio");
+     if(sender)await sender.replaceTrack(track);
+     else{pc.addTrack(track,localStream);added=true}
+    }
+    if(added)await requestNegotiation(id,pc);
+   }
+  }
+  tracks.forEach(track=>{track.enabled=true});
+  mic=true;
+  if(button){button.disabled=false;button.classList.add("active");button.textContent="میکروفون روشن";button.title="میکروفون با اجازه دبیر فعال است"}
+  if(localStream){addVideo(C.userId,C.name,localStream);names.set(C.userId,C.name);renderPeople()}
+ }catch(error){
+  console.warn("STUDENT_MIC_PERMISSION_APPLY_FAILED",error);
+  if(button){button.disabled=false;button.textContent="فعال‌سازی میکروفون";button.title="برای تلاش دوباره لمس کنید"}
+  setStatus("مجوز میکروفون ثبت شد، اما فعال‌سازی صدا انجام نشد؛ مجوز میکروفون دستگاه را بررسی کنید.");
+ }
+};
 async function startClass(){const drawer=$("toolDrawer"),body=$("toolDrawerBody"),layout=document.querySelector(".layout");const teacher=isTeacher();if(!teacher){const b=$("board");if(b){b.style.touchAction="pan-y";b.style.pointerEvents="none";b.setAttribute("aria-label","تخته فقط برای مشاهده؛ منتظر مجوز دبیر باشید")}}document.querySelectorAll("[data-tool],#color,#size,#prev,#next,#clear,#clearAll,#fileManager,#quizPanel,#quizToggle,#screen").forEach(el=>{if(el)el.style.display=teacher?"":"none"});if(!teacher){drawer.style.display="none";document.querySelector(".boardbar").style.display="none";$("mic").style.display="";$("cam").style.display="";}for(const el of [document.querySelector("header .toolbar"),document.querySelector(".boardbar"),$("fileManager"),$("quizPanel")])if(el&&body)body.appendChild(el);const mt=$("menuToggle");if(mt)mt.onclick=()=>{if(teacher){drawer.open=!drawer.open;layout.classList.toggle("drawer-open",drawer.open)}else{layout.classList.toggle("drawer-open");}};const qt=$("quizToggle");if(qt)qt.onclick=()=>{drawer.open=true;$("quizPanel").scrollIntoView({behavior:"smooth",block:"start"});$("qt")?.focus()};setInterval(updateClassTimer,1000);refreshSessionTimer();setInterval(refreshSessionTimer,10000);buildQuizCreate();loadFiles();loadQuizzes();loadQuizResults();loadAttendance();resize();await refreshSessionTimer();if(isStudent()){const ready=await waitForTeacherSession();if(!ready)return;}if(!isStudent()&&!isTeacher()&&!currentSession){setStatus("نشست فعال دبیر در سرور پیدا نشد؛ برای جلوگیری از اجرای نمایشی، ابزارهای کلاس شروع نشدند. ابتدا دبیر باید وارد شود و کلاس را آغاز کند.");for(const id of ["mic","cam","screen","guestInvite","quizToggle","menuToggle"]){const el=$(id);if(el)el.disabled=true;}return;}if(await enforceStudentBlock())return;await ensureMedia();await autoMarkEntry();await send("join",{name:C.name,role:C.role});poll();setInterval(poll,900);setInterval(loadAttendance,7000);setInterval(loadFiles,15000);setInterval(loadQuizzes,12000);setInterval(loadQuizResults,12000)}startClass().catch(error=>{console.error('FRAHOOSH_CLASS_START_FAILED',error);const status=document.getElementById('page');if(status)status.textContent='راه‌اندازی کلاس کامل نشد: '+(error&&error.message?error.message:'خطای نامشخص')+'؛ اتصال اینترنت و مجوزهای کلاس را بررسی کنید.';});
 </script>
 </body>
