@@ -33,6 +33,7 @@ public final class MainActivity extends Activity {
 
     private WebView webView;
     private PermissionRequest pendingWebPermission;
+    private boolean mediaPermissionRequestInFlight = false;
     private ValueCallback<Uri[]> fileCallback;
 
     @Override
@@ -49,7 +50,7 @@ public final class MainActivity extends Activity {
         );
 
         buildWebView();
-        requestMediaPermissions();
+        requestAppMediaPermissions();
     }
 
     private void buildWebView() {
@@ -183,6 +184,21 @@ public final class MainActivity extends Activity {
         return true;
     }
 
+    private void requestAppMediaPermissions() {
+        if (Build.VERSION.SDK_INT < 23) return;
+        ArrayList<String> missing = new ArrayList<>();
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.CAMERA);
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.RECORD_AUDIO);
+        }
+        if (!missing.isEmpty() && !mediaPermissionRequestInFlight) {
+            mediaPermissionRequestInFlight = true;
+            requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
+        }
+    }
+
     private void requestMediaPermissions() {
         if (Build.VERSION.SDK_INT < 23) return;
         PermissionRequest request = pendingWebPermission;
@@ -201,7 +217,10 @@ public final class MainActivity extends Activity {
             missing.add(Manifest.permission.RECORD_AUDIO);
         }
         if (!missing.isEmpty()) {
-            requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
+            if (!mediaPermissionRequestInFlight) {
+                mediaPermissionRequestInFlight = true;
+                requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
+            }
         } else {
             pendingWebPermission = null;
             grantWebMediaPermission(request);
@@ -232,7 +251,9 @@ public final class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
-        if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermission != null) {
+        if (requestCode == MEDIA_PERMISSION_REQUEST) {
+            mediaPermissionRequestInFlight = false;
+            if (pendingWebPermission == null) return;
             PermissionRequest request = pendingWebPermission;
             pendingWebPermission = null;
             // Grant the resources that were approved independently. A denied camera
