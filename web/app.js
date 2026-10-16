@@ -318,7 +318,7 @@ async function deleteRecord(row){
  if(!row){alert("رکورد برای حذف پیدا نشد.");return}
  if(row.id===undefined||row.id===null){alert("این رکورد شناسه قابل حذف ندارد.");return}
  if(!confirm("این رکورد حذف شود؟"))return;
- try{await api("/rest/v1/"+encodeURIComponent(currentTable)+"?id=eq."+encodeURIComponent(row.id),{method:"DELETE",headers:{"Prefer":"return=minimal"}});selectedIndex=-1;await openTable(currentTable)}catch(e){alert("حذف انجام نشد: "+e.message)}
+ try{const deleted=await api("/rest/v1/"+encodeURIComponent(currentTable)+"?id=eq."+encodeURIComponent(row.id),{method:"DELETE",headers:{"Prefer":"return=representation"}});if(!Array.isArray(deleted)||deleted.length===0)throw Error("هیچ رکوردی حذف نشد. احتمالاً دسترسی حذف در Supabase مجاز نیست یا رکورد تغییر کرده است؛ فهرست را تازه‌سازی و سیاست‌های دسترسی را بررسی کنید.");selectedIndex=-1;await openTable(currentTable)}catch(e){alert("حذف انجام نشد: "+e.message)}
 }
 function excelColumns(data){
  const keys=tableKeys(data);
