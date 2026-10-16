@@ -46,6 +46,31 @@ AS $function$
 $function$;
 
 
+CREATE OR REPLACE FUNCTION public.get_public_student_class_schedule(p_weekday text DEFAULT NULL::text, p_tenant_school_id uuid DEFAULT NULL::uuid)
+ RETURNS TABLE(schedule_id bigint, class_name text, weekday text, period integer, subject text, teacher_name text, online_class_id integer, start_time time without time zone, end_time time without time zone, day_enabled boolean, activated_at timestamp with time zone, active_session_id integer, active_session_started_at text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select w.id,w.class_name,private.frahoosh_weekday_number(w.weekday),w.period,w.subject,
+         w.teacher_name,w.online_class_id,w.start_time,w.end_time,w.day_enabled,w.activated_at,
+         s.id,s.started_at
+  from public.weekly_schedule_entries w
+  left join lateral (
+    select x.id,x.started_at
+    from public.online_class_sessions x
+    where x.class_id=w.online_class_id
+      and nullif(btrim(coalesce(x.ended_at,'')),'') is null
+      and nullif(btrim(coalesce(x.teacher_user_id,'')),'') is not null
+    order by x.id desc limit 1
+  ) s on true
+  where p_tenant_school_id is not null
+    and w.tenant_school_id=p_tenant_school_id
+    and (p_weekday is null or private.frahoosh_weekday_number(w.weekday)=private.frahoosh_weekday_number(p_weekday))
+  order by w.class_name,w.period,w.id;
+$function$;
+grant execute on function public.get_public_student_class_schedule(text, uuid) to anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.register_online_class_student_guest(p_class_id integer, p_session_id integer, p_display_name text, p_class_name text)
  RETURNS boolean
  LANGUAGE plpgsql
