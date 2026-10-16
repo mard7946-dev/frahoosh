@@ -33,7 +33,6 @@ public final class MainActivity extends Activity {
 
     private WebView webView;
     private PermissionRequest pendingWebPermission;
-    private boolean mediaPermissionRequestInFlight = false;
     private ValueCallback<Uri[]> fileCallback;
 
     @Override
@@ -113,7 +112,7 @@ public final class MainActivity extends Activity {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> {
-                    if (hasMediaPermissions(request)) {
+                    if (hasMediaPermissions()) {
                         grantWebMediaPermission(request);
                     } else {
                         pendingWebPermission = request;
@@ -169,52 +168,25 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private boolean hasMediaPermissions(PermissionRequest request) {
-        if (Build.VERSION.SDK_INT < 23 || request == null) return true;
-        for (String resource : request.getResources()) {
-            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)
-                    && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)
-                    && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-        }
-        return true;
+    private boolean hasMediaPermissions() {
+        if (Build.VERSION.SDK_INT < 23) return true;
+        return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestMediaPermissions() {
         if (Build.VERSION.SDK_INT < 23) return;
-        PermissionRequest request = pendingWebPermission;
         ArrayList<String> missing = new ArrayList<>();
-        if (request == null) {
-            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                missing.add(Manifest.permission.CAMERA);
-            }
-            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                missing.add(Manifest.permission.RECORD_AUDIO);
-            }
-        } else {
-            boolean needsCamera = false;
-            boolean needsAudio = false;
-            for (String resource : request.getResources()) {
-                needsCamera |= PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource);
-                needsAudio |= PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource);
-            }
-            if (needsCamera && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                missing.add(Manifest.permission.CAMERA);
-            }
-            if (needsAudio && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                missing.add(Manifest.permission.RECORD_AUDIO);
-            }
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.CAMERA);
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.RECORD_AUDIO);
         }
         if (!missing.isEmpty()) {
-            if (!mediaPermissionRequestInFlight) {
-                mediaPermissionRequestInFlight = true;
-                requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
-            }
-        } else if (request != null) {
+            requestPermissions(missing.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
+        } else if (pendingWebPermission != null) {
+            PermissionRequest request = pendingWebPermission;
             pendingWebPermission = null;
             grantWebMediaPermission(request);
         }
@@ -244,14 +216,14 @@ public final class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
-        if (requestCode == MEDIA_PERMISSION_REQUEST) {
-            mediaPermissionRequestInFlight = false;
-            if (pendingWebPermission == null) return;
+        if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermission != null) {
             PermissionRequest request = pendingWebPermission;
             pendingWebPermission = null;
-            // Grant the resources that were approved independently. A denied camera
-            // permission must not block microphone-only classroom audio, or vice versa.
-            grantWebMediaPermission(request);
+            if (hasMediaPermissions()) {
+                grantWebMediaPermission(request);
+            } else {
+                request.deny();
+            }
         }
     }
 

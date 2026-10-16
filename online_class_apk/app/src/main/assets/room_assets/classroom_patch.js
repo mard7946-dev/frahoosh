@@ -1,13 +1,13 @@
 (()=>{"use strict";
 const C=window.C||{},$=id=>document.getElementById(id);
-const role=String(C.role||"student").trim().toLowerCase().replace(/ي/g,"ی").replace(/ك/g,"ک").replace(/\s+/g," ");
-const student=["student","دانش‌آموز","دانش آموز","guest","میهمان"].includes(role);
+const role=String(C.role||"student").toLowerCase();
+const student=["student","دانش‌آموز","guest","میهمان"].includes(role);
 const teacher=["teacher","دبیر"].includes(role);
-const controller=["teacher","دبیر","manager","مدیر","مدیریت","مدیر مدرسه","مدیر دبیرستان","executive","executive_deputy","معاون اجرایی","معاونت اجرایی","educational","educational_deputy","معاون آموزشی","معاونت آموزشی","cultural","cultural_deputy","معاون پرورشی","معاونت پرورشی","counselor","مشاوره","principal","administrator","admin","deputy","معاونت","school manager","school_manager","school_admin","super_admin"].includes(role);
-let target="",presence=new Map(),latestNames=new Map(),lastAppliedPermissions="";
+const controller=["teacher","دبیر","manager","مدیر","executive","معاون اجرایی","educational","معاون آموزشی","counselor","مشاوره","principal","admin"].includes(role);
+let target="",presence=new Map(),latestNames=new Map();
 const headers={"apikey":C.anon,"Authorization":"Bearer "+C.token,"Content-Type":"application/json"};
 async function api(path,opts={}){const r=await fetch(C.url+"/rest/v1/"+path,{...opts,headers:{...headers,...(opts.headers||{})}});if(!r.ok)throw Error(await r.text());const t=await r.text();return t?JSON.parse(t):null}
-async function sig(type,p={},to=null){try{await api("online_class_signals",{method:"POST",headers:{...headers,"Prefer":"return=minimal"},body:JSON.stringify({class_id:C.classId,sender_user_id:C.userId,receiver_user_id:to,signal_type:type,payload:{...(p||{}),sessionId:C.sessionId??null}})})}catch(e){console.warn("Classroom signal failed",e)}}
+async function sig(type,p={},to=null){try{await api("online_class_signals",{method:"POST",headers:{...headers,"Prefer":"return=minimal"},body:JSON.stringify({class_id:C.classId,sender_user_id:C.userId,receiver_user_id:to,signal_type:type,payload:p})})}catch(e){console.warn("Classroom signal failed",e)}}
 function esc(s){return String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]))}
 function rosterMarkup(rows){
  const now=Date.now(),latest=new Map();
@@ -40,7 +40,7 @@ function buildTeacherControls(){
  p.innerHTML='<b>مجوزهای دانش‌آموز انتخاب‌شده</b><div class="row" style="margin-top:6px"><select id="chatTarget"><option value="">انتخاب دانش‌آموز متصل</option></select></div><div class="row" style="margin-top:8px"><label><input type="checkbox" id="permMic"> میکروفون</label><label><input type="checkbox" id="permCam"> دوربین</label><label><input type="checkbox" id="permPen"> قلم</label><label><input type="checkbox" id="permEraser"> پاک‌کن</label><label><input type="checkbox" id="permFile"> اشتراک فایل</label></div><div class="row"><button id="saveStudentPermissions">ثبت مجوزها</button><button id="denyStudentTools" class="danger">لغو همه مجوزها</button></div><div class="status" id="studentToolStatus">ابتدا دانش‌آموز متصل را انتخاب کنید. سایر ابزارهای دانش‌آموز غیرفعال می‌مانند.</div>';
  document.querySelector(".boardwrap")?.prepend(p);
  $("chatTarget").addEventListener("change",e=>{target=e.target.value});
- $("saveStudentPermissions").onclick=async()=>{if(!target){alert("ابتدا دانش‌آموز متصل را انتخاب کنید.");return}const permissions={mic:$("permMic").checked,cam:$("permCam").checked,pen:$("permPen").checked,eraser:$("permEraser").checked,file:$("permFile").checked};await sig("tools_permission",{permissions,allowed:Object.values(permissions).some(Boolean),sessionId:C.sessionId??null},target);$("studentToolStatus").textContent="مجوزهای انتخاب‌شده برای این دانش‌آموز ثبت شد."};
+ $("saveStudentPermissions").onclick=async()=>{if(!target){alert("ابتدا دانش‌آموز متصل را انتخاب کنید.");return}const permissions={mic:$("permMic").checked,cam:$("permCam").checked,pen:$("permPen").checked,eraser:$("permEraser").checked,file:$("permFile").checked};await sig("tools_permission",{permissions,allowed:Object.values(permissions).some(Boolean)},target);$("studentToolStatus").textContent="مجوزهای انتخاب‌شده برای این دانش‌آموز ثبت شد."};
  $("denyStudentTools").onclick=async()=>{if(!target){alert("ابتدا دانش‌آموز متصل را انتخاب کنید.");return}const permissions={mic:false,cam:false,pen:false,eraser:false,file:false};["permMic","permCam","permPen","permEraser","permFile"].forEach(id=>$(id).checked=false);await sig("tools_permission",{permissions,allowed:false},target);$("studentToolStatus").textContent="همه مجوزهای اختیاری این دانش‌آموز لغو شد."};
 }
 function restrictStudentUI(){
@@ -66,19 +66,16 @@ async function pollPermissions(){
  try{
   const rows=await api("online_class_signals?class_id=eq."+encodeURIComponent(C.classId)+"&receiver_user_id=eq."+encodeURIComponent(C.userId)+"&signal_type=eq.tools_permission&order=id.desc&limit=1");
   if(rows&&rows[0]&&(typeof rows[0].payload?.allowed==="boolean"||rows[0].payload?.permissions)){
-   const payload=rows[0].payload;
-   if(!payload.sessionId||String(payload.sessionId)!==String(C.sessionId||""))return;
-   const permissions=payload.permissions||{mic:false,cam:false,pen:!!payload.allowed,eraser:!!payload.allowed,file:!!payload.allowed};
-   const signature=JSON.stringify(permissions);
-   if(signature!==lastAppliedPermissions){lastAppliedPermissions=signature;if(typeof setStudentToolsPermission==="function")setStudentToolsPermission(permissions)}
-   const status=$("permStatus");if(status)status.textContent="مجوزهای صدا، تصویر، قلم، پاک‌کن و فایل فقط برای نشست فعال همین کلاس اعمال می‌شوند.";
+   const payload=rows[0].payload,permissions=payload.permissions||{mic:false,cam:false,pen:!!payload.allowed,eraser:!!payload.allowed,file:!!payload.allowed};
+   if(typeof setStudentToolsPermission==="function")setStudentToolsPermission(permissions);
+   const status=$("permStatus");if(status)status.textContent="مجوزهای صدا، تصویر، قلم، پاک‌کن و فایل مطابق تنظیم دبیر اعمال شده‌اند؛ سایر ابزارها غیرفعال‌اند.";
   }
  }catch(e){console.warn("Could not check student tool permissions",e)}
 }
 function install(){
  if(!C.token||!C.classId||!C.userId)return;
  if(student)restrictStudentUI();
- if(controller)buildTeacherControls();
+ if(teacher)buildTeacherControls();
  sig("presence",{name:C.name,role});
  setInterval(()=>sig("presence",{name:C.name,role}),5000);
  refreshRoster();setInterval(refreshRoster,5000);

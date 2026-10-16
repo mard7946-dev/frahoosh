@@ -27,8 +27,7 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('writeLocalRows("frahoosh_local_teachers"', self.entry)
         import_block = self.entry[self.entry.index("async function importPeople"):self.entry.index("let classWizardStep=0;")]
         self.assertNotIn('api("/rest/v1/teachers"', import_block)
-        self.assertIn('api("/rest/v1/rpc/import_online_class_roster"', import_block)
-        self.assertIn("فقط اطلاعات ضروری ثبت شد؛ رمز عبور و اطلاعات تماس ارسال نشد.", import_block)
+        self.assertIn("اطلاعات به Supabase ارسال نشد", import_block)
 
     def test_manual_roster_forms_match_excel_templates_and_mark_required_fields(self):
         for field in ("newStudentFirst", "newStudentLast", "newStudentClass",
@@ -40,8 +39,8 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('id="saveStudentLocal"', self.entry)
         self.assertIn('class="required-mark"', self.entry)
         self.assertIn('class="optional-mark">(اختیاری)', self.entry)
-        self.assertIn('["نام *","نام خانوادگی *","کد دانش‌آموزی *","کلاس *"]', self.entry)
-        self.assertIn('ایمیل <span class="optional-mark">(اختیاری)</span>', self.entry)
+        self.assertIn('["نام *","نام خانوادگی *","کلاس *"]', self.entry)
+        self.assertIn('"ایمیل (اختیاری)"', self.entry)
 
     def test_weekly_schedule_uses_existing_supabase_contract(self):
         self.assertIn("weekly_schedule_entries", self.entry)
@@ -77,16 +76,6 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('tools_permission', self.patch)
         self.assertIn('pollPermissions', self.patch)
 
-    def test_guest_student_media_is_gated_by_active_session_permissions(self):
-        self.assertIn('"guest","میهمان"', self.classroom)
-        self.assertIn('if(isStudent()){cam=false;for(const t of localStream.getAudioTracks())t.enabled=false;}', self.classroom)
-        self.assertIn('const student=["student","دانش‌آموز","guest","میهمان"].includes(role);', self.patch)
-        self.assertIn('el.disabled=true;el.title="برای فعال‌سازی باید دبیر مجوز بدهد"', self.patch)
-        self.assertIn('tools_permission', self.patch)
-        self.assertIn('sessionId:C.sessionId??null', self.patch)
-        self.assertIn('String(payload.sessionId)!==String(C.sessionId||"")', self.patch)
-        self.assertIn('signature!==lastAppliedPermissions', self.patch)
-
 
     def test_apk_bundles_exact_same_entry_and_classroom_sources(self):
         apk_entry = ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "index.html"
@@ -96,10 +85,7 @@ class OnlineClassContractTests(unittest.TestCase):
         web_classroom = ROOT / "mobile" / "assets" / "online_class.html"
         source_patch = ROOT / "online_class_apk" / "classroom_patch.js"
         self.assertEqual(self.entry, apk_entry.read_text(encoding="utf-8"))
-        apk_room_text = apk_room.read_text(encoding="utf-8")
-        self.assertIn('getTextFallback(["/mobile/assets/online_class.html"', apk_room_text)
-        self.assertIn('getTextFallback(["https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/online_class.html"', self.room)
-        self.assertIn('frahoosh_room_entry_authorized', self.room)
+        self.assertEqual(self.room, apk_room.read_text(encoding="utf-8"))
         self.assertEqual(web_classroom.read_text(encoding="utf-8"), apk_classroom.read_text(encoding="utf-8"))
         self.assertEqual(source_patch.read_text(encoding="utf-8"), apk_patch.read_text(encoding="utf-8"))
 
@@ -126,23 +112,6 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("end_time time without time zone", migration)
         self.assertIn("drop function if exists public.get_student_class_schedule(text)", migration)
 
-    def test_weekly_schedule_day_controls_enforce_teacher_first_entry(self):
-        self.assertIn('id="scheduleControlDay"', self.entry)
-        self.assertIn('id="enableScheduleDay"', self.entry)
-        self.assertIn('id="disableScheduleDay"', self.entry)
-        self.assertIn('set_weekly_schedule_day_enabled', self.entry)
-        self.assertIn('day_enabled', self.entry)
-        migration = (ROOT / "supabase" / "migrations" /
-                     "20261015100000_weekly_schedule_day_controls_and_teacher_first.sql").read_text(encoding="utf-8")
-        self.assertIn("add column if not exists day_enabled boolean not null default true", migration)
-        self.assertIn("w.day_enabled", migration)
-        self.assertIn("کلاس‌های این روز توسط مدیریت غیرفعال شده‌اند.", migration)
-        self.assertIn("teacher_user_id", migration)
-        mobile_schedule = (ROOT / "mobile" / "screens" / "weekly_schedule.py").read_text(encoding="utf-8")
-        self.assertIn('"start_time": start_time', mobile_schedule)
-        self.assertIn('set_weekly_schedule_day_enabled', mobile_schedule)
-        self.assertIn('BELLS = [1, 2, 3, 4, 5, 6]', mobile_schedule)
-
     def test_transient_session_polling_never_ejects_active_classroom(self):
         self.assertIn("CLASS_SESSION_ID_MISMATCH; preserving active classroom media", self.classroom)
         self.assertIn("temporarily missing/RLS-filtered session row must never tear down working audio/video", self.classroom)
@@ -150,34 +119,18 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertNotIn("closeClassAfterServerEnd()", refresh)
         self.assertIn("updateClassTimer()", refresh)
 
-    def test_webrtc_signaling_is_session_scoped_and_preserves_early_ice_candidates(self):
-        self.assertIn('function isCurrentSessionSignal(row,payload)', self.classroom)
-        self.assertIn('if(!isCurrentSessionSignal(x,p))continue;', self.classroom)
-        self.assertIn('sessionId:C.sessionId??null', self.classroom)
-        self.assertIn('function queueIceCandidate(id,candidate)', self.classroom)
-        self.assertIn('await flushIceCandidates(x.sender_user_id,pc)', self.classroom)
-        self.assertIn('CLASSROOM_SIGNAL_REJECTED', self.classroom)
-        self.assertIn('pendingIceCandidates.delete(String(x.sender_user_id))', self.classroom)
-
     def test_classroom_keeps_the_existing_startup_media_permission_flow(self):
         activity = (ROOT / "online_class_apk" / "app" / "src" / "main" / "java" /
                     "ir" / "frahoosh" / "classroom" / "MainActivity.java").read_text(encoding="utf-8")
         self.assertIn("buildWebView();\n        requestMediaPermissions();", activity)
-        self.assertIn("hasMediaPermissions(request)", activity)
+        self.assertIn("hasMediaPermissions()", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
 
-    def test_microphone_starts_enabled_and_renegotiates_existing_peers(self):
-        self.assertIn('tracks.forEach(t=>{t.enabled=next;localStream.addTrack(t)})', self.classroom)
-        self.assertIn('async function requestNegotiation(id,pc)', self.classroom)
-        self.assertIn('x.signal_type==="renegotiate"', self.classroom)
-        self.assertIn('if(added)await requestNegotiation(id,pc)', self.classroom)
-        self.assertIn('await navigator.mediaDevices.getUserMedia({audio:true,video:false})', self.classroom)
-
     def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
-        self.assertIn('getTextFallback(["https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/online_class.html","https://raw.githack.com/mard7946-dev/frahoosh/main/mobile/assets/online_class.html"]', self.room)
-        self.assertIn('getTextFallback(["https://raw.githack.com/mard7946-dev/frahoosh/main/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
-        self.assertIn("base.href=htmlResult.path", self.room)
-        self.assertNotIn('getTextFallback(["/online_class_apk/', self.room)
+        self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
+        self.assertIn('getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
+        self.assertIn("base.href=new URL(htmlResult.path,location.href).href", self.room)
+        self.assertNotIn("../../online_class_apk/app/src/main/assets", self.room)
 
     def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
         self.assertIn(".layout{flex:1 1 0;height:auto;min-height:0", self.classroom)
