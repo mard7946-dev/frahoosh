@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email, password, email_confirm: true,
-    user_metadata: { role: "teacher", display_name: displayName, national_code: nationalCode, username }
+    user_metadata: { role: "teacher", display_name: displayName, national_code: nationalCode, username, must_change_password: true }
   });
   if (createError || !created.user) {
     return respond({ error: createError?.message ?? "ساخت حساب احراز هویت ناموفق بود." }, 400);
