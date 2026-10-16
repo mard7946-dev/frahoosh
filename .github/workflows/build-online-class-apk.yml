@@ -62,6 +62,7 @@ jobs:
               pathlib.Path("web/online-class/index.html"),
               pathlib.Path("web/online-class/room.html"),
               pathlib.Path("mobile/assets/online_class.html"),
+              pathlib.Path("online_class_apk/app/src/main/assets/room_assets/online_class.html"),
           ]
           count = 0
           for path in files:
@@ -70,7 +71,7 @@ jobs:
                   attrs, body = match.group(1), match.group(2)
                   if re.search(r"\bsrc\s*=", attrs, re.I) or not body.strip():
                       continue
-                  target = pathlib.Path("/tmp") / f"frahoosh-{path.stem}-{i}.js"
+                  target = pathlib.Path("/tmp") / f"frahoosh-{path.as_posix().replace(chr(47), chr(45))}-{i}.js"
                   target.write_text(body, encoding="utf-8")
                   print(f"Checking {path} inline script {i}")
                   count += 1
@@ -78,6 +79,7 @@ jobs:
               raise SystemExit("No inline JavaScript found for syntax validation")
           PY
           for script in /tmp/frahoosh-*.js; do node --check "$script"; done
+          node --check online_class_apk/app/src/main/assets/room_assets/classroom_patch.js
 
       - name: Build standalone classroom app
         run: gradle -p online_class_apk --no-daemon clean assembleDebug
