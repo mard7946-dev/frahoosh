@@ -18,12 +18,20 @@ create index if not exists idx_weekly_schedule_weekday_times
   on public.weekly_schedule_entries (weekday, start_time, end_time);
 create index if not exists idx_online_class_sessions_class_id_id
   on public.online_class_sessions (class_id, id desc);
+-- Hot read patterns confirmed by live PostgREST 504 logs.
+create index if not exists idx_online_class_sessions_active_class_id_id
+  on public.online_class_sessions (class_id, id desc)
+  where ended_at is null;
 -- Supabase PostgREST logs show repeated 504s on these classroom polling paths.
 -- The composite indexes support class-scoped, ordered incremental signal/board reads.
 create index if not exists idx_online_class_signals_class_id_id
   on public.online_class_signals (class_id, id);
 create index if not exists idx_smart_board_files_class_id_id
   on public.smart_board_files (class_id, id desc);
+create index if not exists idx_smart_board_quizzes_class_published_id
+  on public.smart_board_quizzes (class_id, is_published, id desc);
+create index if not exists idx_smart_board_whiteboards_class_page_id
+  on public.smart_board_whiteboards (class_id, page_no, id);
 create index if not exists idx_online_classes_due_to_close
   on public.online_classes (end_at)
   where auto_close = true and end_at is not null;
