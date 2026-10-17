@@ -241,7 +241,7 @@ function renderTable(data){
  const rowActions=write&&!viewOnly&&["students","teachers"].includes(currentTable);
  const authDeleteActions=write&&!viewOnly&&["users","account_settings"].includes(currentTable);
  let html='<div class="table-wrap"><div class="table-tools"><input id="tableSearch" placeholder="جستجو در همین زیرپنل"><button class="primary" id="reload">تازه‌سازی</button>';
- if(write&&!viewOnly){const meeting=meetingTables.has(currentTable);html+='<button id="addRow">ثبت</button>';if(!rowActions)html+='<button id="editRow">ویرایش</button><button class="danger" id="deleteRow">حذف</button>';if(!meeting)html+='<button id="importExcel">ورودی اکسل</button><button id="exportExcel">خروجی اکسل</button><button id="exportPdf">خروجی PDF</button>';if(currentTable==="account_settings"&&role()==="manager")html+='<button id="resetTeacherPasswords" class="danger">بازنشانی رمز دبیران به‌جز حاجی‌زاده</button>';}
+ if(write&&!viewOnly){const meeting=meetingTables.has(currentTable);html+='<button id="addRow">ثبت</button>';if(!rowActions)html+='<button id="editRow">ویرایش</button><button class="danger" id="deleteRow">حذف</button>';if(!meeting)html+='<button id="importExcel">ورودی اکسل</button><button id="exportExcel">خروجی اکسل</button><button id="exportPdf">خروجی PDF</button>';if(currentTable==="account_settings"&&role()==="manager")html+='<button id="resetTeacherPasswords" class="danger">بازنشانی اطلاعات</button>';}
  html+='</div><div class="crud-hint">'+(write&&!viewOnly?"یک ردیف را انتخاب کنید؛ سپس ویرایش یا حذف را بزنید.":"این زیرپنل برای این نقش فقط قابل مشاهده است.")+'</div>';
  if(!data.length){html+='<div class="empty">رکوردی برای نمایش وجود ندارد.</div></div>';$("tableArea").innerHTML=html;bindTools();return}
  html+='<table class="data-table"><thead><tr><th>انتخاب</th>'+(rowActions?'<th>عملیات</th>':'')+keys.map(k=>"<th>"+esc(fieldLabel(k))+"</th>").join("")+'</tr></thead><tbody>'+data.map((r,i)=>"<tr data-index=\""+i+"\"><td><input type=\"radio\" name=\"rowpick\" value=\""+i+"\" "+(selectedIndex>=0&&rows[selectedIndex]&&String(rows[selectedIndex].id)===String(r.id)?"checked":"")+"></td>"+(rowActions?'<td><button type="button" data-row-edit="'+esc(r.id)+'">ویرایش</button><button type="button" class="danger" data-row-delete="'+esc(r.id)+'">حذف</button></td>':"")+keys.map(k=>"<td>"+esc(r[k]===null||r[k]===undefined||r[k]===""?"—":r[k])+"</td>").join("")+"</tr>").join("")+'</tbody></table></div>';
@@ -262,25 +262,8 @@ function renderTable(data){
  $("tableArea").querySelectorAll("[data-row-delete]").forEach(button=>button.onclick=()=>{const row=data.find(r=>String(r.id)===button.dataset.rowDelete);if(!row){alert("رکورد برای حذف پیدا نشد.");return}deleteRecord(row)});
  $("tableArea").querySelectorAll("[data-auth-user-delete]").forEach(button=>button.onclick=()=>{const row=data.find(r=>String(r._auth_user_id||r.auth_user_id)===button.dataset.authUserDelete);if(!row){alert("حساب کاربری برای حذف پیدا نشد.");return}deleteAuthUser(row)});
  $("reload").onclick=()=>openTable(currentTable);$("tableSearch").oninput=e=>{const q=e.target.value.toLowerCase();renderTable(rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q)))};
- const resetButton=$("resetTeacherPasswords");if(resetButton)resetButton.onclick=resetTeacherPasswords;
+ const resetButton=$("resetTeacherPasswords");if(resetButton)resetButton.onclick=()=>openTable(currentTable);
  bindTools();
-}
-async function resetTeacherPasswords(){
- if(role()!=="manager"){alert("فقط مدیر مدرسه مجاز به بازنشانی رمز دبیران است.");return}
- const button=$("resetTeacherPasswords");if(button)button.disabled=true;
- try{
-  const endpoint=CFG.supabase_url+"/functions/v1/admin-reset-teacher-passwords";
-  const call=async(body)=>{const response=await fetch(endpoint,{method:"POST",headers:{"apikey":CFG.supabase_anon_key,"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(body)});const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||data.message||("HTTP "+response.status));return data};
-  const preview=await call({});
-  const redact=value=>{if(Array.isArray(value))return value.map(redact);if(value&&typeof value==="object"){const out={};for(const [k,v] of Object.entries(value)){if(!/password|secret|token/i.test(k))out[k]=redact(v)}return out}return value};
-  const safePreview=redact(preview);
-  if(!confirm("پیش‌نمایش بازنشانی دریافت شد. حساب حاجی‌زاده باید مستثنا بماند.\n\n"+JSON.stringify(safePreview,null,2).slice(0,1800)+"\n\nبرای اجرای بازنشانی تأیید می‌کنی؟"))return;
-  const result=await call({reset:true});
-  const safeResult=redact(result);
-  alert("پاسخ سرویس بازنشانی (اطلاعات رمز نمایش داده نمی‌شود):\n"+JSON.stringify(safeResult,null,2).slice(0,2600));
-  await openTable(currentTable);
- }catch(e){alert("بازنشانی رمز انجام نشد: "+(e.message||e))}
- finally{const b=$("resetTeacherPasswords");if(b)b.disabled=false}
 }
 function bindTools(){
  const add=$("addRow"),edit=$("editRow"),del=$("deleteRow"),imp=$("importExcel"),exp=$("exportExcel"),pdf=$("exportPdf");
