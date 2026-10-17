@@ -20,7 +20,7 @@ create index if not exists idx_online_class_sessions_class_id_id
   on public.online_class_sessions (class_id, id desc);
 create index if not exists idx_online_classes_due_to_close
   on public.online_classes (end_at)
-  where auto_close = true and end_at is not null and status <> 'closed';
+  where auto_close = true and end_at is not null;
 
 create or replace function public.refresh_online_class_statuses()
 returns void
@@ -109,7 +109,6 @@ begin
       where w.online_class_id = c.id
         and w.weekday = v_weekday
         and w.start_time is not null and w.end_time is not null
-        and w.day_enabled
     );
 
   -- Close overdue sessions even if a class status was already marked closed.
