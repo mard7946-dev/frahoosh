@@ -61,6 +61,22 @@ function restrictStudentUI(){
   document.querySelector(".boardwrap")?.prepend(p);
  }
 }
+function setStudentToolsPermission(permissions={}){
+ const p={mic:!!permissions.mic,cam:!!permissions.cam,pen:!!permissions.pen,eraser:!!permissions.eraser,file:!!permissions.file};
+ for(const [id,allowed,label] of [["mic",p.mic,"میکروفون"],["cam",p.cam,"دوربین"]]){
+  const el=$(id);if(!el)continue;el.disabled=!allowed;el.title=allowed?"مجوز دبیر فعال است":"برای فعال‌سازی "+label+" باید دبیر مجوز بدهد";
+ }
+ const board=$("board"),bar=document.querySelector(".boardbar"),canDraw=p.pen||p.eraser;
+ if(bar)bar.style.display=canDraw?"":"none";
+ if(board){board.style.pointerEvents=canDraw?"auto":"none";board.style.touchAction=canDraw?"none":"pan-y";board.setAttribute("aria-label",canDraw?"تخته با مجوز دبیر فعال است":"تخته فقط برای مشاهده؛ منتظر مجوز دبیر باشید");}
+ document.querySelectorAll("[data-tool]").forEach(el=>{const allowed=el.dataset.tool==="pen"?p.pen:el.dataset.tool==="eraser"?p.eraser:false;el.style.display=allowed?"inline-block":"none";el.disabled=!allowed;});
+ const manager=$("fileManager"),file=$("file");
+ if(manager)manager.style.display=p.file?"block":"none";
+ if(file){file.disabled=!p.file;file.style.display=p.file?"block":"none";}
+ const status=$("permStatus");
+ if(status)status.textContent="مجوزهای فعال: "+[p.mic&&"میکروفون",p.cam&&"دوربین",p.pen&&"قلم",p.eraser&&"پاک‌کن",p.file&&"اشتراک فایل/ویدیو"].filter(Boolean).join("، ")+"؛ سایر ابزارها غیرفعال‌اند.";
+ return p;
+}
 async function pollPermissions(){
  if(!student)return;
  try{
