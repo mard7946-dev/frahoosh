@@ -53,7 +53,7 @@ Deno.serve(async (req: Request) => {
       }
     } catch (_) {
       // A single key can be injected directly instead of as a JSON bundle.
-      if (/^(sb_secret_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]+\\.)/.test(secretBundle)) serviceKey = secretBundle;
+      if (secretBundle.startsWith("sb_secret_") || secretBundle.startsWith("eyJ")) serviceKey = secretBundle;
     }
   }
   const anonKey = (Deno.env.get("SUPABASE_ANON_KEY") ?? req.headers.get("apikey") ?? "").trim();
