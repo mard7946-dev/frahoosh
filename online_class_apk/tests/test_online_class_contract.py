@@ -44,11 +44,11 @@ class OnlineClassContractTests(unittest.TestCase):
 
     def test_weekly_schedule_uses_existing_supabase_contract(self):
         self.assertIn("weekly_schedule_entries", self.entry)
-        self.assertIn("get_student_class_schedule", self.entry)
+        self.assertIn("/rest/v1/rpc/get_public_student_class_schedule", self.entry)
         self.assertIn('id="scheduleDay"', self.entry)
         self.assertIn('id="studentSchedule"', self.entry)
         self.assertIn('register_online_class_student_guest', self.entry)
-        self.assertIn('location.href="room.html"', self.entry)
+        self.assertIn('location.href="room.html?v=', self.entry)
 
     def test_weekly_bell_times_are_editable_and_shared_with_apk(self):
         for field in ('scheduleStartTime', 'scheduleEndTime'):
@@ -126,10 +126,12 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("hasMediaPermissions()", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
 
-    def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
-        self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
-        self.assertIn('getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
-        self.assertIn("base.href=new URL(htmlResult.path,location.href).href", self.room)
+    def test_shared_room_loader_uses_pinned_runtime_assets_with_timeout(self):
+        self.assertIn("const revision=\"5e8e3cc34d2b4b7fee483b66ca00109e7e22d485\"", self.room)
+        self.assertIn('online_class_apk/app/src/main/assets/room_assets/online_class.html', self.room)
+        self.assertIn('online_class_apk/app/src/main/assets/room_assets/classroom_patch.js', self.room)
+        self.assertIn("new AbortController()", self.room)
+        self.assertIn("cache:\"no-store\"", self.room)
         self.assertNotIn("../../online_class_apk/app/src/main/assets", self.room)
 
     def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
@@ -152,8 +154,13 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('el.dataset.tool==="pen"?p.pen:el.dataset.tool==="eraser"?p.eraser:false', self.patch)
         self.assertIn('if(typeof setStudentToolsPermission==="function")setStudentToolsPermission(permissions)', self.patch)
 
+    def test_teacher_permission_write_failure_is_not_reported_as_success(self):
+        self.assertIn("return false", self.patch)
+        self.assertIn("ثبت مجوزها ناموفق بود؛ اتصال و دسترسی را بررسی کنید.", self.patch)
+        self.assertIn("لغو مجوزها ثبت نشد؛ اتصال و دسترسی را بررسی کنید.", self.patch)
+
     def test_web_room_loader_uses_corrected_runtime_revision(self):
-        self.assertIn("2b563538c1293fc5d73095edae6c60f09f759af3", self.room)
+        self.assertIn("5e8e3cc34d2b4b7fee483b66ca00109e7e22d485", self.room)
 
 
 if __name__ == "__main__":
