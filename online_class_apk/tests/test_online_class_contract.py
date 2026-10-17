@@ -177,7 +177,7 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('if(typeof setStudentToolsPermission==="function")setStudentToolsPermission(permissions)', self.patch)
 
     def test_web_room_loader_uses_corrected_runtime_revision(self):
-        self.assertIn("2b563538c1293fc5d73095edae6c60f09f759af3", self.room)
+        self.assertIn("d357b1f4332ff38f9e27f4235795c712b9c435bb", self.room)
 
 
 if __name__ == "__main__":
