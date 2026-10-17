@@ -36,12 +36,31 @@ Deno.serve(async (req: Request) => {
     return respond({ message: "نام کاربری و رمز عبور را کامل وارد کنید." }, 400);
   }
 
-  const url = Deno.env.get("SUPABASE_URL") ?? "";
-  const secretBundle = Deno.env.get("SUPABASE_SECRET_KEYS") ?? "";
-  let serviceKey = "";
-  try { serviceKey = JSON.parse(secretBundle).default ?? ""; } catch (_) {}
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? req.headers.get("apikey") ?? "";
+  const url = (Deno.env.get("SUPABASE_URL") ?? "").trim();
+  // Support both the newer secret-key bundle and the legacy service-role env var.
+  // Never log the key itself.
+  const secretBundle = (Deno.env.get("SUPABASE_SECRET_KEYS") ?? "").trim();
+  const legacyServiceKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "").trim();
+  let serviceKey = legacyServiceKey;
+  if (secretBundle) {
+    try {
+      const parsed: unknown = JSON.parse(secretBundle);
+      if (typeof parsed === "string") serviceKey = parsed.trim() || serviceKey;
+      else if (parsed && typeof parsed === "object") {
+        const bundle = parsed as Record<string, unknown>;
+        const candidate = bundle.default ?? bundle.service_role ?? bundle.serviceRole ?? bundle.service_role_key;
+        if (typeof candidate === "string" && candidate.trim()) serviceKey = candidate.trim();
+      }
+    } catch (_) {
+      // A single key can be injected directly instead of as a JSON bundle.
+      if (secretBundle.startsWith("sb_secret_") || secretBundle.startsWith("eyJ")) serviceKey = secretBundle;
+    }
+  }
+  const anonKey = (Deno.env.get("SUPABASE_ANON_KEY") ?? req.headers.get("apikey") ?? "").trim();
   if (!url || !serviceKey || !anonKey) {
+    console.error("login-by-username configuration missing", JSON.stringify({
+      url: Boolean(url), serviceKey: Boolean(serviceKey), anonKey: Boolean(anonKey),
+    }));
     return respond({ message: "سرویس ورود موقتاً در دسترس نیست." }, 503);
   }
 
@@ -69,8 +88,13 @@ Deno.serve(async (req: Request) => {
         admin.from("teachers").select("national_code").in("phone", variants).limit(10),
         admin.from("teachers").select("national_code").in("mobile", variants).limit(10),
       ]);
-      if (byPhone.error || byMobile.error) throw byPhone.error ?? byMobile.error;
-      const codes = [...new Set([...(byPhone.data ?? []), ...(byMobile.data ?? [])]
+      // phone/mobile are legacy aliases. If one query fails because a deployment
+      // has only one of those columns, retain the successful lookup instead of
+      // failing the whole login attempt.
+      if (byPhone.error && byMobile.error) throw byPhone.error;
+      if (byPhone.error) console.warn("login-by-username optional phone lookup failed", JSON.stringify({ code: byPhone.error.code ?? null, message: byPhone.error.message ?? null }));
+      if (byMobile.error) console.warn("login-by-username optional mobile lookup failed", JSON.stringify({ code: byMobile.error.code ?? null, message: byMobile.error.message ?? null }));
+      const codes = [...new Set([...(byPhone.error ? [] : byPhone.data ?? []), ...(byMobile.error ? [] : byMobile.data ?? [])]
         .map((row: { national_code?: string | null }) => clean(row.national_code)).filter(Boolean))];
       if (codes.length) {
         const byCode = await admin.from("account_settings").select("email").in("national_code", codes).limit(10);
@@ -83,7 +107,18 @@ Deno.serve(async (req: Request) => {
         addEmails(byCode.data);
       }
     }
-  } catch (_) {
+  } catch (error) {
+    // Keep the client response generic, but expose the database/configuration
+    // failure in Edge Function logs without recording credentials or PII.
+    const detail = error && typeof error === "object"
+      ? error as { code?: string; message?: string; details?: string; hint?: string }
+      : { message: String(error ?? "unknown error") };
+    console.error("login-by-username account lookup failed", JSON.stringify({
+      code: detail.code ?? null,
+      message: detail.message ?? "unknown error",
+      details: detail.details ?? null,
+      hint: detail.hint ?? null,
+    }));
     return respond({ message: "بررسی حساب انجام نشد؛ کمی بعد دوباره تلاش کنید." }, 503);
   }
 
