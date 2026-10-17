@@ -272,10 +272,11 @@ async function resetTeacherPasswords(){
   const endpoint=CFG.supabase_url+"/functions/v1/admin-reset-teacher-passwords";
   const call=async(body)=>{const response=await fetch(endpoint,{method:"POST",headers:{"apikey":CFG.supabase_anon_key,"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(body)});const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||data.message||("HTTP "+response.status));return data};
   const preview=await call({});
-  const safePreview={...preview};for(const k of Object.keys(safePreview))if(/password|secret|token/i.test(k))delete safePreview[k];
+  const redact=value=>{if(Array.isArray(value))return value.map(redact);if(value&&typeof value==="object"){const out={};for(const [k,v] of Object.entries(value)){if(!/password|secret|token/i.test(k))out[k]=redact(v)}return out}return value};
+  const safePreview=redact(preview);
   if(!confirm("پیش‌نمایش بازنشانی دریافت شد. حساب حاجی‌زاده باید مستثنا بماند.\n\n"+JSON.stringify(safePreview,null,2).slice(0,1800)+"\n\nبرای اجرای بازنشانی تأیید می‌کنی؟"))return;
   const result=await call({reset:true});
-  const safeResult={...result};for(const k of Object.keys(safeResult))if(/password|secret|token/i.test(k))delete safeResult[k];
+  const safeResult=redact(result);
   alert("پاسخ سرویس بازنشانی (اطلاعات رمز نمایش داده نمی‌شود):\n"+JSON.stringify(safeResult,null,2).slice(0,2600));
   await openTable(currentTable);
  }catch(e){alert("بازنشانی رمز انجام نشد: "+(e.message||e))}
