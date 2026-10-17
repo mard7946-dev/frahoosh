@@ -67,6 +67,12 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("Asia/Tehran", migration)
         self.assertIn("ورود دبیر به این کلاس فقط در بازه زمانی", migration)
 
+    def test_standalone_apk_runtime_config_includes_school_tenant(self):
+        config = (ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "runtime-config.js").read_text(encoding="utf-8")
+        self.assertIn("tenant_school_id:", config)
+        self.assertIn("school_name:", config)
+        self.assertIn("school_year:", config)
+
     def test_room_requires_a_complete_authenticated_session(self):
         self.assertIn('!config.token', self.room)
         self.assertIn('!config.userId', self.room)
