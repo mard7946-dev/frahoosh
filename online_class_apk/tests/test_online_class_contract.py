@@ -152,6 +152,11 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('el.dataset.tool==="pen"?p.pen:el.dataset.tool==="eraser"?p.eraser:false', self.patch)
         self.assertIn('if(typeof setStudentToolsPermission==="function")setStudentToolsPermission(permissions)', self.patch)
 
+    def test_teacher_permission_write_failure_is_not_reported_as_success(self):
+        self.assertIn("return false", self.patch)
+        self.assertIn("ثبت مجوزها ناموفق بود؛ اتصال و دسترسی را بررسی کنید.", self.patch)
+        self.assertIn("لغو مجوزها ثبت نشد؛ اتصال و دسترسی را بررسی کنید.", self.patch)
+
     def test_web_room_loader_uses_corrected_runtime_revision(self):
         self.assertIn("2b563538c1293fc5d73095edae6c60f09f759af3", self.room)
 
