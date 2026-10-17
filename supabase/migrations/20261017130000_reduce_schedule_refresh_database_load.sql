@@ -190,7 +190,8 @@ begin
   set day_enabled = p_enabled,
       activated_at = null,
       activated_by = coalesce((select auth.uid()::text), 'management')
-  where private.frahoosh_weekday_number(w.weekday) = v_day;
+  where w.tenant_school_id = private.frahoosh_current_school_id()
+    and private.frahoosh_weekday_number(w.weekday) = v_day;
   get diagnostics v_count = row_count;
 
   if not p_enabled then
@@ -199,7 +200,8 @@ begin
     where nullif(btrim(coalesce(s.ended_at, '')), '') is null
       and exists (
         select 1 from public.weekly_schedule_entries w
-        where w.online_class_id = s.class_id
+        where w.tenant_school_id = private.frahoosh_current_school_id()
+          and w.online_class_id = s.class_id
           and private.frahoosh_weekday_number(w.weekday) = v_day
           and not w.day_enabled
       );
@@ -208,7 +210,8 @@ begin
     set status = 'pending', start_at = null, end_at = null
     where exists (
       select 1 from public.weekly_schedule_entries w
-      where w.online_class_id = c.id
+      where w.tenant_school_id = private.frahoosh_current_school_id()
+        and w.online_class_id = c.id
         and private.frahoosh_weekday_number(w.weekday) = v_day
         and not w.day_enabled
     );
