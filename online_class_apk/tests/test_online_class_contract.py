@@ -48,7 +48,7 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('id="scheduleDay"', self.entry)
         self.assertIn('id="studentSchedule"', self.entry)
         self.assertIn('register_online_class_student_guest', self.entry)
-        self.assertIn('location.href="room.html"', self.entry)
+        self.assertIn('location.href="room.html?v=', self.entry)
 
     def test_weekly_bell_times_are_editable_and_shared_with_apk(self):
         for field in ('scheduleStartTime', 'scheduleEndTime'):
