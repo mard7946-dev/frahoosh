@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- guest-session-entry-fix: 736145982852e2781979d6615fb13cd178329c46 -->
+<!-- Frahoosh web classroom loader pinned to APK runtime revision 2b563538c1293fc5d73095edae6c60f09f759af3 -->
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
@@ -22,37 +22,31 @@ const box=document.getElementById("x"),frame=document.getElementById("room");
 const show=m=>{box.style.display="block";box.innerHTML=m+'<br><a href="index.html">بازگشت به ورود کلاس</a>';frame.style.display="none";};
 async function getText(path,label){
  const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
- try{const u=new URL(path,location.href);u.searchParams.set("_v",Date.now());const r=await fetch(u.href,{cache:"no-store",signal:c.signal});if(!r.ok)throw Error(label+" ("+r.status+")");return await r.text();}
+ try{const u=new URL(path);u.searchParams.set("_v","2b563538c1293fc5d73095edae6c60f09f759af3");const r=await fetch(u.href,{cache:"no-store",signal:c.signal});if(!r.ok)throw Error(label+" ("+r.status+")");return await r.text();}
  catch(e){if(e&&e.name==="AbortError")throw Error(label+"؛ زمان پاسخ تمام شد.");throw e;}
  finally{clearTimeout(t);}
 }
-async function getTextFallback(paths,label){
- let lastError=null;
- for(const path of paths){
-  try{return {text:await getText(path,label),path};}
-  catch(error){lastError=error;if(!/\(404\)/.test(String(error&&error.message||error)))throw error;}
- }
- throw lastError||Error(label);
-}
 async function start(){
  let config=null;
- for(const store of [sessionStorage,localStorage]){try{config=JSON.parse(store.getItem("frahoosh_online_class_config")||"null")}catch(_){}if(config)break;}
+ try{config=JSON.parse(sessionStorage.getItem("frahoosh_online_class_config")||"null")}catch(_){}
+ if(!config){try{config=JSON.parse(localStorage.getItem("frahoosh_online_class_config")||"null")}catch(_){} }
  if(!config){show("نشست کلاس آماده نیست؛ ابتدا از صفحه ورود کلاس وارد شوید.");return;}
  if(!config.url||!config.anon||!config.token||!config.classId||!config.userId){show("اطلاعات نشست کلاس ناقص است؛ از صفحه ورود کلاس دوباره وارد شوید.");return;}
  box.textContent="در حال بارگذاری محیط کلاس…";
  try{
-  let [htmlResult,patchResult]=await Promise.all([
-   getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"],"بارگذاری محیط کلاس ناموفق بود"),
-   getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"],"بارگذاری ابزارهای کلاس ناموفق بود")
+  const revision="2b563538c1293fc5d73095edae6c60f09f759af3";
+  const base="https://raw.githack.com/mard7946-dev/frahoosh/"+revision+"/";
+  let [html,patch]=await Promise.all([
+   getText(base+"online_class_apk/app/src/main/assets/room_assets/online_class.html","بارگذاری محیط کلاس ناموفق بود"),
+   getText(base+"online_class_apk/app/src/main/assets/room_assets/classroom_patch.js","بارگذاری ابزارهای کلاس ناموفق بود")
   ]);
-  let html=htmlResult.text,patch=patchResult.text;
   if(!html.includes("const C=__CONFIG__;"))throw Error("نسخه محیط کلاس با پیکربندی فعلی سازگار نیست.");
   config.guestInviteBase=new URL("index.html",location.href).href;
   html=html.replace("const C=__CONFIG__;","window.C="+JSON.stringify(config)+";const C=window.C;");
   const closeScript="</scr"+"ipt>";
   html=html.replace("</body>","<script>"+patch+closeScript+"</body>");
-  const base=document.createElement("base");base.href=new URL(htmlResult.path,location.href).href;
-  html=html.replace(/<head([^>]*)>/i,"<head$1>"+base.outerHTML);
+  const baseElement=document.createElement("base");baseElement.href=base+"online_class_apk/app/src/main/assets/room_assets/online_class.html";
+  html=html.replace(/<head([^>]*)>/i,"<head$1>"+baseElement.outerHTML);
   frame.onload=()=>{box.style.display="none";frame.style.display="block";};
   frame.srcdoc=html;
   setTimeout(()=>{try{if(frame.contentDocument&&frame.contentDocument.readyState==="complete"){box.style.display="none";frame.style.display="block";}}catch(_){}},1000);
