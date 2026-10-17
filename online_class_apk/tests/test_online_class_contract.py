@@ -127,10 +127,16 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("hasMediaPermissions()", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
 
+    def test_teacher_permission_write_failure_is_not_reported_as_success(self):
+        self.assertIn("return false", self.patch)
+        self.assertIn("ثبت مجوزها ناموفق بود؛ اتصال و دسترسی را بررسی کنید.", self.patch)
+        self.assertIn("لغو مجوزها ثبت نشد؛ اتصال و دسترسی را بررسی کنید.", self.patch)
+
     def test_web_and_apk_room_loaders_use_deployment_appropriate_assets(self):
         self.assertIn('const base="https://raw.githack.com/mard7946-dev/frahoosh/"', self.room)
         self.assertIn("online_class_apk/app/src/main/assets/room_assets/online_class.html", self.room)
         self.assertIn("online_class_apk/app/src/main/assets/room_assets/classroom_patch.js", self.room)
+        self.assertIn("const revision=", self.room)
         apk_room = (ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room.html").read_text(encoding="utf-8")
         self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', apk_room)
         self.assertIn("base.href=new URL(htmlResult.path,location.href).href", apk_room)
