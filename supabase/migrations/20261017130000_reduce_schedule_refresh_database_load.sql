@@ -18,6 +18,12 @@ create index if not exists idx_weekly_schedule_weekday_times
   on public.weekly_schedule_entries (weekday, start_time, end_time);
 create index if not exists idx_online_class_sessions_class_id_id
   on public.online_class_sessions (class_id, id desc);
+-- Supabase PostgREST logs show repeated 504s on these classroom polling paths.
+-- The composite indexes support class-scoped, ordered incremental signal/board reads.
+create index if not exists idx_online_class_signals_class_id_id
+  on public.online_class_signals (class_id, id);
+create index if not exists idx_smart_board_files_class_id_id
+  on public.smart_board_files (class_id, id desc);
 create index if not exists idx_online_classes_due_to_close
   on public.online_classes (end_at)
   where auto_close = true and end_at is not null;
@@ -109,6 +115,13 @@ begin
       where w.online_class_id = c.id
         and w.weekday = v_weekday
         and w.start_time is not null and w.end_time is not null
+    )
+    -- Do not erase end_at while a session is still live: the overdue-close
+    -- update below needs that timestamp to terminate the session correctly.
+    and not exists (
+      select 1 from public.online_class_sessions s
+      where s.class_id = c.id
+        and nullif(btrim(coalesce(s.ended_at, '')), '') is null
     );
 
   -- Close overdue sessions even if a class status was already marked closed.
