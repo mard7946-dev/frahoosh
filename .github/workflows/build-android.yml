@@ -98,7 +98,7 @@ jobs:
         env:
           FRAHOOSH_SUPABASE_URL: https://gtmmllcxhdejwjjnyzrh.supabase.co
           FRAHOOSH_SUPABASE_ANON_KEY: sb_publishable_9gf_wPQVUTO6STGZR6JNSw_YduXkxN0
-          FRAHOOSH_SCHOOL_ID: ${{ secrets.FRAHOOSH_SCHOOL_ID }}
+          FRAHOOSH_SCHOOL_ID: ${{ secrets.FRAHOOSH_SCHOOL_ID || vars.FRAHOOSH_SCHOOL_ID || '5c8b8880-1346-445c-89d8-3f76275a7ae5' }}
           FRAHOOSH_SCHOOL_NAME: ${{ secrets.FRAHOOSH_SCHOOL_NAME }}
           FRAHOOSH_SCHOOL_YEAR: ${{ secrets.FRAHOOSH_SCHOOL_YEAR }}
           FRAHOOSH_PAYMENT_GATEWAY_URL: ${{ secrets.FRAHOOSH_PAYMENT_GATEWAY_URL }}
