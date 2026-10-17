@@ -98,7 +98,7 @@ jobs:
         env:
           FRAHOOSH_SUPABASE_URL: https://gtmmllcxhdejwjjnyzrh.supabase.co
           FRAHOOSH_SUPABASE_ANON_KEY: sb_publishable_9gf_wPQVUTO6STGZR6JNSw_YduXkxN0
-          FRAHOOSH_SCHOOL_ID: ${{ secrets.FRAHOOSH_SCHOOL_ID }}
+          FRAHOOSH_SCHOOL_ID: ${{ secrets.FRAHOOSH_SCHOOL_ID || vars.FRAHOOSH_SCHOOL_ID || '5c8b8880-1346-445c-89d8-3f76275a7ae5' }}
           FRAHOOSH_SCHOOL_NAME: ${{ secrets.FRAHOOSH_SCHOOL_NAME }}
           FRAHOOSH_SCHOOL_YEAR: ${{ secrets.FRAHOOSH_SCHOOL_YEAR }}
           FRAHOOSH_PAYMENT_GATEWAY_URL: ${{ secrets.FRAHOOSH_PAYMENT_GATEWAY_URL }}
@@ -130,16 +130,37 @@ jobs:
           test -s mobile/runtime_config.json
           python - <<'PY'
           import json
-          from pathlib import Path
+          import time
+          import urllib.error
           import urllib.request
+          from pathlib import Path
 
           cfg = json.loads(Path("mobile/runtime_config.json").read_text(encoding="utf-8"))
           url = cfg["supabase_url"].rstrip("/") + "/auth/v1/settings"
           req = urllib.request.Request(url, headers={"apikey": cfg["supabase_anon_key"]})
-          with urllib.request.urlopen(req, timeout=15) as response:
-              if response.status != 200:
-                  raise SystemExit(f"Supabase auth endpoint returned HTTP {response.status}")
-          print("Supabase auth endpoint connectivity check passed.")
+          last_error = None
+          for attempt in range(1, 4):
+              try:
+                  with urllib.request.urlopen(req, timeout=15) as response:
+                      if response.status != 200:
+                          raise SystemExit(f"Supabase auth endpoint returned HTTP {response.status}")
+                  print("Supabase auth endpoint connectivity check passed.")
+                  break
+              except urllib.error.HTTPError as exc:
+                  last_error = exc
+                  if not 500 <= exc.code < 600:
+                      raise
+                  if attempt == 3:
+                      print(f"::warning::Supabase auth endpoint returned HTTP {exc.code} after {attempt} attempts; continuing the APK build. Live sign-in still requires Supabase recovery.")
+                      break
+              except (urllib.error.URLError, TimeoutError) as exc:
+                  last_error = exc
+                  if attempt == 3:
+                      print(f"::warning::Supabase auth endpoint remained unreachable after {attempt} attempts ({exc}); continuing the APK build. Live sign-in still requires Supabase recovery.")
+                      break
+              delay = attempt * 3
+              print(f"Supabase endpoint temporarily unavailable (attempt {attempt}/3): {last_error}; retrying in {delay}s")
+              time.sleep(delay)
           PY
 
       - name: Validate repository before Android build

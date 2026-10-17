@@ -44,11 +44,13 @@ class OnlineClassContractTests(unittest.TestCase):
 
     def test_weekly_schedule_uses_existing_supabase_contract(self):
         self.assertIn("weekly_schedule_entries", self.entry)
-        self.assertIn("get_student_class_schedule", self.entry)
+        self.assertIn("get_public_student_class_schedule", self.entry)
+        self.assertIn("p_tenant_school_id:FRAHOOH_CONFIG.tenant_school_id", self.entry)
         self.assertIn('id="scheduleDay"', self.entry)
         self.assertIn('id="studentSchedule"', self.entry)
         self.assertIn('register_online_class_student_guest', self.entry)
-        self.assertIn('location.href="room.html"', self.entry)
+        self.assertRegex(self.entry, r"location\.(?:href\s*=|assign\s*\()")
+        self.assertIn("room.html", self.entry)
 
     def test_weekly_bell_times_are_editable_and_shared_with_apk(self):
         for field in ('scheduleStartTime', 'scheduleEndTime'):
@@ -64,6 +66,12 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("refresh_online_class_statuses", migration)
         self.assertIn("Asia/Tehran", migration)
         self.assertIn("ورود دبیر به این کلاس فقط در بازه زمانی", migration)
+
+    def test_standalone_apk_runtime_config_includes_school_tenant(self):
+        config = (ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "runtime-config.js").read_text(encoding="utf-8")
+        self.assertIn("tenant_school_id:", config)
+        self.assertIn("school_name:", config)
+        self.assertIn("school_year:", config)
 
     def test_room_requires_a_complete_authenticated_session(self):
         self.assertIn('!config.token', self.room)
@@ -85,7 +93,6 @@ class OnlineClassContractTests(unittest.TestCase):
         web_classroom = ROOT / "mobile" / "assets" / "online_class.html"
         source_patch = ROOT / "online_class_apk" / "classroom_patch.js"
         self.assertEqual(self.entry, apk_entry.read_text(encoding="utf-8"))
-        self.assertEqual(self.room, apk_room.read_text(encoding="utf-8"))
         self.assertEqual(web_classroom.read_text(encoding="utf-8"), apk_classroom.read_text(encoding="utf-8"))
         self.assertEqual(source_patch.read_text(encoding="utf-8"), apk_patch.read_text(encoding="utf-8"))
 
@@ -126,11 +133,28 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("hasMediaPermissions()", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
 
-    def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
-        self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
-        self.assertIn('getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
-        self.assertIn("base.href=new URL(htmlResult.path,location.href).href", self.room)
-        self.assertNotIn("../../online_class_apk/app/src/main/assets", self.room)
+    def test_teacher_permission_write_failure_is_not_reported_as_success(self):
+        self.assertIn("return false", self.patch)
+        self.assertIn("ثبت مجوزها ناموفق بود؛ اتصال و دسترسی را بررسی کنید.", self.patch)
+        self.assertIn("لغو مجوزها ثبت نشد؛ اتصال و دسترسی را بررسی کنید.", self.patch)
+
+    def test_web_and_apk_room_loaders_use_deployment_appropriate_assets(self):
+        self.assertIn('const base="https://raw.githack.com/mard7946-dev/frahoosh/"', self.room)
+        self.assertIn("online_class_apk/app/src/main/assets/room_assets/online_class.html", self.room)
+        self.assertIn("online_class_apk/app/src/main/assets/room_assets/classroom_patch.js", self.room)
+        self.assertIn("const revision=", self.room)
+        apk_room = (ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room.html").read_text(encoding="utf-8")
+        self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', apk_room)
+        self.assertIn("base.href=new URL(htmlResult.path,location.href).href", apk_room)
+
+    def test_signal_poll_is_single_flight_bounded_and_retries_after_stall(self):
+        poll = self.classroom.split("async function poll()", 1)[1].split("function appendMsg", 1)[0]
+        self.assertIn("pollInFlight", poll)
+        self.assertIn("new AbortController()", poll)
+        self.assertIn("setTimeout(()=>ac.abort(),8000)", poll)
+        self.assertIn("pollFailures", poll)
+        self.assertIn("Math.min(10000,900*Math.pow(2,pollFailures))", poll)
+        self.assertNotIn("setInterval(poll,900)", self.classroom)
 
     def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
         self.assertIn(".layout{flex:1 1 0;height:auto;min-height:0", self.classroom)
@@ -153,7 +177,7 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('if(typeof setStudentToolsPermission==="function")setStudentToolsPermission(permissions)', self.patch)
 
     def test_web_room_loader_uses_corrected_runtime_revision(self):
-        self.assertIn("2b563538c1293fc5d73095edae6c60f09f759af3", self.room)
+        self.assertIn("d357b1f4332ff38f9e27f4235795c712b9c435bb", self.room)
 
 
 if __name__ == "__main__":
