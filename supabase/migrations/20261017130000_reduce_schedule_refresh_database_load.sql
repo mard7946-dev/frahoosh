@@ -16,6 +16,11 @@ create index if not exists idx_weekly_schedule_online_class_weekday
   on public.weekly_schedule_entries (online_class_id, weekday);
 create index if not exists idx_weekly_schedule_weekday_times
   on public.weekly_schedule_entries (weekday, start_time, end_time);
+-- Schedule data may store Persian weekday names or numeric weekday strings.
+-- Normalize in SQL and index the same expression used by the refresh function.
+create index if not exists idx_weekly_schedule_normalized_weekday_times
+  on public.weekly_schedule_entries (private.frahoosh_weekday_number(weekday), start_time, end_time)
+  where start_time is not null and end_time is not null;
 create index if not exists idx_online_class_sessions_class_id_id
   on public.online_class_sessions (class_id, id desc);
 -- Hot read patterns confirmed by live PostgREST 504 logs.
@@ -60,7 +65,7 @@ begin
       end
   from public.weekly_schedule_entries w
   where w.online_class_id = c.id
-    and w.weekday = v_weekday
+    and private.frahoosh_weekday_number(w.weekday) = v_weekday
     and w.day_enabled
     and w.start_time is not null
     and w.end_time is not null
@@ -79,7 +84,7 @@ begin
   -- Preserve existing activation timestamps and avoid rewriting unchanged rows.
   update public.weekly_schedule_entries w
   set activated_at = case
-    when w.weekday = v_weekday
+    when private.frahoosh_weekday_number(w.weekday) = v_weekday
       and w.day_enabled
       and v_now >= ((v_today + w.start_time) at time zone 'Asia/Tehran')
       and v_now < ((v_today + w.end_time) at time zone 'Asia/Tehran')
@@ -89,7 +94,7 @@ begin
   where w.start_time is not null
     and w.end_time is not null
     and w.activated_at is distinct from case
-      when w.weekday = v_weekday
+      when private.frahoosh_weekday_number(w.weekday) = v_weekday
         and w.day_enabled
         and v_now >= ((v_today + w.start_time) at time zone 'Asia/Tehran')
         and v_now < ((v_today + w.end_time) at time zone 'Asia/Tehran')
@@ -121,7 +126,7 @@ begin
     and not exists (
       select 1 from public.weekly_schedule_entries w
       where w.online_class_id = c.id
-        and w.weekday = v_weekday
+        and private.frahoosh_weekday_number(w.weekday) = v_weekday
         and w.start_time is not null and w.end_time is not null
     )
     -- Do not erase end_at while a session is still live: the overdue-close
@@ -159,5 +164,61 @@ begin
     and c.status is distinct from 'closed';
 end;
 $function$;
+
+
+-- Keep day-wide activation compatible with both Persian and numeric weekday values.
+create or replace function public.set_weekly_schedule_day_enabled(p_weekday text, p_enabled boolean)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_role text := lower(coalesce((select private.frahoosh_current_role()), ''));
+  v_day text := private.frahoosh_weekday_number(p_weekday);
+  v_count integer := 0;
+  v_now timestamptz := now();
+begin
+  if v_role not in ('manager','مدیر','مدیریت','educational','معاون آموزشی','معاونت آموزشی') then
+    raise exception 'فقط مدیریت یا معاون آموزشی می‌تواند وضعیت همه کلاس‌های یک روز را تغییر دهد.';
+  end if;
+  if v_day not in ('0','1','2','3','4','5','6') then
+    raise exception 'روز انتخاب‌شده معتبر نیست.';
+  end if;
+
+  update public.weekly_schedule_entries w
+  set day_enabled = p_enabled,
+      activated_at = null,
+      activated_by = coalesce((select auth.uid()::text), 'management')
+  where private.frahoosh_weekday_number(w.weekday) = v_day;
+  get diagnostics v_count = row_count;
+
+  if not p_enabled then
+    update public.online_class_sessions s
+    set ended_at = v_now::text
+    where nullif(btrim(coalesce(s.ended_at, '')), '') is null
+      and exists (
+        select 1 from public.weekly_schedule_entries w
+        where w.online_class_id = s.class_id
+          and private.frahoosh_weekday_number(w.weekday) = v_day
+          and not w.day_enabled
+      );
+
+    update public.online_classes c
+    set status = 'pending', start_at = null, end_at = null
+    where exists (
+      select 1 from public.weekly_schedule_entries w
+      where w.online_class_id = c.id
+        and private.frahoosh_weekday_number(w.weekday) = v_day
+        and not w.day_enabled
+    );
+  end if;
+
+  return v_count;
+end;
+$function$;
+
+revoke all on function public.set_weekly_schedule_day_enabled(text, boolean) from public, anon;
+grant execute on function public.set_weekly_schedule_day_enabled(text, boolean) to authenticated;
 
 revoke execute on function public.refresh_online_class_statuses() from public, anon, authenticated;
