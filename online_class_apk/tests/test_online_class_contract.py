@@ -136,6 +136,25 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn(".layout{flex:1 1 0;height:auto;min-height:0", self.classroom)
         self.assertIn(".boardwrap{flex:1 1 0;height:auto;min-height:0", self.classroom)
 
+    def test_guest_classroom_accounts_are_treated_as_students(self):
+        self.assertIn('"guest","میهمان"', self.classroom)
+        self.assertIn('["student","دانش‌آموز","دانش آموز","guest","میهمان"]', self.classroom)
+        self.assertIn('if(isStudent())return;', self.classroom)
+
+    def test_classroom_signaling_queues_early_ice_and_reports_failures(self):
+        self.assertIn("pendingCandidates=new Map()", self.classroom)
+        self.assertIn("flushPendingCandidates", self.classroom)
+        self.assertIn("CLASSROOM_SIGNAL_POLL_FAILED", self.classroom)
+        self.assertIn("CLASSROOM_SIGNAL_SEND_FAILED", self.classroom)
+
+    def test_teacher_permissions_are_applied_to_student_controls(self):
+        self.assertIn("function setStudentToolsPermission(permissions={})", self.patch)
+        self.assertIn('el.dataset.tool==="pen"?p.pen:el.dataset.tool==="eraser"?p.eraser:false', self.patch)
+        self.assertIn('if(typeof setStudentToolsPermission==="function")setStudentToolsPermission(permissions)', self.patch)
+
+    def test_web_room_loader_uses_corrected_runtime_revision(self):
+        self.assertIn("2b563538c1293fc5d73095edae6c60f09f759af3", self.room)
+
 
 if __name__ == "__main__":
     unittest.main()
