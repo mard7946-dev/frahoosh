@@ -1,1 +1,1 @@
-window.FRAHOOH_CONFIG={supabase_url:"https://gtmmllcxhdejwjjnyzrh.supabase.co",supabase_anon_key:"sb_publishable_9gf_wPQVUTO6STGZR6JNSw_YduXkxN0",school_name:"دبیرستان سردار شهید حاجی زاده ۲",school_year:"۱۴۰۵-۱۴۰۶"};
+window.FRAHOOH_CONFIG={supabase_url:"https://gtmmllcxhdejwjjnyzrh.supabase.co",supabase_anon_key:"sb_publishable_9gf_wPQVUTO6STGZR6JNSw_YduXkxN0",school_name:"دبیرستان سردار شهید حاجی زاده ۲",school_year:"۱۴۰۵-۱۴۰۶",tenant_school_id:"5c8b8880-1346-445c-89d8-3f76275a7ae5"};
