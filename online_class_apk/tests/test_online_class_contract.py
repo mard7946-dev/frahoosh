@@ -44,7 +44,8 @@ class OnlineClassContractTests(unittest.TestCase):
 
     def test_weekly_schedule_uses_existing_supabase_contract(self):
         self.assertIn("weekly_schedule_entries", self.entry)
-        self.assertIn("get_student_class_schedule", self.entry)
+        self.assertIn("get_public_student_class_schedule", self.entry)
+        self.assertIn("p_tenant_school_id:FRAHOOH_CONFIG.tenant_school_id", self.entry)
         self.assertIn('id="scheduleDay"', self.entry)
         self.assertIn('id="studentSchedule"', self.entry)
         self.assertIn('register_online_class_student_guest', self.entry)
@@ -70,16 +71,6 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('!config.userId', self.room)
         self.assertIn('frahoosh_online_class_config', self.room)
 
-    def test_signal_poll_has_timeout_and_is_mirrored_for_web_and_apk(self):
-        for source in (self.classroom, self.patch):
-            if "async function poll()" in source:
-                poll = source.split("async function poll()", 1)[1].split("function appendMsg", 1)[0]
-                self.assertIn("new AbortController()", poll)
-                self.assertIn("setTimeout(()=>ac.abort(),8000)", poll)
-        self.assertIn("new AbortController()", self.classroom)
-        self.assertIn("setTimeout(()=>ac.abort(),8000)", self.classroom)
-        self.assertIn("new AbortController()", (ROOT / "mobile" / "assets" / "online_class.html").read_text(encoding="utf-8"))
-
     def test_student_tools_remain_teacher_permission_gated(self):
         self.assertIn('const student=', self.patch)
         self.assertIn('const controller=', self.patch)
@@ -95,7 +86,6 @@ class OnlineClassContractTests(unittest.TestCase):
         web_classroom = ROOT / "mobile" / "assets" / "online_class.html"
         source_patch = ROOT / "online_class_apk" / "classroom_patch.js"
         self.assertEqual(self.entry, apk_entry.read_text(encoding="utf-8"))
-        self.assertEqual(self.room, apk_room.read_text(encoding="utf-8"))
         self.assertEqual(web_classroom.read_text(encoding="utf-8"), apk_classroom.read_text(encoding="utf-8"))
         self.assertEqual(source_patch.read_text(encoding="utf-8"), apk_patch.read_text(encoding="utf-8"))
 
@@ -136,11 +126,22 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn("hasMediaPermissions()", activity)
         self.assertIn("grantWebMediaPermission(request);", activity)
 
-    def test_shared_room_loader_falls_back_to_deployed_classroom_assets(self):
-        self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', self.room)
-        self.assertIn('getTextFallback(["/online_class_apk/classroom_patch.js","/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js"]', self.room)
-        self.assertIn("base.href=new URL(htmlResult.path,location.href).href", self.room)
-        self.assertNotIn("../../online_class_apk/app/src/main/assets", self.room)
+    def test_web_and_apk_room_loaders_use_deployment_appropriate_assets(self):
+        self.assertIn('const base="https://raw.githack.com/mard7946-dev/frahoosh/"', self.room)
+        self.assertIn("online_class_apk/app/src/main/assets/room_assets/online_class.html", self.room)
+        self.assertIn("online_class_apk/app/src/main/assets/room_assets/classroom_patch.js", self.room)
+        apk_room = (ROOT / "online_class_apk" / "app" / "src" / "main" / "assets" / "room.html").read_text(encoding="utf-8")
+        self.assertIn('getTextFallback(["/mobile/assets/online_class.html","/online_class_apk/app/src/main/assets/room_assets/online_class.html"]', apk_room)
+        self.assertIn("base.href=new URL(htmlResult.path,location.href).href", apk_room)
+
+    def test_signal_poll_is_single_flight_bounded_and_retries_after_stall(self):
+        poll = self.classroom.split("async function poll()", 1)[1].split("function appendMsg", 1)[0]
+        self.assertIn("pollInFlight", poll)
+        self.assertIn("new AbortController()", poll)
+        self.assertIn("setTimeout(()=>ac.abort(),8000)", poll)
+        self.assertIn("pollFailures", poll)
+        self.assertIn("Math.min(10000,900*Math.pow(2,pollFailures))", poll)
+        self.assertNotIn("setInterval(poll,900)", self.classroom)
 
     def test_whiteboard_fills_remaining_viewport_when_header_wraps(self):
         self.assertIn(".layout{flex:1 1 0;height:auto;min-height:0", self.classroom)
