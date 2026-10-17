@@ -70,6 +70,16 @@ class OnlineClassContractTests(unittest.TestCase):
         self.assertIn('!config.userId', self.room)
         self.assertIn('frahoosh_online_class_config', self.room)
 
+    def test_signal_poll_has_timeout_and_is_mirrored_for_web_and_apk(self):
+        for source in (self.classroom, self.patch):
+            if "async function poll()" in source:
+                poll = source.split("async function poll()", 1)[1].split("function appendMsg", 1)[0]
+                self.assertIn("new AbortController()", poll)
+                self.assertIn("setTimeout(()=>ac.abort(),8000)", poll)
+        self.assertIn("new AbortController()", self.classroom)
+        self.assertIn("setTimeout(()=>ac.abort(),8000)", self.classroom)
+        self.assertIn("new AbortController()", (ROOT / "mobile" / "assets" / "online_class.html").read_text(encoding="utf-8"))
+
     def test_student_tools_remain_teacher_permission_gated(self):
         self.assertIn('const student=', self.patch)
         self.assertIn('const controller=', self.patch)
