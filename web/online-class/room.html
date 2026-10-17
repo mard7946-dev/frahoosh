@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Frahoosh web classroom loader pinned to APK runtime revision 2b563538c1293fc5d73095edae6c60f09f759af3 -->
+<!-- Frahoosh web classroom loader pinned to APK runtime revision 5e8e3cc34d2b4b7fee483b66ca00109e7e22d485 -->
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
@@ -22,7 +22,7 @@ const box=document.getElementById("x"),frame=document.getElementById("room");
 const show=m=>{box.style.display="block";box.innerHTML=m+'<br><a href="index.html">بازگشت به ورود کلاس</a>';frame.style.display="none";};
 async function getText(path,label){
  const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
- try{const u=new URL(path);u.searchParams.set("_v","2b563538c1293fc5d73095edae6c60f09f759af3");const r=await fetch(u.href,{cache:"no-store",signal:c.signal});if(!r.ok)throw Error(label+" ("+r.status+")");return await r.text();}
+ try{const u=new URL(path);u.searchParams.set("_v","5e8e3cc34d2b4b7fee483b66ca00109e7e22d485");const r=await fetch(u.href,{cache:"no-store",signal:c.signal});if(!r.ok)throw Error(label+" ("+r.status+")");return await r.text();}
  catch(e){if(e&&e.name==="AbortError")throw Error(label+"؛ زمان پاسخ تمام شد.");throw e;}
  finally{clearTimeout(t);}
 }
@@ -34,7 +34,7 @@ async function start(){
  if(!config.url||!config.anon||!config.token||!config.classId||!config.userId){show("اطلاعات نشست کلاس ناقص است؛ از صفحه ورود کلاس دوباره وارد شوید.");return;}
  box.textContent="در حال بارگذاری محیط کلاس…";
  try{
-  const revision="2b563538c1293fc5d73095edae6c60f09f759af3";
+  const revision="5e8e3cc34d2b4b7fee483b66ca00109e7e22d485";
   const base="https://raw.githack.com/mard7946-dev/frahoosh/"+revision+"/";
   let [html,patch]=await Promise.all([
    getText(base+"online_class_apk/app/src/main/assets/room_assets/online_class.html","بارگذاری محیط کلاس ناموفق بود"),
