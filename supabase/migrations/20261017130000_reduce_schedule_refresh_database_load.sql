@@ -21,22 +21,9 @@ create index if not exists idx_weekly_schedule_weekday_times
 create index if not exists idx_weekly_schedule_normalized_weekday_times
   on public.weekly_schedule_entries (private.frahoosh_weekday_number(weekday), start_time, end_time)
   where start_time is not null and end_time is not null;
-create index if not exists idx_online_class_sessions_class_id_id
-  on public.online_class_sessions (class_id, id desc);
--- Hot read patterns confirmed by live PostgREST 504 logs.
-create index if not exists idx_online_class_sessions_active_class_id_id
-  on public.online_class_sessions (class_id, id desc)
-  where ended_at is null;
--- Supabase PostgREST logs show repeated 504s on these classroom polling paths.
--- The composite indexes support class-scoped, ordered incremental signal/board reads.
-create index if not exists idx_online_class_signals_class_id_id
-  on public.online_class_signals (class_id, id);
-create index if not exists idx_smart_board_files_class_id_id
-  on public.smart_board_files (class_id, id desc);
-create index if not exists idx_smart_board_quizzes_class_published_id
-  on public.smart_board_quizzes (class_id, is_published, id desc);
-create index if not exists idx_smart_board_whiteboards_class_page_id
-  on public.smart_board_whiteboards (class_id, page_no, id);
+-- Indexes for high-write classroom polling tables are deliberately deferred.
+-- Creating them with ordinary CREATE INDEX would block live classroom writes; build
+-- those separately with CREATE INDEX CONCURRENTLY during a verified maintenance window.
 create index if not exists idx_online_classes_due_to_close
   on public.online_classes (end_at)
   where auto_close = true and end_at is not null;
@@ -102,39 +89,52 @@ begin
       else null
     end;
 
-  -- Clear stale schedule windows for classes with no enabled entry today.
+  -- Clear stale schedule windows when there is no enabled entry for today.
+  -- Keep any live session marked active and preserve its existing time window.
   update public.online_classes c
-  set start_at = null,
-      end_at = null,
+  set start_at = case when exists (
+        select 1 from public.online_class_sessions s
+        where s.class_id = c.id
+          and nullif(btrim(coalesce(s.ended_at, '')), '') is null
+      ) then c.start_at else null end,
+      end_at = case when exists (
+        select 1 from public.online_class_sessions s
+        where s.class_id = c.id
+          and nullif(btrim(coalesce(s.ended_at, '')), '') is null
+      ) then c.end_at else null end,
       status = case when exists (
         select 1 from public.online_class_sessions s
         where s.class_id = c.id
           and nullif(btrim(coalesce(s.ended_at, '')), '') is null
       ) then 'active' else 'pending' end
-  where (c.start_at is not null or c.end_at is not null
+  where (
+      c.start_at is distinct from case when exists (
+        select 1 from public.online_class_sessions s
+        where s.class_id = c.id
+          and nullif(btrim(coalesce(s.ended_at, '')), '') is null
+      ) then c.start_at else null end
+      or c.end_at is distinct from case when exists (
+        select 1 from public.online_class_sessions s
+        where s.class_id = c.id
+          and nullif(btrim(coalesce(s.ended_at, '')), '') is null
+      ) then c.end_at else null end
       or c.status is distinct from case when exists (
         select 1 from public.online_class_sessions s
         where s.class_id = c.id
           and nullif(btrim(coalesce(s.ended_at, '')), '') is null
-      ) then 'active' else 'pending' end)
+      ) then 'active' else 'pending' end
+    )
     and exists (
       select 1 from public.weekly_schedule_entries w
       where w.online_class_id = c.id
         and w.start_time is not null and w.end_time is not null
-        and w.day_enabled
     )
     and not exists (
       select 1 from public.weekly_schedule_entries w
       where w.online_class_id = c.id
         and private.frahoosh_weekday_number(w.weekday) = v_weekday
+        and w.day_enabled
         and w.start_time is not null and w.end_time is not null
-    )
-    -- Do not erase end_at while a session is still live: the overdue-close
-    -- update below needs that timestamp to terminate the session correctly.
-    and not exists (
-      select 1 from public.online_class_sessions s
-      where s.class_id = c.id
-        and nullif(btrim(coalesce(s.ended_at, '')), '') is null
     );
 
   -- Close overdue sessions even if a class status was already marked closed.
