@@ -11,12 +11,14 @@ This directory contains the first isolated staging API slice. It does **not** re
 - `GET /api/classes`, `POST /api/classes`: manager/academic deputy can create classes; teacher/student lists are limited to assigned/membership classes.
 - `POST /api/classes/:id/start`: manager, academic deputy, or assigned teacher.
 - `GET/POST /api/classes/:id/signals`: authenticated class membership, active-class checks, and basic student tool permission checks.
+- `GET/POST /api/classes/:id/files` and `GET/DELETE /api/classes/:id/files/:fileId`: private R2 access with membership checks, file type allowlist, and a 20 MB limit.
+- `POST /api/classes/:id/end`: ends the class and removes its R2 objects and file metadata.
 
 ## Still not complete
 
 - The current web and APK clients still use the old Supabase Auth/REST/RPC/Storage endpoints. They have **not** been switched to this API.
 - Existing user accounts, password/reset workflows, tenant/school scope, enrolment, attendance, detailed teacher permission UI, chat, and board event formats have not been fully migrated.
-- R2 upload/download endpoints and automatic cleanup after class ends are not implemented yet.
+- R2 access is implemented for the new staging schema, but has not yet been security-tested against the existing classroom clients or a real Cloudflare account.
 - Signals currently provide a first API layer, not a guarantee that the existing browser clients understand the new payload format.
 - No Cloudflare account resources have been created or deployed by this repository change.
 
@@ -48,9 +50,10 @@ Before deployment, paste the real `database_id` returned by D1 creation into `wr
 2. Agree on how existing users will be securely migrated/reset; do not copy password hashes blindly or enable public registration.
 3. Run this schema and Worker only in staging; test manager, teacher, student and forbidden-access cases.
 4. Port enrolment, permissions, attendance, board event payloads and R2 file lifecycle.
-5. Adapt a staging copy of web and APK to this API and test button → API → stored result → refreshed UI, including camera/microphone permissions and live signalling.
-6. Confirm no old Supabase endpoint remains in the staged standalone path.
-7. Only then cut over production, keeping the existing build available for rollback.
+5. Port enrolment/attendance and reconcile the board/audio/video event payloads with the current classroom clients.
+6. Adapt a staging copy of web and APK to this API and test button → API → stored result → refreshed UI, including camera/microphone permissions and live signalling.
+7. Confirm no old Supabase endpoint remains in the staged standalone path.
+8. Only then cut over production, keeping the existing build available for rollback.
 
 ## Acceptance checklist
 
