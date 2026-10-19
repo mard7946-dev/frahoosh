@@ -1245,7 +1245,8 @@ class ModuleWorkspaceScreen(Screen):
         value = str(role or "").strip().lower()
         self.panel_role = {
             "management":"manager", "manager":"manager", "educational":"educational",
-            "executive":"executive", "cultural":"cultural", "advisor":"advisor",
+            "executive":"executive", "cultural":"cultural", "advisor":"advisor", "responsible":"responsible",
+            "مسئول مربوطه":"responsible",
             "teachers":"teacher", "teacher":"teacher", "staff":"staff"
         }.get(value, value)
 
