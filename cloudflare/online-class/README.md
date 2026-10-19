@@ -1,54 +1,63 @@
 # Frahoosh Online Class — Cloudflare migration
 
-This directory is an isolated migration scaffold. It does **not** replace the currently deployed classroom and does not modify the existing APK/web files.
+This directory contains the first isolated staging API slice. It does **not** replace the live classroom and does not modify existing web/APK runtime files.
 
-## Current status
+## Implemented in this branch
 
-- Worker health endpoint: implemented at `GET /health`.
-- D1 and R2 binding names: declared in `wrangler.jsonc`; resources still need to be provisioned in the intended Cloudflare account.
-- Login, user/role checks, class management, attendance, classroom signalling, and file upload/download: **not migrated**.
-- Existing web/APK still call Supabase endpoints. Do not switch their runtime configuration to this Worker until parity tests pass.
-- Unknown API routes return HTTP 501 (fail closed); no class data or R2 objects are publicly exposed.
+- `GET /health`: service/configuration status; intentionally reports `productionReady: false`.
+- `POST /api/auth/login`: username/password login with salted PBKDF2-SHA-256 password hashes and hashed bearer tokens stored in D1.
+- `GET /api/auth/me` and `POST /api/auth/logout`.
+- `POST /api/admin/users`: public registration is disabled. The first manager can be bootstrapped only when the user table is empty and a secret of at least 24 characters is configured as Worker secret `BOOTSTRAP_SECRET`. After that, only a manager can create accounts.
+- `GET /api/classes`, `POST /api/classes`: manager/academic deputy can create classes; teacher/student lists are limited to assigned/membership classes.
+- `POST /api/classes/:id/start`: manager, academic deputy, or assigned teacher.
+- `GET/POST /api/classes/:id/signals`: authenticated class membership, active-class checks, and basic student tool permission checks.
 
-## Deploy locally / to a test Worker
+## Still not complete
 
-From this directory, with an authenticated Cloudflare Wrangler session:
+- The current web and APK clients still use the old Supabase Auth/REST/RPC/Storage endpoints. They have **not** been switched to this API.
+- Existing user accounts, password/reset workflows, tenant/school scope, enrolment, attendance, detailed teacher permission UI, chat, and board event formats have not been fully migrated.
+- R2 upload/download endpoints and automatic cleanup after class ends are not implemented yet.
+- Signals currently provide a first API layer, not a guarantee that the existing browser clients understand the new payload format.
+- No Cloudflare account resources have been created or deployed by this repository change.
+
+The D1 migration is a clean **new staging schema**; it does not copy production data and must not be treated as a schema-perfect export of Supabase.
+
+## Local validation
+
+From this directory, with Node.js and Python 3 installed:
 
 ```sh
+node --check worker.js
+python tests/schema_smoke.py
+```
+
+With Wrangler authenticated to the intended Cloudflare account, first verify the resource names and IDs. Provision D1/R2 only in a staging account/environment, configure `BOOTSTRAP_SECRET` using `npx wrangler secret put BOOTSTRAP_SECRET`, and apply the D1 migration:
+
+```sh
+npx wrangler d1 create frahoosh-online-class
+npx wrangler r2 bucket create frahoosh-online-class-files
+npx wrangler d1 migrations apply frahoosh-online-class --remote
 npx wrangler dev
 ```
 
-The config declares D1 and R2 bindings. Review the resource names in the Cloudflare account before deploying. A deployment may provision resources; do not run production deployment until the account and resource names have been verified.
+Before deployment, paste the real `database_id` returned by D1 creation into `wrangler.jsonc`. Confirm the R2 bucket name matches exactly. Never put Cloudflare API tokens, R2 S3 credentials, passwords, or service-role keys in source control. Use Worker R2 bindings rather than exposing bucket keys to browsers.
 
-Health check:
+## Required cutover order
 
-```sh
-curl http://localhost:8787/health
-```
-
-A healthy scaffold returns `productionReady: false` deliberately.
-
-## Migration order (required)
-
-1. Inventory the real Supabase schema, RLS policies, RPC definitions, and Auth claims used by the standalone classroom.
-2. Define the Cloudflare identity/session model and explicit role/ownership checks before exposing any D1 or R2 data.
-3. Create versioned D1 migrations from the verified schema; do not guess columns or copy production data into a new database.
-4. Port APIs in small slices: login/session, class list/create, enrolment/attendance, teacher permissions and classroom signals.
-5. Add private R2 upload/download endpoints only after authenticated class membership, file-size/type limits, and object ownership checks are tested.
-6. Add integration tests for manager, teacher, student and guest; include denied-access cases.
-7. Point a staging copy of web and APK at the Worker, then test the complete flow: button → API → persisted result → refreshed display, including audio/video signalling and board permissions.
-8. Cut over production only after staging parity succeeds. Keep the current Supabase-backed build available for rollback until the cutover is verified.
-
-## Secrets
-
-Never commit Cloudflare API tokens, R2 Access Key IDs, R2 Secret Access Keys, Supabase service-role keys, or user credentials. Prefer Worker bindings for R2 access rather than putting S3 keys in browser code. Use Wrangler secrets for any server-side secret that is genuinely required.
+1. Export and review the actual standalone-classroom data model, Auth rules, RLS, and RPC behavior.
+2. Agree on how existing users will be securely migrated/reset; do not copy password hashes blindly or enable public registration.
+3. Run this schema and Worker only in staging; test manager, teacher, student and forbidden-access cases.
+4. Port enrolment, permissions, attendance, board event payloads and R2 file lifecycle.
+5. Adapt a staging copy of web and APK to this API and test button → API → stored result → refreshed UI, including camera/microphone permissions and live signalling.
+6. Confirm no old Supabase endpoint remains in the staged standalone path.
+7. Only then cut over production, keeping the existing build available for rollback.
 
 ## Acceptance checklist
 
-- [ ] Worker deployed to a non-production environment.
-- [ ] D1 migrations reviewed and applied to staging.
+- [ ] Cloudflare staging resources provisioned and health endpoint checked.
 - [ ] Authentication and role/ownership authorization tests pass.
-- [ ] R2 objects are private and inaccessible without authorized membership.
+- [ ] Existing account migration/reset plan approved and tested.
+- [ ] R2 objects remain private and are accessible only to class members.
 - [ ] Teacher permission changes propagate to student clients.
 - [ ] Audio/video signalling, board tools, attendance and file lifecycle pass web and APK tests.
 - [ ] No runtime request to Supabase remains in the migrated standalone classroom path.
