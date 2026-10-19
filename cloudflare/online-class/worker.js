@@ -180,6 +180,7 @@ export default {
         const input = await bodyJson(request);
         const kinds = ["presence", "leave", "board", "permissions", "audio", "video", "chat"];
         if (!input || !kinds.includes(input.kind)) return fail(400, "invalid_signal", "نوع پیام کلاس معتبر نیست.");
+        if (input.kind === "permissions" && !["manager", "academic_deputy", "teacher"].includes(user.role)) return fail(403, "permission_denied", "فقط دبیر یا مدیریت می‌تواند مجوزها را تغییر دهد.");
         if (user.role === "student" && input.kind === "board" && !membership.can_draw) return fail(403, "permission_denied", "اجازه استفاده از تخته را ندارید.");
         if (user.role === "student" && input.kind === "audio" && !membership.can_audio) return fail(403, "permission_denied", "اجازه استفاده از صدا را ندارید.");
         if (user.role === "student" && input.kind === "video" && !membership.can_video) return fail(403, "permission_denied", "اجازه استفاده از تصویر را ندارید.");
