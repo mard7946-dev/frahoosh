@@ -154,12 +154,88 @@ export default {
       return json({ ok: true, class: await env.DB.prepare("SELECT * FROM online_classes WHERE id=?").bind(classId).first() }, 201);
     }
 
-    const classMatch = path.match(/^\/api\/classes\/([a-f0-9-]+)(?:\/(start|signals))?$/i);
+
+    const filesMatch = path.match(/^\/api\/classes\/([a-f0-9-]+)\/files(?:\/([a-f0-9-]+))?$/i);
+    if (filesMatch) {
+      const classId = filesMatch[1];
+      const fileId = filesMatch[2] || null;
+      const { row, membership } = await classAccess(env, user, classId);
+      if (!row) return fail(404, "class_not_found", "کلاس پیدا نشد.");
+      if (!membership && !["manager", "academic_deputy"].includes(user.role)) return fail(403, "forbidden", "شما عضو این کلاس نیستید.");
+      if (!env.CLASS_FILES) return fail(503, "storage_unavailable", "اتصال فضای فایل فعال نیست.");
+
+      if (!fileId && request.method === "GET") {
+        const rows = await env.DB.prepare("SELECT id,original_name,content_type,size_bytes,uploaded_by,created_at FROM class_files WHERE class_id=? ORDER BY created_at DESC LIMIT 200").bind(classId).all();
+        return json({ ok: true, files: rows.results || [] });
+      }
+      if (!fileId && request.method === "POST") {
+        if (!["manager", "academic_deputy", "teacher"].includes(user.role)) return fail(403, "forbidden", "فقط دبیر یا مدیریت می‌تواند فایل بارگذاری کند.");
+        if (row.status === "ended") return fail(409, "class_ended", "کلاس پایان یافته است.");
+        const size = Number(request.headers.get("Content-Length") || 0);
+        if (!Number.isSafeInteger(size) || size < 1 || size > 20 * 1024 * 1024 || !request.body) return fail(413, "invalid_file_size", "حجم فایل باید حداکثر ۲۰ مگابایت باشد.");
+        const rawName = url.searchParams.get("filename") || "class-file";
+        const name = rawName.split(/[\\/]/).pop().replace(/[\\r\\n"]/g, "_").slice(0, 180) || "class-file";
+        const type = (request.headers.get("Content-Type") || "application/octet-stream").split(";")[0].trim().toLowerCase();
+        const allowedTypes = new Set(["application/pdf","image/png","image/jpeg","image/webp","text/plain","application/vnd.openxmlformats-officedocument.presentationml.presentation","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","application/vnd.ms-powerpoint","application/msword","application/vnd.ms-excel","audio/mpeg","audio/webm","video/mp4","video/webm"]);
+        if (!allowedTypes.has(type)) return fail(415, "unsupported_file_type", "نوع این فایل پشتیبانی نمی‌شود.");
+        const fileKeyId = id();
+        const objectKey = classId + "/" + fileKeyId;
+        await env.CLASS_FILES.put(objectKey, request.body, { httpMetadata: { contentType: type }, customMetadata: { originalName: name, classId: classId, uploadedBy: user.id } });
+        try {
+          await env.DB.prepare("INSERT INTO class_files(id,class_id,object_key,original_name,content_type,size_bytes,uploaded_by) VALUES(?,?,?,?,?,?,?)")
+            .bind(fileKeyId, classId, objectKey, name, type, size, user.id).run();
+        } catch (e) {
+          await env.CLASS_FILES.delete(objectKey);
+          throw e;
+        }
+        return json({ ok: true, file: { id: fileKeyId, original_name: name, content_type: type, size_bytes: size } }, 201);
+      }
+      if (fileId && request.method === "GET") {
+        const meta = await env.DB.prepare("SELECT * FROM class_files WHERE id=? AND class_id=?").bind(fileId, classId).first();
+        if (!meta) return fail(404, "file_not_found", "فایل پیدا نشد.");
+        const object = await env.CLASS_FILES.get(meta.object_key);
+        if (!object) return fail(404, "file_not_found", "محتوای فایل پیدا نشد.");
+        const dispositionName = encodeURIComponent(meta.original_name).replace(/['()]/g, escape);
+        return new Response(object.body, { status: 200, headers: {
+          ...corsHeaders, "Content-Type": meta.content_type, "Content-Length": String(meta.size_bytes),
+          "Content-Disposition": "attachment; filename*=UTF-8''" + dispositionName,
+          "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"
+        }});
+      }
+      if (fileId && request.method === "DELETE") {
+        const meta = await env.DB.prepare("SELECT * FROM class_files WHERE id=? AND class_id=?").bind(fileId, classId).first();
+        if (!meta) return fail(404, "file_not_found", "فایل پیدا نشد.");
+        if (!["manager", "academic_deputy"].includes(user.role) && !(user.role === "teacher" && (row.teacher_user_id === user.id || meta.uploaded_by === user.id))) {
+          return fail(403, "forbidden", "اجازه حذف این فایل را ندارید.");
+        }
+        await env.CLASS_FILES.delete(meta.object_key);
+        await env.DB.prepare("DELETE FROM class_files WHERE id=?").bind(fileId).run();
+        return json({ ok: true });
+      }
+      return fail(405, "method_not_allowed", "این روش برای فایل پشتیبانی نمی‌شود.");
+    }
+
+    const classMatch = path.match(/^\/api\/classes\/([a-f0-9-]+)(?:\/(start|end|signals))?$/i);
     if (classMatch) {
       const classId = classMatch[1];
       const action = classMatch[2] || "";
       const { row, membership } = await classAccess(env, user, classId);
       if (!row) return fail(404, "class_not_found", "کلاس پیدا نشد.");
+      if (action === "end" && request.method === "POST") {
+        if (!["manager", "academic_deputy"].includes(user.role) && !(user.role === "teacher" && (row.teacher_user_id === user.id || membership?.member_role === "teacher"))) {
+          return fail(403, "forbidden", "اجازه پایان دادن به این کلاس را ندارید.");
+        }
+        if (!env.CLASS_FILES) return fail(503, "storage_unavailable", "برای پاک‌سازی امن فایل‌ها، اتصال فضای فایل لازم است.");
+        let cursor;
+        do {
+          const page = await env.CLASS_FILES.list({ prefix: classId + "/", cursor, limit: 1000 });
+          if (page.objects.length) await env.CLASS_FILES.delete(page.objects.map(object => object.key));
+          cursor = page.truncated ? page.cursor : undefined;
+        } while (cursor);
+        await env.DB.prepare("DELETE FROM class_files WHERE class_id=?").bind(classId).run();
+        await env.DB.prepare("UPDATE online_classes SET status='ended',ended_at=? WHERE id=?").bind(new Date().toISOString(), classId).run();
+        return json({ ok: true, class: await env.DB.prepare("SELECT * FROM online_classes WHERE id=?").bind(classId).first(), filesDeleted: true });
+      }
       if (action === "start" && request.method === "POST") {
         if (!["manager", "academic_deputy"].includes(user.role) && !(user.role === "teacher" && (row.teacher_user_id === user.id || membership?.member_role === "teacher"))) {
           return fail(403, "forbidden", "اجازه شروع این کلاس را ندارید.");
