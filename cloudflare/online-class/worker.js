@@ -65,8 +65,8 @@ export default {
         ok: true, service: "frahoosh-online-class-api", stage: "staging-migration",
         d1Configured: Boolean(env.DB), r2Configured: Boolean(env.CLASS_FILES),
         productionReady: false,
-        features: ["login", "manager-onboarding", "classes", "class-signals"],
-        pending: ["production identity migration", "R2 upload/download", "web/APK parity tests"],
+        features: ["login", "manager-onboarding", "classes", "class-signals", "private-r2-files", "class-file-cleanup"],
+        pending: ["existing account migration", "enrolment and attendance", "web/APK parity tests"],
       });
     }
     if (!env.DB) return fail(503, "database_unavailable", "D1 binding DB is not configured.");
