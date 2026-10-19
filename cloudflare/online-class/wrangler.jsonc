@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "frahoosh-online-class-api",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-19",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "frahoosh-online-class"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "CLASS_FILES",
+      "bucket_name": "frahoosh-online-class-files"
+    }
+  ]
+}
