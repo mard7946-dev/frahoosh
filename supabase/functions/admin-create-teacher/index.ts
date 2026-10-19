@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
   if (!tenantSchoolId) return respond({ error: "مدرسه برای حساب مدیریت مشخص نشده است؛ تنظیم tenant_school_id را بررسی کنید." }, 400);
 
   const body = await req.json().catch(() => ({}));
-  const firstName = text(body.first_name), lastName = text(body.last_name);
+  const firstName = text(body.first_name), lastName = text(body.last_name);\n  const requestedRole = normRole(body.role || "teacher");\n  const allowedStaffRoles = ["teacher", "educational", "executive", "cultural"];\n  if (!allowedStaffRoles.includes(requestedRole)) return respond({ error: "نقش همکار مجاز نیست." }, 400);
   const username = text(body.username).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   const nationalCode = text(body.national_code).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   const employeeCode = text(body.employee_code).replace(/[^0-9]/g, "");
@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
   if (nationalCode && !/^\d{10}$/.test(nationalCode)) return respond({ error: "کد ملی در صورت ورود باید ۱۰ رقم باشد." }, 400);
   if (phone && !/^09\d{9}$/.test(phone)) return respond({ error: "شماره همراه در صورت ورود باید با قالب 09123456789 باشد." }, 400);
   if (!/^\S+@\S+\.\S+$/.test(email)) return respond({ error: "ایمیل واردشده معتبر نیست." }, 400);
-  if (password !== "12345") return respond({ error: "رمز اولیه حساب دبیر باید 12345 باشد." }, 400);
+  if (password.length < 12 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*()_+\-=[\]{};:\\|,.<>/?]/.test(password)) return respond({ error: "رمز موقت باید حداقل ۱۲ نویسه و شامل حرف بزرگ، عدد و نماد باشد." }, 400);
 
   const { data: usernameOwner, error: usernameError } = await admin
     .from("account_settings").select("username,national_code,role,auth_user_id")
@@ -73,13 +73,13 @@ Deno.serve(async (req: Request) => {
     existingByCode = data;
   }
   if (existingByCode?.auth_user_id) return respond({ error: "برای این دبیر قبلاً حساب ورود ساخته شده است." }, 409);
-  if (existingByCode && normRole(existingByCode.role) !== "teacher" && normRole(existingByCode.role) !== "دبیر") {
+  if (existingByCode && !allowedStaffRoles.includes(normRole(existingByCode.role)) && normRole(existingByCode.role) !== "دبیر") {
     return respond({ error: "این کد ملی به نقش دیگری متصل است؛ ابتدا اطلاعات آن حساب باید توسط مدیر بررسی شود." }, 409);
   }
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email, password, email_confirm: true,
-    user_metadata: { role: "teacher", display_name: displayName, ...(nationalCode ? { national_code: nationalCode } : {}), username, must_change_password: true }
+    user_metadata: { role: requestedRole, display_name: displayName, ...(nationalCode ? { national_code: nationalCode } : {}), username, must_change_password: true }
   });
   if (createError || !created.user) {
     return respond({ error: createError?.message ?? "ساخت حساب احراز هویت ناموفق بود." }, 400);
@@ -106,7 +106,7 @@ Deno.serve(async (req: Request) => {
     if (teacherWrite.error) throw teacherWrite.error;
 
     const accountRow = { username: finalUsername, display_name: displayName, email, national_code: nationalCode || null,
-      role: "teacher", auth_user_id: created.user.id, phone, tenant_school_id: tenantSchoolId, preferences: "{}" };
+      role: requestedRole, auth_user_id: created.user.id, phone, tenant_school_id: tenantSchoolId, preferences: "{}" };
     const accountWrite = existingByCode
       ? await admin.from("account_settings").update(accountRow).eq("username", existingByCode.username)
       : usernameOwner
@@ -114,7 +114,7 @@ Deno.serve(async (req: Request) => {
         : await admin.from("account_settings").insert(accountRow);
     if (accountWrite.error) throw accountWrite.error;
 
-    return respond({ success: true, username: finalUsername, role: "teacher", message: "حساب دبیر ایجاد شد." }, 201);
+    return respond({ success: true, username: finalUsername, role: requestedRole, message: "حساب همکار ایجاد شد." }, 201);
   } catch (e) {
     await admin.auth.admin.deleteUser(created.user.id);
     return respond({ error: "ذخیره پروفایل دبیر ناموفق بود؛ حساب موقت حذف شد. " + text((e as Error)?.message) }, 500);
