@@ -49,11 +49,10 @@ Before deployment, paste the real `database_id` returned by D1 creation into `wr
 1. Export and review the actual standalone-classroom data model, Auth rules, RLS, and RPC behavior.
 2. Agree on how existing users will be securely migrated/reset; do not copy password hashes blindly or enable public registration.
 3. Run this schema and Worker only in staging; test manager, teacher, student and forbidden-access cases.
-4. Port enrolment, permissions, attendance, board event payloads and R2 file lifecycle.
-5. Port enrolment/attendance and reconcile the board/audio/video event payloads with the current classroom clients.
-6. Adapt a staging copy of web and APK to this API and test button → API → stored result → refreshed UI, including camera/microphone permissions and live signalling.
-7. Confirm no old Supabase endpoint remains in the staged standalone path.
-8. Only then cut over production, keeping the existing build available for rollback.
+4. Port enrolment, permissions and attendance; reconcile board/audio/video event payloads with the current classroom clients.
+5. Adapt a staging copy of web and APK to this API and test button → API → stored result → refreshed UI, including camera/microphone permissions and live signalling.
+6. Confirm no old Supabase endpoint remains in the staged standalone path.
+7. Only then cut over production, keeping the existing build available for rollback.
 
 ## Acceptance checklist
 
