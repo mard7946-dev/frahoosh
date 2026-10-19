@@ -169,7 +169,7 @@ export default {
         return json({ ok: true, files: rows.results || [] });
       }
       if (!fileId && request.method === "POST") {
-        if (!["manager", "academic_deputy", "teacher"].includes(user.role)) return fail(403, "forbidden", "فقط دبیر یا مدیریت می‌تواند فایل بارگذاری کند.");
+        if (!["manager", "academic_deputy"].includes(user.role) && !(user.role === "teacher" && (row.teacher_user_id === user.id || membership?.member_role === "teacher"))) return fail(403, "forbidden", "فقط دبیر مسئول کلاس یا مدیریت می‌تواند فایل بارگذاری کند.");
         if (row.status === "ended") return fail(409, "class_ended", "کلاس پایان یافته است.");
         const size = Number(request.headers.get("Content-Length") || 0);
         if (!Number.isSafeInteger(size) || size < 1 || size > 20 * 1024 * 1024 || !request.body) return fail(413, "invalid_file_size", "حجم فایل باید حداکثر ۲۰ مگابایت باشد.");
@@ -205,7 +205,7 @@ export default {
       if (fileId && request.method === "DELETE") {
         const meta = await env.DB.prepare("SELECT * FROM class_files WHERE id=? AND class_id=?").bind(fileId, classId).first();
         if (!meta) return fail(404, "file_not_found", "فایل پیدا نشد.");
-        if (!["manager", "academic_deputy"].includes(user.role) && !(user.role === "teacher" && (row.teacher_user_id === user.id || meta.uploaded_by === user.id))) {
+        if (!["manager", "academic_deputy"].includes(user.role) && !(user.role === "teacher" && (row.teacher_user_id === user.id || membership?.member_role === "teacher") && meta.uploaded_by === user.id)) {
           return fail(403, "forbidden", "اجازه حذف این فایل را ندارید.");
         }
         await env.CLASS_FILES.delete(meta.object_key);
@@ -256,7 +256,7 @@ export default {
         const input = await bodyJson(request);
         const kinds = ["presence", "leave", "board", "permissions", "audio", "video", "chat"];
         if (!input || !kinds.includes(input.kind)) return fail(400, "invalid_signal", "نوع پیام کلاس معتبر نیست.");
-        if (input.kind === "permissions" && !["manager", "academic_deputy", "teacher"].includes(user.role)) return fail(403, "permission_denied", "فقط دبیر یا مدیریت می‌تواند مجوزها را تغییر دهد.");
+        if (input.kind === "permissions" && !["manager", "academic_deputy"].includes(user.role) && !(user.role === "teacher" && (row.teacher_user_id === user.id || membership?.member_role === "teacher"))) return fail(403, "permission_denied", "فقط دبیر مسئول کلاس یا مدیریت می‌تواند مجوزها را تغییر دهد.");
         if (user.role === "student" && input.kind === "board" && !membership.can_draw) return fail(403, "permission_denied", "اجازه استفاده از تخته را ندارید.");
         if (user.role === "student" && input.kind === "audio" && !membership.can_audio) return fail(403, "permission_denied", "اجازه استفاده از صدا را ندارید.");
         if (user.role === "student" && input.kind === "video" && !membership.can_video) return fail(403, "permission_denied", "اجازه استفاده از تصویر را ندارید.");
