@@ -17,10 +17,13 @@ class OnlineClassContractTests(unittest.TestCase):
         cls.classroom = CLASSROOM.read_text(encoding="utf-8")
         cls.patch = PATCH.read_text(encoding="utf-8")
 
-    def test_entry_offers_three_distinct_roles(self):
-        for role in ("manager", "teacher", "student"):
+    def test_entry_offers_four_distinct_roles_and_validates_deputy_accounts(self):
+        for role in ("manager", "deputy", "teacher", "student"):
             self.assertIn(f"chooseRole('{role}')", self.entry)
         self.assertNotIn("chooseRole('staff')", self.entry)
+        self.assertIn('data-login-role="deputy"', self.entry)
+        self.assertIn('deputyRoles=["educational","معاون آموزشی","executive","معاون اجرایی","cultural","معاون پرورشی","advisor","مشاوره"]', self.entry)
+        self.assertIn('selectedRole==="deputy"&&!deputyRoles.includes(actualRole)', self.entry)
 
     def test_teacher_and_student_rosters_are_local_not_posted_to_supabase(self):
         self.assertIn('writeLocalRows("frahoosh_local_students"', self.entry)
