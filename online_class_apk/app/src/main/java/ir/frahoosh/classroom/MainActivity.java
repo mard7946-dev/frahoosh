@@ -88,7 +88,9 @@ public final class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return false;
+                // Keep navigation inside the trusted classroom origin. This also prevents
+                // an arbitrary page opened by a link from requesting camera/microphone access.
+                return !isTrustedClassroomOrigin(request.getUrl());
             }
 
             @Override
@@ -112,6 +114,10 @@ public final class MainActivity extends Activity {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> {
+                    if (request == null || !isTrustedClassroomOrigin(request.getOrigin())) {
+                        if (request != null) request.deny();
+                        return;
+                    }
                     if (hasMediaPermissions()) {
                         grantWebMediaPermission(request);
                     } else {
@@ -152,9 +158,13 @@ public final class MainActivity extends Activity {
             asset = "index.html";
         } else if (path.endsWith("/online-class/room.html")) {
             asset = "room.html";
-        } else if (path.endsWith("/online-class/online_class.html") || path.endsWith("/mobile/assets/online_class.html")) {
+        } else if (path.endsWith("/online-class/online_class.html")
+                || path.endsWith("/mobile/assets/online_class.html")
+                || path.endsWith("/online_class_apk/app/src/main/assets/room_assets/online_class.html")) {
             asset = "room_assets/online_class.html";
-        } else if (path.endsWith("/online-class/classroom_patch.js") || path.endsWith("/online_class_apk/classroom_patch.js")) {
+        } else if (path.endsWith("/online-class/classroom_patch.js")
+                || path.endsWith("/online_class_apk/classroom_patch.js")
+                || path.endsWith("/online_class_apk/app/src/main/assets/room_assets/classroom_patch.js")) {
             asset = "room_assets/classroom_patch.js";
         }
         if (asset == null) return null;
@@ -166,6 +176,19 @@ public final class MainActivity extends Activity {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    /**
+     * Only the deployed Frahoosh classroom origin may request WebView media capture.
+     * Android runtime permission alone is not sufficient to trust an arbitrary web origin.
+     */
+    private boolean isTrustedClassroomOrigin(Uri uri) {
+        if (uri == null || !"https".equalsIgnoreCase(uri.getScheme())) {
+            return false;
+        }
+        String host = uri.getHost();
+        return "frahoosh.ir".equalsIgnoreCase(host)
+                || "www.frahoosh.ir".equalsIgnoreCase(host);
     }
 
     private boolean hasMediaPermissions() {
