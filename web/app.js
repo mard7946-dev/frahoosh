@@ -59,10 +59,33 @@ function allowedPanels(){
  const map={educational:["educational"],executive:["executive"],cultural:["cultural"],advisor:["advisor"],teacher:["teachers"],student:["students"],parent:["parents"]};
  return map[r]||[];
 }
+const dashboardShortcuts={
+ manager:[
+  ["کلاس آنلاین","▣","online","online_classes"],["وضعیت دانش‌آموزان","♙","students","students"],["ارتباط با اولیا","♡","messages","messages"],["امور مالی","＄","finance","payment_records"],["مشاوره","☼","advisor","counseling_records"],["وضعیت دبیران","✎","teachers","teachers"],["تابلوی اطلاع‌رسانی","▤","smart_board","smart_board_content"],["تأیید موارد انضباطی","✓","educational","discipline_records"],["پیگیری ارجاعات","↗","educational","student_referrals"]
+ ],
+ teacher:[
+  ["کلاس آنلاین","▣","online","online_classes"],["دفتر کلاسی","▤","teachers","attendance"],["ثبت نمرات کلاسی","✎","teachers","grades"],["ثبت موارد انضباطی","✓","teachers","discipline_records"],["ثبت تکالیف","✐","teachers","assignments"],["ارجاع به واحد مربوطه","↗","teachers","student_referrals"]
+ ],
+ student:[
+  ["کلاس آنلاین","▣","online","online_classes"],["مشاهده نمرات درسی","★","students","student_grades"],["مشاهده موارد انضباطی","✓","students","discipline_records"],["ارتباط با مدرسه","✉","messages","messages"],["تکالیف","✐","students","assignments"]
+ ],
+ deputy:[
+  ["کلاس آنلاین","▣","online","online_classes"],["فعالیت‌های اختصاصی","✦","executive","executive_operations"],["گزارش‌ها","▥","reports","ai_smart_reports"],["تابلوی اطلاع‌رسانی","▤","smart_board","smart_board_content"],["ثبت موارد انضباطی","✓","educational","discipline_records"],["پیگیری ارجاعات","↗","educational","student_referrals"]
+ ],
+ advisor:[
+  ["گزارش غربالگری و نماد","▥","advisor","ai_smart_reports"],["تشکیل پرونده مشاوره","▣","advisor","counseling_records"],["نوبت‌دهی مشاوره","◷","advisor","parent_meetings"],["پیگیری مشاوره‌ای","↗","advisor","counseling_followups"],["ارجاع به مدیر","⇧","advisor","student_referrals"]
+ ],
+ parent:[
+  ["مشاهده پرونده دانش‌آموز","▣","parents","students"],["انتخاب تعداد دانش‌آموزان","♙","parents","parent_children"],["مشاهده وضعیت دانش‌آموز","▥","parents","student_grades"],["تابلوی اطلاع‌رسانی","▤","smart_board","smart_board_content"]
+ ]
+};
+function dashboardGroupForRole(r){if(r==="manager")return "manager";if(r==="teacher")return "teacher";if(r==="student")return "student";if(r==="parent")return "parent";if(r==="advisor")return "advisor";if(["educational","executive","cultural"].includes(r))return "deputy";return "manager"}
+function openQuickItem(item){openPanel(item[2]);openTable(item[3]);$("workspaceTitle").textContent=item[0]}
 function renderDashboard(){
  show("dashboard");$("schoolTitle").textContent=CFG.school_name||"دبیرستان";$("welcome").textContent="خوش آمدید، "+(profile?.display_name||profile?.username||"کاربر");
  const r=role();$("role").textContent="پنل "+(roles[r]||r)+(subscriptionState.expired&&!platformAdmin?" | اشتراک منقضی شده":" | دسترسی فعال");$("status").textContent=subscriptionState.expired&&!platformAdmin?"اشتراک مدرسه پایان یافته است؛ بخش‌های آموزشی تا تمدید اشتراک قفل هستند. از بخش «اشتراک مدارس» وضعیت را ببینید.":subscriptionState.unknown?"وضعیت اشتراک هنوز قابل تأیید نیست.":subscriptionState.record?"پایان اشتراک: "+new Date(subscriptionState.record.ends_at).toLocaleDateString("fa-IR")+" | ظرفیت: "+subscriptionState.record.student_limit+" دانش‌آموز":"";$("status").style.color=subscriptionState.expired&&!platformAdmin?"#b42318":"#66758b";$("panels").innerHTML="";
- allowedPanels().forEach(k=>{const items=catalog.panels[k]||[],el=document.createElement("button");el.className="panel";el.innerHTML="<b>"+esc(panelTitles[k]||catalog.friendly?.[k]||k)+"</b><span>"+items.length+" زیرپنل عملیاتی</span>";el.onclick=()=>openPanel(k);$("panels").appendChild(el)});
+ const shortcuts=dashboardShortcuts[dashboardGroupForRole(r)]||dashboardShortcuts.manager;
+ shortcuts.forEach(item=>{const el=document.createElement("button");el.type="button";el.className="panel quick-panel";el.innerHTML='<span class="quick-icon" aria-hidden="true">'+esc(item[1])+'</span><b>'+esc(item[0])+'</b><span class="quick-hint">ورود به بخش</span>';el.onclick=()=>openQuickItem(item);$("panels").appendChild(el)});
 }
 function canWrite(table){
  const r=role();
