@@ -30,3 +30,11 @@
 .credential-heading .link{font-size:12px}
 @media(min-width:600px){.role-chooser{grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.role-tile{min-height:128px}.role-manager{min-height:150px}.role-advisor{min-height:100px}}
 @media(max-width:420px){.homepage-card{margin:12px auto;padding:19px 15px;border-radius:22px}.role-chooser{gap:9px}.role-tile{min-height:108px;padding:10px 6px}.role-manager{min-height:125px}.role-tile small{font-size:10px}.role-advisor{min-height:85px}}
+
+/* Role-specific dashboard shortcuts */
+.quick-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:9px;min-height:142px;background:linear-gradient(145deg,#fff,#f4f8fd);border:1px solid #d4e1ef;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+.quick-panel:hover,.quick-panel:focus-visible{transform:translateY(-2px);border-color:#e4ad3e;box-shadow:0 12px 26px #173d681b;outline:none}
+.quick-panel .quick-icon{display:grid;place-items:center;width:54px;height:54px;border-radius:17px;background:linear-gradient(145deg,#123e70,#0a2a50);color:#ffd27b;font-size:28px;font-weight:800;box-shadow:0 5px 12px #123e7026}
+.quick-panel b{font-size:15px;color:#123e70;line-height:1.7;margin:0}
+.quick-panel .quick-hint{font-size:11px;color:#73849a}
+@media(max-width:700px){.quick-panel{min-height:126px;padding:11px 7px;gap:7px}.quick-panel .quick-icon{width:45px;height:45px;font-size:24px;border-radius:14px}.quick-panel b{font-size:12px;line-height:1.8}.quick-panel .quick-hint{font-size:10px}}
