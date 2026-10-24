@@ -84,7 +84,7 @@ function openQuickItem(item){openPanel(item[2]);openTable(item[3]);$("workspaceT
 function renderDashboard(){
  show("dashboard");$("schoolTitle").textContent=CFG.school_name||"دبیرستان";$("welcome").textContent="خوش آمدید، "+(profile?.display_name||profile?.username||"کاربر");
  const r=role();$("role").textContent="پنل "+(roles[r]||r)+(subscriptionState.expired&&!platformAdmin?" | اشتراک منقضی شده":" | دسترسی فعال");$("status").textContent=subscriptionState.expired&&!platformAdmin?"اشتراک مدرسه پایان یافته است؛ بخش‌های آموزشی تا تمدید اشتراک قفل هستند. از بخش «اشتراک مدارس» وضعیت را ببینید.":subscriptionState.unknown?"وضعیت اشتراک هنوز قابل تأیید نیست.":subscriptionState.record?"پایان اشتراک: "+new Date(subscriptionState.record.ends_at).toLocaleDateString("fa-IR")+" | ظرفیت: "+subscriptionState.record.student_limit+" دانش‌آموز":"";$("status").style.color=subscriptionState.expired&&!platformAdmin?"#b42318":"#66758b";$("panels").innerHTML="";
- const shortcuts=dashboardShortcuts[dashboardGroupForRole(r)]||dashboardShortcuts.manager;
+ const shortcuts=subscriptionState.expired&&!platformAdmin?[["مدیریت اشتراک","▤","management","school_subscriptions"]]:(dashboardShortcuts[dashboardGroupForRole(r)]||dashboardShortcuts.manager);
  shortcuts.forEach(item=>{const el=document.createElement("button");el.type="button";el.className="panel quick-panel";el.innerHTML='<span class="quick-icon" aria-hidden="true">'+esc(item[1])+'</span><b>'+esc(item[0])+'</b><span class="quick-hint">ورود به بخش</span>';el.onclick=()=>openQuickItem(item);$("panels").appendChild(el)});
 }
 function canWrite(table){
