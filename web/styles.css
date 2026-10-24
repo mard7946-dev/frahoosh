@@ -11,3 +11,22 @@
 .status-expired{display:inline-block;border-radius:999px;background:#fff0ee;color:#b42318;padding:5px 10px;font-size:12px;font-weight:700}
 #tableArea .table-wrap h3{margin:0 0 8px}
 #tableArea .table-wrap h4{margin:20px 0 10px}
+
+/* Six-role landing page */
+.homepage-card{position:relative;top:auto;left:auto;transform:none;width:min(760px,94vw);margin:28px auto;padding:clamp(20px,4vw,34px);background:rgba(3,18,49,.94);border:1px solid rgba(177,211,245,.24);border-radius:28px}
+.homepage-card h1{font-size:clamp(19px,3vw,25px);line-height:1.7}
+.homepage-card .slogan{font-size:clamp(12px,2vw,14px);margin:10px 0 22px}
+.role-chooser{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;direction:rtl}
+.role-tile{min-width:0;min-height:118px;border:1px solid rgba(160,199,237,.28);border-radius:19px;padding:15px 10px;background:linear-gradient(145deg,#123b68,#0b284c);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;cursor:pointer;text-align:center;transition:transform .16s ease,border-color .16s ease,background .16s ease}
+.role-tile:hover,.role-tile:focus-visible{transform:translateY(-2px);border-color:#f2b53b;outline:none;background:linear-gradient(145deg,#174a7e,#10345c)}
+.role-tile b{font-size:16px}.role-tile small{font-size:11px;color:#c1d5ec;line-height:1.6}
+.role-icon{width:43px;height:43px;display:grid;place-items:center;border-radius:14px;background:rgba(242,181,59,.14);border:1px solid rgba(242,181,59,.35);color:#ffd27b;font-size:25px;font-weight:800}
+.role-manager{grid-column:1/-1;min-height:140px;background:linear-gradient(135deg,#1b5687,#0a2a50);border-color:rgba(242,181,59,.65)}
+.role-manager .role-icon{width:56px;height:56px;font-size:32px}.role-manager b{font-size:22px}
+.role-advisor{grid-column:1/-1;min-height:98px;flex-direction:row;gap:13px}
+.role-advisor .role-icon{flex-shrink:0}.role-advisor small{display:none}
+.credential-panel{margin-top:18px;text-align:right}
+.credential-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#fff;font-weight:800;margin-bottom:10px}
+.credential-heading .link{font-size:12px}
+@media(min-width:600px){.role-chooser{grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.role-tile{min-height:128px}.role-manager{min-height:150px}.role-advisor{min-height:100px}}
+@media(max-width:420px){.homepage-card{margin:12px auto;padding:19px 15px;border-radius:22px}.role-chooser{gap:9px}.role-tile{min-height:108px;padding:10px 6px}.role-manager{min-height:125px}.role-tile small{font-size:10px}.role-advisor{min-height:85px}}
