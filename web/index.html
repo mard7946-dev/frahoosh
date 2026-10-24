@@ -7,13 +7,25 @@
 </head>
 <body>
 <div id="app">
-<section id="login" class="screen"><div class="login-card">
-<div class="school-label">نام دبیرستان</div><h1 id="schoolName">دبیرستان سردار شهید حاجی زاده ۲</h1>
-<p class="slogan">سامانه مدیریت هوشمند یکپارچه مدرسه<br>یادگیری هوشمند- مدرسه ای یکپارچه- دانش آموز خلاق</p>
+<section id="login" class="screen"><div class="login-card homepage-card">
+<div class="school-label">سامانه آموزشی مدرسه</div>
+<h1 id="schoolName">دبیرستان سردار شهید حاجی زاده ۲</h1>
+<p class="slogan">سامانه مدیریت هوشمند یکپارچه مدرسه<br>یادگیری هوشمند، مدرسه یکپارچه، دانش‌آموز خلاق</p>
+<div id="roleChooser" class="role-chooser" aria-label="انتخاب بخش ورود">
+<button type="button" class="role-tile role-manager" data-role-label="مدیریت"><span class="role-icon" aria-hidden="true">♛</span><b>مدیریت</b><small>مدیریت یکپارچه مدرسه</small></button>
+<button type="button" class="role-tile" data-role-label="معاونت"><span class="role-icon" aria-hidden="true">▦</span><b>معاونت</b><small>امور اجرایی و آموزشی</small></button>
+<button type="button" class="role-tile" data-role-label="دبیران"><span class="role-icon" aria-hidden="true">✎</span><b>دبیران</b><small>برنامه و فعالیت‌های درسی</small></button>
+<button type="button" class="role-tile" data-role-label="اولیا"><span class="role-icon" aria-hidden="true">♡</span><b>اولیا</b><small>پیگیری وضعیت دانش‌آموز</small></button>
+<button type="button" class="role-tile" data-role-label="دانش‌آموز"><span class="role-icon" aria-hidden="true">🎓</span><b>دانش‌آموز</b><small>دسترسی به امور آموزشی</small></button>
+<button type="button" class="role-tile role-advisor" data-role-label="مشاوره"><span class="role-icon" aria-hidden="true">☼</span><b>مشاوره</b><small>راهنمایی و پشتیبانی</small></button>
+</div>
+<div id="credentialPanel" class="credential-panel hidden">
+<div class="credential-heading"><span id="selectedRoleLabel">ورود به سامانه</span><button type="button" id="backToRoles" class="link">← بازگشت به انتخاب بخش</button></div>
 <input id="identifier" inputmode="numeric" autocomplete="username" placeholder="نام کاربری یا کد ملی">
 <input id="password" type="password" autocomplete="current-password" placeholder="رمز عبور">
-<div class="login-options"><label><input id="remember" type="checkbox"> مرا بخاطر بسپار</label><button id="forgot" class="link">فراموشی رمز</button></div>
-<button id="loginBtn" class="primary big">ورود →</button><div id="loginStatus" class="status"></div>
+<div class="login-options"><label><input id="remember" type="checkbox"> مرا به خاطر بسپار</label><button id="forgot" class="link">فراموشی رمز</button></div>
+<button id="loginBtn" class="primary big">ورود به سامانه ←</button><div id="loginStatus" class="status"></div>
+</div>
 </div></section>
 <section id="dashboard" class="screen hidden"><header class="top"><div><div class="brand">فراهوش</div><div id="schoolTitle"></div></div><div class="userbox"><b id="welcome"></b><span id="role"></span><button id="logout" class="danger">خروج</button></div></header>
 <main><div class="section-title">پنل سامانه</div><div id="panels" class="panel-grid"></div><div id="status" class="status"></div></main></section>
@@ -22,5 +34,8 @@
 </div>
 <script src="runtime-config.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="app.js?v=login-username-20261016"></script>
+<script src="app.js?v=six-role-homepage-20261024"></script>
+<script>
+(()=>{const chooser=document.getElementById('roleChooser'),panel=document.getElementById('credentialPanel'),label=document.getElementById('selectedRoleLabel');if(!chooser||!panel)return;chooser.querySelectorAll('[data-role-label]').forEach(button=>button.addEventListener('click',()=>{label.textContent='ورود بخش '+button.dataset.roleLabel;chooser.classList.add('hidden');panel.classList.remove('hidden');document.getElementById('identifier').focus()}));document.getElementById('backToRoles').addEventListener('click',()=>{panel.classList.add('hidden');chooser.classList.remove('hidden')})})();
+</script>
 </body></html>
