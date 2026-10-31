@@ -3,6 +3,12 @@ name: Frahoosh Android Build
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_apk:
+        description: 'Publish the signed APK to the public download branch'
+        required: true
+        type: boolean
+        default: false
   push:
     branches:
       - main
@@ -448,7 +454,7 @@ jobs:
           retention-days: 14
 
       - name: Publish signed APK to stable download branch
-        if: success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && env.ANDROID_KEYSTORE_BASE64 != ''
+        if: success() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_apk == true)) && env.ANDROID_KEYSTORE_BASE64 != ''
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
